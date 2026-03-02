@@ -847,6 +847,8 @@ function evaluatePixel(sample) {
 }`;
 
         const b64 = btoa(fisScript);
+        const bboxStr = `${bounds.getWest()},${bounds.getSouth()},${bounds.getEast()},${bounds.getNorth()}`;
+
         // Determine Temporal Range
         let timeRange;
         let chartTitleLabel = "";
@@ -1027,7 +1029,6 @@ function evaluatePixel(sample) {
 
             // Force normal math payload, not difference payload for animation
             const b64Math = btoa(idx.evalScript);
-            const bboxStr = `${bounds.getWest()},${bounds.getSouth()},${bounds.getEast()},${bounds.getNorth()}`;
 
             const frameUrls = frameIndices.map(i => {
                 const dateStr = ALL_DATES[i].value;
