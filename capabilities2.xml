@@ -1,0 +1,963 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<WMS_Capabilities version="1.3.0" xsi:schemaLocation="https:/inspire.ec.europa.eu/schemas/inspire_vs/1.0 https://inspire.ec.europa.eu/schemas/inspire_vs/1.0/inspire_vs.xsd" xmlns:inspire_common="https://inspire.ec.europa.eu/schemas/common/1.0" xmlns:inspire_vs="https://inspire.ec.europa.eu/schemas/inspire_vs/1.0" xmlns="http://www.opengis.net/wms" xmlns:sld="http://www.opengis.net/sld" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">	<Service>
+		<Name>WMS</Name>
+		<Title>Sentinel Hub WMS service - Configuration 1</Title>
+		<Abstract>
+<![CDATA[The Copernicus project's Sentinel satellites are revolutionizing earth observation (EO). Its free, full and open access to data with very short revisit times, high spatial resolution, and good spectral resolution are crucial for many applications. The portfolio of possible products is vast - use-cases of such a service range from plant health monitoring, land and water body change, flood monitoring, disaster mapping and more.However the current gap between Sentinel source data and its end-users is large: ESA's complex Scientific Data Hub raster files are compressed with JPEG2000 (13 raster filesfor each product, one per spectral band) terabytes of data per week additional processing requirementsTackling the data in an old-fashioned way - offering individual derivative products simply does not work anymore, the associated time and costs are large and defeat most of the major benefits of the Sentinel project. Our approach combines cloud-based GIS technologies, parallel processing and fully automated procedures. To support the fast developing EO field we provide tools directly to end-users. on-the-fly processing and visualization make it possible to build new products (e.g. vegetation indices and similar) in a matter of minutes.]]>		</Abstract>
+<OnlineResource xmlns:xlink="http://www.w3.org/1999/xlink" xlink:href="https://www.sentinel-hub.com" />
+<ContactInformation>
+  <ContactAddress>
+    <AddressType>postal</AddressType>
+    <Address>Cvetkova ulica 29</Address>
+    <City>Ljubljana</City>
+    <StateOrProvince/>
+    <PostCode>1000</PostCode>
+    <Country>Slovenia</Country>
+  </ContactAddress>
+  <ContactVoiceTelephone>+386 1 320-61-50</ContactVoiceTelephone>
+  <ContactFacsimileTelephone>+386 1 620-22-28</ContactFacsimileTelephone>
+  <ContactElectronicMailAddress>info@sinergise.com</ContactElectronicMailAddress>
+</ContactInformation>
+<Fees>https://www.sentinel-hub.com</Fees>     <AccessConstraints>
+     None
+     </AccessConstraints>
+     <Keyword>
+     humanGeographicViewer,thematicMultibandImageManipulationService,thematicProcessingService
+     </Keyword>
+	</Service>
+	<Capability>
+		<Request>
+			<GetCapabilities>
+				<Format>application/xml</Format>
+				<Format>text/xml</Format>
+				<Format>application/vnd.ogc.wms_xml</Format>
+<DCPType>
+	<HTTP>
+		<Get>
+			<OnlineResource xlink:href="https://sh.dataspace.copernicus.eu/ogc/wms/959ea2c5-5892-4b36-82b3-76e6bdb93c8a?" />
+		</Get>
+	</HTTP>
+</DCPType>
+			</GetCapabilities>
+			<GetMap>
+				<Format>image/png</Format>
+				<Format>image/jpeg</Format>
+				<Format>image/jpg</Format>
+				<Format>image/webp</Format>
+				<Format>image/tiff</Format>
+				<Format>application/vnd.google-earth.kmz+xml</Format>
+				<Format>image/tiff;depth=8</Format>
+				<Format>image/tiff;depth=16</Format>
+				<Format>image/tiff;depth=32f</Format>
+				<Format>application/vnd.google-earth.kmz+xml;image_type=image/jpeg</Format>
+				<Format>application/vnd.google-earth.kmz+xml;image_type=image/png</Format>
+				<Format>application/x-esri-shape</Format>
+				<Format>application/json</Format>
+<DCPType>
+	<HTTP>
+		<Get>
+			<OnlineResource xlink:href="https://sh.dataspace.copernicus.eu/ogc/wms/959ea2c5-5892-4b36-82b3-76e6bdb93c8a?" />
+		</Get>
+	</HTTP>
+</DCPType>
+			</GetMap>
+			<GetFeatureInfo>
+				<Format>application/xml</Format>
+				<Format>text/xml</Format>
+				<Format>application/vnd.ogc.wms_xml</Format>
+				<Format>application/vnd.ogc.gml</Format>
+				<Format>text/html</Format>
+				<Format>application/json</Format>
+				<Format>text/plain</Format>
+<DCPType>
+	<HTTP>
+		<Get>
+			<OnlineResource xlink:href="https://sh.dataspace.copernicus.eu/ogc/wms/959ea2c5-5892-4b36-82b3-76e6bdb93c8a?" />
+		</Get>
+	</HTTP>
+</DCPType>
+			</GetFeatureInfo>
+		</Request>
+		<Exception>
+			<Format>XML</Format>
+		</Exception>
+        <inspire_vs:ExtendedCapabilities>
+            <inspire_common:ResourceLocator>
+                <inspire_common:URL>https://sh.dataspace.copernicus.eu/ogc/wms/959ea2c5-5892-4b36-82b3-76e6bdb93c8a?REQUEST=GetCapabilities</inspire_common:URL>
+                <inspire_common:MediaType>text/xml</inspire_common:MediaType>
+            </inspire_common:ResourceLocator>
+            <inspire_common:ResourceType>service</inspire_common:ResourceType>
+            <inspire_common:TemporalReference>
+                <inspire_common:DateOfPublication>2015-11-30</inspire_common:DateOfPublication>
+            </inspire_common:TemporalReference>
+            <inspire_common:Conformity>
+                <inspire_common:Specification>
+                    <inspire_common:Title>COMMISSION REGULATION (EU) No 1089/2010 of 23 November 2010 implementing Directive 2007/2/EC of the European Parliament and of the Council as regards interoperability of spatial data sets and services</inspire_common:Title>
+                    <inspire_common:DateOfPublication>2010-12-08</inspire_common:DateOfPublication>
+                    <inspire_common:URI>OJ:L:2010:323:0011:0102:EN:PDF</inspire_common:URI>
+                    <inspire_common:ResourceLocator>
+                        <inspire_common:URL>https://eur-lex.europa.eu/LexUriServ/LexUriServ.do?uri=OJ:L:2010:323:0011:0102:EN:PDF</inspire_common:URL>
+                        <inspire_common:MediaType>application/pdf</inspire_common:MediaType>
+                    </inspire_common:ResourceLocator>
+                </inspire_common:Specification>
+                <inspire_common:Degree>notEvaluated</inspire_common:Degree>
+            </inspire_common:Conformity>
+            <inspire_common:MetadataPointOfContact>
+<inspire_common:OrganisationName>Sinergise d.o.o.</inspire_common:OrganisationName>
+<inspire_common:EmailAddress>info@sentinel-hub.com</inspire_common:EmailAddress>            </inspire_common:MetadataPointOfContact>
+            <inspire_common:MetadataDate>2015-11-30</inspire_common:MetadataDate>
+            <inspire_common:SpatialDataServiceType>view</inspire_common:SpatialDataServiceType>
+            <inspire_common:MandatoryKeyword>
+                <inspire_common:KeywordValue>infoMapAccessService</inspire_common:KeywordValue>
+            </inspire_common:MandatoryKeyword>
+            <inspire_common:SupportedLanguages>
+                <inspire_common:DefaultLanguage>
+                    <inspire_common:Language>eng</inspire_common:Language>
+                </inspire_common:DefaultLanguage>
+            </inspire_common:SupportedLanguages>
+            <inspire_common:ResponseLanguage>
+                <inspire_common:Language>eng</inspire_common:Language>
+            </inspire_common:ResponseLanguage>
+        </inspire_vs:ExtendedCapabilities>
+		<Layer>
+			<Title>Sentinel Hub WMS</Title>
+			<Abstract>WMS layer</Abstract>
+			<CRS>EPSG:3857</CRS>
+			<CRS>CRS:84</CRS>
+			<CRS>EPSG:4326</CRS>
+			<CRS>EPSG:3035</CRS>
+			<CRS>EPSG:27700</CRS>
+			<CRS>EPSG:2157</CRS>
+			<CRS>EPSG:2154</CRS>
+			<CRS>EPSG:3912</CRS>
+			<CRS>EPSG:3794</CRS>
+			<CRS>EPSG:5514</CRS>
+			<CRS>EPSG:3765</CRS>
+			<CRS>EPSG:4026</CRS>
+			<CRS>SR-ORG:98739</CRS>
+			<CRS>EPSG:28992</CRS>
+			<CRS>EPSG:3003</CRS>
+			<CRS>EPSG:3004</CRS>
+			<CRS>EPSG:3844</CRS>
+			<CRS>EPSG:3346</CRS>
+			<CRS>EPSG:3301</CRS>
+			<CRS>EPSG:2180</CRS>
+			<CRS>EPSG:31287</CRS>
+			<CRS>EPSG:3416</CRS>
+			<CRS>EPSG:2193</CRS>
+			<CRS>EPSG:3006</CRS>
+			<CRS>EPSG:3005</CRS>
+			<CRS>EPSG:3578</CRS>
+			<CRS>EPSG:3161</CRS>
+			<CRS>EPSG:3580</CRS>
+			<CRS>EPSG:32184</CRS>
+			<CRS>EPSG:3413</CRS>
+			<CRS>EPSG:3995</CRS>
+			<CRS>EPSG:3031</CRS>
+			<CRS>EPSG:6933</CRS>
+			<CRS>EPSG:32601</CRS>
+			<CRS>EPSG:32701</CRS>
+			<CRS>EPSG:32602</CRS>
+			<CRS>EPSG:32702</CRS>
+			<CRS>EPSG:32603</CRS>
+			<CRS>EPSG:32703</CRS>
+			<CRS>EPSG:32604</CRS>
+			<CRS>EPSG:32704</CRS>
+			<CRS>EPSG:32605</CRS>
+			<CRS>EPSG:32705</CRS>
+			<CRS>EPSG:32606</CRS>
+			<CRS>EPSG:32706</CRS>
+			<CRS>EPSG:32607</CRS>
+			<CRS>EPSG:32707</CRS>
+			<CRS>EPSG:32608</CRS>
+			<CRS>EPSG:32708</CRS>
+			<CRS>EPSG:32609</CRS>
+			<CRS>EPSG:32709</CRS>
+			<CRS>EPSG:32610</CRS>
+			<CRS>EPSG:32710</CRS>
+			<CRS>EPSG:32611</CRS>
+			<CRS>EPSG:32711</CRS>
+			<CRS>EPSG:32612</CRS>
+			<CRS>EPSG:32712</CRS>
+			<CRS>EPSG:32613</CRS>
+			<CRS>EPSG:32713</CRS>
+			<CRS>EPSG:32614</CRS>
+			<CRS>EPSG:32714</CRS>
+			<CRS>EPSG:32615</CRS>
+			<CRS>EPSG:32715</CRS>
+			<CRS>EPSG:32616</CRS>
+			<CRS>EPSG:32716</CRS>
+			<CRS>EPSG:32617</CRS>
+			<CRS>EPSG:32717</CRS>
+			<CRS>EPSG:32618</CRS>
+			<CRS>EPSG:32718</CRS>
+			<CRS>EPSG:32619</CRS>
+			<CRS>EPSG:32719</CRS>
+			<CRS>EPSG:32620</CRS>
+			<CRS>EPSG:32720</CRS>
+			<CRS>EPSG:32621</CRS>
+			<CRS>EPSG:32721</CRS>
+			<CRS>EPSG:32622</CRS>
+			<CRS>EPSG:32722</CRS>
+			<CRS>EPSG:32623</CRS>
+			<CRS>EPSG:32723</CRS>
+			<CRS>EPSG:32624</CRS>
+			<CRS>EPSG:32724</CRS>
+			<CRS>EPSG:32625</CRS>
+			<CRS>EPSG:32725</CRS>
+			<CRS>EPSG:32626</CRS>
+			<CRS>EPSG:32726</CRS>
+			<CRS>EPSG:32627</CRS>
+			<CRS>EPSG:32727</CRS>
+			<CRS>EPSG:32628</CRS>
+			<CRS>EPSG:32728</CRS>
+			<CRS>EPSG:32629</CRS>
+			<CRS>EPSG:32729</CRS>
+			<CRS>EPSG:32630</CRS>
+			<CRS>EPSG:32730</CRS>
+			<CRS>EPSG:32631</CRS>
+			<CRS>EPSG:32731</CRS>
+			<CRS>EPSG:32632</CRS>
+			<CRS>EPSG:32732</CRS>
+			<CRS>EPSG:32633</CRS>
+			<CRS>EPSG:32733</CRS>
+			<CRS>EPSG:32634</CRS>
+			<CRS>EPSG:32734</CRS>
+			<CRS>EPSG:32635</CRS>
+			<CRS>EPSG:32735</CRS>
+			<CRS>EPSG:32636</CRS>
+			<CRS>EPSG:32736</CRS>
+			<CRS>EPSG:32637</CRS>
+			<CRS>EPSG:32737</CRS>
+			<CRS>EPSG:32638</CRS>
+			<CRS>EPSG:32738</CRS>
+			<CRS>EPSG:32639</CRS>
+			<CRS>EPSG:32739</CRS>
+			<CRS>EPSG:32640</CRS>
+			<CRS>EPSG:32740</CRS>
+			<CRS>EPSG:32641</CRS>
+			<CRS>EPSG:32741</CRS>
+			<CRS>EPSG:32642</CRS>
+			<CRS>EPSG:32742</CRS>
+			<CRS>EPSG:32643</CRS>
+			<CRS>EPSG:32743</CRS>
+			<CRS>EPSG:32644</CRS>
+			<CRS>EPSG:32744</CRS>
+			<CRS>EPSG:32645</CRS>
+			<CRS>EPSG:32745</CRS>
+			<CRS>EPSG:32646</CRS>
+			<CRS>EPSG:32746</CRS>
+			<CRS>EPSG:32647</CRS>
+			<CRS>EPSG:32747</CRS>
+			<CRS>EPSG:32648</CRS>
+			<CRS>EPSG:32748</CRS>
+			<CRS>EPSG:32649</CRS>
+			<CRS>EPSG:32749</CRS>
+			<CRS>EPSG:32650</CRS>
+			<CRS>EPSG:32750</CRS>
+			<CRS>EPSG:32651</CRS>
+			<CRS>EPSG:32751</CRS>
+			<CRS>EPSG:32652</CRS>
+			<CRS>EPSG:32752</CRS>
+			<CRS>EPSG:32653</CRS>
+			<CRS>EPSG:32753</CRS>
+			<CRS>EPSG:32654</CRS>
+			<CRS>EPSG:32754</CRS>
+			<CRS>EPSG:32655</CRS>
+			<CRS>EPSG:32755</CRS>
+			<CRS>EPSG:32656</CRS>
+			<CRS>EPSG:32756</CRS>
+			<CRS>EPSG:32657</CRS>
+			<CRS>EPSG:32757</CRS>
+			<CRS>EPSG:32658</CRS>
+			<CRS>EPSG:32758</CRS>
+			<CRS>EPSG:32659</CRS>
+			<CRS>EPSG:32759</CRS>
+			<CRS>EPSG:32660</CRS>
+			<CRS>EPSG:32760</CRS>
+			<CRS>EPSG:25828</CRS>
+			<CRS>EPSG:25829</CRS>
+			<CRS>EPSG:25830</CRS>
+			<CRS>EPSG:25831</CRS>
+			<CRS>EPSG:25832</CRS>
+			<CRS>EPSG:25833</CRS>
+			<CRS>EPSG:25834</CRS>
+			<CRS>EPSG:25835</CRS>
+			<CRS>EPSG:25836</CRS>
+			<CRS>EPSG:25837</CRS>
+			<CRS>EPSG:4258</CRS>
+			<EX_GeographicBoundingBox>
+				<westBoundLongitude>-180</westBoundLongitude>
+				<eastBoundLongitude>180</eastBoundLongitude>
+				<southBoundLatitude>-90</southBoundLatitude>
+				<northBoundLatitude>90</northBoundLatitude>
+			</EX_GeographicBoundingBox>
+			<BoundingBox CRS="EPSG:3857" maxx="20037508.342789" maxy="20037508.342789" minx="-20037508.342789" miny="-20037508.342789"/>
+			<BoundingBox CRS="CRS:84" maxx="180" maxy="90" minx="-180" miny="-90"/>
+			<BoundingBox CRS="EPSG:4326" maxx="90" maxy="180" minx="-90" miny="-180"/>
+			<BoundingBox CRS="EPSG:3035" maxx="6928130" maxy="7824930" minx="196460" miny="-146470"/>
+			<BoundingBox CRS="EPSG:27700" maxx="760000" maxy="1280000" minx="-120000" miny="-20000"/>
+			<BoundingBox CRS="EPSG:2157" maxx="785110" maxy="968020" minx="421840" miny="515250"/>
+			<BoundingBox CRS="EPSG:2154" maxx="1320650" maxy="7235613" minx="-378306" miny="6005280"/>
+			<BoundingBox CRS="EPSG:3912" maxx="650000" maxy="200000" minx="350000" miny="0"/>
+			<BoundingBox CRS="EPSG:3794" maxx="650000" maxy="200000" minx="350000" miny="0"/>
+			<BoundingBox CRS="EPSG:5514" maxx="-159500" maxy="-911100" minx="-951600" miny="-1353400"/>
+			<BoundingBox CRS="EPSG:3765" maxx="800000" maxy="5200000" minx="200000" miny="4650000"/>
+			<BoundingBox CRS="EPSG:4026" maxx="375300" maxy="335350" minx="33540" miny="61520"/>
+			<BoundingBox CRS="SR-ORG:98739" maxx="650000" maxy="1250000" minx="150000" miny="510000"/>
+			<BoundingBox CRS="EPSG:28992" maxx="284310" maxy="636990" minx="630" miny="306570"/>
+			<BoundingBox CRS="EPSG:3003" maxx="1868700" maxy="5214300" minx="1226000" miny="4042800"/>
+			<BoundingBox CRS="EPSG:3004" maxx="2885300" maxy="5224200" minx="2145300" miny="3846400"/>
+			<BoundingBox CRS="EPSG:3844" maxx="771870" maxy="1018810" minx="215530" miny="116260"/>
+			<BoundingBox CRS="EPSG:3346" maxx="6268600" maxy="685400" minx="5972400" miny="172700"/>
+			<BoundingBox CRS="EPSG:3301" maxx="6659000" maxy="751600" minx="6375000" miny="282500"/>
+			<BoundingBox CRS="EPSG:2180" maxx="908420" maxy="876510" minx="125800" miny="144600"/>
+			<BoundingBox CRS="EPSG:31287" maxx="575906" maxy="694886" minx="277747" miny="107674"/>
+			<BoundingBox CRS="EPSG:3416" maxx="575906" maxy="694886" minx="277747" miny="107674"/>
+			<BoundingBox CRS="EPSG:2193" maxx="6227000" maxy="2120000" minx="4736000" miny="987000"/>
+			<BoundingBox CRS="EPSG:3006" maxx="7700000" maxy="950000" minx="6100000" miny="150000"/>
+			<BoundingBox CRS="EPSG:3005" maxx="1884000" maxy="1737000" minx="34000" miny="359000"/>
+			<BoundingBox CRS="EPSG:3578" maxx="979000" maxy="1716000" minx="25000" miny="610000"/>
+			<BoundingBox CRS="EPSG:3161" maxx="1819000" maxy="13412000" minx="82000" miny="11672000"/>
+			<BoundingBox CRS="EPSG:3580" maxx="558000" maxy="10336000" minx="-1336000" miny="8119000"/>
+			<BoundingBox CRS="EPSG:32184" maxx="419000" maxy="6535000" minx="191000" miny="5224000"/>
+			<BoundingBox CRS="EPSG:3413" maxx="3323161" maxy="3323161" minx="-3323161" miny="-3323161"/>
+			<BoundingBox CRS="EPSG:3995" maxx="3333135" maxy="3333135" minx="-3333135" miny="-3333135"/>
+			<BoundingBox CRS="EPSG:3031" maxx="3333135" maxy="3333135" minx="-3333135" miny="-3333135"/>
+			<BoundingBox CRS="EPSG:6933" maxx="17367530" maxy="7324184" minx="-17367530" miny="-7324184"/>
+			<BoundingBox CRS="EPSG:32601" maxx="850000" maxy="9350000" minx="150000" miny="0"/>
+			<BoundingBox CRS="EPSG:32701" maxx="850000" maxy="10000000" minx="150000" miny="1100000"/>
+			<BoundingBox CRS="EPSG:32602" maxx="850000" maxy="9350000" minx="150000" miny="0"/>
+			<BoundingBox CRS="EPSG:32702" maxx="850000" maxy="10000000" minx="150000" miny="1100000"/>
+			<BoundingBox CRS="EPSG:32603" maxx="850000" maxy="9350000" minx="150000" miny="0"/>
+			<BoundingBox CRS="EPSG:32703" maxx="850000" maxy="10000000" minx="150000" miny="1100000"/>
+			<BoundingBox CRS="EPSG:32604" maxx="850000" maxy="9350000" minx="150000" miny="0"/>
+			<BoundingBox CRS="EPSG:32704" maxx="850000" maxy="10000000" minx="150000" miny="1100000"/>
+			<BoundingBox CRS="EPSG:32605" maxx="850000" maxy="9350000" minx="150000" miny="0"/>
+			<BoundingBox CRS="EPSG:32705" maxx="850000" maxy="10000000" minx="150000" miny="1100000"/>
+			<BoundingBox CRS="EPSG:32606" maxx="850000" maxy="9350000" minx="150000" miny="0"/>
+			<BoundingBox CRS="EPSG:32706" maxx="850000" maxy="10000000" minx="150000" miny="1100000"/>
+			<BoundingBox CRS="EPSG:32607" maxx="850000" maxy="9350000" minx="150000" miny="0"/>
+			<BoundingBox CRS="EPSG:32707" maxx="850000" maxy="10000000" minx="150000" miny="1100000"/>
+			<BoundingBox CRS="EPSG:32608" maxx="850000" maxy="9350000" minx="150000" miny="0"/>
+			<BoundingBox CRS="EPSG:32708" maxx="850000" maxy="10000000" minx="150000" miny="1100000"/>
+			<BoundingBox CRS="EPSG:32609" maxx="850000" maxy="9350000" minx="150000" miny="0"/>
+			<BoundingBox CRS="EPSG:32709" maxx="850000" maxy="10000000" minx="150000" miny="1100000"/>
+			<BoundingBox CRS="EPSG:32610" maxx="850000" maxy="9350000" minx="150000" miny="0"/>
+			<BoundingBox CRS="EPSG:32710" maxx="850000" maxy="10000000" minx="150000" miny="1100000"/>
+			<BoundingBox CRS="EPSG:32611" maxx="850000" maxy="9350000" minx="150000" miny="0"/>
+			<BoundingBox CRS="EPSG:32711" maxx="850000" maxy="10000000" minx="150000" miny="1100000"/>
+			<BoundingBox CRS="EPSG:32612" maxx="850000" maxy="9350000" minx="150000" miny="0"/>
+			<BoundingBox CRS="EPSG:32712" maxx="850000" maxy="10000000" minx="150000" miny="1100000"/>
+			<BoundingBox CRS="EPSG:32613" maxx="850000" maxy="9350000" minx="150000" miny="0"/>
+			<BoundingBox CRS="EPSG:32713" maxx="850000" maxy="10000000" minx="150000" miny="1100000"/>
+			<BoundingBox CRS="EPSG:32614" maxx="850000" maxy="9350000" minx="150000" miny="0"/>
+			<BoundingBox CRS="EPSG:32714" maxx="850000" maxy="10000000" minx="150000" miny="1100000"/>
+			<BoundingBox CRS="EPSG:32615" maxx="850000" maxy="9350000" minx="150000" miny="0"/>
+			<BoundingBox CRS="EPSG:32715" maxx="850000" maxy="10000000" minx="150000" miny="1100000"/>
+			<BoundingBox CRS="EPSG:32616" maxx="850000" maxy="9350000" minx="150000" miny="0"/>
+			<BoundingBox CRS="EPSG:32716" maxx="850000" maxy="10000000" minx="150000" miny="1100000"/>
+			<BoundingBox CRS="EPSG:32617" maxx="850000" maxy="9350000" minx="150000" miny="0"/>
+			<BoundingBox CRS="EPSG:32717" maxx="850000" maxy="10000000" minx="150000" miny="1100000"/>
+			<BoundingBox CRS="EPSG:32618" maxx="850000" maxy="9350000" minx="150000" miny="0"/>
+			<BoundingBox CRS="EPSG:32718" maxx="850000" maxy="10000000" minx="150000" miny="1100000"/>
+			<BoundingBox CRS="EPSG:32619" maxx="850000" maxy="9350000" minx="150000" miny="0"/>
+			<BoundingBox CRS="EPSG:32719" maxx="850000" maxy="10000000" minx="150000" miny="1100000"/>
+			<BoundingBox CRS="EPSG:32620" maxx="850000" maxy="9350000" minx="150000" miny="0"/>
+			<BoundingBox CRS="EPSG:32720" maxx="850000" maxy="10000000" minx="150000" miny="1100000"/>
+			<BoundingBox CRS="EPSG:32621" maxx="850000" maxy="9350000" minx="150000" miny="0"/>
+			<BoundingBox CRS="EPSG:32721" maxx="850000" maxy="10000000" minx="150000" miny="1100000"/>
+			<BoundingBox CRS="EPSG:32622" maxx="850000" maxy="9350000" minx="150000" miny="0"/>
+			<BoundingBox CRS="EPSG:32722" maxx="850000" maxy="10000000" minx="150000" miny="1100000"/>
+			<BoundingBox CRS="EPSG:32623" maxx="850000" maxy="9350000" minx="150000" miny="0"/>
+			<BoundingBox CRS="EPSG:32723" maxx="850000" maxy="10000000" minx="150000" miny="1100000"/>
+			<BoundingBox CRS="EPSG:32624" maxx="850000" maxy="9350000" minx="150000" miny="0"/>
+			<BoundingBox CRS="EPSG:32724" maxx="850000" maxy="10000000" minx="150000" miny="1100000"/>
+			<BoundingBox CRS="EPSG:32625" maxx="850000" maxy="9350000" minx="150000" miny="0"/>
+			<BoundingBox CRS="EPSG:32725" maxx="850000" maxy="10000000" minx="150000" miny="1100000"/>
+			<BoundingBox CRS="EPSG:32626" maxx="850000" maxy="9350000" minx="150000" miny="0"/>
+			<BoundingBox CRS="EPSG:32726" maxx="850000" maxy="10000000" minx="150000" miny="1100000"/>
+			<BoundingBox CRS="EPSG:32627" maxx="850000" maxy="9350000" minx="150000" miny="0"/>
+			<BoundingBox CRS="EPSG:32727" maxx="850000" maxy="10000000" minx="150000" miny="1100000"/>
+			<BoundingBox CRS="EPSG:32628" maxx="850000" maxy="9350000" minx="150000" miny="0"/>
+			<BoundingBox CRS="EPSG:32728" maxx="850000" maxy="10000000" minx="150000" miny="1100000"/>
+			<BoundingBox CRS="EPSG:32629" maxx="850000" maxy="9350000" minx="150000" miny="0"/>
+			<BoundingBox CRS="EPSG:32729" maxx="850000" maxy="10000000" minx="150000" miny="1100000"/>
+			<BoundingBox CRS="EPSG:32630" maxx="850000" maxy="9350000" minx="150000" miny="0"/>
+			<BoundingBox CRS="EPSG:32730" maxx="850000" maxy="10000000" minx="150000" miny="1100000"/>
+			<BoundingBox CRS="EPSG:32631" maxx="850000" maxy="9350000" minx="150000" miny="0"/>
+			<BoundingBox CRS="EPSG:32731" maxx="850000" maxy="10000000" minx="150000" miny="1100000"/>
+			<BoundingBox CRS="EPSG:32632" maxx="850000" maxy="9350000" minx="150000" miny="0"/>
+			<BoundingBox CRS="EPSG:32732" maxx="850000" maxy="10000000" minx="150000" miny="1100000"/>
+			<BoundingBox CRS="EPSG:32633" maxx="850000" maxy="9350000" minx="150000" miny="0"/>
+			<BoundingBox CRS="EPSG:32733" maxx="850000" maxy="10000000" minx="150000" miny="1100000"/>
+			<BoundingBox CRS="EPSG:32634" maxx="850000" maxy="9350000" minx="150000" miny="0"/>
+			<BoundingBox CRS="EPSG:32734" maxx="850000" maxy="10000000" minx="150000" miny="1100000"/>
+			<BoundingBox CRS="EPSG:32635" maxx="850000" maxy="9350000" minx="150000" miny="0"/>
+			<BoundingBox CRS="EPSG:32735" maxx="850000" maxy="10000000" minx="150000" miny="1100000"/>
+			<BoundingBox CRS="EPSG:32636" maxx="850000" maxy="9350000" minx="150000" miny="0"/>
+			<BoundingBox CRS="EPSG:32736" maxx="850000" maxy="10000000" minx="150000" miny="1100000"/>
+			<BoundingBox CRS="EPSG:32637" maxx="850000" maxy="9350000" minx="150000" miny="0"/>
+			<BoundingBox CRS="EPSG:32737" maxx="850000" maxy="10000000" minx="150000" miny="1100000"/>
+			<BoundingBox CRS="EPSG:32638" maxx="850000" maxy="9350000" minx="150000" miny="0"/>
+			<BoundingBox CRS="EPSG:32738" maxx="850000" maxy="10000000" minx="150000" miny="1100000"/>
+			<BoundingBox CRS="EPSG:32639" maxx="850000" maxy="9350000" minx="150000" miny="0"/>
+			<BoundingBox CRS="EPSG:32739" maxx="850000" maxy="10000000" minx="150000" miny="1100000"/>
+			<BoundingBox CRS="EPSG:32640" maxx="850000" maxy="9350000" minx="150000" miny="0"/>
+			<BoundingBox CRS="EPSG:32740" maxx="850000" maxy="10000000" minx="150000" miny="1100000"/>
+			<BoundingBox CRS="EPSG:32641" maxx="850000" maxy="9350000" minx="150000" miny="0"/>
+			<BoundingBox CRS="EPSG:32741" maxx="850000" maxy="10000000" minx="150000" miny="1100000"/>
+			<BoundingBox CRS="EPSG:32642" maxx="850000" maxy="9350000" minx="150000" miny="0"/>
+			<BoundingBox CRS="EPSG:32742" maxx="850000" maxy="10000000" minx="150000" miny="1100000"/>
+			<BoundingBox CRS="EPSG:32643" maxx="850000" maxy="9350000" minx="150000" miny="0"/>
+			<BoundingBox CRS="EPSG:32743" maxx="850000" maxy="10000000" minx="150000" miny="1100000"/>
+			<BoundingBox CRS="EPSG:32644" maxx="850000" maxy="9350000" minx="150000" miny="0"/>
+			<BoundingBox CRS="EPSG:32744" maxx="850000" maxy="10000000" minx="150000" miny="1100000"/>
+			<BoundingBox CRS="EPSG:32645" maxx="850000" maxy="9350000" minx="150000" miny="0"/>
+			<BoundingBox CRS="EPSG:32745" maxx="850000" maxy="10000000" minx="150000" miny="1100000"/>
+			<BoundingBox CRS="EPSG:32646" maxx="850000" maxy="9350000" minx="150000" miny="0"/>
+			<BoundingBox CRS="EPSG:32746" maxx="850000" maxy="10000000" minx="150000" miny="1100000"/>
+			<BoundingBox CRS="EPSG:32647" maxx="850000" maxy="9350000" minx="150000" miny="0"/>
+			<BoundingBox CRS="EPSG:32747" maxx="850000" maxy="10000000" minx="150000" miny="1100000"/>
+			<BoundingBox CRS="EPSG:32648" maxx="850000" maxy="9350000" minx="150000" miny="0"/>
+			<BoundingBox CRS="EPSG:32748" maxx="850000" maxy="10000000" minx="150000" miny="1100000"/>
+			<BoundingBox CRS="EPSG:32649" maxx="850000" maxy="9350000" minx="150000" miny="0"/>
+			<BoundingBox CRS="EPSG:32749" maxx="850000" maxy="10000000" minx="150000" miny="1100000"/>
+			<BoundingBox CRS="EPSG:32650" maxx="850000" maxy="9350000" minx="150000" miny="0"/>
+			<BoundingBox CRS="EPSG:32750" maxx="850000" maxy="10000000" minx="150000" miny="1100000"/>
+			<BoundingBox CRS="EPSG:32651" maxx="850000" maxy="9350000" minx="150000" miny="0"/>
+			<BoundingBox CRS="EPSG:32751" maxx="850000" maxy="10000000" minx="150000" miny="1100000"/>
+			<BoundingBox CRS="EPSG:32652" maxx="850000" maxy="9350000" minx="150000" miny="0"/>
+			<BoundingBox CRS="EPSG:32752" maxx="850000" maxy="10000000" minx="150000" miny="1100000"/>
+			<BoundingBox CRS="EPSG:32653" maxx="850000" maxy="9350000" minx="150000" miny="0"/>
+			<BoundingBox CRS="EPSG:32753" maxx="850000" maxy="10000000" minx="150000" miny="1100000"/>
+			<BoundingBox CRS="EPSG:32654" maxx="850000" maxy="9350000" minx="150000" miny="0"/>
+			<BoundingBox CRS="EPSG:32754" maxx="850000" maxy="10000000" minx="150000" miny="1100000"/>
+			<BoundingBox CRS="EPSG:32655" maxx="850000" maxy="9350000" minx="150000" miny="0"/>
+			<BoundingBox CRS="EPSG:32755" maxx="850000" maxy="10000000" minx="150000" miny="1100000"/>
+			<BoundingBox CRS="EPSG:32656" maxx="850000" maxy="9350000" minx="150000" miny="0"/>
+			<BoundingBox CRS="EPSG:32756" maxx="850000" maxy="10000000" minx="150000" miny="1100000"/>
+			<BoundingBox CRS="EPSG:32657" maxx="850000" maxy="9350000" minx="150000" miny="0"/>
+			<BoundingBox CRS="EPSG:32757" maxx="850000" maxy="10000000" minx="150000" miny="1100000"/>
+			<BoundingBox CRS="EPSG:32658" maxx="850000" maxy="9350000" minx="150000" miny="0"/>
+			<BoundingBox CRS="EPSG:32758" maxx="850000" maxy="10000000" minx="150000" miny="1100000"/>
+			<BoundingBox CRS="EPSG:32659" maxx="850000" maxy="9350000" minx="150000" miny="0"/>
+			<BoundingBox CRS="EPSG:32759" maxx="850000" maxy="10000000" minx="150000" miny="1100000"/>
+			<BoundingBox CRS="EPSG:32660" maxx="850000" maxy="9350000" minx="150000" miny="0"/>
+			<BoundingBox CRS="EPSG:32760" maxx="850000" maxy="10000000" minx="150000" miny="1100000"/>
+			<BoundingBox CRS="EPSG:25828" maxx="850000" maxy="9350000" minx="150000" miny="3700000"/>
+			<BoundingBox CRS="EPSG:25829" maxx="850000" maxy="9350000" minx="150000" miny="3700000"/>
+			<BoundingBox CRS="EPSG:25830" maxx="850000" maxy="9350000" minx="150000" miny="3700000"/>
+			<BoundingBox CRS="EPSG:25831" maxx="850000" maxy="9350000" minx="150000" miny="3700000"/>
+			<BoundingBox CRS="EPSG:25832" maxx="850000" maxy="9350000" minx="150000" miny="3700000"/>
+			<BoundingBox CRS="EPSG:25833" maxx="850000" maxy="9350000" minx="150000" miny="3700000"/>
+			<BoundingBox CRS="EPSG:25834" maxx="850000" maxy="9350000" minx="150000" miny="3700000"/>
+			<BoundingBox CRS="EPSG:25835" maxx="850000" maxy="9350000" minx="150000" miny="3700000"/>
+			<BoundingBox CRS="EPSG:25836" maxx="850000" maxy="9350000" minx="150000" miny="3700000"/>
+			<BoundingBox CRS="EPSG:25837" maxx="850000" maxy="9350000" minx="150000" miny="3700000"/>
+			<BoundingBox CRS="EPSG:4258" maxx="40.18" maxy="84.17" minx="-16.1" miny="32.88"/>
+			<Dimension name="time" units="ISO8601" />
+      <Extent name="time" default="2026-03-02">1984-03-01/2026-03-02/P1D</Extent>
+			<Layer queryable="1">
+				<Name>AGRICULTURE</Name>
+				<Title>Agriculture</Title>
+				<Abstract>Based on bands 11, 8A and 2</Abstract>
+				<Style>
+					<Name>default</Name>
+					<Title>default</Title>
+					
+				</Style>
+			</Layer>
+			<Layer queryable="1">
+				<Name>SENTINEL1-GRD</Name>
+				<Title>Sentinel1-GRD</Title>
+				<Abstract>Sentinel1-GRD</Abstract>
+				<Style>
+					<Name>default</Name>
+					<Title>default</Title>
+					<Abstract>Default layer style</Abstract>
+				</Style>
+			</Layer>
+			<Layer queryable="1">
+				<Name>ARI1</Name>
+				<Title>ARI1 (Anthocyanin Reflectance Index)</Title>
+				<Abstract>Red = (1 / B02) - (1 / B03). Transparent when Red &gt; 0.5</Abstract>
+				<Style>
+					<Name>default</Name>
+					<Title>default</Title>
+					
+				</Style>
+			</Layer>
+			<Layer queryable="1">
+				<Name>ARI2</Name>
+				<Title>ARI2 (Anthocyanin Reflectance Index)</Title>
+				<Abstract>Red = (B08 / B02) - (B08 / B03). Transparent when Red &gt; 0.9</Abstract>
+				<Style>
+					<Name>default</Name>
+					<Title>default</Title>
+					
+				</Style>
+			</Layer>
+			<Layer queryable="1">
+				<Name>ATMOSPHERIC_PENETRATION</Name>
+				<Title>Atmospheric penetration</Title>
+				<Abstract>Based on bands 12,11,8A</Abstract>
+				<Style>
+					<Name>default</Name>
+					<Title>default</Title>
+					
+				</Style>
+			</Layer>
+			<Layer queryable="1">
+				<Name>B01</Name>
+				<Title>B1 - Coastal aerosol</Title>
+				<Abstract>B1 - Coastal aerosol</Abstract>
+				<Style>
+					<Name>default</Name>
+					<Title>default</Title>
+					
+				</Style>
+			</Layer>
+			<Layer queryable="1">
+				<Name>B02</Name>
+				<Title>B2 - Blue</Title>
+				<Abstract>B2 - Blue</Abstract>
+				<Style>
+					<Name>default</Name>
+					<Title>default</Title>
+					
+				</Style>
+			</Layer>
+			<Layer queryable="1">
+				<Name>B03</Name>
+				<Title>B3 - Green</Title>
+				<Abstract>B3 - Green</Abstract>
+				<Style>
+					<Name>default</Name>
+					<Title>default</Title>
+					
+				</Style>
+			</Layer>
+			<Layer queryable="1">
+				<Name>B04</Name>
+				<Title>B4 - Red</Title>
+				<Abstract>B4 - Red</Abstract>
+				<Style>
+					<Name>default</Name>
+					<Title>default</Title>
+					
+				</Style>
+			</Layer>
+			<Layer queryable="1">
+				<Name>B05</Name>
+				<Title>B5 - Vegetation Red Edge (705 nm)</Title>
+				<Abstract>B5 - Vegetation Red Edge (705 nm)</Abstract>
+				<Style>
+					<Name>default</Name>
+					<Title>default</Title>
+					
+				</Style>
+			</Layer>
+			<Layer queryable="1">
+				<Name>B06</Name>
+				<Title> B6 - Vegetation Red Edge (740 nm)</Title>
+				<Abstract> B6 - Vegetation Red Edge (740 nm)</Abstract>
+				<Style>
+					<Name>default</Name>
+					<Title>default</Title>
+					
+				</Style>
+			</Layer>
+			<Layer queryable="1">
+				<Name>B07</Name>
+				<Title>B7 - Vegetation Red Edge (783 nm)</Title>
+				<Abstract>B7 - Vegetation Red Edge (783 nm)</Abstract>
+				<Style>
+					<Name>default</Name>
+					<Title>default</Title>
+					
+				</Style>
+			</Layer>
+			<Layer queryable="1">
+				<Name>B08</Name>
+				<Title>B8 -  	Near infrared</Title>
+				<Abstract>B8 -  	Near infrared</Abstract>
+				<Style>
+					<Name>default</Name>
+					<Title>default</Title>
+					
+				</Style>
+			</Layer>
+			<Layer queryable="1">
+				<Name>B09</Name>
+				<Title>B9 - Water vapour</Title>
+				<Abstract>B9 - Water vapour</Abstract>
+				<Style>
+					<Name>default</Name>
+					<Title>default</Title>
+					
+				</Style>
+			</Layer>
+			<Layer queryable="1">
+				<Name>B10</Name>
+				<Title>B10 - SWIR - Cirrus</Title>
+				<Abstract>B10 - SWIR - Cirrus</Abstract>
+				<Style>
+					<Name>default</Name>
+					<Title>default</Title>
+					
+				</Style>
+			</Layer>
+			<Layer queryable="1">
+				<Name>B11</Name>
+				<Title>B11 - SWIR (1610 nm)</Title>
+				<Abstract>B11 - SWIR (1610 nm)</Abstract>
+				<Style>
+					<Name>default</Name>
+					<Title>default</Title>
+					
+				</Style>
+			</Layer>
+			<Layer queryable="1">
+				<Name>B12</Name>
+				<Title>B12 - SWIR (2190 nm) </Title>
+				<Abstract>B12 - SWIR (2190 nm) </Abstract>
+				<Style>
+					<Name>default</Name>
+					<Title>default</Title>
+					
+				</Style>
+			</Layer>
+			<Layer queryable="1">
+				<Name>B8A</Name>
+				<Title>B8A - Vegetation Red Edge (865 nm)</Title>
+				<Abstract>B8A - Vegetation Red Edge (865 nm)</Abstract>
+				<Style>
+					<Name>default</Name>
+					<Title>default</Title>
+					
+				</Style>
+			</Layer>
+			<Layer queryable="1">
+				<Name>BAI</Name>
+				<Title>BAI (Burn Area Index)</Title>
+				<Abstract>Value = 1 / ((0.1 - B04)^2 + (0.06 - B08)^2)</Abstract>
+				<Style>
+					<Name>default</Name>
+					<Title>default</Title>
+					
+				</Style>
+			</Layer>
+			<Layer queryable="1">
+				<Name>BATHYMETRIC</Name>
+				<Title>Bathymetric</Title>
+				<Abstract>Based on bands 4,3,1</Abstract>
+				<Style>
+					<Name>default</Name>
+					<Title>default</Title>
+					
+				</Style>
+			</Layer>
+			<Layer queryable="1">
+				<Name>CHL_RED_EDGE</Name>
+				<Title>CHL-RED-EDGE (Chlorophyll Red-Edge)</Title>
+				<Abstract>Value = 0.5 * B05 / B08</Abstract>
+				<Style>
+					<Name>default</Name>
+					<Title>default</Title>
+					
+				</Style>
+			</Layer>
+			<Layer queryable="1">
+				<Name>CRI1</Name>
+				<Title>CRI1 (Carotenoid Reflectance Index 1)</Title>
+				<Abstract>Red = (1 / B02) - (1 / B03). Transparent when Red &gt; 0.9</Abstract>
+				<Style>
+					<Name>default</Name>
+					<Title>default</Title>
+					
+				</Style>
+			</Layer>
+			<Layer queryable="1">
+				<Name>CRI2</Name>
+				<Title>CRI2 (Carotenoid Reflectance Index 2)</Title>
+				<Abstract>Red = (1 / B02) - (1 / B05). Transparent when Red &gt; 0.9</Abstract>
+				<Style>
+					<Name>default</Name>
+					<Title>default</Title>
+					
+				</Style>
+			</Layer>
+			<Layer queryable="1">
+				<Name>EVI</Name>
+				<Title>EVI (Enhanced Vegetation Index)</Title>
+				<Abstract>Value = 2.5 * (B08 - B04) / (B08 + 6 * B04 - 7.5 * B02 + 1)</Abstract>
+				<Style>
+					<Name>default</Name>
+					<Title>default</Title>
+					
+				</Style>
+			</Layer>
+			<Layer queryable="1">
+				<Name>EVI2</Name>
+				<Title>EVI2 (Enhanced Vegetation Index 2)</Title>
+				<Abstract>Value = 2.5 * (B08 - B04) / (B08 + 2.4 * B04 + 1)</Abstract>
+				<Style>
+					<Name>default</Name>
+					<Title>default</Title>
+					
+				</Style>
+			</Layer>
+			<Layer queryable="1">
+				<Name>FALSE_COLOR_URBAN</Name>
+				<Title>False color (urban)</Title>
+				<Abstract>False color (urban)</Abstract>
+				<Style>
+					<Name>default</Name>
+					<Title>default</Title>
+					<Abstract>Default layer style</Abstract>
+				</Style>
+			</Layer>
+			<Layer queryable="1">
+				<Name>FALSE_COLOR</Name>
+				<Title>False color (vegetation)</Title>
+				<Abstract>Value = B08,B04,B03</Abstract>
+				<Style>
+					<Name>default</Name>
+					<Title>default</Title>
+					
+				</Style>
+			</Layer>
+			<Layer queryable="1">
+				<Name>GEOLOGY</Name>
+				<Title>Geology</Title>
+				<Abstract>Based on bands 12,4,2</Abstract>
+				<Style>
+					<Name>default</Name>
+					<Title>default</Title>
+					
+				</Style>
+			</Layer>
+			<Layer queryable="1">
+				<Name>GRVI1</Name>
+				<Title>GRVI1 (Green-red Vegetation Index)</Title>
+				<Abstract>Value = (B03 - B04) / (B03 + B04)</Abstract>
+				<Style>
+					<Name>default</Name>
+					<Title>default</Title>
+					
+				</Style>
+			</Layer>
+			<Layer queryable="1">
+				<Name>LAI_SAVI</Name>
+				<Title>LAI-SAVI (Leaf Area Index - Soil Adjusted Vegetation Index)</Title>
+				<Abstract>Value = -log(0.371 + 1.5 * (B08 - B04) / (B08 + B04 + 0.5)) / 2.4</Abstract>
+				<Style>
+					<Name>default</Name>
+					<Title>default</Title>
+					
+				</Style>
+			</Layer>
+			<Layer queryable="1">
+				<Name>MOISTURE_INDEX</Name>
+				<Title>Moisture Index</Title>
+				<Abstract>Based on combination of bands (B8A - B11)/(B8A + B11)</Abstract>
+				<Style>
+					<Name>default</Name>
+					<Title>default</Title>
+					
+				</Style>
+			</Layer>
+			<Layer queryable="1">
+				<Name>MSAVI2</Name>
+				<Title>MSAVI2 (Second Modified Soil Adjusted Vegetation Index)</Title>
+				<Abstract>Self-adjusting and attempts to account for differences in soil background. Value = 4 * (B08 + 1) - 2 * sqrt((2 * B08 - 1) ^ 2 + 8 * B04))</Abstract>
+				<Style>
+					<Name>default</Name>
+					<Title>default</Title>
+					
+				</Style>
+			</Layer>
+			<Layer queryable="1">
+				<Name>NBR_RAW</Name>
+				<Title>NBR-RAW (Normalized Burn Ratio)</Title>
+				<Abstract>Value = (B05 - B07) / (B05 + B07)</Abstract>
+				<Style>
+					<Name>default</Name>
+					<Title>default</Title>
+					
+				</Style>
+			</Layer>
+			<Layer queryable="1">
+				<Name>NDVI</Name>
+				<Title>NDVI (Normalized Difference Vegetation Index)</Title>
+				<Abstract>Value = colorMap((B08 - B04) / (B08 + B04))</Abstract>
+				<Style>
+					<Name>default</Name>
+					<Title>default</Title>
+					
+				</Style>
+			</Layer>
+			<Layer queryable="1">
+				<Name>NDVI_GRAY</Name>
+				<Title>NDVI-GRAY (Normalized Difference Vegetation Index - Grayscale)</Title>
+				<Abstract>Value = (B08 - B04) / (B08 + B04)</Abstract>
+				<Style>
+					<Name>default</Name>
+					<Title>default</Title>
+					
+				</Style>
+			</Layer>
+			<Layer queryable="1">
+				<Name>NDVI_GREEN_GRAY</Name>
+				<Title>NDVI-GREEN (Normalized Difference Vegetation Index - Green)</Title>
+				<Abstract>Value = B03 * (B08 - B04) / (B08 + B04)</Abstract>
+				<Style>
+					<Name>default</Name>
+					<Title>default</Title>
+					
+				</Style>
+			</Layer>
+			<Layer queryable="1">
+				<Name>NDWI</Name>
+				<Title>NDWI (Normalized Difference Water Index)</Title>
+				<Abstract>Value = (B03 - B08) / (B03 + B08)</Abstract>
+				<Style>
+					<Name>default</Name>
+					<Title>default</Title>
+					
+				</Style>
+			</Layer>
+			<Layer queryable="1">
+				<Name>PSRI</Name>
+				<Title>PSRI (Plant Senescence Reflectance Index)</Title>
+				<Abstract>Value = (B04 - B02) / B05</Abstract>
+				<Style>
+					<Name>default</Name>
+					<Title>default</Title>
+					
+				</Style>
+			</Layer>
+			<Layer queryable="1">
+				<Name>PSRI_NIR</Name>
+				<Title>PSRI-NIR (Plant Senescence Reflectance Index - Near Infra-red)</Title>
+				<Abstract>Value = (B04 - B02) / B08</Abstract>
+				<Style>
+					<Name>default</Name>
+					<Title>default</Title>
+					
+				</Style>
+			</Layer>
+			<Layer queryable="1">
+				<Name>RED_EDGE_NDVI</Name>
+				<Title>Red edge NDVI</Title>
+				<Abstract>Value = (B08 - B06) / (B08 + B06)</Abstract>
+				<Style>
+					<Name>default</Name>
+					<Title>default</Title>
+					
+				</Style>
+			</Layer>
+			<Layer queryable="1">
+				<Name>RE_NDWI</Name>
+				<Title>RE-NDWI (Red Edge - Normalized Difference Water Index)</Title>
+				<Abstract>Value = (B03 - B05) / (B03 + B05)</Abstract>
+				<Style>
+					<Name>default</Name>
+					<Title>default</Title>
+					
+				</Style>
+			</Layer>
+			<Layer queryable="1">
+				<Name>RGB_11_8_3</Name>
+				<Title>RGB (11,8,3)</Title>
+				<Abstract>Value = B11,B08,B03</Abstract>
+				<Style>
+					<Name>default</Name>
+					<Title>default</Title>
+					
+				</Style>
+			</Layer>
+			<Layer queryable="1">
+				<Name>RGB_4_3_1</Name>
+				<Title>RGB (4,3,1) - Bathymetric</Title>
+				<Abstract>Value = B04,B03,B01</Abstract>
+				<Style>
+					<Name>default</Name>
+					<Title>default</Title>
+					
+				</Style>
+			</Layer>
+			<Layer queryable="1">
+				<Name>RGB_8_11_12</Name>
+				<Title>RGB (8,11,12)</Title>
+				<Abstract>Value = B08,B11,B12</Abstract>
+				<Style>
+					<Name>default</Name>
+					<Title>default</Title>
+					
+				</Style>
+			</Layer>
+			<Layer queryable="1">
+				<Name>RGB_8_11_4</Name>
+				<Title>RGB (8,11,4)</Title>
+				<Abstract>Value = B08,B11,B04</Abstract>
+				<Style>
+					<Name>default</Name>
+					<Title>default</Title>
+					
+				</Style>
+			</Layer>
+			<Layer queryable="1">
+				<Name>RGB_8_5_4</Name>
+				<Title>RGB (8,5,4)</Title>
+				<Abstract>Value = B08,B05,B04</Abstract>
+				<Style>
+					<Name>default</Name>
+					<Title>default</Title>
+					
+				</Style>
+			</Layer>
+			<Layer queryable="1">
+				<Name>RGB_8_6_4</Name>
+				<Title>RGB (8,6,4)</Title>
+				<Abstract>Value = B08,B06,B04</Abstract>
+				<Style>
+					<Name>default</Name>
+					<Title>default</Title>
+					
+				</Style>
+			</Layer>
+			<Layer queryable="1">
+				<Name>SAVI</Name>
+				<Title>SAVI (Soil Adjusted Vegetation Index)</Title>
+				<Abstract>Value = 1.5 * (B08 - B04) / (B08 + B04 + 0.5)</Abstract>
+				<Style>
+					<Name>default</Name>
+					<Title>default</Title>
+					
+				</Style>
+			</Layer>
+			<Layer queryable="1">
+				<Name>SWIR</Name>
+				<Title>SWIR</Title>
+				<Abstract>Based on bands 12,11,4</Abstract>
+				<Style>
+					<Name>default</Name>
+					<Title>default</Title>
+					
+				</Style>
+			</Layer>
+			<Layer queryable="1">
+				<Name>TRUE_COLOR</Name>
+				<Title>True color</Title>
+				<Abstract>True color image by mapping the red, green and blue input bands. Value = B04,B03,B02</Abstract>
+				<Style>
+					<Name>default</Name>
+					<Title>default</Title>
+					
+				</Style>
+			</Layer>
+		</Layer>
+	</Capability>
+</WMS_Capabilities>

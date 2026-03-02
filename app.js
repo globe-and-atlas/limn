@@ -236,15 +236,14 @@ const INDICES = {
         evalscript: `//VERSION=3
 function setup() {
   return {
-    input: [{ datasource: "SENTINEL1_GRD", bands: ["VV", "VH", "dataMask"] }],
+    input: ["VV", "VH", "dataMask"],
     output: { bands: 4 }
   };
 }
-function evaluatePixel(samples) {
-  let s1 = samples.SENTINEL1_GRD[0];
-  if (s1.dataMask === 0) return [0,0,0,0];
-  let vv = Math.max(0, Math.log10(s1.VV) * 10 + 20) / 20;
-  let vh = Math.max(0, Math.log10(s1.VH) * 10 + 20) / 20;
+function evaluatePixel(sample) {
+  if (sample.dataMask === 0) return [0,0,0,0];
+  let vv = Math.max(0, Math.log10(sample.VV) * 10 + 20) / 20;
+  let vh = Math.max(0, Math.log10(sample.VH) * 10 + 20) / 20;
   let ratio = vv / (vh + 0.001);
   return [vv, vh, ratio * 0.5, 1];
 }`,
@@ -255,60 +254,7 @@ function evaluatePixel(samples) {
   return [sample.VV];
 `
     },
-    fused_wetness: {
-        name: 'Fused Wetness (S1+S2)',
-        sensor: 'DataFusion (SAR + Optical)',
-        min: 'Dry Ground', max: 'Confirmed Water',
-        gradient: 'linear-gradient(to right, #554433, #2288AA, #00FFFF)',
-        formula: 'If (NDWI > 0 & SAR VV < -12dB) -> Water',
-        evalscript: `//VERSION=3
-function setup() {
-  return {
-    input: [
-      { datasource: "SENTINEL1_GRD", bands: ["VV", "dataMask"] },
-      { datasource: "S2L2A", bands: ["B03", "B11", "dataMask"] }
-    ],
-    output: { bands: 4 }
-  };
-}
-function evaluatePixel(samples) {
-  let s1 = samples.SENTINEL1_GRD[0];
-  let s2 = samples.S2L2A[0];
-  
-  if (!s1 || !s2 || s2.dataMask === 0 || s1.dataMask === 0) return [0,0,0,0];
-  
-  // Sentinel-2 NDWI
-  let sum = s2.B03 + s2.B11;
-  let ndwi = sum === 0 ? 0 : (s2.B03 - s2.B11) / sum;
-  
-  // Sentinel-1 VV (Decibels)
-  let vv_db = 10 * Math.log10(s1.VV);
-  
-  // Base rendering (Dry ground = brownish)
-  let r = 0.3, g = 0.25, b = 0.2, a = 1.0;
-  
-  // If S2 NDWI says it's water (or very wet)
-  if (ndwi > 0.1) {
-    if (vv_db < -12) {
-      // S1 Confirms Smooth Water! High confidence cyan
-      return [0, 1.0, 1.0, 1.0];
-    } else {
-      // S1 says it's rough/vegetated/dry. It's probably a cloud shadow!
-      // Render as dark grey shadow
-      return [0.1, 0.1, 0.1, 0.5];
-    }
-  } else if (ndwi > -0.1) {
-      // Transition strip (wet mud)
-      return [0.1, 0.5, 0.6, 1.0];
-  }
-  
-  return [r, g, b, a];
-}`,
-        fisBands: ['B03'], // FIS cannot easily parse DataFusion natively without heavy script restructuring, we'll bypass actual fused stats for local rendering for now.
-        fisLogic: `
-   return [0];
-`
-    },
+
     tc: {
         name: 'True Color (RGB)',
         sensor: 'Sentinel-2 L2A',
@@ -438,16 +384,15 @@ function getWMSLayer(timeStr, isDiff) {
             scriptContent = `//VERSION=3
 function setup() {
   return {
-    input: [{ datasource: "SENTINEL1_GRD", bands: ["VV", "dataMask"] }],
+    input: ["VV", "dataMask"],
     output: { bands: 4 },
     mosaicking: "ORBIT"
   };
 }
 function evaluatePixel(samples) {
-  let s1_samples = samples.SENTINEL1_GRD;
-  if (s1_samples.length < 2) return [0, 0, 0, 0.1];
-  let s1 = s1_samples[s1_samples.length - 1]; // oldest
-  let s2 = s1_samples[0]; // newest
+  if (samples.length < 2) return [0, 0, 0, 0.1];
+  let s1 = samples[samples.length - 1]; // oldest
+  let s2 = samples[0]; // newest
   if (s1.dataMask === 0 || s2.dataMask === 0) return [0, 0, 0, 0];
   
   let val1 = Math.log10(s1.VV);
@@ -459,51 +404,7 @@ function evaluatePixel(samples) {
   return [0.2, 0.2, 0.2, 0.3]; // Stable
 }
 `;
-        } else if (state.activeIndex === 'fused_wetness') {
-            // Fused Wetness Difference Evalscript
-            scriptContent = `//VERSION=3
-function setup() {
-  return {
-    input: [
-      { datasource: "SENTINEL1_GRD", bands: ["VV", "dataMask"] },
-      { datasource: "S2L2A", bands: ["B03", "B11", "dataMask"] }
-    ],
-    output: { bands: 4 },
-    mosaicking: "ORBIT"
-  };
-}
-function evaluatePixel(samples) {
-  let s1_arr = samples.SENTINEL1_GRD;
-  let s2_arr = samples.S2L2A;
-  
-  if (!s1_arr || !s2_arr || s1_arr.length < 2 || s2_arr.length < 2) return [0, 0, 0, 0.1];
-  
-  let s1_old = s1_arr[s1_arr.length - 1];
-  let s1_new = s1_arr[0];
-  let s2_old = s2_arr[s2_arr.length - 1];
-  let s2_new = s2_arr[0];
-  
-  if (s1_old.dataMask === 0 || s1_new.dataMask === 0 || s2_old.dataMask === 0 || s2_new.dataMask === 0) return [0, 0, 0, 0];
-  
-  // Calculate Old State
-  let sum_old = s2_old.B03 + s2_old.B11;
-  let ndwi_old = sum_old === 0 ? 0 : (s2_old.B03 - s2_old.B11) / sum_old;
-  let vv_old = 10 * Math.log10(s1_old.VV);
-  let isWaterOld = (ndwi_old > 0.1 && vv_old < -12);
-  
-  // Calculate New State
-  let sum_new = s2_new.B03 + s2_new.B11;
-  let ndwi_new = sum_new === 0 ? 0 : (s2_new.B03 - s2_new.B11) / sum_new;
-  let vv_new = 10 * Math.log10(s1_new.VV);
-  let isWaterNew = (ndwi_new > 0.1 && vv_new < -12);
-  
-  if (!isWaterOld && isWaterNew) return [0.2, 0.6, 1.0, 0.9]; // New Water (Blue)
-  if (isWaterOld && !isWaterNew) return [1.0, 0.2, 0.2, 0.9]; // Dried Up (Red)
-  if (isWaterOld && isWaterNew) return [0.0, 1.0, 1.0, 0.5]; // Stable Water (Cyan)
-  
-  return [0.2, 0.2, 0.2, 0.2]; // Stable Land
-}
-`;
+
         } else {
             // Optical Indexes Difference
             let calc = '0';
@@ -521,8 +422,11 @@ function evaluatePixel(samples) {
         }
     }
 
+    let wmsLayerParam = 'AGRICULTURE';
+    if (state.activeIndex === 's1_sar') wmsLayerParam = 'SENTINEL1-GRD';
+
     return L.tileLayer.wms(SH_WMS_URL, {
-        layers: 'AGRICULTURE',
+        layers: wmsLayerParam,
         format: 'image/png',
         transparent: true,
         version: '1.3.0',
