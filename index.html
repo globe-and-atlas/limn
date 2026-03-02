@@ -26,6 +26,9 @@
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
 
+    <!-- Gifshot -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gifshot/0.3.2/gifshot.min.js"></script>
+
     <!-- Custom Styles -->
     <link rel="stylesheet" href="style.css?v=2">
 </head>
@@ -258,6 +261,25 @@
                     <h3>Simulated Trend (Scaled by AOI Area)</h3>
                     <div class="chart-container-report">
                         <canvas id="reportChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="report-gif" id="report-gif-section"
+                    style="display: none; padding-top: 16px; border-top: 1px solid rgba(255, 255, 255, 0.05);">
+                    <h3
+                        style="font-size: 12px; color: var(--accent-blue); margin: 0 0 12px 0; text-transform: uppercase;">
+                        Change Over Time (GIF Animation)</h3>
+                    <div class="gif-container"
+                        style="text-align: center; margin-bottom: 15px; background: rgba(0, 0, 0, 0.2); border-radius: 6px; padding: 16px; border: 1px solid rgba(255, 255, 255, 0.05);">
+                        <img id="report-gif-result" style="max-width: 100%; border-radius: 6px; display: none;" />
+                        <div id="gif-loader-text"
+                            style="color: var(--accent-blue); font-size: 12px; padding: 20px; font-family: var(--font-mono);">
+                            Generating web-map animation frames...</div>
+                    </div>
+                    <div style="text-align: right;">
+                        <a id="btn-download-gif" class="print-btn tool-btn"
+                            style="text-decoration: none; display: inline-block; cursor: pointer; pointer-events: none; opacity: 0.5;"
+                            download="sentinel-explorer-change.gif">Download GIF</a>
                     </div>
                 </div>
 

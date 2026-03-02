@@ -985,6 +985,95 @@ function evaluatePixel(sample) {
             L.rectangle(bounds, { color: '#1C85A6', weight: 3, fillOpacity: 0.2 }).addTo(reportMapInst._drawnItems);
         }, 150);
 
+        // 5. Generate Animated GIF if Compare Mode
+        const gifSection = document.getElementById('report-gif-section');
+        if (state.mode === 'compare') {
+            gifSection.style.display = 'block';
+
+            const gifLoader = document.getElementById('gif-loader-text');
+            const gifImg = document.getElementById('report-gif-result');
+            const gifBtn = document.getElementById('btn-download-gif');
+
+            gifLoader.style.display = 'block';
+            gifLoader.innerText = 'Calculating temporal frames...';
+            gifImg.style.display = 'none';
+            gifBtn.style.pointerEvents = 'none';
+            gifBtn.style.opacity = '0.5';
+
+            let d1 = document.getElementById('date-t1').value;
+            let d2 = document.getElementById('date-t2').value;
+            if (d1 > d2) { const temp = d1; d1 = d2; d2 = temp; }
+
+            const t1ObjIdx = ALL_DATES.findIndex(d => d.value === d1);
+            const t2ObjIdx = ALL_DATES.findIndex(d => d.value === d2);
+
+            // Build indices for max 12 frames
+            let frameIndices = [];
+            const steps = 12;
+            if (t2ObjIdx - t1ObjIdx <= steps) {
+                for (let i = t1ObjIdx; i <= t2ObjIdx; i++) frameIndices.push(i);
+            } else {
+                const stepRate = (t2ObjIdx - t1ObjIdx) / steps;
+                for (let i = 0; i < steps; i++) {
+                    frameIndices.push(Math.round(t1ObjIdx + i * stepRate));
+                }
+                frameIndices.push(t2ObjIdx);
+                frameIndices = [...new Set(frameIndices)];
+            }
+
+            // Generate URLs
+            let wmsLayerParam = 'AGRICULTURE';
+            if (state.activeIndex === 's1_sar') wmsLayerParam = 'SENTINEL1-GRD';
+
+            // Force normal math payload, not difference payload for animation
+            const b64Math = btoa(idx.evalscript);
+            const bboxStr = `${bounds.getWest()},${bounds.getSouth()},${bounds.getEast()},${bounds.getNorth()}`;
+
+            const frameUrls = frameIndices.map(i => {
+                const dateStr = ALL_DATES[i].value;
+                // Buffer by 20 days backwards to allow Copernicus to mosaic & remove clouds
+                let dTarget = new Date(dateStr);
+                let dPrior = new Date(dTarget);
+                dPrior.setUTCDate(dPrior.getUTCDate() - 20);
+                let pStr = dPrior.toISOString().split('T')[0];
+                let rangeStr = `${pStr}/${dateStr}`;
+
+                return `${SH_WMS_URL}?SERVICE=WMS&REQUEST=GetMap&LAYERS=${wmsLayerParam}&FORMAT=image/png&TRANSPARENT=false&VERSION=1.3.0&TIME=${rangeStr}&MAXCC=15&WIDTH=400&HEIGHT=300&CRS=CRS:84&BBOX=${bboxStr}&EVALSCRIPT=${encodeURIComponent(b64Math)}`;
+            });
+
+            gifLoader.innerText = `Fetching ${frameUrls.length} satellite frames...`;
+
+            Promise.all(frameUrls.map(url => fetch(url).then(r => r.blob()).then(blob => URL.createObjectURL(blob))))
+                .then(blobUrls => {
+                    gifLoader.innerText = 'Encoding GIF (This may take a moment)...';
+                    gifshot.createGIF({
+                        images: blobUrls,
+                        gifWidth: 400,
+                        gifHeight: 300,
+                        interval: 0.35, // 350ms per frame
+                        numFrames: blobUrls.length,
+                        sampleInterval: 10
+                    }, function (obj) {
+                        if (!obj.error) {
+                            gifImg.src = obj.image;
+                            gifBtn.href = obj.image;
+                            gifImg.style.display = 'inline-block';
+                            gifLoader.style.display = 'none';
+                            gifBtn.style.pointerEvents = 'auto';
+                            gifBtn.style.opacity = '1';
+                        } else {
+                            gifLoader.innerText = 'Error generating GIF.';
+                        }
+                    });
+                }).catch(e => {
+                    gifLoader.innerText = 'Failed to fetch imagery for GIF.';
+                    console.error("GIF Render Error:", e);
+                });
+
+        } else {
+            gifSection.style.display = 'none';
+        }
+
     });
 
     document.getElementById('btn-close-report').addEventListener('click', () => {
