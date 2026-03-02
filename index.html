@@ -96,6 +96,12 @@
 
             <section class="control-group">
                 <h3>Analysis Location</h3>
+                <div class="search-box" style="display: flex; gap: 8px; margin-bottom: 12px;">
+                    <input type="text" id="loc-search-input" placeholder="lat, lng OR place name..."
+                        style="flex: 1; padding: 6px 10px; border-radius: 4px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.3); color: var(--text-color); font-family: 'JetBrains Mono', monospace; font-size: 12px;">
+                    <button id="btn-search-loc" class="tool-btn"
+                        style="padding: 6px 12px; margin: 0; min-width: 60px;">GO</button>
+                </div>
                 <div class="location-picker">
                     <button class="loc-btn active" data-loc="lea">Lea Co. Incident</button>
                     <button class="loc-btn" data-loc="ward">Ward Co. Seep</button>

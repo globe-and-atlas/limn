@@ -615,8 +615,71 @@ function bindEvents() {
             document.getElementById('disp-lng').innerText = loc.lng.toFixed(4) + '°';
 
             state.map.flyTo([loc.lat, loc.lng], loc.zoom, { duration: 1.5 });
+            document.getElementById('loc-search-input').value = '';
         });
     });
+
+    // Custom Location Search
+    const searchBtn = document.getElementById('btn-search-loc');
+    const searchInput = document.getElementById('loc-search-input');
+
+    const handleLocationSearch = async () => {
+        const query = searchInput.value.trim();
+        if (!query) return;
+
+        searchBtn.innerText = '...';
+        searchBtn.disabled = true;
+
+        try {
+            // Check if it's already coordinates: "31.55, -103.95" or "31.55 -103.95"
+            // Matches optional minus, digits, period, optional space/comma
+            const coordRegex = /^(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)$/;
+            const match = query.match(coordRegex);
+
+            let lat, lng;
+
+            if (match) {
+                // Direct coordinates
+                lat = parseFloat(match[1]);
+                lng = parseFloat(match[2]);
+            } else {
+                // Name lookup via Nominatim
+                const resp = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(query)}`);
+                const data = await resp.json();
+
+                if (!data || data.length === 0) {
+                    alert("Location not found. Please try a different name or enter exactly 'lat, lng'.");
+                    throw new Error("Geocode failed");
+                }
+
+                lat = parseFloat(data[0].lat);
+                lng = parseFloat(data[0].lon);
+            }
+
+            // Deselect presets
+            document.querySelectorAll('.loc-btn').forEach(b => b.classList.remove('active'));
+            state.activeLoc = 'custom';
+
+            document.getElementById('disp-lat').innerText = lat.toFixed(4) + '°';
+            document.getElementById('disp-lng').innerText = lng.toFixed(4) + '°';
+
+            // Fly to the new location
+            state.map.flyTo([lat, lng], 14, { duration: 1.5 });
+
+        } catch (err) {
+            console.error("Location search error:", err);
+        } finally {
+            searchBtn.innerText = 'GO';
+            searchBtn.disabled = false;
+        }
+    };
+
+    if (searchBtn && searchInput) {
+        searchBtn.addEventListener('click', handleLocationSearch);
+        searchInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') handleLocationSearch();
+        });
+    }
 
     // Base Layer Buttons
     document.querySelectorAll('.layer-toggle').forEach(btn => {
