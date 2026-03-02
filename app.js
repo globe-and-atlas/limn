@@ -490,6 +490,11 @@ function clearLayers() {
 function applyIndex() {
     clearLayers();
 
+    if (state.activeIndex === 'none') {
+        updateUI();
+        return; // Skip adding WMS imagery layers entirely
+    }
+
     if (state.mode === 'single') {
         const timeStr = ALL_DATES[state.monthIndex].value;
         const layer = getWMSLayer(timeStr, false);
@@ -517,6 +522,20 @@ function applyIndex() {
 }
 
 function updateUI() {
+    if (state.activeIndex === 'none') {
+        document.querySelector('.legend-panel').style.display = 'none';
+        document.getElementById('btn-generate-report').disabled = true; // Disable report on none
+        return;
+    } else {
+        document.querySelector('.legend-panel').style.display = 'block';
+        if (document.getElementById('btn-generate-report').innerText !== "Querying Database...") {
+            // Only re-enable if there is a drawn item
+            if (document.querySelector('.leaflet-interactive')) {
+                document.getElementById('btn-generate-report').disabled = false;
+            }
+        }
+    }
+
     const cfg = INDICES[state.activeIndex];
     document.getElementById('active-index-name').innerText = cfg.name;
     document.getElementById('sensor-tag-display').innerText = cfg.sensor;
