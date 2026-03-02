@@ -877,16 +877,22 @@ function evaluatePixel(sample) {
 
             chartTitleLabel = `2-Year Trend Ending ${t2Obj ? t2Obj.displayStr : d2}`;
         } else {
-            // Default Query last 3 years for Single Mode
-            let startY = today.getFullYear() - 3;
-            timeRange = `${startY}-01-01/${new Date().toISOString().split('T')[0]}`;
-            chartTitleLabel = `${startY} to ${today.getFullYear()}`;
+            // Query 3 years ending on the currently viewed date in Single Mode
+            let targetDateStr = ALL_DATES[state.monthIndex].value;
+            let sd = new Date(targetDateStr);
+            let startD = new Date(Date.UTC(sd.getUTCFullYear() - 3, sd.getUTCMonth(), sd.getUTCDate()));
+            timeRange = `${startD.toISOString().split('T')[0]}/${targetDateStr}`;
+            chartTitleLabel = `3-Year Trend Ending ${ALL_DATES[state.monthIndex].displayStr}`;
         }
 
+        let maxccParam = '&MAXCC=30';
         let layerParam = 'AGRICULTURE';
-        if (state.activeIndex === 's1_sar') layerParam = 'SENTINEL1-GRD';
+        if (state.activeIndex === 's1_sar') {
+            layerParam = 'SENTINEL1-GRD';
+            maxccParam = '';
+        }
 
-        const fisUrl = `https://sh.dataspace.copernicus.eu/ogc/fis/959ea2c5-5892-4b36-82b3-76e6bdb93c8a?LAYER=${layerParam}&TIME=${timeRange}&BBOX=${bboxStr}&CRS=CRS:84&RESOLUTION=20m&EVALSCRIPT=${encodeURIComponent(b64)}`;
+        const fisUrl = `https://sh.dataspace.copernicus.eu/ogc/fis/959ea2c5-5892-4b36-82b3-76e6bdb93c8a?LAYER=${layerParam}&TIME=${timeRange}&BBOX=${bboxStr}&CRS=CRS:84&RESOLUTION=20m${maxccParam}&EVALSCRIPT=${encodeURIComponent(b64)}`;
 
         let realData = [];
         let labels = [];
