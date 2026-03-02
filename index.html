@@ -156,7 +156,11 @@
                 <!-- Single Mode Time Slider -->
                 <div id="single-time-container">
                     <div class="month-display" id="current-month-display">September 2024</div>
-                    <input type="range" class="slider custom-slider" id="time-slider" min="0" max="11" value="8">
+                    <div class="slider-wrapper">
+                        <div class="slider-track-bg"></div>
+                        <div class="slider-track-fill" id="time-slider-fill"></div>
+                        <input type="range" class="slider custom-slider" id="time-slider" min="0" max="11" value="8">
+                    </div>
                     <div class="slider-ticks" id="slider-ticks-container">
                     </div>
                 </div>

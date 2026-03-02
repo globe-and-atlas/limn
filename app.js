@@ -321,28 +321,66 @@ document.addEventListener('DOMContentLoaded', () => {
     // Configure single mode slider & ticks
     const slider = document.getElementById('time-slider');
     const ticksContainer = document.getElementById('slider-ticks-container');
+    const sliderFill = document.getElementById('time-slider-fill');
+
     if (slider) {
         slider.max = Math.max(0, ALL_DATES.length - 1);
         slider.value = state.monthIndex;
+        // initial fill
+        if (sliderFill) {
+            const pct = (slider.value / slider.max) * 100;
+            sliderFill.style.width = `${pct}%`;
+        }
     }
+
     if (ticksContainer) {
         ticksContainer.innerHTML = '';
         let lastDisplayedYear = 0;
         ALL_DATES.forEach((d, i) => {
             let currentYear = parseInt(d.value.split('-')[0]);
-            if (currentYear > lastDisplayedYear) { // Tick mark for first date of a new year
+
+            // We want tick marks for EVERY date for interactive snapping,
+            // but we only want labels for the start of the year so it doesn't get cluttered.
+            let div = document.createElement('div');
+            div.className = 'tick-mark';
+            div.style.left = `${(i / (ALL_DATES.length - 1)) * 100}%`;
+
+            let tooltip = document.createElement('div');
+            tooltip.className = 'tick-tooltip';
+            tooltip.innerText = d.short;
+            div.appendChild(tooltip);
+
+            // Add year labels sparsely
+            if (currentYear > lastDisplayedYear) {
                 lastDisplayedYear = currentYear;
-                let span = document.createElement('span');
-                span.textContent = "'" + d.value.split('-')[0].slice(2);
-                span.style.position = 'absolute';
-                span.style.left = `${(i / (ALL_DATES.length - 1)) * 100}%`;
-                ticksContainer.appendChild(span);
+                let label = document.createElement('div');
+                label.className = 'tick-label';
+                label.innerText = "'" + String(currentYear).slice(-2);
+                div.appendChild(label);
             }
+
+            // Make the tick clickable
+            div.addEventListener('click', () => {
+                if (state.monthIndex !== i) {
+                    slider.value = i;
+                    // manually trigger the logic the slider input event would do
+                    state.monthIndex = parseInt(i, 10);
+                    document.getElementById('current-month-display').innerText = ALL_DATES[state.monthIndex].displayStr;
+                    if (sliderFill) {
+                        const pct = (i / slider.max) * 100;
+                        sliderFill.style.width = `${pct}%`;
+                    }
+                    applyIndex();
+                }
+            });
+
+            ticksContainer.appendChild(div);
         });
     }
 
     // Set initial display before initMap overwrites via applyIndex()
     document.getElementById('current-month-display').innerText = ALL_DATES[state.monthIndex].displayStr;
+
 
     initMap();
     bindEvents();
@@ -595,13 +633,20 @@ function bindEvents() {
     });
 
     // Sliders
-    const timeSlider = document.getElementById('time-slider');
-    timeSlider.addEventListener('input', (e) => {
-        state.monthIndex = parseInt(e.target.value);
-        document.getElementById('current-month-display').innerText = ALL_DATES[state.monthIndex].displayStr;
+    const slider = document.getElementById('time-slider');
+    const sliderFill = document.getElementById('time-slider-fill');
+    if (slider) {
+        slider.addEventListener('input', (e) => {
+            state.monthIndex = parseInt(e.target.value, 10);
+            document.getElementById('current-month-display').innerText = ALL_DATES[state.monthIndex].displayStr;
 
-        if (state.mode === 'single') applyIndex();
-    });
+            if (sliderFill) {
+                const pct = (state.monthIndex / slider.max) * 100;
+                sliderFill.style.width = `${pct}%`;
+            }
+            if (state.mode === 'single') applyIndex();
+        });
+    }
 
     const opSlider = document.getElementById('opacity-slider');
     opSlider.addEventListener('input', (e) => {
