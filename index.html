@@ -65,7 +65,7 @@
             <div class="legend-panel glass-panel">
                 <div class="legend-header">
                     <h3 id="active-index-name">Moisture Index (NDMI)</h3>
-                    <span class="sensor-tag">Sentinel-2 L2A</span>
+                    <span class="sensor-tag" id="sensor-tag-display">Sentinel-2 L2A</span>
                 </div>
                 <div class="legend-gradient" id="legend-gradient"></div>
                 <div class="legend-labels">
@@ -142,6 +142,10 @@
                     <button class="index-btn" data-index="fc">
                         <span class="index-short">FC</span>
                         <span class="index-full">False Color (NIR)</span>
+                    </button>
+                    <button class="index-btn" data-index="s1_sar">
+                        <span class="index-short">SAR</span>
+                        <span class="index-full">S1 VV/VH Radar</span>
                     </button>
                 </div>
             </section>

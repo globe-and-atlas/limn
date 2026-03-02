@@ -227,6 +227,33 @@ const INDICES = {
   return [(sample.B11 - sample.B08) / sum];
 `
     },
+    s1_sar: {
+        name: 'SAR Moisture (VV/VH)',
+        sensor: 'Sentinel-1 GRD',
+        min: 'Dry / Smooth', max: 'Wet / Rough',
+        gradient: 'linear-gradient(to right, #000000, #448833, #CCDD55)',
+        formula: 'RGB [VV, VH, VV/VH]',
+        evalscript: `//VERSION=3
+function setup() {
+  return {
+    input: [{ bands: ["VV", "VH", "dataMask"] }],
+    output: { bands: 4 }
+  };
+}
+function evaluatePixel(sample) {
+  if (sample.dataMask === 0) return [0,0,0,0];
+  let vv = Math.max(0, Math.log10(sample.VV) * 10 + 20) / 20;
+  let vh = Math.max(0, Math.log10(sample.VH) * 10 + 20) / 20;
+  let ratio = vv / (vh + 0.001);
+  return [vv, vh, ratio * 0.5, 1];
+}`,
+        fisBands: ['VV', 'VH'],
+        fisLogic: `
+  if (sample.VV <= 0) return [0];
+  // Return the backscatter intensity directly for statistical trending
+  return [sample.VV];
+`
+    },
     tc: {
         name: 'True Color (RGB)',
         sensor: 'Sentinel-2 L2A',
@@ -351,7 +378,7 @@ function getWMSLayer(timeStr, isDiff) {
     if (isDiff) {
         if (cfg.diffscript) {
             scriptContent = cfg.diffscript;
-        } else {
+        } else if (state.activeIndex !== 's1_sar') {
             // Extract mathematical intent from the formula string to feed genDiffEvalscript
             let calc = '0';
             if (state.activeIndex === 'ndmi') calc = '(sample.B8A - sample.B11)/(sample.B8A + sample.B11)';
@@ -365,6 +392,31 @@ function getWMSLayer(timeStr, isDiff) {
             if (state.activeIndex === 'si') bands = ['B02', 'B04'];
 
             scriptContent = genDiffEvalscript(bands, calc);
+        } else {
+            // SAR Difference Evalscript
+            scriptContent = `//VERSION=3
+function setup() {
+  return {
+    input: [{ bands: ["VV", "dataMask"] }],
+    output: { bands: 4 },
+    mosaicking: "ORBIT"
+  };
+}
+function evaluatePixel(samples) {
+  if (samples.length < 2) return [0, 0, 0, 0.1];
+  let s1 = samples[samples.length - 1]; // oldest
+  let s2 = samples[0]; // newest
+  if (s1.dataMask === 0 || s2.dataMask === 0) return [0, 0, 0, 0];
+  
+  let val1 = Math.log10(s1.VV);
+  let val2 = Math.log10(s2.VV);
+  let diff = val2 - val1;
+  
+  if (diff < -0.2) return [1.0, 0.2, 0.2, 0.8]; // Decrease
+  if (diff > 0.2) return [0.2, 0.6, 1.0, 0.8]; // Increase
+  return [0.2, 0.2, 0.2, 0.3]; // Stable
+}
+`;
         }
     }
 
@@ -424,6 +476,7 @@ function applyIndex() {
 function updateUI() {
     const cfg = INDICES[state.activeIndex];
     document.getElementById('active-index-name').innerText = cfg.name;
+    document.getElementById('sensor-tag-display').innerText = cfg.sensor;
     document.getElementById('legend-min').innerText = cfg.min;
     document.getElementById('legend-max').innerText = cfg.max;
     document.getElementById('formula-display').innerText = cfg.formula;
