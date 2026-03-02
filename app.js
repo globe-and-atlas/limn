@@ -817,9 +817,11 @@ function bindEvents() {
         if (state.mode === 'single') {
             document.getElementById('report-time').innerText = ALL_DATES[state.monthIndex].displayStr;
         } else {
-            const t1Idx = parseInt(document.getElementById('date-t1').value);
-            const t2Idx = parseInt(document.getElementById('date-t2').value);
-            document.getElementById('report-time').innerText = `${ALL_DATES[t1Idx].displayStr} to ${ALL_DATES[t2Idx].displayStr} (Change Analysis)`;
+            const d1 = document.getElementById('date-t1').value;
+            const d2 = document.getElementById('date-t2').value;
+            const t1Obj = ALL_DATES.find(d => d.value === d1);
+            const t2Obj = ALL_DATES.find(d => d.value === d2);
+            document.getElementById('report-time').innerText = `${t1Obj ? t1Obj.displayStr : d1} to ${t2Obj ? t2Obj.displayStr : d2} (Change Analysis)`;
         }
 
         if (state.activeIndex === 'tc' || state.activeIndex === 'fc') {
@@ -850,12 +852,22 @@ function evaluatePixel(sample) {
         let chartTitleLabel = "";
 
         if (state.mode === 'compare') {
-            const t1Idx = parseInt(document.getElementById('date-t1').value);
-            const t2Idx = parseInt(document.getElementById('date-t2').value);
-            const d1 = ALL_DATES[t1Idx].value;
-            const d2 = ALL_DATES[t2Idx].value;
+            let d1 = document.getElementById('date-t1').value;
+            let d2 = document.getElementById('date-t2').value;
+
+            // Ensure chronological order for FIS API (Start/End)
+            if (d1 > d2) {
+                const temp = d1;
+                d1 = d2;
+                d2 = temp;
+            }
+
             timeRange = `${d1}/${d2}`;
-            chartTitleLabel = `${ALL_DATES[t1Idx].displayStr} to ${ALL_DATES[t2Idx].displayStr}`;
+
+            const t1Obj = ALL_DATES.find(d => d.value === d1);
+            const t2Obj = ALL_DATES.find(d => d.value === d2);
+
+            chartTitleLabel = `${t1Obj ? t1Obj.displayStr : d1} to ${t2Obj ? t2Obj.displayStr : d2}`;
         } else {
             // Default Query last 3 years for Single Mode
             let startY = today.getFullYear() - 3;
