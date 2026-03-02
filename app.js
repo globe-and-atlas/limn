@@ -570,6 +570,7 @@ function bindEvents() {
 
     let aoiDrawnItem = null;
     let reportChartInst = null;
+    let reportMapInst = null;
     const drawnItems = new L.FeatureGroup();
     state.map.addLayer(drawnItems);
 
@@ -719,8 +720,42 @@ function evaluatePixel(sample) {
             }
         });
 
+        // 4. Show Map in Modal
+        let activeBaseKey = 'imagery';
+        document.querySelectorAll('.layer-toggle').forEach(btn => {
+            if (btn.classList.contains('active')) activeBaseKey = btn.dataset.layer;
+        });
+
+        if (!reportMapInst) {
+            reportMapInst = L.map('report-map', {
+                zoomControl: true,
+                attributionControl: false,
+                dragging: false,
+                scrollWheelZoom: false,
+                doubleClickZoom: false,
+                keyboard: false
+            });
+            reportMapInst.baseLayer = L.tileLayer(BASE_LAYERS[activeBaseKey], { maxZoom: 18 }).addTo(reportMapInst);
+        } else {
+            if (reportMapInst.baseLayer) reportMapInst.removeLayer(reportMapInst.baseLayer);
+            reportMapInst.baseLayer = L.tileLayer(BASE_LAYERS[activeBaseKey], { maxZoom: 18 }).addTo(reportMapInst);
+        }
+
         // 3. Show Modal
         document.getElementById('report-modal').style.display = 'flex';
+
+        setTimeout(() => {
+            reportMapInst.invalidateSize();
+            reportMapInst.fitBounds(bounds, { padding: [20, 20] });
+
+            if (reportMapInst._drawnItems) reportMapInst._drawnItems.clearLayers();
+            else {
+                reportMapInst._drawnItems = new L.FeatureGroup();
+                reportMapInst.addLayer(reportMapInst._drawnItems);
+            }
+            L.rectangle(bounds, { color: '#1C85A6', weight: 3, fillOpacity: 0.2 }).addTo(reportMapInst._drawnItems);
+        }, 150);
+
     });
 
     document.getElementById('btn-close-report').addEventListener('click', () => {
