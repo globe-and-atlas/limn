@@ -16,11 +16,15 @@
     <!-- Leaflet -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-
     <!-- Leaflet Side-By-Side -->
     <script src="https://cdn.jsdelivr.net/gh/digidem/leaflet-side-by-side@2.0.0/leaflet-side-by-side.min.js"></script>
 
-    <!-- Chart.js (Removed) -->
+    <!-- Leaflet Draw Plugin -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
 
     <!-- Custom Styles -->
     <link rel="stylesheet" href="style.css?v=2">
@@ -135,8 +139,9 @@
                         <span class="index-short">TC</span>
                         <span class="index-full">True Color</span>
                     </button>
-                    <span class="index-short">FC</span>
-                    <span class="index-full">False Color (NIR)</span>
+                    <button class="index-btn" data-index="fc">
+                        <span class="index-short">FC</span>
+                        <span class="index-full">False Color (NIR)</span>
                     </button>
                 </div>
             </section>
@@ -191,12 +196,53 @@
                 <input type="range" class="slider custom-slider" id="opacity-slider" min="0" max="100" value="85">
             </section>
 
+            <section class="control-group">
+                <h3>Diagnostic Tools</h3>
+                <button id="btn-draw-aoi" class="tool-btn">Draw AOI Bound Box</button>
+                <button id="btn-generate-report" class="tool-btn mt-2" disabled>Generate Selected Report</button>
+            </section>
+
 
 
         </aside>
     </div>
 
-    <script src="app.js"></script>
+    <!-- Report Modal -->
+    <div id="report-modal" class="report-overlay" style="display: none;">
+        <div class="report-container">
+            <header class="report-header">
+                <h2>ENVIRONMENTAL ANALYSIS REPORT</h2>
+                <div class="report-meta">
+                    <p><strong>Generated:</strong> <span id="report-date-run"></span></p>
+                    <p><strong>AOI Bounds:</strong> <span id="report-aoi-bounds"></span></p>
+                </div>
+                <button id="btn-close-report" class="close-report-btn">✖</button>
+            </header>
+
+            <div class="report-body">
+                <div class="report-spectrals">
+                    <h3>Spectral Configuration</h3>
+                    <p><strong>Index Active:</strong> <span id="report-index-name"></span></p>
+                    <p><strong>Mathematical Logic:</strong> <br><span id="report-math"></span></p>
+                    <p><strong>Selected Date(s):</strong> <span id="report-time"></span></p>
+                </div>
+
+                <div class="report-chart">
+                    <h3>Simulated Trend (Scaled by AOI Area)</h3>
+                    <div class="chart-container-report">
+                        <canvas id="reportChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="report-footer">
+                    <button id="btn-print-report" class="print-btn tool-btn" onclick="window.print()">Print / Save
+                        PDF</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js?v=2"></script>
 </body>
 
 </html>

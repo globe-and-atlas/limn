@@ -160,6 +160,220 @@ button {
     pointer-events: auto;
 }
 
+/* ==========================================================================
+   Diagnostic Tools & Report Modal
+   ========================================================================== */
+
+.tool-btn {
+    width: 100%;
+    padding: 10px;
+    background: rgba(40, 48, 56, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--text-main);
+    font-family: var(--font-ui);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.tool-btn:hover:not(:disabled) {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.2);
+}
+
+.tool-btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.report-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.85);
+    backdrop-filter: blur(10px);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.report-container {
+    background: var(--bg-panel);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    width: 100%;
+    max-width: 800px;
+    max-height: 90vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+}
+
+.report-header {
+    display: flex;
+    flex-direction: column;
+    padding: 24px 32px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    position: relative;
+}
+
+.report-header h2 {
+    font-size: 16px;
+    letter-spacing: 1px;
+    color: var(--text-main);
+    margin: 0 0 16px 0;
+}
+
+.report-meta {
+    display: flex;
+    gap: 24px;
+    font-size: 11px;
+    color: var(--text-muted);
+}
+
+.report-meta p {
+    margin: 0;
+}
+
+.report-meta strong {
+    color: var(--text-dim);
+}
+
+.close-report-btn {
+    position: absolute;
+    top: 24px;
+    right: 24px;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 16px;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.close-report-btn:hover {
+    color: var(--text-main);
+}
+
+.report-body {
+    padding: 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+}
+
+.report-spectrals h3 {
+    font-size: 12px;
+    color: var(--accent-blue);
+    margin: 0 0 12px 0;
+    text-transform: uppercase;
+}
+
+.report-spectrals p {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin: 0 0 8px 0;
+    line-height: 1.5;
+}
+
+.report-spectrals strong {
+    color: var(--text-main);
+}
+
+.report-chart h3 {
+    font-size: 12px;
+    color: var(--accent-blue);
+    margin: 0 0 12px 0;
+    text-transform: uppercase;
+}
+
+.chart-container-report {
+    width: 100%;
+    height: 250px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+    padding: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.report-footer {
+    display: flex;
+    justify-content: flex-end;
+    padding-top: 24px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.print-btn {
+    width: auto;
+    padding: 10px 24px;
+    background: var(--accent-blue);
+    color: #fff;
+    border-color: var(--accent-blue);
+}
+
+.print-btn:hover {
+    background: #147290;
+    border-color: #147290;
+}
+
+/* ==========================================================================
+   Print Media Query
+   ========================================================================== */
+
+@media print {
+    body>*:not(.report-overlay) {
+        display: none !important;
+    }
+
+    .report-overlay {
+        position: static !important;
+        background: white !important;
+        display: block !important;
+        padding: 0 !important;
+    }
+
+    .report-container {
+        background: white !important;
+        border: none !important;
+        box-shadow: none !important;
+        max-width: none !important;
+        max-height: none !important;
+    }
+
+    .report-header h2 {
+        color: black !important;
+    }
+
+    .report-meta,
+    .report-spectrals p {
+        color: #333 !important;
+    }
+
+    .report-spectrals strong,
+    .report-meta strong {
+        color: black !important;
+    }
+
+    .report-spectrals h3,
+    .report-chart h3 {
+        color: #0056b3 !important;
+    }
+
+    .close-report-btn,
+    .report-footer {
+        display: none !important;
+    }
+}
+
 .brand {
     display: flex;
     align-items: center;

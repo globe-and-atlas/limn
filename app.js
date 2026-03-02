@@ -528,4 +528,120 @@ function bindEvents() {
         document.getElementById('disp-lat').innerText = e.latlng.lat.toFixed(4) + '°';
         document.getElementById('disp-lng').innerText = e.latlng.lng.toFixed(4) + '°';
     });
+
+    // ==========================================================================
+    // Report & AOI Logic
+    // ==========================================================================
+
+    let aoiDrawnItem = null;
+    let reportChartInst = null;
+    const drawnItems = new L.FeatureGroup();
+    state.map.addLayer(drawnItems);
+
+    let drawControl = new L.Draw.Rectangle(state.map, {
+        shapeOptions: {
+            color: '#1C85A6',
+            weight: 2,
+            fillOpacity: 0.1
+        }
+    });
+
+    document.getElementById('btn-draw-aoi').addEventListener('click', () => {
+        drawnItems.clearLayers();
+        aoiDrawnItem = null;
+        document.getElementById('btn-generate-report').disabled = true;
+        drawControl.enable();
+    });
+
+    state.map.on(L.Draw.Event.CREATED, function (e) {
+        let layer = e.layer;
+        drawnItems.addLayer(layer);
+        aoiDrawnItem = layer;
+        document.getElementById('btn-generate-report').disabled = false;
+    });
+
+    function generateMockTrendData(base, areaMultiplier) {
+        let pts = [];
+        for (let i = 0; i < ALL_DATES.length; i++) {
+            let season = Math.sin((i / ALL_DATES.length) * Math.PI * 2);
+            let noise = (Math.random() - 0.5) * 0.1;
+            pts.push(base + (season * base * 0.3) + noise + (areaMultiplier * 0.05));
+        }
+        return pts;
+    }
+
+    document.getElementById('btn-generate-report').addEventListener('click', () => {
+        if (!aoiDrawnItem) return;
+
+        // 1. Populate Text Metadata
+        const idx = INDICES[state.activeIndex];
+        document.getElementById('report-date-run').innerText = new Date().toLocaleString();
+
+        let bounds = aoiDrawnItem.getBounds();
+        let bStr = `N: ${bounds.getNorth().toFixed(4)}°, S: ${bounds.getSouth().toFixed(4)}°, E: ${bounds.getEast().toFixed(4)}°, W: ${bounds.getWest().toFixed(4)}°`;
+        document.getElementById('report-aoi-bounds').innerText = bStr;
+
+        document.getElementById('report-index-name').innerText = `${idx.name} [${idx.sensor}]`;
+        document.getElementById('report-math').innerText = idx.formula;
+
+        if (state.mode === 'single') {
+            document.getElementById('report-time').innerText = ALL_DATES[state.monthIndex].displayStr;
+        } else {
+            const t1Idx = parseInt(document.getElementById('date-t1').value);
+            const t2Idx = parseInt(document.getElementById('date-t2').value);
+            document.getElementById('report-time').innerText = `${ALL_DATES[t1Idx].displayStr} to ${ALL_DATES[t2Idx].displayStr} (Change Analysis)`;
+        }
+
+        // 2. Generate Simulated Chart
+        let baseVal = 0.5;
+        if (state.activeIndex === 'ndwi') baseVal = 0.2;
+        if (state.activeIndex === 'ndvi') baseVal = 0.6;
+        if (state.activeIndex === 'si') baseVal = 0.1;
+
+        let areaMultiplier = (bounds.getNorth() - bounds.getSouth()) * 100;
+        let mockData = generateMockTrendData(baseVal, areaMultiplier);
+        let labels = ALL_DATES.map(d => d.short);
+
+        const ctx = document.getElementById('reportChart').getContext('2d');
+        if (reportChartInst) reportChartInst.destroy();
+
+        reportChartInst = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Regional Mean Trend (Simulated)',
+                    data: mockData,
+                    borderColor: '#1C85A6',
+                    backgroundColor: 'rgba(28, 133, 166, 0.2)',
+                    fill: true,
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: true, labels: { color: 'rgba(255,255,255,0.7)' } } },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        ticks: { color: 'rgba(255,255,255,0.5)' }
+                    },
+                    x: {
+                        grid: { color: 'rgba(255,255,255,0.05)' },
+                        ticks: { color: 'rgba(255,255,255,0.5)', maxRotation: 45, minRotation: 45 }
+                    }
+                }
+            }
+        });
+
+        // 3. Show Modal
+        document.getElementById('report-modal').style.display = 'flex';
+    });
+
+    document.getElementById('btn-close-report').addEventListener('click', () => {
+        document.getElementById('report-modal').style.display = 'none';
+    });
+
 }
