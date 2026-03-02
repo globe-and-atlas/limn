@@ -121,7 +121,13 @@ const INDICES = {
   if(sum === 0) return [0,0,0,0];
   let val = (sample.B8A - sample.B11) / sum;
   ${colorBlend('val + 0.3', PALETTE_NDMI)}
-`)
+`),
+        fisBands: ['B8A', 'B11'],
+        fisLogic: `
+  let sum = sample.B8A + sample.B11;
+  if(sum === 0) return [0];
+  return [(sample.B8A - sample.B11) / sum];
+`
     },
     ndwi: {
         name: 'Wetness Index (NDWI)',
@@ -134,7 +140,13 @@ const INDICES = {
   if(sum === 0) return [0,0,0,0];
   let val = (sample.B03 - sample.B11) / sum;
   ${colorBlend('val + 0.3', PALETTE_NDWI)}
-`)
+`),
+        fisBands: ['B03', 'B11'],
+        fisLogic: `
+  let sum = sample.B03 + sample.B11;
+  if(sum === 0) return [0];
+  return [(sample.B03 - sample.B11) / sum];
+`
     },
     ndvi: {
         name: 'Vegetation Index (NDVI)',
@@ -147,7 +159,13 @@ const INDICES = {
   if(sum === 0) return [0,0,0,0];
   let val = (sample.B08 - sample.B04) / sum;
   ${colorBlend('val + 0.1', PALETTE_VEG)}
-`)
+`),
+        fisBands: ['B08', 'B04'],
+        fisLogic: `
+  let sum = sample.B08 + sample.B04;
+  if(sum === 0) return [0];
+  return [(sample.B08 - sample.B04) / sum];
+`
     },
     savi: {
         name: 'Arid Vegetation (SAVI)',
@@ -160,7 +178,13 @@ const INDICES = {
   if(sum === 0) return [0,0,0,0];
   let val = ((sample.B08 - sample.B04) / sum) * 1.5;
   ${colorBlend('val + 0.2', PALETTE_VEG)}
-`)
+`),
+        fisBands: ['B08', 'B04'],
+        fisLogic: `
+  let sum = sample.B08 + sample.B04 + 0.5;
+  if(sum === 0) return [0];
+  return [((sample.B08 - sample.B04) / sum) * 1.5];
+`
     },
     msi: {
         name: 'Moisture Stress Index (MSI)',
@@ -175,7 +199,12 @@ const INDICES = {
   // We can map this to 0-1 for our colorBlend function.
   let mapped = Math.max(0, Math.min(1, (val - 0.4) / 1.6));
   ${colorBlend('mapped', PALETTE_MSI)}
-`)
+`),
+        fisBands: ['B11', 'B08'],
+        fisLogic: `
+  if(sample.B08 === 0) return [0];
+  return [sample.B11 / sample.B08];
+`
     },
     si: {
         name: 'Salinity Index (SI)',
@@ -190,7 +219,13 @@ const INDICES = {
   // SI is Normalized Difference Salinity Index (NDSI)
   // Maps roughly -1 to +1, we scale to 0-1 for the palette
   ${colorBlend('(val + 0.2) * 1.5', PALETTE_SI)}
-`)
+`),
+        fisBands: ['B11', 'B08'],
+        fisLogic: `
+  let sum = sample.B11 + sample.B08;
+  if(sum === 0) return [0];
+  return [(sample.B11 - sample.B08) / sum];
+`
     },
     tc: {
         name: 'True Color (RGB)',
@@ -560,17 +595,7 @@ function bindEvents() {
         document.getElementById('btn-generate-report').disabled = false;
     });
 
-    function generateMockTrendData(base, areaMultiplier) {
-        let pts = [];
-        for (let i = 0; i < ALL_DATES.length; i++) {
-            let season = Math.sin((i / ALL_DATES.length) * Math.PI * 2);
-            let noise = (Math.random() - 0.5) * 0.1;
-            pts.push(base + (season * base * 0.3) + noise + (areaMultiplier * 0.05));
-        }
-        return pts;
-    }
-
-    document.getElementById('btn-generate-report').addEventListener('click', () => {
+    document.getElementById('btn-generate-report').addEventListener('click', async () => {
         if (!aoiDrawnItem) return;
 
         // 1. Populate Text Metadata
@@ -592,15 +617,72 @@ function bindEvents() {
             document.getElementById('report-time').innerText = `${ALL_DATES[t1Idx].displayStr} to ${ALL_DATES[t2Idx].displayStr} (Change Analysis)`;
         }
 
-        // 2. Generate Simulated Chart
-        let baseVal = 0.5;
-        if (state.activeIndex === 'ndwi') baseVal = 0.2;
-        if (state.activeIndex === 'ndvi') baseVal = 0.6;
-        if (state.activeIndex === 'si') baseVal = 0.1;
+        if (state.activeIndex === 'tc' || state.activeIndex === 'fc') {
+            alert("Statistical trending is not supported for optical multi-band compositions (RGB). Please select a mathematical spectral index (NDMI, NDWI, etc.)");
+            return;
+        }
 
-        let areaMultiplier = (bounds.getNorth() - bounds.getSouth()) * 100;
-        let mockData = generateMockTrendData(baseVal, areaMultiplier);
-        let labels = ALL_DATES.map(d => d.short);
+        // 2. Generate Real Statistical Data via FIS
+        const btn = document.getElementById('btn-generate-report');
+        btn.innerText = "Querying Database...";
+        btn.disabled = true;
+
+        const fisScript = `//VERSION=3
+function setup() {
+  return {
+    input: [${idx.fisBands.map(b => `'${b}'`).join(', ')}, "dataMask"],
+    output: { bands: 1, sampleType: 'FLOAT32' }
+  };
+}
+function evaluatePixel(sample) {
+  if (sample.dataMask === 0) return [NaN];
+  ${idx.fisLogic}
+}`;
+
+        const b64 = btoa(fisScript);
+        const bboxStr = `${bounds.getWest()},${bounds.getSouth()},${bounds.getEast()},${bounds.getNorth()}`;
+        // Query last 3 years
+        let startY = today.getFullYear() - 3;
+        const timeRange = `${startY}-01-01/${new Date().toISOString().split('T')[0]}`;
+
+        const fisUrl = `https://sh.dataspace.copernicus.eu/ogc/fis/959ea2c5-5892-4b36-82b3-76e6bdb93c8a?LAYER=AGRICULTURE&TIME=${timeRange}&BBOX=${bboxStr}&CRS=CRS:84&RESOLUTION=20m&EVALSCRIPT=${encodeURIComponent(b64)}`;
+
+        let realData = [];
+        let labels = [];
+
+        try {
+            const resp = await fetch(fisUrl);
+            const data = await resp.json();
+
+            const c0 = data.C0 || [];
+            c0.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+            // Extract the means, filter out completely cloudy NaNs
+            c0.forEach(entry => {
+                if (entry.basicStats && entry.basicStats.mean !== "NaN") {
+                    labels.push(entry.date);
+                    realData.push(entry.basicStats.mean);
+                }
+            });
+
+            if (realData.length === 0) {
+                alert("No valid statistical data found for this bounding box (possibly due to clouds or data sparsity).");
+                btn.innerText = "Generate Selected Report";
+                btn.disabled = false;
+                return;
+            }
+        } catch (error) {
+            console.error("FIS Request Failed:", error);
+            alert("Failed to hit Sentinel Hub Statistical API. Check the console for more details.");
+            btn.innerText = "Generate Selected Report";
+            btn.disabled = false;
+            return;
+        }
+
+        btn.innerText = "Generate Selected Report";
+        btn.disabled = false;
+
+        document.querySelector('.report-chart h3').innerText = `Real Statistical Trend (AOI Mean) - ${startY} to ${today.getFullYear()}`;
 
         const ctx = document.getElementById('reportChart').getContext('2d');
         if (reportChartInst) reportChartInst.destroy();
@@ -608,14 +690,16 @@ function bindEvents() {
         reportChartInst = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: labels,
+                labels: labels.map(d => d.slice(0, 7)), // YYYY-MM
                 datasets: [{
-                    label: 'Regional Mean Trend (Simulated)',
-                    data: mockData,
+                    label: `${idx.name} (Actual Mean)`,
+                    data: realData,
                     borderColor: '#1C85A6',
                     backgroundColor: 'rgba(28, 133, 166, 0.2)',
                     fill: true,
-                    tension: 0.4
+                    tension: 0.1,
+                    pointRadius: 2,
+                    pointHitRadius: 10
                 }]
             },
             options: {
@@ -624,13 +708,12 @@ function bindEvents() {
                 plugins: { legend: { display: true, labels: { color: 'rgba(255,255,255,0.7)' } } },
                 scales: {
                     y: {
-                        beginAtZero: true,
                         grid: { color: 'rgba(255,255,255,0.05)' },
                         ticks: { color: 'rgba(255,255,255,0.5)' }
                     },
                     x: {
                         grid: { color: 'rgba(255,255,255,0.05)' },
-                        ticks: { color: 'rgba(255,255,255,0.5)', maxRotation: 45, minRotation: 45 }
+                        ticks: { color: 'rgba(255,255,255,0.5)', maxRotation: 45, minRotation: 45, maxTicksLimit: 24 }
                     }
                 }
             }
