@@ -32,19 +32,7 @@ while (iterDate <= today) {
     iterDate.setUTCDate(iterDate.getUTCDate() + 5);
 }
 
-function generateChartData(base, amp, phaseOffset) {
-    return ALL_DATES.map((_, i) => {
-        let season = Math.sin((i / 73.0) * Math.PI * 2 + phaseOffset); // Approx 73 samples per year
-        let noise = (Math.random() - 0.5) * 0.05;
-        return base + (amp * season) + noise;
-    });
-}
 
-const CHART_DATA = {
-    ndmi: generateChartData(0.3, 0.1, 0),
-    ndwi: generateChartData(0.12, 0.05, Math.PI / 2),
-    si: generateChartData(0.55, 0.1, Math.PI)
-};
 
 // Copernicus Sentinel Hub configuration
 const SH_WMS_URL = 'https://sh.dataspace.copernicus.eu/ogc/wms/959ea2c5-5892-4b36-82b3-76e6bdb93c8a';
@@ -131,8 +119,7 @@ const INDICES = {
   if(sum === 0) return [0,0,0,0];
   let val = (sample.B8A - sample.B11) / sum;
   ${colorBlend('val + 0.3', PALETTE_NDMI)}
-`),
-        chartColor: '#1C85A6'
+`)
     },
     ndwi: {
         name: 'Wetness Index (NDWI)',
@@ -145,20 +132,22 @@ const INDICES = {
   if(sum === 0) return [0,0,0,0];
   let val = (sample.B03 - sample.B11) / sum;
   ${colorBlend('val + 0.3', PALETTE_NDWI)}
-`),
-        chartColor: '#1450B4'
+`)
     },
     si: {
         name: 'Salinity Index (SI)',
         sensor: 'Sentinel-2 L2A',
         min: 'Low Salt', max: 'High Salt',
         gradient: 'linear-gradient(to right, #243340, #EFD87A, #F0501E)',
-        formula: '√(B02 × B04)',
-        evalscript: genEvalscript(['B02', 'B04'], `
-  let val = Math.sqrt(sample.B02 * sample.B04) * 8;
-  ${colorBlend('val', PALETTE_SI)}
-`),
-        chartColor: '#F0501E'
+        formula: '(B11 - B08) / (B11 + B08)',
+        evalscript: genEvalscript(['B11', 'B08'], `
+  let sum = sample.B11 + sample.B08;
+  if(sum === 0) return [0,0,0,0];
+  let val = (sample.B11 - sample.B08) / sum;
+  // SI is Normalized Difference Salinity Index (NDSI)
+  // Maps roughly -1 to +1, we scale to 0-1 for the palette
+  ${colorBlend('(val + 0.2) * 1.5', PALETTE_SI)}
+`)
     },
     tc: {
         name: 'True Color (RGB)',
@@ -166,8 +155,7 @@ const INDICES = {
         min: '', max: '',
         gradient: 'none',
         formula: 'RGB [B04, B03, B02]',
-        evalscript: genEvalscript(['B04', 'B03', 'B02'], `return [sample.B04 * 2.5, sample.B03 * 2.5, sample.B02 * 2.5, 1];`),
-        chartColor: '#999'
+        evalscript: genEvalscript(['B04', 'B03', 'B02'], `return [sample.B04 * 2.5, sample.B03 * 2.5, sample.B02 * 2.5, 1];`)
     },
     fc: {
         name: 'False Color (NIR)',
@@ -176,8 +164,7 @@ const INDICES = {
         gradient: 'none',
         formula: 'RGB [B08, B04, B03]',
         evalscript: genEvalscript(['B08', 'B04', 'B03'], `return [sample.B08 * 2.5, sample.B04 * 2.5, sample.B03 * 2.5, 1];`),
-        diffscript: genDiffEvalscript(['B08', 'B04', 'B03'], `(sample.B08 + sample.B04 + sample.B03)/3`),
-        chartColor: '#999'
+        diffscript: genDiffEvalscript(['B08', 'B04', 'B03'], `(sample.B08 + sample.B04 + sample.B03)/3`)
     }
 };
 
@@ -252,7 +239,6 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('current-month-display').innerText = ALL_DATES[state.monthIndex].displayStr;
 
     initMap();
-    initChart();
     bindEvents();
 
     // Remove loading overlay
@@ -385,80 +371,10 @@ function updateUI() {
         grad.style.background = cfg.gradient;
     }
 
-    updateChart();
+
 }
 
-// ── CHART ──────────────────────────────────────────
-function initChart() {
-    const ctx = document.getElementById('timeSeriesChart').getContext('2d');
 
-    Chart.defaults.color = '#94A3B8';
-    Chart.defaults.font.family = 'JetBrains Mono';
-
-    state.chartInst = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: ALL_DATES.map(d => d.short),
-            datasets: [{
-                label: 'Trend',
-                data: CHART_DATA.ndmi, // default
-                borderColor: INDICES.ndmi.chartColor,
-                backgroundColor: 'rgba(28, 133, 166, 0.1)',
-                borderWidth: 2,
-                pointBackgroundColor: '#0a0b10',
-                pointBorderColor: INDICES.ndmi.chartColor,
-                pointRadius: 0,
-                pointHoverRadius: 6,
-                fill: true,
-                tension: 0.4
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { display: false } },
-            scales: {
-                x: { grid: { color: 'rgba(255,255,255,0.05)', drawBorder: false }, ticks: { font: { size: 9 } } },
-                y: { grid: { color: 'rgba(255,255,255,0.05)', drawBorder: false }, ticks: { font: { size: 9 }, maxTicksLimit: 5 } }
-            }
-        }
-    });
-
-    highlightActiveMonth();
-}
-
-function updateChart() {
-    if (!state.chartInst) return;
-
-    const k = state.activeIndex;
-    if (CHART_DATA[k]) {
-        state.chartInst.data.datasets[0].data = CHART_DATA[k];
-        state.chartInst.data.datasets[0].borderColor = INDICES[k].chartColor;
-        state.chartInst.data.datasets[0].pointBorderColor = INDICES[k].chartColor;
-
-        let rgb = hexToRgb(INDICES[k].chartColor);
-        state.chartInst.data.datasets[0].backgroundColor = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.1)`;
-    } else {
-        // clear chart if TC or FC
-        state.chartInst.data.datasets[0].data = new Array(ALL_DATES.length).fill(null);
-    }
-
-    highlightActiveMonth();
-    state.chartInst.update();
-}
-
-function highlightActiveMonth() {
-    if (!CHART_DATA[state.activeIndex]) return;
-
-    const radii = new Array(ALL_DATES.length).fill(0);
-    radii[state.monthIndex] = 6;
-    state.chartInst.data.datasets[0].pointRadius = radii;
-}
-
-function hexToRgb(hex) {
-    let result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
-    return result ? { r: parseInt(result[1], 16), g: parseInt(result[2], 16), b: parseInt(result[3], 16) } : { r: 0, g: 0, b: 0 };
-}
 
 // ── EVENT BINDINGS ─────────────────────────────────
 function bindEvents() {
@@ -547,8 +463,7 @@ function bindEvents() {
     timeSlider.addEventListener('input', (e) => {
         state.monthIndex = parseInt(e.target.value);
         document.getElementById('current-month-display').innerText = ALL_DATES[state.monthIndex].displayStr;
-        highlightActiveMonth();
-        state.chartInst.update();
+
         if (state.mode === 'single') applyIndex();
     });
 
