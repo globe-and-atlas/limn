@@ -211,7 +211,11 @@
 
             <section class="control-group op-control">
                 <h3>Index Opacity</h3>
-                <input type="range" class="slider custom-slider" id="opacity-slider" min="0" max="100" value="85">
+                <div class="slider-wrapper">
+                    <div class="slider-track-bg"></div>
+                    <div class="slider-track-fill" id="opacity-slider-fill" style="width: 85%;"></div>
+                    <input type="range" class="slider custom-slider" id="opacity-slider" min="0" max="100" value="85">
+                </div>
             </section>
 
             <section class="control-group">

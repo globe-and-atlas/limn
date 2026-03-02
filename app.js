@@ -744,8 +744,14 @@ function bindEvents() {
     }
 
     const opSlider = document.getElementById('opacity-slider');
+    const opSliderFill = document.getElementById('opacity-slider-fill');
     opSlider.addEventListener('input', (e) => {
         state.opacity = parseInt(e.target.value) / 100;
+
+        if (opSliderFill) {
+            opSliderFill.style.width = `${e.target.value}%`;
+        }
+
         const setOp = (layer) => { if (layer && layer.setOpacity) layer.setOpacity(state.opacity); }
         if (state.overlayGroup) state.overlayGroup.eachLayer(setOp);
         if (state.leftGroup) state.leftGroup.eachLayer(setOp);
