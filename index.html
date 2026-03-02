@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sentinel Explorer | Well-Pad Analysis</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+
+    <!-- Leaflet -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <!-- Leaflet Side-By-Side -->
+    <script src="https://cdn.jsdelivr.net/gh/digidem/leaflet-side-by-side@2.0.0/leaflet-side-by-side.min.js"></script>
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="style.css?v=2">
+</head>
+
+<body>
+
+    <!-- Loading Overlay -->
+    <div id="loading" class="loading-overlay">
+        <div class="spinner"></div>
+        <div class="loading-text">INITIALIZING SENTINEL HUB CONNECTION...</div>
+    </div>
+
+    <!-- App Container -->
+    <div class="app-container">
+        <!-- Map Area -->
+        <main class="map-container">
+            <div id="map"></div>
+
+            <!-- Map Overlay Controls (Top Right) -->
+            <div class="map-controls-tr">
+                <button class="layer-toggle active" data-layer="imagery" title="Satellite Base">SAT</button>
+                <button class="layer-toggle" data-layer="topo" title="Topographic Base">TOPO</button>
+                <button class="layer-toggle" data-layer="osm" title="Street Map">OSM</button>
+            </div>
+
+            <!-- Mode Switcher (Top Center) -->
+            <div class="mode-switcher-wrapper">
+                <div class="mode-switcher">
+                    <button id="mode-single" class="mode-btn active">SINGLE DATE</button>
+                    <button id="mode-compare" class="mode-btn">COMPARE (Δ)</button>
+                </div>
+            </div>
+
+
+
+            <!-- Legend Overlay (Bottom Right) -->
+            <div class="legend-panel glass-panel">
+                <div class="legend-header">
+                    <h3 id="active-index-name">Moisture Index (NDMI)</h3>
+                    <span class="sensor-tag">Sentinel-2 L2A</span>
+                </div>
+                <div class="legend-gradient" id="legend-gradient"></div>
+                <div class="legend-labels">
+                    <span id="legend-min">High Stress</span>
+                    <span id="legend-max">High Moisture</span>
+                </div>
+                <div id="formula-display" class="formula-display">(B08 - B11) / (B08 + B11)</div>
+            </div>
+        </main>
+
+        <!-- Left Sidebar Panel -->
+        <aside class="sidebar glass-panel left-panel">
+
+            <!-- Header Title Overlay -->
+            <header class="app-header">
+                <div class="brand">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="12" cy="12" r="10" stroke="#00D2FF" stroke-width="2" opacity="0.8" />
+                        <path d="M12 6V18M6 12H18" stroke="#00D2FF" stroke-width="2" stroke-linecap="round" />
+                        <circle cx="12" cy="12" r="3" fill="#00D2FF" />
+                    </svg>
+                    <div>
+                        <h1>SENTINEL EXPLORER</h1>
+                        <h2>Well-Pad Environmental Analysis</h2>
+                    </div>
+                </div>
+            </header>
+
+            <section class="control-group">
+                <h3>Analysis Location</h3>
+                <div class="location-picker">
+                    <button class="loc-btn active" data-loc="lea">Lea Co. Incident</button>
+                    <button class="loc-btn" data-loc="ward">Ward Co. Seep</button>
+                    <button class="loc-btn" data-loc="eddy">Eddy Co. Pond</button>
+                </div>
+                <div class="coord-display">
+                    <span class="coord-label">LAT:</span> <span id="disp-lat">31.5500°</span>
+                    <span class="coord-label" style="margin-left: 10px;">LNG:</span> <span
+                        id="disp-lng">-103.9500°</span>
+                </div>
+            </section>
+
+            <section class="control-group">
+                <h3>Spectral Analysis Index</h3>
+                <div class="index-grid">
+                    <button class="index-btn" data-index="ndwi">
+                        <span class="index-short">NDWI</span>
+                        <span class="index-full">Wetness / Ponding</span>
+                    </button>
+                    <button class="index-btn active" data-index="ndmi">
+                        <span class="index-short">NDMI</span>
+                        <span class="index-full">Moisture Stress</span>
+                    </button>
+                    <button class="index-btn" data-index="si">
+                        <span class="index-short">SI</span>
+                        <span class="index-full">Salinity / Crust</span>
+                    </button>
+                    <button class="index-btn" data-index="tc">
+                        <span class="index-short">TC</span>
+                        <span class="index-full">True Color</span>
+                    </button>
+                    <button class="index-btn" data-index="fc">
+                        <span class="index-short">FC</span>
+                        <span class="index-full">False Color (NIR)</span>
+                    </button>
+                </div>
+            </section>
+
+            <section class="control-group" id="temporal-controls">
+                <h3>Temporal Window</h3>
+
+                <!-- Single Mode Time Slider -->
+                <div id="single-time-container">
+                    <div class="month-display" id="current-month-display">September 2024</div>
+                    <input type="range" class="slider custom-slider" id="time-slider" min="0" max="11" value="8">
+                    <div class="slider-ticks" id="slider-ticks-container">
+                    </div>
+                </div>
+
+                <!-- Compare Mode Dates -->
+                <div id="compare-dates-container" style="display: none;">
+                    <div class="date-input-group">
+                        <label>T1 (Before)</label>
+                        <select id="date-t1" class="date-picker date-dropdown"></select>
+                    </div>
+                    <div class="date-input-group mt-2">
+                        <label>T2 (After)</label>
+                        <select id="date-t2" class="date-picker date-dropdown"></select>
+                    </div>
+
+                    <div class="compare-toggle-box" style="margin-top: 16px;">
+                        <label
+                            style="display: block; font-size: 10px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; margin-bottom: 8px;">Compare
+                            Layout</label>
+                        <div class="toggle-switch mode-toggle" id="compare-type-toggle">
+                            <button id="btn-swipe" class="active">Swipe</button>
+                            <button id="btn-diff">Diff (∆)</button>
+                        </div>
+                        <div id="diff-legend" style="margin-top: 12px; display: none;">
+                            <div
+                                style="display: flex; justify-content: space-between; font-size: 10px; color: var(--text-muted); margin-bottom: 4px;">
+                                <span>Decrease/Loss</span>
+                                <span>No Change</span>
+                                <span>Increase/Gain</span>
+                            </div>
+                            <div
+                                style="height: 6px; border-radius: 3px; background: linear-gradient(to right, #FF3333, #333333, #33AAFF); width: 100%;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="control-group op-control">
+                <h3>Index Opacity</h3>
+                <input type="range" class="slider custom-slider" id="opacity-slider" min="0" max="100" value="85">
+            </section>
+
+            <section class="control-group chart-section">
+                <h3>Trend Analysis <span class="chart-subtitle" id="chart-subtitle-display">(2016 - Present)</span></h3>
+                <div class="chart-container">
+                    <canvas id="timeSeriesChart"></canvas>
+                </div>
+            </section>
+
+        </aside>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>

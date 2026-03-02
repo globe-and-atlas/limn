@@ -1,0 +1,582 @@
+/* ==========================================================================
+   Sentinel Explorer - Premium Dark Theme Styles
+   ========================================================================== */
+
+:root {
+    --bg-base: #0a0b10;
+    --bg-panel: rgba(16, 18, 27, 0.7);
+    --bg-panel-hover: rgba(26, 30, 42, 0.85);
+
+    --accent-blue: #00D2FF;
+    --accent-blue-dim: rgba(0, 210, 255, 0.2);
+    --accent-green: #00FFB2;
+    --accent-orange: #FF8F00;
+
+    --text-main: #FFFFFF;
+    --text-dim: #94A3B8;
+    --text-dark: #cbd5e1;
+
+    --border-color: rgba(255, 255, 255, 0.1);
+    --border-glow: rgba(0, 210, 255, 0.3);
+
+    --font-ui: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+
+    --panel-blur: blur(16px);
+    --shadow-lg: 0 10px 25px -5px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background-color: var(--bg-base);
+    color: var(--text-main);
+    font-family: var(--font-ui);
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+    position: relative;
+}
+
+body::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0.05;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 9999;
+}
+
+/* ── Typography & Basics ───────────────────────────────── */
+h1,
+h2,
+h3,
+h4 {
+    font-weight: 600;
+    letter-spacing: 0.02em;
+}
+
+button {
+    cursor: pointer;
+    font-family: var(--font-ui);
+    border: none;
+    background: none;
+}
+
+:focus-visible {
+    outline: 2px solid var(--accent-blue);
+    outline-offset: 2px;
+}
+
+/* ── Loading Overlay ────────────────────────────────────── */
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--bg-base);
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    transition: opacity 0.5s ease;
+}
+
+.spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid rgba(0, 210, 255, 0.1);
+    border-radius: 50%;
+    border-top-color: var(--accent-blue);
+    animation: spin 1s linear infinite;
+    margin-bottom: 20px;
+}
+
+@keyframes spin {
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.loading-text {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--accent-blue);
+    letter-spacing: 2px;
+    animation: pulse 2s infinite ease-in-out;
+}
+
+@keyframes pulse {
+
+    0%,
+    100% {
+        opacity: 0.6;
+    }
+
+    50% {
+        opacity: 1;
+    }
+}
+
+/* ── Layout & Map ───────────────────────────────────────── */
+.app-container {
+    display: flex;
+    height: 100vh;
+    width: 100vw;
+    position: relative;
+}
+
+.map-container {
+    flex: 1;
+    position: relative;
+    height: 100%;
+}
+
+#map {
+    width: 100%;
+    height: 100%;
+    background-color: var(--bg-base);
+}
+
+/* ── Glass Components ───────────────────────────────────── */
+.glass-panel {
+    background: var(--bg-panel);
+    backdrop-filter: var(--panel-blur);
+    -webkit-backdrop-filter: var(--panel-blur);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-lg);
+}
+
+/* Header */
+.app-header {
+    margin-bottom: 24px;
+    pointer-events: auto;
+}
+
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    background: transparent;
+    padding: 0;
+    border: none;
+}
+
+.brand h1 {
+    font-size: 16px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #fff;
+    margin-bottom: 2px;
+}
+
+.brand h2 {
+    font-size: 11px;
+    color: var(--text-dim);
+    font-weight: 400;
+}
+
+/* Sidebar */
+.sidebar {
+    position: absolute;
+    top: 24px;
+    left: 24px;
+    bottom: 24px;
+    width: 380px;
+    border-radius: 16px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    padding: 24px;
+    overflow-y: auto;
+}
+
+/* Map Controls (Top Right) */
+.map-controls-tr {
+    position: absolute;
+    top: 24px;
+    right: 24px;
+    z-index: 1000;
+    display: flex;
+    gap: 8px;
+    background: var(--bg-panel);
+    backdrop-filter: var(--panel-blur);
+    padding: 6px;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+}
+
+.layer-toggle {
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-main);
+    opacity: 0.6;
+    transition: opacity 0.2s ease, background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+
+.layer-toggle:hover {
+    opacity: 0.8;
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.layer-toggle.active {
+    background: var(--accent-blue-dim);
+    border: 1px solid var(--accent-blue);
+    color: var(--accent-blue);
+    box-shadow: 0 0 10px rgba(0, 210, 255, 0.2);
+}
+
+/* Mode Switcher */
+.mode-switcher-wrapper {
+    position: absolute;
+    top: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+}
+
+.mode-switcher {
+    display: flex;
+    background: var(--bg-panel);
+    backdrop-filter: var(--panel-blur);
+    border-radius: 20px;
+    padding: 4px;
+    border: 1px solid var(--border-color);
+}
+
+.mode-btn {
+    padding: 8px 20px;
+    border-radius: 16px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-dim);
+    transition: background 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s cubic-bezier(0.16, 1, 0.3, 1), color 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.mode-btn.active {
+    background: #fff;
+    color: #000;
+}
+
+/* Legend */
+.legend-panel {
+    position: absolute;
+    bottom: 30px;
+    right: 24px;
+    z-index: 1000;
+    width: 300px;
+    padding: 16px;
+    border-radius: 12px;
+}
+
+.legend-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.legend-header h3 {
+    font-size: 13px;
+    color: #fff;
+}
+
+.sensor-tag {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--text-dim);
+}
+
+.legend-gradient {
+    height: 8px;
+    border-radius: 4px;
+    margin-bottom: 8px;
+    background: linear-gradient(to right, #D46A24, #EFD87A, #1C85A6);
+}
+
+.legend-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    color: var(--text-dim);
+    font-weight: 500;
+}
+
+.formula-display {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-align: center;
+    color: var(--accent-blue);
+    letter-spacing: 0.05em;
+}
+
+/* ── Sidebar Controls ───────────────────────────────────── */
+.control-group {
+    margin-bottom: 24px;
+}
+
+.control-group h3 {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+}
+
+/* Location Picker */
+.location-picker {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.loc-btn {
+    flex: 1;
+    padding: 8px 4px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 6px;
+    font-size: 11px;
+    color: var(--text-dark);
+    transition: all 0.2s;
+}
+
+.loc-btn:hover {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.loc-btn.active {
+    background: rgba(0, 210, 255, 0.15);
+    border-color: var(--accent-blue);
+    color: #fff;
+}
+
+.coord-display {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 10px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 6px;
+    color: var(--accent-green);
+    border: 1px solid rgba(0, 255, 178, 0.2);
+}
+
+.coord-label {
+    color: var(--text-dim);
+}
+
+/* Index Grid */
+.index-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+}
+
+.index-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+    transition: background 0.2s cubic-bezier(0.16, 1, 0.3, 1), transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.index-btn:hover {
+    background: rgba(255, 255, 255, 0.05);
+    transform: translateY(-2px);
+}
+
+.index-btn.active {
+    background: linear-gradient(135deg, rgba(0, 210, 255, 0.1) 0%, rgba(0, 210, 255, 0) 100%);
+    border-color: var(--accent-blue);
+    box-shadow: inset 0 0 20px rgba(0, 210, 255, 0.05);
+}
+
+.index-short {
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 4px;
+}
+
+.index-btn.active .index-short {
+    color: var(--accent-blue);
+}
+
+.index-full {
+    font-size: 10px;
+    color: var(--text-dim);
+}
+
+/* Toggle Switch */
+.toggle-switch {
+    display: flex;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 6px;
+    padding: 2px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.toggle-switch button {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    padding: 6px 0;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+}
+
+.toggle-switch button.active {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* Sliders */
+.custom-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+    margin: 10px 0;
+}
+
+.custom-slider:focus-visible {
+    outline: 2px solid var(--accent-blue);
+    outline-offset: 4px;
+}
+
+.custom-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--accent-blue);
+    cursor: pointer;
+    box-shadow: 0 0 10px var(--accent-blue-dim);
+    transition: transform 0.1s;
+}
+
+.custom-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.2);
+}
+
+.month-display {
+    font-size: 16px;
+    font-weight: 700;
+    font-family: var(--font-ui);
+    color: var(--text-main);
+    text-align: center;
+    margin-bottom: 8px;
+    letter-spacing: 0.05em;
+}
+
+.slider-ticks {
+    display: flex;
+    justify-content: space-between;
+    padding: 0 4px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text-dim);
+}
+
+/* Date Pickers */
+.date-input-group {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 8px 12px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.date-input-group label {
+    font-size: 11px;
+    color: var(--text-dim);
+}
+
+.date-picker {
+    background: transparent;
+    border: none;
+    color: #fff;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color-scheme: dark;
+}
+
+.mt-2 {
+    margin-top: 8px;
+}
+
+/* Chart Area */
+.chart-section {
+    margin-top: auto;
+    margin-bottom: 0;
+}
+
+.chart-subtitle {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    opacity: 0.6;
+}
+
+.chart-container {
+    height: 180px;
+    width: 100%;
+    position: relative;
+    background: rgba(0, 0, 0, 0.15);
+    border-radius: 8px;
+    padding: 8px;
+    border: 1px solid rgba(255, 255, 255, 0.03);
+}
+
+/* Leaflet Overrides */
+.leaflet-control-attribution {
+    background: rgba(0, 0, 0, 0.5) !important;
+    color: var(--text-dim) !important;
+    font-family: var(--font-ui) !important;
+    backdrop-filter: blur(4px);
+    border-radius: 4px 0 0 0;
+}
+
+.leaflet-control-attribution a {
+    color: var(--accent-blue) !important;
+}
+
+/* Side By Side Split Bar styling override */
+.leaflet-sbs-divider {
+    background-color: var(--accent-blue) !important;
+    box-shadow: 0 0 10px rgba(0, 210, 255, 0.5) !important;
+    width: 3px !important;
+    margin-left: -1px !important;
+}
+
+.leaflet-sbs-range {
+    cursor: ew-resize !important;
+}
