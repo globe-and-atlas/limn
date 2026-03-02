@@ -845,10 +845,23 @@ function evaluatePixel(sample) {
 }`;
 
         const b64 = btoa(fisScript);
-        const bboxStr = `${bounds.getWest()},${bounds.getSouth()},${bounds.getEast()},${bounds.getNorth()}`;
-        // Query last 3 years
-        let startY = today.getFullYear() - 3;
-        const timeRange = `${startY}-01-01/${new Date().toISOString().split('T')[0]}`;
+        // Determine Temporal Range
+        let timeRange;
+        let chartTitleLabel = "";
+
+        if (state.mode === 'compare') {
+            const t1Idx = parseInt(document.getElementById('date-t1').value);
+            const t2Idx = parseInt(document.getElementById('date-t2').value);
+            const d1 = ALL_DATES[t1Idx].value;
+            const d2 = ALL_DATES[t2Idx].value;
+            timeRange = `${d1}/${d2}`;
+            chartTitleLabel = `${ALL_DATES[t1Idx].displayStr} to ${ALL_DATES[t2Idx].displayStr}`;
+        } else {
+            // Default Query last 3 years for Single Mode
+            let startY = today.getFullYear() - 3;
+            timeRange = `${startY}-01-01/${new Date().toISOString().split('T')[0]}`;
+            chartTitleLabel = `${startY} to ${today.getFullYear()}`;
+        }
 
         const fisUrl = `https://sh.dataspace.copernicus.eu/ogc/fis/959ea2c5-5892-4b36-82b3-76e6bdb93c8a?LAYER=AGRICULTURE&TIME=${timeRange}&BBOX=${bboxStr}&CRS=CRS:84&RESOLUTION=20m&EVALSCRIPT=${encodeURIComponent(b64)}`;
 
@@ -887,7 +900,7 @@ function evaluatePixel(sample) {
         btn.innerText = "Generate Selected Report";
         btn.disabled = false;
 
-        document.querySelector('.report-chart h3').innerText = `Real Statistical Trend (AOI Mean) - ${startY} to ${today.getFullYear()}`;
+        document.querySelector('.report-chart h3').innerText = `Real Statistical Trend (AOI Mean) - ${chartTitleLabel}`;
 
         const ctx = document.getElementById('reportChart').getContext('2d');
         if (reportChartInst) reportChartInst.destroy();
