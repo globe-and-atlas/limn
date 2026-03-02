@@ -857,19 +857,25 @@ function evaluatePixel(sample) {
             let d1 = document.getElementById('date-t1').value;
             let d2 = document.getElementById('date-t2').value;
 
-            // Ensure chronological order for FIS API (Start/End)
             if (d1 > d2) {
                 const temp = d1;
                 d1 = d2;
                 d2 = temp;
             }
 
-            timeRange = `${d1}/${d2}`;
+            // Expanding the Statistical Context Window Context
+            // A line graph between two dates close together (e.g. 5 days) will likely fail due to clouds 
+            // and looks bad. We chart the trailing 2 years leading up to T2 for robust trend visibility.
+            let t2D = new Date(d2);
+            let t2YearPrior = new Date(Date.UTC(t2D.getUTCFullYear() - 2, t2D.getUTCMonth(), t2D.getUTCDate()));
+            let startStr = t2YearPrior.toISOString().split('T')[0];
+
+            timeRange = `${startStr}/${d2}`;
 
             const t1Obj = ALL_DATES.find(d => d.value === d1);
             const t2Obj = ALL_DATES.find(d => d.value === d2);
 
-            chartTitleLabel = `${t1Obj ? t1Obj.displayStr : d1} to ${t2Obj ? t2Obj.displayStr : d2}`;
+            chartTitleLabel = `2-Year Trend Ending ${t2Obj ? t2Obj.displayStr : d2}`;
         } else {
             // Default Query last 3 years for Single Mode
             let startY = today.getFullYear() - 3;
@@ -877,7 +883,10 @@ function evaluatePixel(sample) {
             chartTitleLabel = `${startY} to ${today.getFullYear()}`;
         }
 
-        const fisUrl = `https://sh.dataspace.copernicus.eu/ogc/fis/959ea2c5-5892-4b36-82b3-76e6bdb93c8a?LAYER=AGRICULTURE&TIME=${timeRange}&BBOX=${bboxStr}&CRS=CRS:84&RESOLUTION=20m&EVALSCRIPT=${encodeURIComponent(b64)}`;
+        let layerParam = 'AGRICULTURE';
+        if (state.activeIndex === 's1_sar') layerParam = 'SENTINEL1-GRD';
+
+        const fisUrl = `https://sh.dataspace.copernicus.eu/ogc/fis/959ea2c5-5892-4b36-82b3-76e6bdb93c8a?LAYER=${layerParam}&TIME=${timeRange}&BBOX=${bboxStr}&CRS=CRS:84&RESOLUTION=20m&EVALSCRIPT=${encodeURIComponent(b64)}`;
 
         let realData = [];
         let labels = [];
