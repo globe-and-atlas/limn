@@ -105,6 +105,8 @@ function colorBlend(valExpr, stopsStr) {
 const PALETTE_NDMI = "[[0, 212, 106, 36], [0.35, 239, 216, 122], [0.6, 28, 133, 166], [1, 10, 60, 100]]";
 const PALETTE_NDWI = "[[0, 130, 70, 20], [0.35, 215, 170, 60], [0.6, 80, 150, 200], [1, 20, 80, 180]]";
 const PALETTE_SI = "[[0, 36, 51, 64], [0.15, 180, 130, 40], [0.3, 220, 140, 50], [1, 240, 80, 30]]";
+const PALETTE_VEG = "[[0, 160, 120, 50], [0.3, 210, 180, 60], [0.6, 90, 160, 60], [1, 20, 100, 40]]"; // Brown -> Yellow -> Dark Green
+const PALETTE_MSI = "[[0, 28, 133, 166], [0.5, 239, 216, 122], [1, 212, 106, 36]]"; // Blue -> Yellow -> Orange (Inverse of NDMI)
 
 // Index Configs
 const INDICES = {
@@ -132,6 +134,47 @@ const INDICES = {
   if(sum === 0) return [0,0,0,0];
   let val = (sample.B03 - sample.B11) / sum;
   ${colorBlend('val + 0.3', PALETTE_NDWI)}
+`)
+    },
+    ndvi: {
+        name: 'Vegetation Index (NDVI)',
+        sensor: 'Sentinel-2 L2A',
+        min: 'Barren', max: 'Lush Vegetation',
+        gradient: 'linear-gradient(to right, #A07832, #D2B43C, #146428)',
+        formula: '(B08 - B04) / (B08 + B04)',
+        evalscript: genEvalscript(['B08', 'B04'], `
+  let sum = sample.B08 + sample.B04;
+  if(sum === 0) return [0,0,0,0];
+  let val = (sample.B08 - sample.B04) / sum;
+  ${colorBlend('val + 0.1', PALETTE_VEG)}
+`)
+    },
+    savi: {
+        name: 'Arid Vegetation (SAVI)',
+        sensor: 'Sentinel-2 L2A',
+        min: 'Barren Soil', max: 'Dense Brush',
+        gradient: 'linear-gradient(to right, #A07832, #D2B43C, #146428)',
+        formula: '((B08 - B04) / (B08 + B04 + 0.5)) × 1.5',
+        evalscript: genEvalscript(['B08', 'B04'], `
+  let sum = sample.B08 + sample.B04 + 0.5;
+  if(sum === 0) return [0,0,0,0];
+  let val = ((sample.B08 - sample.B04) / sum) * 1.5;
+  ${colorBlend('val + 0.2', PALETTE_VEG)}
+`)
+    },
+    msi: {
+        name: 'Moisture Stress Index (MSI)',
+        sensor: 'Sentinel-2 L2A',
+        min: 'High Content', max: 'Severe Stress',
+        gradient: 'linear-gradient(to right, #1C85A6, #EFD87A, #D46A24)',
+        formula: 'B11 / B08',
+        evalscript: genEvalscript(['B11', 'B08'], `
+  if(sample.B08 === 0) return [0,0,0,0];
+  let val = sample.B11 / sample.B08;
+  // MSI typically ranges from 0.4 (low stress) to 2.0+ (high stress). 
+  // We can map this to 0-1 for our colorBlend function.
+  let mapped = Math.max(0, Math.min(1, (val - 0.4) / 1.6));
+  ${colorBlend('mapped', PALETTE_MSI)}
 `)
     },
     si: {

@@ -75,7 +75,56 @@ The application relies on Sentinel-2 Level-2A surface reflectance data. Specific
     // Scaled mapped to a dark-to-neon-orange palette
     ```
 
-### 2.4 True Color & False Color Composites
+### 2.4 Vegetation Index / Normalized Difference Vegetation Index (NDVI)
+
+* **Purpose**: Essential global standard for measuring vegetation health and density.
+* **Satellites**: Sentinel-2 (Bands 8 and 4)
+* **Bands Used**:
+  * `B08` (Broad NIR): 842 nm
+  * `B04` (Red): 665 nm
+* **Formula**: `(B08 - B04) / (B08 + B04)`
+* **Sentinel Hub Evalscript**:
+
+    ```javascript
+    let sum = sample.B08 + sample.B04;
+    if(sum === 0) return [0,0,0,0];
+    let val = (sample.B08 - sample.B04) / sum;
+    // Scaled to a Brown -> Yellow -> Dark Green palette
+    ```
+
+### 2.5 Arid Vegetation / Soil Adjusted Vegetation Index (SAVI)
+
+* **Purpose**: Similar to NDVI but corrects for soil brightness, making it much more accurate in arid deserts and sparse vegetation areas (like the Permian Basin well-pads).
+* **Satellites**: Sentinel-2 (Bands 8 and 4)
+* **Bands Used**:
+  * `B08` (Broad NIR): 842 nm
+  * `B04` (Red): 665 nm
+* **Formula**: `((B08 - B04) / (B08 + B04 + 0.5)) * 1.5`
+* **Sentinel Hub Evalscript**:
+
+    ```javascript
+    let sum = sample.B08 + sample.B04 + 0.5;
+    if(sum === 0) return [0,0,0,0];
+    let val = ((sample.B08 - sample.B04) / sum) * 1.5;
+    ```
+
+### 2.6 Moisture Stress Index (MSI)
+
+* **Purpose**: Identifies canopy water stress and drought conditions by comparing shortwave to near-infrared light.
+* **Satellites**: Sentinel-2 (Bands 11 and 8)
+* **Bands Used**:
+  * `B11` (SWIR): 1610 nm
+  * `B08` (Broad NIR): 842 nm
+* **Formula**: `B11 / B08`
+* **Sentinel Hub Evalscript**:
+
+    ```javascript
+    if(sample.B08 === 0) return [0,0,0,0];
+    let val = sample.B11 / sample.B08;
+    // MSI typically ranges from 0.4 (low stress) to 2.0+ (high stress).
+    ```
+
+### 2.7 True Color & False Color Composites
 
 * **True Color (RGB)**: Uses `B04` (Red), `B03` (Green), and `B02` (Blue). Rendered directly with a `2.5x` brightness multiplier for visual clarity.
 * **False Color (NIR)**: Uses `B08` (NIR), `B04` (Red), and `B03` (Green). Translates invisible near-infrared light into visible red, making healthy vegetation appear bright crimson.
