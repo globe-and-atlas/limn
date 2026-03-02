@@ -549,7 +549,21 @@ function updateUI() {
     if (diffLegend) diffLegend.style.display = 'none';
 
     if (state.mode === 'compare' && state.compareType === 'diff') {
-        if (diffLegend) diffLegend.style.display = 'block';
+        if (diffLegend) {
+            diffLegend.style.display = 'block';
+            diffLegend.style.position = 'absolute';
+            diffLegend.style.bottom = '10px';
+            diffLegend.style.left = '16px';
+            diffLegend.style.right = '16px';
+            diffLegend.style.zIndex = '1000';
+            diffLegend.style.background = 'rgba(0,0,0,0.8)';
+            diffLegend.style.padding = '10px';
+            diffLegend.style.borderRadius = '6px';
+            diffLegend.style.border = '1px solid var(--border-color)';
+
+            // Append it to the map area instead of inside the small sidebar box
+            document.querySelector('.map-container').appendChild(diffLegend);
+        }
         grad.style.display = 'none';
         document.getElementById('legend-min').style.display = 'none';
         document.getElementById('legend-max').style.display = 'none';
@@ -558,13 +572,12 @@ function updateUI() {
         document.getElementById('legend-min').style.display = 'none';
         document.getElementById('legend-max').style.display = 'none';
     } else {
+        if (diffLegend) diffLegend.style.display = 'none';
         grad.style.display = 'block';
         document.getElementById('legend-min').style.display = 'block';
         document.getElementById('legend-max').style.display = 'block';
         grad.style.background = cfg.gradient;
     }
-
-
 }
 
 
