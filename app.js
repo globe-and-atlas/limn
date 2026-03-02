@@ -1026,7 +1026,7 @@ function evaluatePixel(sample) {
             if (state.activeIndex === 's1_sar') wmsLayerParam = 'SENTINEL1-GRD';
 
             // Force normal math payload, not difference payload for animation
-            const b64Math = btoa(idx.evalscript);
+            const b64Math = btoa(idx.evalScript);
             const bboxStr = `${bounds.getWest()},${bounds.getSouth()},${bounds.getEast()},${bounds.getNorth()}`;
 
             const frameUrls = frameIndices.map(i => {
