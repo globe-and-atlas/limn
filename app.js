@@ -1133,11 +1133,44 @@ function evaluatePixel(sample) {
 
             gifLoader.innerText = `Fetching ${frameUrls.length} satellite frames...`;
 
-            Promise.all(frameUrls.map(url => fetch(url).then(r => r.blob()).then(blob => URL.createObjectURL(blob))))
-                .then(blobUrls => {
+            Promise.all(frameUrls.map(async (url, listIdx) => {
+                const dateText = ALL_DATES[frameIndices[listIdx]].displayStr;
+                const blob = await fetch(url).then(r => r.blob());
+                const imgUrl = URL.createObjectURL(blob);
+
+                return new Promise((resolve) => {
+                    const img = new Image();
+                    img.crossOrigin = 'Anonymous';
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = 400;
+                        canvas.height = 300;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, 400, 300);
+
+                        // Draw timestamp pill
+                        ctx.fillStyle = 'rgba(0, 0, 0, 0.65)';
+                        ctx.beginPath();
+                        ctx.roundRect(10, 10, 140, 28, 6);
+                        ctx.fill();
+
+                        // Draw timestamp text
+                        ctx.fillStyle = '#ffffff';
+                        ctx.font = '600 13px sans-serif';
+                        ctx.textBaseline = 'middle';
+                        ctx.textAlign = 'center';
+                        ctx.fillText(dateText, 80, 24);
+
+                        resolve(canvas.toDataURL('image/jpeg', 0.95));
+                    };
+                    img.onerror = () => resolve(imgUrl); // Fallback if canvas errors
+                    img.src = imgUrl;
+                });
+            }))
+                .then(annotatedUrls => {
                     gifLoader.innerText = 'Encoding GIF (This may take a moment)...';
                     gifshot.createGIF({
-                        images: blobUrls,
+                        images: annotatedUrls,
                         gifWidth: 400,
                         gifHeight: 300,
                         interval: 0.35, // 350ms per frame
