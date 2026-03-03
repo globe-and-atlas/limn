@@ -1304,6 +1304,21 @@ function downloadHTMLReport() {
         </div>`;
     }
 
+    const cleanData = {
+        labels: reportChartInst.data.labels,
+        datasets: reportChartInst.data.datasets.map(ds => ({
+            label: ds.label,
+            data: ds.data,
+            borderColor: ds.borderColor,
+            backgroundColor: ds.backgroundColor,
+            fill: ds.fill,
+            tension: ds.tension,
+            pointRadius: ds.pointRadius,
+            pointHitRadius: ds.pointHitRadius,
+            spanGaps: ds.spanGaps
+        }))
+    };
+
     const htmlContent = `<!DOCTYPE html>
 <html>
 <head>
@@ -1353,7 +1368,7 @@ function downloadHTMLReport() {
         L.rectangle(${JSON.stringify(boundsArr)}, { color: '#1C85A6', weight: 3, fillOpacity: 0.2 }).addTo(map);
 
         const ctx = document.getElementById('chart').getContext('2d');
-        const chartData = ${JSON.stringify(reportChartInst.config.data)};
+        const chartData = ${JSON.stringify(cleanData)};
         
         new Chart(ctx, {
             type: 'line',
