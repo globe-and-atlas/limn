@@ -864,26 +864,28 @@ function evaluatePixel(sample) {
                 d2 = temp;
             }
 
-            // Expanding the Statistical Context Window Context
-            // A line graph between two dates close together (e.g. 5 days) will likely fail due to clouds 
-            // and looks bad. We chart the trailing 2 years leading up to T2 for robust trend visibility.
-            let t2D = new Date(d2);
-            let t2YearPrior = new Date(Date.UTC(t2D.getUTCFullYear() - 2, t2D.getUTCMonth(), t2D.getUTCDate()));
-            let startStr = t2YearPrior.toISOString().split('T')[0];
+            // Timeline: selected range plus and minus two months
+            let d1D = new Date(d1);
+            let d2D = new Date(d2);
+            let startD = new Date(Date.UTC(d1D.getUTCFullYear(), d1D.getUTCMonth() - 2, d1D.getUTCDate()));
+            let endD = new Date(Date.UTC(d2D.getUTCFullYear(), d2D.getUTCMonth() + 2, d2D.getUTCDate()));
 
-            timeRange = `${startStr}/${d2}`;
+            // Cap endD to 'today' so we don't query the future
+            if (endD > today) endD = today;
 
-            const t1Obj = ALL_DATES.find(d => d.value === d1);
-            const t2Obj = ALL_DATES.find(d => d.value === d2);
-
-            chartTitleLabel = `2-Year Trend Ending ${t2Obj ? t2Obj.displayStr : d2}`;
+            timeRange = `${startD.toISOString().split('T')[0]}/${endD.toISOString().split('T')[0]}`;
+            chartTitleLabel = `Date Range +/- 2 Months`;
         } else {
-            // Query 3 years ending on the currently viewed date in Single Mode
+            // Timeline: selected date plus and minus two months
             let targetDateStr = ALL_DATES[state.monthIndex].value;
             let sd = new Date(targetDateStr);
-            let startD = new Date(Date.UTC(sd.getUTCFullYear() - 3, sd.getUTCMonth(), sd.getUTCDate()));
-            timeRange = `${startD.toISOString().split('T')[0]}/${targetDateStr}`;
-            chartTitleLabel = `3-Year Trend Ending ${ALL_DATES[state.monthIndex].displayStr}`;
+            let startD = new Date(Date.UTC(sd.getUTCFullYear(), sd.getUTCMonth() - 2, sd.getUTCDate()));
+            let endD = new Date(Date.UTC(sd.getUTCFullYear(), sd.getUTCMonth() + 2, sd.getUTCDate()));
+
+            if (endD > today) endD = today;
+
+            timeRange = `${startD.toISOString().split('T')[0]}/${endD.toISOString().split('T')[0]}`;
+            chartTitleLabel = `Selected Date +/- 2 Months`;
         }
 
         const CHART_COLORS = {
@@ -1203,4 +1205,121 @@ function evaluatePixel(sample) {
         document.getElementById('report-modal').style.display = 'none';
     });
 
+}
+
+// ── HTML REPORT EXPORT ────────────────────────────
+function downloadHTMLReport() {
+    const runDate = document.getElementById('report-date-run').innerText;
+    const aoiBounds = document.getElementById('report-aoi-bounds').innerText;
+    const indexName = document.getElementById('report-index-name').innerText;
+    const mathLogic = document.getElementById('report-math').innerHTML;
+    const timeText = document.getElementById('report-time').innerText;
+
+    let activeBaseKey = 'imagery';
+    document.querySelectorAll('.layer-toggle').forEach(btn => {
+        if (btn.classList.contains('active')) activeBaseKey = btn.dataset.layer;
+    });
+    const baseLayerUrl = BASE_LAYERS[activeBaseKey];
+
+    let wmsUrl = "";
+    let wmsParams = {};
+    if (reportMapInst && reportMapInst.overlayLayer) {
+        wmsUrl = reportMapInst.overlayLayer._url;
+        wmsParams = reportMapInst.overlayLayer.wmsParams;
+    }
+
+    const boundsArr = [
+        [bounds.getSouth(), bounds.getWest()],
+        [bounds.getNorth(), bounds.getEast()]
+    ];
+
+    const gifImg = document.getElementById('report-gif-result');
+    let gifHtml = "";
+    if (gifImg && gifImg.style.display !== 'none' && gifImg.src) {
+        gifHtml = `
+        <div style="margin-top: 30px; text-align: center;">
+            <h3 style="color: #1C85A6;">Animated Change (GIF)</h3>
+            <img src="${gifImg.src}" style="max-width: 100%; border-radius: 6px; border: 1px solid #333;" />
+        </div>`;
+    }
+
+    const htmlContent = `<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Sentinel Report - ${runDate}</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        body { font-family: sans-serif; background-color: #121212; color: #fff; margin: 40px; }
+        .container { max-width: 900px; margin: auto; background: #1e1e1e; padding: 30px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        h1, h2, h3 { color: #1C85A6; }
+        .meta-box { background: rgba(0,0,0,0.3); padding: 15px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #333; line-height: 1.5; }
+        .meta-box p { margin: 5px 0; }
+        .chart-wrapper { height: 400px; background: rgba(0,0,0,0.2); border-radius: 6px; border: 1px solid #333; padding: 15px; margin-top: 20px; }
+        #map { height: 350px; background: #000; border-radius: 6px; border: 1px solid #333; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Sentinel Explorer Report</h1>
+        
+        <div class="meta-box">
+            <p><strong>Generated:</strong> ${runDate}</p>
+            <p><strong>AOI Bounds:</strong> ${aoiBounds}</p>
+            <p><strong>Active Index:</strong> ${indexName}</p>
+            <p><strong>Selected Date(s):</strong> ${timeText}</p>
+            <p><strong>Math Logic:</strong><br/>${mathLogic}</p>
+        </div>
+
+        <h3>Area of Interest (AOI)</h3>
+        <div id="map"></div>
+
+        <div class="chart-wrapper">
+            <canvas id="chart"></canvas>
+        </div>
+        
+        ${gifHtml}
+    </div>
+
+    <script>
+        const map = L.map('map', { scrollWheelZoom: false, attributionControl: false }).fitBounds(${JSON.stringify(boundsArr)}, { padding: [20, 20] });
+        L.tileLayer('${baseLayerUrl}', { maxZoom: 18 }).addTo(map);
+        
+        ${wmsUrl ? `L.tileLayer.wms('${wmsUrl}', ${JSON.stringify(wmsParams)}).addTo(map);` : ''}
+
+        L.rectangle(${JSON.stringify(boundsArr)}, { color: '#1C85A6', weight: 3, fillOpacity: 0.2 }).addTo(map);
+
+        const ctx = document.getElementById('chart').getContext('2d');
+        const chartData = ${JSON.stringify(reportChartInst.config.data)};
+        
+        new Chart(ctx, {
+            type: 'line',
+            data: chartData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: { 
+                    legend: { display: true, labels: { color: 'rgba(255,255,255,0.8)', usePointStyle: true, boxWidth: 8 } },
+                    tooltip: { callbacks: { title: function(ctx) { return ctx[0].label; } } }
+                },
+                scales: {
+                    y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: 'rgba(255,255,255,0.5)' } },
+                    x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: 'rgba(255,255,255,0.5)', maxRotation: 45, minRotation: 45, maxTicksLimit: 12 } }
+                }
+            }
+        });
+    </script>
+</body>
+</html>`;
+
+    const blob = new Blob([htmlContent], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Sentinel_Report_${new Date().toISOString().slice(0, 10)}.html`;
+    a.click();
+    URL.revokeObjectURL(url);
 }
