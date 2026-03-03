@@ -37,6 +37,11 @@ while (iterDate <= today) {
 // Copernicus Sentinel Hub configuration
 const SH_WMS_URL = 'https://sh.dataspace.copernicus.eu/ogc/wms/959ea2c5-5892-4b36-82b3-76e6bdb93c8a';
 
+// Globals for Report Generation
+let aoiDrawnItem = null;
+let reportChartInst = null;
+let reportMapInst = null;
+
 // Evalscript wrapper utility
 const genEvalscript = (bands, logic) => `
 //VERSION=3
@@ -776,9 +781,6 @@ function bindEvents() {
     // Report & AOI Logic
     // ==========================================================================
 
-    let aoiDrawnItem = null;
-    let reportChartInst = null;
-    let reportMapInst = null;
     const drawnItems = new L.FeatureGroup();
     state.map.addLayer(drawnItems);
 
@@ -1274,6 +1276,7 @@ function downloadHTMLReport() {
         wmsParams = reportMapInst.overlayLayer.wmsParams;
     }
 
+    const bounds = aoiDrawnItem.getBounds();
     const boundsArr = [
         [bounds.getSouth(), bounds.getWest()],
         [bounds.getNorth(), bounds.getEast()]
