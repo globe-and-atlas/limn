@@ -1123,35 +1123,45 @@ function evaluatePixel(sample) {
             if (state.activeIndex === 's1_sar') wmsLayerParam = 'SENTINEL1-GRD';
 
             const isDiffAnim = state.compareType === 'diff';
-            const b64Math = btoa(getScriptContent(state.activeIndex, isDiffAnim));
+            const b64MathStd = btoa(INDICES[state.activeIndex].evalscript);
 
-            const frameUrls = frameIndices.map(i => {
+            // For base maps in diff mode, fallback to true color if possible
+            let b64Bg = b64MathStd;
+            if (isDiffAnim && state.activeIndex !== 's1_sar') {
+                b64Bg = btoa(INDICES['tc'].evalscript);
+            }
+
+            let diffB64Math = "";
+            if (isDiffAnim) diffB64Math = btoa(getScriptContent(state.activeIndex, true));
+
+            // Generate Standard Imagery URLs (Backgrounds)
+            const bgUrls = frameIndices.map(i => {
                 const dateStr = ALL_DATES[i].value;
-                let rangeStr;
-
-                if (isDiffAnim) {
-                    // Cumulative difference from d1 to this frame
-                    let dBase = new Date(d1);
-                    dBase.setUTCDate(dBase.getUTCDate() - 20); // buffer start to ensure first image is found
-                    let baseStr = dBase.toISOString().split('T')[0];
-                    let dCurr = new Date(dateStr);
-                    // Prevent empty ranges where start > end
-                    if (dCurr <= dBase) dCurr.setUTCDate(dBase.getUTCDate() + 10);
-                    let currStr = dCurr.toISOString().split('T')[0];
-                    rangeStr = `${baseStr}/${currStr}`;
-                } else {
-                    // Standard imagery snapshot
-                    let dTarget = new Date(dateStr);
-                    let dPrior = new Date(dTarget);
-                    dPrior.setUTCDate(dPrior.getUTCDate() - 20);
-                    let pStr = dPrior.toISOString().split('T')[0];
-                    rangeStr = `${pStr}/${dateStr}`;
-                }
-
-                return `${SH_WMS_URL}?SERVICE=WMS&REQUEST=GetMap&LAYERS=${wmsLayerParam}&FORMAT=image/png&TRANSPARENT=false&VERSION=1.3.0&TIME=${rangeStr}&MAXCC=15&WIDTH=400&HEIGHT=300&CRS=CRS:84&BBOX=${bboxStr}&EVALSCRIPT=${encodeURIComponent(b64Math)}`;
+                let dTarget = new Date(dateStr);
+                let dPrior = new Date(dTarget);
+                dPrior.setUTCDate(dPrior.getUTCDate() - 20);
+                let pStr = dPrior.toISOString().split('T')[0];
+                let rangeStr = `${pStr}/${dateStr}`;
+                return `${SH_WMS_URL}?SERVICE=WMS&REQUEST=GetMap&LAYERS=${wmsLayerParam}&FORMAT=image/png&TRANSPARENT=false&VERSION=1.3.0&TIME=${rangeStr}&MAXCC=15&WIDTH=400&HEIGHT=300&CRS=CRS:84&BBOX=${bboxStr}&EVALSCRIPT=${encodeURIComponent(b64Bg)}`;
             });
 
-            gifLoader.innerText = `Fetching ${frameUrls.length} satellite frames...`;
+            // Generate Difference Mask URLs
+            let diffUrls = [];
+            if (isDiffAnim) {
+                diffUrls = frameIndices.map(i => {
+                    const dateStr = ALL_DATES[i].value;
+                    let dBase = new Date(d1);
+                    dBase.setUTCDate(dBase.getUTCDate() - 20); // buffer
+                    let baseStr = dBase.toISOString().split('T')[0];
+                    let dCurr = new Date(dateStr);
+                    if (dCurr <= dBase) dCurr.setUTCDate(dBase.getUTCDate() + 10);
+                    let currStr = dCurr.toISOString().split('T')[0];
+                    let rangeStr = `${baseStr}/${currStr}`;
+                    return `${SH_WMS_URL}?SERVICE=WMS&REQUEST=GetMap&LAYERS=${wmsLayerParam}&FORMAT=image/png&TRANSPARENT=true&VERSION=1.3.0&TIME=${rangeStr}&MAXCC=15&WIDTH=400&HEIGHT=300&CRS=CRS:84&BBOX=${bboxStr}&EVALSCRIPT=${encodeURIComponent(diffB64Math)}`;
+                });
+            }
+
+            gifLoader.innerText = `Fetching ${bgUrls.length * (isDiffAnim ? 2 : 1)} satellite frames...`;
 
             Promise.all(frameUrls.map(async (url, listIdx) => {
                 const dateText = ALL_DATES[frameIndices[listIdx]].displayStr;
@@ -1251,12 +1261,23 @@ function downloadHTMLReport() {
     ];
 
     const gifImg = document.getElementById('report-gif-result');
+    const gifImgDiff = document.getElementById('report-gif-result-diff');
+
     let gifHtml = "";
-    if (gifImg && gifImg.style.display !== 'none' && gifImg.src) {
-        gifHtml = `
+
+    if (gifImg && gifImg.src && document.getElementById('gif-container-standard').style.display !== 'none') {
+        gifHtml += `
         <div style="margin-top: 30px; text-align: center;">
-            <h3 style="color: #1C85A6;">Animated Change (GIF)</h3>
+            <h3 style="color: #1C85A6;">Standard Change (GIF)</h3>
             <img src="${gifImg.src}" style="max-width: 100%; border-radius: 6px; border: 1px solid #333;" />
+        </div>`;
+    }
+
+    if (gifImgDiff && gifImgDiff.src && document.getElementById('gif-container-diff').style.display !== 'none') {
+        gifHtml += `
+        <div style="margin-top: 30px; text-align: center;">
+            <h3 style="color: #F0501E;">Difference Heatmap (GIF)</h3>
+            <img src="${gifImgDiff.src}" style="max-width: 100%; border-radius: 6px; border: 1px solid #333;" />
         </div>`;
     }
 
