@@ -831,17 +831,20 @@ function bindEvents() {
             document.getElementById('report-time').innerText = `${t1Obj ? t1Obj.displayStr : d1} to ${t2Obj ? t2Obj.displayStr : d2} (Change Analysis)`;
         }
 
-        if (state.activeIndex === 'tc' || state.activeIndex === 'fc') {
-            alert("Statistical trending is not supported for optical multi-band compositions (RGB). Please select a mathematical spectral index (NDMI, NDWI, etc.)");
-            return;
-        }
-
-        // 2. Generate Real Statistical Data via FIS
+        let isOptical = (state.activeIndex === 'tc' || state.activeIndex === 'fc');
         const btn = document.getElementById('btn-generate-report');
-        btn.innerText = "Querying Database...";
-        btn.disabled = true;
+        const chartSection = document.querySelector('.report-chart');
 
-        const fisScript = `//VERSION=3
+        if (isOptical) {
+            chartSection.style.display = 'none';
+        } else {
+            chartSection.style.display = 'block';
+
+            // 2. Generate Real Statistical Data via FIS
+            btn.innerText = "Querying Database...";
+            btn.disabled = true;
+
+            const fisScript = `//VERSION=3
 function setup() {
   return {
     input: [${idx.fisBands.map(b => `'${b}'`).join(', ')}, "dataMask"],
@@ -853,167 +856,154 @@ function evaluatePixel(sample) {
   ${idx.fisLogic}
 }`;
 
-        const b64 = btoa(fisScript);
-        const bboxStr = `${bounds.getWest()},${bounds.getSouth()},${bounds.getEast()},${bounds.getNorth()}`;
+            const b64Data = btoa(fisScript);
 
-        // Determine Temporal Range
-        let timeRange;
-        let chartTitleLabel = "";
+            // Determine Temporal Range
+            let timeRange;
+            let chartTitleLabel = "";
 
-        if (state.mode === 'compare') {
-            let d1 = document.getElementById('date-t1').value;
-            let d2 = document.getElementById('date-t2').value;
+            if (state.mode === 'compare') {
+                let d1 = document.getElementById('date-t1').value;
+                let d2 = document.getElementById('date-t2').value;
 
-            if (d1 > d2) {
-                const temp = d1;
-                d1 = d2;
-                d2 = temp;
+                if (d1 > d2) {
+                    const temp = d1;
+                    d1 = d2;
+                    d2 = temp;
+                }
+
+                // Timeline: selected range plus and minus two months
+                let d1D = new Date(d1);
+                let d2D = new Date(d2);
+                let startD = new Date(Date.UTC(d1D.getUTCFullYear(), d1D.getUTCMonth() - 2, d1D.getUTCDate()));
+                let endD = new Date(Date.UTC(d2D.getUTCFullYear(), d2D.getUTCMonth() + 2, d2D.getUTCDate()));
+
+                if (endD > today) endD = today;
+
+                timeRange = `${startD.toISOString().split('T')[0]}/${endD.toISOString().split('T')[0]}`;
+                chartTitleLabel = `Date Range +/- 2 Months`;
+            } else {
+                // Timeline: selected date plus and minus two months
+                let targetDateStr = ALL_DATES[state.monthIndex].value;
+                let sd = new Date(targetDateStr);
+                let startD = new Date(Date.UTC(sd.getUTCFullYear(), sd.getUTCMonth() - 2, sd.getUTCDate()));
+                let endD = new Date(Date.UTC(sd.getUTCFullYear(), sd.getUTCMonth() + 2, sd.getUTCDate()));
+
+                if (endD > today) endD = today;
+
+                timeRange = `${startD.toISOString().split('T')[0]}/${endD.toISOString().split('T')[0]}`;
+                chartTitleLabel = `Selected Date +/- 2 Months`;
             }
 
-            // Timeline: selected range plus and minus two months
-            let d1D = new Date(d1);
-            let d2D = new Date(d2);
-            let startD = new Date(Date.UTC(d1D.getUTCFullYear(), d1D.getUTCMonth() - 2, d1D.getUTCDate()));
-            let endD = new Date(Date.UTC(d2D.getUTCFullYear(), d2D.getUTCMonth() + 2, d2D.getUTCDate()));
+            const CHART_COLORS = {
+                ndmi: '#1C85A6',
+                ndwi: '#1450B4',
+                ndvi: '#146428',
+                savi: '#A07832',
+                msi: '#D46A24',
+                s1_sar: '#999999'
+            };
 
-            // Cap endD to 'today' so we don't query the future
-            if (endD > today) endD = today;
+            const activeKey = state.activeIndex;
+            const cfg = INDICES[activeKey];
+            let layerParam = 'AGRICULTURE';
+            let maxccParam = '&MAXCC=30';
+            if (activeKey === 's1_sar') {
+                layerParam = 'SENTINEL1-GRD';
+                maxccParam = '';
+            }
 
-            timeRange = `${startD.toISOString().split('T')[0]}/${endD.toISOString().split('T')[0]}`;
-            chartTitleLabel = `Date Range +/- 2 Months`;
-        } else {
-            // Timeline: selected date plus and minus two months
-            let targetDateStr = ALL_DATES[state.monthIndex].value;
-            let sd = new Date(targetDateStr);
-            let startD = new Date(Date.UTC(sd.getUTCFullYear(), sd.getUTCMonth() - 2, sd.getUTCDate()));
-            let endD = new Date(Date.UTC(sd.getUTCFullYear(), sd.getUTCMonth() + 2, sd.getUTCDate()));
+            const url = `${SH_FIS_URL}?LAYER=${layerParam}&TIME=${timeRange}&BBOX=${bboxStr}&CRS=CRS:84&RESOLUTION=20m${maxccParam}&EVALSCRIPT=${encodeURIComponent(b64Data)}`;
 
-            if (endD > today) endD = today;
+            btn.innerText = "Processing Data Layers...";
+            try {
+                const resp = await fetch(url);
+                const data = await resp.json();
+                let c0 = data.C0 || [];
+                let validData = {};
+                c0.forEach(entry => {
+                    if (entry.basicStats && entry.basicStats.mean !== "NaN" && entry.basicStats.mean !== null) {
+                        validData[entry.date] = entry.basicStats.mean;
+                    }
+                });
 
-            timeRange = `${startD.toISOString().split('T')[0]}/${endD.toISOString().split('T')[0]}`;
-            chartTitleLabel = `Selected Date +/- 2 Months`;
-        }
+                let sortedDates = Object.keys(validData).sort((a, b) => new Date(a) - new Date(b));
 
-        const CHART_COLORS = {
-            ndmi: '#1C85A6',
-            ndwi: '#1450B4',
-            ndvi: '#146428',
-            savi: '#A07832',
-            msi: '#D46A24',
-            s1_sar: '#999999'
-        };
-
-        const activeKey = state.activeIndex;
-        const cfg = INDICES[activeKey];
-        const script = `//VERSION=3
-function setup() {
-  return {
-    input: [${cfg.fisBands.map(b => `'${b}'`).join(', ')}, "dataMask"],
-    output: { bands: 1, sampleType: 'FLOAT32' }
-  };
-}
-function evaluatePixel(sample) {
-  if (sample.dataMask === 0) return [NaN];
-  ${cfg.fisLogic}
-}`;
-        const b64Data = btoa(script);
-        let layerParam = 'AGRICULTURE';
-        let maxccParam = '&MAXCC=30';
-        if (activeKey === 's1_sar') {
-            layerParam = 'SENTINEL1-GRD';
-            maxccParam = '';
-        }
-
-        const url = `${SH_FIS_URL}?LAYER=${layerParam}&TIME=${timeRange}&BBOX=${bboxStr}&CRS=CRS:84&RESOLUTION=20m${maxccParam}&EVALSCRIPT=${encodeURIComponent(b64Data)}`;
-
-        btn.innerText = "Processing Data Layers...";
-        try {
-            const resp = await fetch(url);
-            const data = await resp.json();
-            let c0 = data.C0 || [];
-            let validData = {};
-            c0.forEach(entry => {
-                if (entry.basicStats && entry.basicStats.mean !== "NaN" && entry.basicStats.mean !== null) {
-                    validData[entry.date] = entry.basicStats.mean;
+                if (sortedDates.length === 0) {
+                    alert("No valid statistical data found for this bounding box (possibly due to clouds or data sparsity).");
+                    btn.innerText = "Generate Selected Report";
+                    btn.disabled = false;
+                    return;
                 }
-            });
 
-            let sortedDates = Object.keys(validData).sort((a, b) => new Date(a) - new Date(b));
+                let chartLabels = sortedDates.map(d => d.slice(0, 10)); // YYYY-MM-DD
+                let chartDatasets = [{
+                    label: cfg.name,
+                    data: sortedDates.map(d => validData[d]),
+                    borderColor: CHART_COLORS[activeKey] || '#ffffff',
+                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                    fill: true,
+                    tension: 0.1,
+                    pointRadius: 3,
+                    pointHitRadius: 10,
+                    spanGaps: true
+                }];
 
-            if (sortedDates.length === 0) {
-                alert("No valid statistical data found for this bounding box (possibly due to clouds or data sparsity).");
+                document.querySelector('.report-chart h3').innerText = `Multivariate Statistical Trends (AOI Mean) - ${chartTitleLabel}`;
+
+                const ctx = document.getElementById('reportChart').getContext('2d');
+                if (reportChartInst) reportChartInst.destroy();
+
+                reportChartInst = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: chartLabels,
+                        datasets: chartDatasets
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: {
+                            mode: 'index',
+                            intersect: false,
+                        },
+                        plugins: {
+                            legend: {
+                                display: true,
+                                labels: { color: 'rgba(255,255,255,0.8)', usePointStyle: true, boxWidth: 8 }
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    title: (ctx) => {
+                                        return ctx[0].label;
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                grid: { color: 'rgba(255,255,255,0.05)' },
+                                ticks: { color: 'rgba(255,255,255,0.5)' }
+                            },
+                            x: {
+                                grid: { color: 'rgba(255,255,255,0.05)' },
+                                ticks: { color: 'rgba(255,255,255,0.5)', maxRotation: 45, minRotation: 45, maxTicksLimit: 12 }
+                            }
+                        }
+                    }
+                });
+
+            } catch (e) {
+                console.error("Failed to fetch statistical timeline", e);
+                alert("Statistical rendering failed. See console.");
                 btn.innerText = "Generate Selected Report";
                 btn.disabled = false;
                 return;
             }
-
-            let chartLabels = sortedDates.map(d => d.slice(0, 10)); // YYYY-MM-DD
-            let chartDatasets = [{
-                label: cfg.name,
-                data: sortedDates.map(d => validData[d]),
-                borderColor: CHART_COLORS[activeKey] || '#ffffff',
-                backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                fill: true,
-                tension: 0.1,
-                pointRadius: 3,
-                pointHitRadius: 10,
-                spanGaps: true
-            }];
-
-            btn.innerText = "Generate Selected Report";
-            btn.disabled = false;
-
-            document.querySelector('.report-chart h3').innerText = `Multivariate Statistical Trends (AOI Mean) - ${chartTitleLabel}`;
-
-            const ctx = document.getElementById('reportChart').getContext('2d');
-            if (reportChartInst) reportChartInst.destroy();
-
-            reportChartInst = new Chart(ctx, {
-                type: 'line',
-                data: {
-                    labels: chartLabels,
-                    datasets: chartDatasets
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    interaction: {
-                        mode: 'index',
-                        intersect: false,
-                    },
-                    plugins: {
-                        legend: {
-                            display: true,
-                            labels: { color: 'rgba(255,255,255,0.8)', usePointStyle: true, boxWidth: 8 }
-                        },
-                        tooltip: {
-                            callbacks: {
-                                title: (ctx) => {
-                                    return ctx[0].label;
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        y: {
-                            grid: { color: 'rgba(255,255,255,0.05)' },
-                            ticks: { color: 'rgba(255,255,255,0.5)' }
-                        },
-                        x: {
-                            grid: { color: 'rgba(255,255,255,0.05)' },
-                            ticks: { color: 'rgba(255,255,255,0.5)', maxRotation: 45, minRotation: 45, maxTicksLimit: 12 }
-                        }
-                    }
-                }
-            });
-
-        } catch (e) {
-            console.error("Failed to fetch statistical timeline", e);
-            alert("Statistical rendering failed. See console.");
-            btn.innerText = "Generate Selected Report";
-            btn.disabled = false;
-            return;
         }
+
+        btn.innerText = "Generate Selected Report";
+        btn.disabled = false;
 
         // 4. Show Map in Modal
         let activeBaseKey = 'imagery';
@@ -1304,20 +1294,52 @@ function downloadHTMLReport() {
         </div>`;
     }
 
-    const cleanData = {
-        labels: reportChartInst.data.labels,
-        datasets: reportChartInst.data.datasets.map(ds => ({
-            label: ds.label,
-            data: ds.data,
-            borderColor: ds.borderColor,
-            backgroundColor: ds.backgroundColor,
-            fill: ds.fill,
-            tension: ds.tension,
-            pointRadius: ds.pointRadius,
-            pointHitRadius: ds.pointHitRadius,
-            spanGaps: ds.spanGaps
-        }))
-    };
+    let chartContainerHtml = "";
+    let chartScriptHtml = "";
+
+    if (reportChartInst && document.querySelector('.report-chart').style.display !== 'none') {
+        const cleanData = {
+            labels: reportChartInst.data.labels,
+            datasets: reportChartInst.data.datasets.map(ds => ({
+                label: ds.label,
+                data: ds.data,
+                borderColor: ds.borderColor,
+                backgroundColor: ds.backgroundColor,
+                fill: ds.fill,
+                tension: ds.tension,
+                pointRadius: ds.pointRadius,
+                pointHitRadius: ds.pointHitRadius,
+                spanGaps: ds.spanGaps
+            }))
+        };
+
+        chartContainerHtml = `
+        <div class="chart-wrapper">
+            <canvas id="chart"></canvas>
+        </div>`;
+
+        chartScriptHtml = `
+        const ctx = document.getElementById('chart').getContext('2d');
+        const chartData = ${JSON.stringify(cleanData)};
+        
+        new Chart(ctx, {
+            type: 'line',
+            data: chartData,
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                interaction: { mode: 'index', intersect: false },
+                plugins: { 
+                    legend: { display: true, labels: { color: 'rgba(255,255,255,0.8)', usePointStyle: true, boxWidth: 8 } },
+                    tooltip: { callbacks: { title: function(ctx) { return ctx[0].label; } } }
+                },
+                scales: {
+                    y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: 'rgba(255,255,255,0.5)' } },
+                    x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: 'rgba(255,255,255,0.5)', maxRotation: 45, minRotation: 45, maxTicksLimit: 12 } }
+                }
+            }
+        });`;
+    }
 
     const htmlContent = `<!DOCTYPE html>
 <html>
@@ -1352,9 +1374,7 @@ function downloadHTMLReport() {
         <h3>Area of Interest (AOI)</h3>
         <div id="map"></div>
 
-        <div class="chart-wrapper">
-            <canvas id="chart"></canvas>
-        </div>
+        ${chartContainerHtml}
         
         ${gifHtml}
     </div>
@@ -1367,26 +1387,7 @@ function downloadHTMLReport() {
 
         L.rectangle(${JSON.stringify(boundsArr)}, { color: '#1C85A6', weight: 3, fillOpacity: 0.2 }).addTo(map);
 
-        const ctx = document.getElementById('chart').getContext('2d');
-        const chartData = ${JSON.stringify(cleanData)};
-        
-        new Chart(ctx, {
-            type: 'line',
-            data: chartData,
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                interaction: { mode: 'index', intersect: false },
-                plugins: { 
-                    legend: { display: true, labels: { color: 'rgba(255,255,255,0.8)', usePointStyle: true, boxWidth: 8 } },
-                    tooltip: { callbacks: { title: function(ctx) { return ctx[0].label; } } }
-                },
-                scales: {
-                    y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: 'rgba(255,255,255,0.5)' } },
-                    x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: 'rgba(255,255,255,0.5)', maxRotation: 45, minRotation: 45, maxTicksLimit: 12 } }
-                }
-            }
-        });
+        ${chartScriptHtml}
     </script>
 </body>
 </html>`;
