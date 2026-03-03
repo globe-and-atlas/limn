@@ -987,6 +987,26 @@ function evaluatePixel(sample) {
             reportMapInst.baseLayer = L.tileLayer(BASE_LAYERS[activeBaseKey], { maxZoom: 18 }).addTo(reportMapInst);
         }
 
+        let overlayLayer = null;
+        if (state.mode === 'single') {
+            overlayLayer = getWMSLayer(ALL_DATES[state.monthIndex].value, false);
+        } else {
+            let rd1 = document.getElementById('date-t1').value;
+            let rd2 = document.getElementById('date-t2').value;
+            if (rd1 > rd2) { const tmp = rd1; rd1 = rd2; rd2 = tmp; }
+
+            if (state.compareType === 'swipe') {
+                overlayLayer = getWMSLayer(rd2, false); // Just show the 'after' image for swipe
+            } else {
+                overlayLayer = getWMSLayer(`${rd1}/${rd2}`, true);
+            }
+        }
+
+        if (reportMapInst.overlayLayer) reportMapInst.removeLayer(reportMapInst.overlayLayer);
+        if (overlayLayer) {
+            reportMapInst.overlayLayer = overlayLayer.addTo(reportMapInst);
+        }
+
         // 3. Show Modal
         document.getElementById('report-modal').style.display = 'flex';
 
