@@ -113,6 +113,8 @@ const PALETTE_NDWI = "[[0, 130, 70, 20], [0.35, 215, 170, 60], [0.6, 80, 150, 20
 const PALETTE_SI = "[[0, 36, 51, 64], [0.15, 180, 130, 40], [0.3, 220, 140, 50], [1, 240, 80, 30]]";
 const PALETTE_VEG = "[[0, 160, 120, 50], [0.3, 210, 180, 60], [0.6, 90, 160, 60], [1, 20, 100, 40]]"; // Brown -> Yellow -> Dark Green
 const PALETTE_MSI = "[[0, 28, 133, 166], [0.5, 239, 216, 122], [1, 212, 106, 36]]"; // Blue -> Yellow -> Orange (Inverse of NDMI)
+const PALETTE_BRINE = "[[0, 10, 60, 100], [0.35, 120, 100, 50], [0.6, 240, 80, 30], [1, 230, 20, 20]]"; // Blue -> Brown -> Orange -> Red
+const PALETTE_CSI = "[[0, 160, 120, 50], [0.5, 100, 220, 80], [1, 0, 255, 255]]"; // Brown -> Lime -> Cyan
 
 // Index Configs
 const INDICES = {
@@ -234,6 +236,43 @@ const INDICES = {
   return [(sample.B11 - sample.B08) / sum];
 `
     },
+    brine: {
+        name: 'Brine / Salt Water (NDSI)',
+        sensor: 'Sentinel-2 L2A',
+        min: 'Dry / Fresh', max: 'High Brine',
+        gradient: 'linear-gradient(to right, #0A3C64, #786432, #F0501E, #E61414)',
+        formula: '(B11 - B12) / (B11 + B12)',
+        evalscript: genEvalscript(['B11', 'B12'], `
+  let sum = sample.B11 + sample.B12;
+  if(sum === 0) return [0,0,0,0];
+  let val = (sample.B11 - sample.B12) / sum;
+  ${colorBlend('Math.max(0, val * 2)', PALETTE_BRINE)}
+`),
+        fisBands: ['B11', 'B12'],
+        fisLogic: `
+  let sum = sample.B11 + sample.B12;
+  if(sum === 0) return [0];
+  return [(sample.B11 - sample.B12) / sum];
+`
+    },
+    csi: {
+        name: 'Contaminated Soil (Clay Ratio)',
+        sensor: 'Sentinel-2 L2A',
+        min: 'Healthy Soil', max: 'Contaminated',
+        gradient: 'linear-gradient(to right, #A07832, #64DC50, #00FFFF)',
+        formula: 'B11 / B12',
+        evalscript: genEvalscript(['B11', 'B12'], `
+  if(sample.B12 === 0) return [0,0,0,0];
+  let val = sample.B11 / sample.B12;
+  let mapped = Math.max(0, Math.min(1, (val - 0.5) / 2.0));
+  ${colorBlend('mapped', PALETTE_CSI)}
+`),
+        fisBands: ['B11', 'B12'],
+        fisLogic: `
+  if(sample.B12 === 0) return [0];
+  return [sample.B11 / sample.B12];
+`
+    },
     s1_sar: {
         name: 'SAR Moisture (VV/VH)',
         sensor: 'Sentinel-1 GRD',
@@ -294,6 +333,7 @@ const state = {
     activeIndex: 'ndmi',
     mode: 'single', // 'single' or 'compare'
     monthIndex: Math.max(0, ALL_DATES.length - 1),
+    sarFusion: false, // track the state of the SAR Overlay toggle
     opacity: 0.85,
     overlayGroup: null,
     leftGroup: null,
@@ -449,17 +489,19 @@ function evaluatePixel(samples) {
 }
 `;
         } else {
-            // Optical Indexes Difference
             let calc = '0';
             if (activeIndex === 'ndmi') calc = '(sample.B8A - sample.B11)/(sample.B8A + sample.B11)';
             else if (activeIndex === 'ndwi') calc = '(sample.B03 - sample.B11)/(sample.B03 + sample.B11)';
             else if (activeIndex === 'si') calc = '(sample.B11 - sample.B08)/(sample.B11 + sample.B08)';
+            else if (activeIndex === 'brine') calc = '(sample.B11 - sample.B12)/(sample.B11 + sample.B12)';
+            else if (activeIndex === 'csi') calc = 'sample.B11 / sample.B12';
             else if (activeIndex === 'tc') calc = '(sample.B04*2)'; // simplistic proxy for RGB change
 
             let bands = ['B04', 'B03', 'B02'];
             if (activeIndex === 'ndmi') bands = ['B8A', 'B11'];
             if (activeIndex === 'ndwi') bands = ['B03', 'B11'];
             if (activeIndex === 'si') bands = ['B11', 'B08'];
+            if (activeIndex === 'brine' || activeIndex === 'csi') bands = ['B11', 'B12'];
 
             scriptContent = genDiffEvalscript(bands, calc);
         }
@@ -467,11 +509,12 @@ function evaluatePixel(samples) {
     return scriptContent;
 }
 
-function getWMSLayer(timeStr, isDiff) {
-    let scriptContent = getScriptContent(state.activeIndex, isDiff);
+function getWMSLayer(timeStr, isDiff, overrideIndex = null) {
+    const activeIdx = overrideIndex || state.activeIndex;
+    let scriptContent = getScriptContent(activeIdx, isDiff);
 
     let wmsLayerParam = 'AGRICULTURE';
-    if (state.activeIndex === 's1_sar') wmsLayerParam = 'SENTINEL1-GRD';
+    if (activeIdx === 's1_sar') wmsLayerParam = 'SENTINEL1-GRD';
 
     return L.tileLayer.wms(SH_WMS_URL, {
         layers: wmsLayerParam,
@@ -482,11 +525,11 @@ function getWMSLayer(timeStr, isDiff) {
         maxcc: 20,
         showlogo: false,
         evalscript: btoa(scriptContent),
-        opacity: state.opacity,
+        opacity: overrideIndex ? 0.5 : state.opacity,
         attribution: 'Copernicus Sentinel Hub',
         tileSize: 256,
         minZoom: 10,
-        zIndex: 10
+        zIndex: overrideIndex ? 20 : 10
     });
 }
 
@@ -505,10 +548,18 @@ function applyIndex() {
         return; // Skip adding WMS imagery layers entirely
     }
 
+    const layersToGroup = [];
+    const rightLayersGroup = [];
+
     if (state.mode === 'single') {
         const timeStr = ALL_DATES[state.monthIndex].value;
-        const layer = getWMSLayer(timeStr, false);
-        state.overlayGroup = L.layerGroup([layer]).addTo(state.map);
+        layersToGroup.push(getWMSLayer(timeStr, false));
+
+        if (state.sarFusion && state.activeIndex !== 's1_sar') {
+            layersToGroup.push(getWMSLayer(timeStr, false, 's1_sar'));
+        }
+
+        state.overlayGroup = L.layerGroup(layersToGroup).addTo(state.map);
     } else {
         const t1 = document.getElementById('date-t1').value;
         const t2 = document.getElementById('date-t2').value;
@@ -517,14 +568,30 @@ function applyIndex() {
             const l_layer = getWMSLayer(t1, false);
             const r_layer = getWMSLayer(t2, false);
 
-            state.leftGroup = L.layerGroup([l_layer]).addTo(state.map);
-            state.rightGroup = L.layerGroup([r_layer]).addTo(state.map);
+            layersToGroup.push(l_layer);
+            rightLayersGroup.push(r_layer);
 
-            state.sbsControl = L.control.sideBySide(l_layer, r_layer).addTo(state.map);
+            if (state.sarFusion && state.activeIndex !== 's1_sar') {
+                const s1_l_layer = getWMSLayer(t1, false, 's1_sar');
+                const s1_r_layer = getWMSLayer(t2, false, 's1_sar');
+                layersToGroup.push(s1_l_layer);
+                rightLayersGroup.push(s1_r_layer);
+            }
+
+            state.leftGroup = L.layerGroup(layersToGroup).addTo(state.map);
+            state.rightGroup = L.layerGroup(rightLayersGroup).addTo(state.map);
+
+            state.sbsControl = L.control.sideBySide(state.leftGroup.getLayers(), state.rightGroup.getLayers()).addTo(state.map);
         } else if (state.compareType === 'diff') {
             const timeRange = `${t1}/${t2}`;
             const diffLayer = getWMSLayer(timeRange, true);
-            state.overlayGroup = L.layerGroup([diffLayer]).addTo(state.map);
+            layersToGroup.push(diffLayer);
+
+            if (state.sarFusion && state.activeIndex !== 's1_sar') {
+                layersToGroup.push(getWMSLayer(timeRange, true, 's1_sar'));
+            }
+
+            state.overlayGroup = L.layerGroup(layersToGroup).addTo(state.map);
         }
     }
 
@@ -736,6 +803,15 @@ function bindEvents() {
             state.baseLayerInst.bringToBack();
         });
     });
+
+    // SAR Fusion Toggle
+    const toggleSar = document.getElementById('toggle-sar-fusion');
+    if (toggleSar) {
+        toggleSar.addEventListener('change', (e) => {
+            state.sarFusion = e.target.checked;
+            applyIndex();
+        });
+    }
 
     // Sliders
     const slider = document.getElementById('time-slider');
