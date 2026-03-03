@@ -410,15 +410,14 @@ function initMap() {
     applyIndex();
 }
 
-function getWMSLayer(timeStr, isDiff) {
-    const cfg = INDICES[state.activeIndex];
-
-    // Auto-generate the diff script logic if not explicitly provided
+function getScriptContent(activeIndex, isDiff) {
+    const cfg = INDICES[activeIndex];
     let scriptContent = cfg.evalscript;
+
     if (isDiff) {
         if (cfg.diffscript) {
             scriptContent = cfg.diffscript;
-        } else if (state.activeIndex === 's1_sar') {
+        } else if (activeIndex === 's1_sar') {
             // SAR Difference Evalscript
             scriptContent = `//VERSION=3
 function setup() {
@@ -443,23 +442,27 @@ function evaluatePixel(samples) {
   return [0.2, 0.2, 0.2, 0.3]; // Stable
 }
 `;
-
         } else {
             // Optical Indexes Difference
             let calc = '0';
-            if (state.activeIndex === 'ndmi') calc = '(sample.B8A - sample.B11)/(sample.B8A + sample.B11)';
-            else if (state.activeIndex === 'ndwi') calc = '(sample.B03 - sample.B11)/(sample.B03 + sample.B11)';
-            else if (state.activeIndex === 'si') calc = '(sample.B11 - sample.B08)/(sample.B11 + sample.B08)';
-            else if (state.activeIndex === 'tc') calc = '(sample.B04*2)'; // simplistic proxy for RGB change
+            if (activeIndex === 'ndmi') calc = '(sample.B8A - sample.B11)/(sample.B8A + sample.B11)';
+            else if (activeIndex === 'ndwi') calc = '(sample.B03 - sample.B11)/(sample.B03 + sample.B11)';
+            else if (activeIndex === 'si') calc = '(sample.B11 - sample.B08)/(sample.B11 + sample.B08)';
+            else if (activeIndex === 'tc') calc = '(sample.B04*2)'; // simplistic proxy for RGB change
 
             let bands = ['B04', 'B03', 'B02'];
-            if (state.activeIndex === 'ndmi') bands = ['B8A', 'B11'];
-            if (state.activeIndex === 'ndwi') bands = ['B03', 'B11'];
-            if (state.activeIndex === 'si') bands = ['B11', 'B08'];
+            if (activeIndex === 'ndmi') bands = ['B8A', 'B11'];
+            if (activeIndex === 'ndwi') bands = ['B03', 'B11'];
+            if (activeIndex === 'si') bands = ['B11', 'B08'];
 
             scriptContent = genDiffEvalscript(bands, calc);
         }
     }
+    return scriptContent;
+}
+
+function getWMSLayer(timeStr, isDiff) {
+    let scriptContent = getScriptContent(state.activeIndex, isDiff);
 
     let wmsLayerParam = 'AGRICULTURE';
     if (state.activeIndex === 's1_sar') wmsLayerParam = 'SENTINEL1-GRD';
@@ -1119,17 +1122,31 @@ function evaluatePixel(sample) {
             let wmsLayerParam = 'AGRICULTURE';
             if (state.activeIndex === 's1_sar') wmsLayerParam = 'SENTINEL1-GRD';
 
-            // Force normal math payload, not difference payload for animation
-            const b64Math = btoa(idx.evalscript);
+            const isDiffAnim = state.compareType === 'diff';
+            const b64Math = btoa(getScriptContent(state.activeIndex, isDiffAnim));
 
             const frameUrls = frameIndices.map(i => {
                 const dateStr = ALL_DATES[i].value;
-                // Buffer by 20 days backwards to allow Copernicus to mosaic & remove clouds
-                let dTarget = new Date(dateStr);
-                let dPrior = new Date(dTarget);
-                dPrior.setUTCDate(dPrior.getUTCDate() - 20);
-                let pStr = dPrior.toISOString().split('T')[0];
-                let rangeStr = `${pStr}/${dateStr}`;
+                let rangeStr;
+
+                if (isDiffAnim) {
+                    // Cumulative difference from d1 to this frame
+                    let dBase = new Date(d1);
+                    dBase.setUTCDate(dBase.getUTCDate() - 20); // buffer start to ensure first image is found
+                    let baseStr = dBase.toISOString().split('T')[0];
+                    let dCurr = new Date(dateStr);
+                    // Prevent empty ranges where start > end
+                    if (dCurr <= dBase) dCurr.setUTCDate(dBase.getUTCDate() + 10);
+                    let currStr = dCurr.toISOString().split('T')[0];
+                    rangeStr = `${baseStr}/${currStr}`;
+                } else {
+                    // Standard imagery snapshot
+                    let dTarget = new Date(dateStr);
+                    let dPrior = new Date(dTarget);
+                    dPrior.setUTCDate(dPrior.getUTCDate() - 20);
+                    let pStr = dPrior.toISOString().split('T')[0];
+                    rangeStr = `${pStr}/${dateStr}`;
+                }
 
                 return `${SH_WMS_URL}?SERVICE=WMS&REQUEST=GetMap&LAYERS=${wmsLayerParam}&FORMAT=image/png&TRANSPARENT=false&VERSION=1.3.0&TIME=${rangeStr}&MAXCC=15&WIDTH=400&HEIGHT=300&CRS=CRS:84&BBOX=${bboxStr}&EVALSCRIPT=${encodeURIComponent(b64Math)}`;
             });
