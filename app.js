@@ -153,6 +153,7 @@ const INDICES = {
         min: '0.0', max: '0.3',
         gradient: 'linear-gradient(to right, #000, #fff)',
         formula: 'RGB',
+        diffLabels: ['Decrease / Darker', 'Increase / Brighter'],
         evalscript: genEvalscript(['B04', 'B03', 'B02'], `
   let factor = 2.5;
   return [sample.B04 * factor, sample.B03 * factor, sample.B02 * factor, 1];
@@ -166,6 +167,7 @@ const INDICES = {
         min: '0.0', max: '0.3',
         gradient: 'linear-gradient(to right, #000, #fff)',
         formula: 'RGB (B08,B04,B03)',
+        diffLabels: ['Decrease / Darker', 'Increase / Brighter'],
         evalscript: genEvalscript(['B08', 'B04', 'B03'], `
   let factor = 2.5;
   return [sample.B08 * factor, sample.B04 * factor, sample.B03 * factor, 1];
@@ -179,6 +181,7 @@ const INDICES = {
         min: 'High Stress', max: 'High Moisture',
         gradient: 'linear-gradient(to right, #D46A24, #EFD87A, #1C85A6)',
         formula: '(B8A - B11) / (B8A + B11)',
+        diffLabels: ['Drier / Moisture Loss', 'Wetter / Moisture Gain'],
         evalscript: genEvalscript(['B8A', 'B11'], `
   let sum = sample.B8A + sample.B11;
   if(sum === 0) return [0,0,0,0];
@@ -198,6 +201,7 @@ const INDICES = {
         min: 'Dry Surface', max: 'Saturated',
         gradient: 'linear-gradient(to right, #824614, #D7AA3C, #1450B4)',
         formula: '(B03 - B11) / (B03 + B11)',
+        diffLabels: ['Dries / Recedes', 'Wetter / Expands'],
         evalscript: genEvalscript(['B03', 'B11'], `
   let sum = sample.B03 + sample.B11;
   if(sum === 0) return [0,0,0,0];
@@ -217,6 +221,7 @@ const INDICES = {
         min: 'Barren', max: 'Lush Vegetation',
         gradient: 'linear-gradient(to right, #A07832, #D2B43C, #146428)',
         formula: '(B08 - B04) / (B08 + B04)',
+        diffLabels: ['Unhealthier / Loss', 'Healthier / Gain'],
         evalscript: genEvalscript(['B08', 'B04'], `
   let sum = sample.B08 + sample.B04;
   if(sum === 0) return [0,0,0,0];
@@ -236,6 +241,7 @@ const INDICES = {
         min: 'Barren Soil', max: 'Dense Brush',
         gradient: 'linear-gradient(to right, #A07832, #D2B43C, #146428)',
         formula: '((B08 - B04) / (B08 + B04 + 0.5)) × 1.5',
+        diffLabels: ['Unhealthier / Loss', 'Healthier / Gain'],
         evalscript: genEvalscript(['B08', 'B04'], `
   let sum = sample.B08 + sample.B04 + 0.5;
   if(sum === 0) return [0,0,0,0];
@@ -255,6 +261,7 @@ const INDICES = {
         min: 'High Content', max: 'Severe Stress',
         gradient: 'linear-gradient(to right, #1C85A6, #EFD87A, #D46A24)',
         formula: 'B11 / B08',
+        diffLabels: ['More Stressed / Drier', 'Less Stressed / Wetter'],
         evalscript: genEvalscript(['B11', 'B08'], `
   if(sample.B08 === 0) return [0,0,0,0];
   let val = sample.B11 / sample.B08;
@@ -275,6 +282,7 @@ const INDICES = {
         min: 'Low Salt', max: 'High Salt',
         gradient: 'linear-gradient(to right, #243340, #EFD87A, #F0501E)',
         formula: '(B11 - B08) / (B11 + B08)',
+        diffLabels: ['Saltier / Hazard', 'Less Salty / Recovery'],
         evalscript: genEvalscript(['B11', 'B08'], `
   let sum = sample.B11 + sample.B08;
   if(sum === 0) return [0,0,0,0];
@@ -297,6 +305,7 @@ const INDICES = {
         min: 'Dry / Fresh', max: 'High Brine',
         gradient: 'linear-gradient(to right, #0A3C64, #786432, #F0501E, #E61414)',
         formula: '(B11 - B12) / (B11 + B12)',
+        diffLabels: ['More Brine / Hazard', 'Less Brine / Recovery'],
         evalscript: genEvalscript(['B11', 'B12'], `
   let sum = sample.B11 + sample.B12;
   if(sum === 0) return [0,0,0,0];
@@ -316,6 +325,7 @@ const INDICES = {
         min: 'Healthy Soil', max: 'Contaminated',
         gradient: 'linear-gradient(to right, #A07832, #64DC50, #00FFFF)',
         formula: 'B11 / B12',
+        diffLabels: ['More Contaminated', 'Less Contaminated / Recovery'],
         evalscript: genEvalscript(['B11', 'B12'], `
   if(sample.B12 === 0) return [0,0,0,0];
   let val = sample.B11 / sample.B12;
@@ -334,6 +344,7 @@ const INDICES = {
         min: 'Dry / Smooth', max: 'Wet / Rough',
         gradient: 'linear-gradient(to right, #000000, #448833, #CCDD55)',
         formula: 'RGB [VV, VH, VV/VH]',
+        diffLabels: ['Smoother / Drier', 'Rougher / Wetter'],
         evalscript: `//VERSION=3
 function setup() {
   return {
@@ -693,9 +704,9 @@ function updateUI() {
     const diffPos = document.getElementById('diff-label-pos');
     const diffNeg = document.getElementById('diff-label-neg');
     if (diffPos && diffNeg) {
-        if (['msi', 'si', 'brine', 'csi'].includes(state.activeIndex)) {
-            diffNeg.innerText = "Increase (Danger)";
-            diffPos.innerText = "Decrease (Recovery)";
+        if (cfg.diffLabels) {
+            diffNeg.innerText = cfg.diffLabels[0];
+            diffPos.innerText = cfg.diffLabels[1];
         } else {
             diffNeg.innerText = "Decrease (Loss)";
             diffPos.innerText = "Increase (Gain)";
