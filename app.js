@@ -1140,26 +1140,25 @@ function evaluatePixel(sample) {
 
                 return new Promise((resolve) => {
                     const img = new Image();
-                    img.crossOrigin = 'Anonymous';
                     img.onload = () => {
                         const canvas = document.createElement('canvas');
                         canvas.width = 400;
-                        canvas.height = 300;
+                        canvas.height = 330; // Increased height for timestamp bar
                         const ctx = canvas.getContext('2d');
+
+                        // Draw image
                         ctx.drawImage(img, 0, 0, 400, 300);
 
-                        // Draw timestamp pill
-                        ctx.fillStyle = 'rgba(0, 0, 0, 0.65)';
-                        ctx.beginPath();
-                        ctx.roundRect(10, 10, 140, 28, 6);
-                        ctx.fill();
+                        // Draw bottom timestamp bar
+                        ctx.fillStyle = '#111111';
+                        ctx.fillRect(0, 300, 400, 30);
 
                         // Draw timestamp text
                         ctx.fillStyle = '#ffffff';
                         ctx.font = '600 13px sans-serif';
                         ctx.textBaseline = 'middle';
                         ctx.textAlign = 'center';
-                        ctx.fillText(dateText, 80, 24);
+                        ctx.fillText(dateText, 200, 315);
 
                         resolve(canvas.toDataURL('image/jpeg', 0.95));
                     };
@@ -1172,9 +1171,9 @@ function evaluatePixel(sample) {
                     gifshot.createGIF({
                         images: annotatedUrls,
                         gifWidth: 400,
-                        gifHeight: 300,
+                        gifHeight: 330,
                         interval: 0.35, // 350ms per frame
-                        numFrames: blobUrls.length,
+                        numFrames: annotatedUrls.length,
                         sampleInterval: 10
                     }, function (obj) {
                         if (!obj.error) {
