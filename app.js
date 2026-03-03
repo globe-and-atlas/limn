@@ -1163,64 +1163,97 @@ function evaluatePixel(sample) {
 
             gifLoader.innerText = `Fetching ${bgUrls.length * (isDiffAnim ? 2 : 1)} satellite frames...`;
 
-            Promise.all(frameUrls.map(async (url, listIdx) => {
-                const dateText = ALL_DATES[frameIndices[listIdx]].displayStr;
-                const blob = await fetch(url).then(r => r.blob());
-                const imgUrl = URL.createObjectURL(blob);
-
+            // Canvas composite renderer helper
+            const renderCanvas = (bgBlob, diffBlob, dateText) => {
                 return new Promise((resolve) => {
-                    const img = new Image();
-                    img.onload = () => {
+                    const bgUrl = URL.createObjectURL(bgBlob);
+                    const diffUrl = diffBlob ? URL.createObjectURL(diffBlob) : null;
+
+                    const bgImg = new Image();
+                    bgImg.onload = () => {
                         const canvas = document.createElement('canvas');
                         canvas.width = 400;
-                        canvas.height = 330; // Increased height for timestamp bar
+                        canvas.height = 330;
                         const ctx = canvas.getContext('2d');
+                        ctx.drawImage(bgImg, 0, 0, 400, 300);
 
-                        // Draw image
-                        ctx.drawImage(img, 0, 0, 400, 300);
+                        const drawFooter = () => {
+                            ctx.fillStyle = '#111111';
+                            ctx.fillRect(0, 300, 400, 30);
+                            ctx.fillStyle = '#ffffff';
+                            ctx.font = '600 13px sans-serif';
+                            ctx.textBaseline = 'middle';
+                            ctx.textAlign = 'center';
+                            ctx.fillText(dateText, 200, 315);
+                            resolve(canvas.toDataURL('image/jpeg', 0.95));
+                        };
 
-                        // Draw bottom timestamp bar
-                        ctx.fillStyle = '#111111';
-                        ctx.fillRect(0, 300, 400, 30);
-
-                        // Draw timestamp text
-                        ctx.fillStyle = '#ffffff';
-                        ctx.font = '600 13px sans-serif';
-                        ctx.textBaseline = 'middle';
-                        ctx.textAlign = 'center';
-                        ctx.fillText(dateText, 200, 315);
-
-                        resolve(canvas.toDataURL('image/jpeg', 0.95));
+                        if (diffUrl) {
+                            const dfImg = new Image();
+                            dfImg.onload = () => {
+                                ctx.drawImage(dfImg, 0, 0, 400, 300);
+                                drawFooter();
+                            };
+                            dfImg.onerror = drawFooter;
+                            dfImg.src = diffUrl;
+                        } else {
+                            drawFooter();
+                        }
                     };
-                    img.onerror = () => resolve(imgUrl); // Fallback if canvas errors
-                    img.src = imgUrl;
+                    bgImg.onerror = () => resolve(bgUrl);
+                    bgImg.src = bgUrl;
                 });
-            }))
-                .then(annotatedUrls => {
-                    gifLoader.innerText = 'Encoding GIF (This may take a moment)...';
-                    gifshot.createGIF({
-                        images: annotatedUrls,
-                        gifWidth: 400,
-                        gifHeight: 330,
-                        interval: 0.35, // 350ms per frame
-                        numFrames: annotatedUrls.length,
-                        sampleInterval: 10
-                    }, function (obj) {
+            };
+
+            const buildStandardGif = async () => {
+                const blobs = await Promise.all(bgUrls.map(u => fetch(u).then(r => r.blob())));
+                const canvases = await Promise.all(blobs.map((b, i) => renderCanvas(b, null, ALL_DATES[frameIndices[i]].displayStr)));
+
+                return new Promise(resolve => {
+                    gifshot.createGIF({ images: canvases, gifWidth: 400, gifHeight: 330, interval: 0.35, sampleInterval: 10 }, obj => {
                         if (!obj.error) {
                             gifImg.src = obj.image;
                             gifBtn.href = obj.image;
-                            gifImg.style.display = 'inline-block';
-                            gifLoader.style.display = 'none';
-                            gifBtn.style.pointerEvents = 'auto';
-                            gifBtn.style.opacity = '1';
-                        } else {
-                            gifLoader.innerText = 'Error generating GIF.';
+                            gifContStd.style.display = 'block';
                         }
+                        resolve();
                     });
-                }).catch(e => {
-                    gifLoader.innerText = 'Failed to fetch imagery for GIF.';
-                    console.error("GIF Render Error:", e);
                 });
+            };
+
+            const buildDiffGif = async () => {
+                const bgBlobs = await Promise.all(bgUrls.map(u => fetch(u).then(r => r.blob())));
+                const diffBlobs = await Promise.all(diffUrls.map(u => fetch(u).then(r => r.blob())));
+                const canvases = await Promise.all(bgBlobs.map((b, i) => renderCanvas(b, diffBlobs[i], ALL_DATES[frameIndices[i]].displayStr)));
+
+                return new Promise(resolve => {
+                    gifshot.createGIF({ images: canvases, gifWidth: 400, gifHeight: 330, interval: 0.35, sampleInterval: 10 }, obj => {
+                        if (!obj.error) {
+                            gifImgDiff.src = obj.image;
+                            gifBtnDiff.href = obj.image;
+                            gifContDiff.style.display = 'block';
+                        }
+                        resolve();
+                    });
+                });
+            };
+
+            (async () => {
+                try {
+                    gifLoader.innerText = 'Encoding Standard Imagery GIF...';
+                    await buildStandardGif();
+
+                    if (isDiffAnim) {
+                        gifLoader.innerText = 'Encoding Difference Heatmap GIF...';
+                        await buildDiffGif();
+                    }
+
+                    gifLoader.style.display = 'none';
+                } catch (e) {
+                    gifLoader.innerText = 'Failed to fetch or encode imagery for GIFs.';
+                    console.error("GIF Render Error:", e);
+                }
+            })();
 
         } else {
             gifSection.style.display = 'none';
