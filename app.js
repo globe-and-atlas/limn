@@ -36,6 +36,7 @@ while (iterDate <= today) {
 
 // Copernicus Sentinel Hub configuration
 const SH_WMS_URL = 'https://sh.dataspace.copernicus.eu/ogc/wms/959ea2c5-5892-4b36-82b3-76e6bdb93c8a';
+const SH_FIS_URL = 'https://sh.dataspace.copernicus.eu/ogc/fis/959ea2c5-5892-4b36-82b3-76e6bdb93c8a';
 
 // Globals for Report Generation
 let aoiDrawnItem = null;
