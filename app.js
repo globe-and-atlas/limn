@@ -885,51 +885,98 @@ function evaluatePixel(sample) {
             chartTitleLabel = `3-Year Trend Ending ${ALL_DATES[state.monthIndex].displayStr}`;
         }
 
-        let maxccParam = '&MAXCC=30';
-        let layerParam = 'AGRICULTURE';
-        if (state.activeIndex === 's1_sar') {
-            layerParam = 'SENTINEL1-GRD';
-            maxccParam = '';
-        }
+        const CHART_COLORS = {
+            ndmi: '#1C85A6',
+            ndwi: '#1450B4',
+            ndvi: '#146428',
+            savi: '#A07832',
+            msi: '#D46A24',
+            s1_sar: '#999999'
+        };
 
-        const fisUrl = `https://sh.dataspace.copernicus.eu/ogc/fis/959ea2c5-5892-4b36-82b3-76e6bdb93c8a?LAYER=${layerParam}&TIME=${timeRange}&BBOX=${bboxStr}&CRS=CRS:84&RESOLUTION=20m${maxccParam}&EVALSCRIPT=${encodeURIComponent(b64)}`;
+        const keysToChart = Object.keys(INDICES).filter(k => k !== 'tc' && k !== 'fc');
 
-        let realData = [];
-        let labels = [];
-
-        try {
-            const resp = await fetch(fisUrl);
-            const data = await resp.json();
-
-            const c0 = data.C0 || [];
-            c0.sort((a, b) => new Date(a.date) - new Date(b.date));
-
-            // Extract the means, filter out completely cloudy NaNs
-            c0.forEach(entry => {
-                if (entry.basicStats && entry.basicStats.mean !== "NaN") {
-                    labels.push(entry.date);
-                    realData.push(entry.basicStats.mean);
-                }
-            });
-
-            if (realData.length === 0) {
-                alert("No valid statistical data found for this bounding box (possibly due to clouds or data sparsity).");
-                btn.innerText = "Generate Selected Report";
-                btn.disabled = false;
-                return;
+        let fetchPromises = keysToChart.map(async (key) => {
+            const cfg = INDICES[key];
+            const script = `//VERSION=3
+function setup() {
+  return {
+    input: [${cfg.fisBands.map(b => `'${b}'`).join(', ')}, "dataMask"],
+    output: { bands: 1, sampleType: 'FLOAT32' }
+  };
+}
+function evaluatePixel(sample) {
+  if (sample.dataMask === 0) return [NaN];
+  ${cfg.fisLogic}
+}`;
+            const b64 = btoa(script);
+            let layerParam = 'AGRICULTURE';
+            let maxccParam = '&MAXCC=30';
+            if (key === 's1_sar') {
+                layerParam = 'SENTINEL1-GRD';
+                maxccParam = '';
             }
-        } catch (error) {
-            console.error("FIS Request Failed:", error);
-            alert("Failed to hit Sentinel Hub Statistical API. Check the console for more details.");
+
+            const url = `https://sh.dataspace.copernicus.eu/ogc/fis/959ea2c5-5892-4b36-82b3-76e6bdb93c8a?LAYER=${layerParam}&TIME=${timeRange}&BBOX=${bboxStr}&CRS=CRS:84&RESOLUTION=20m${maxccParam}&EVALSCRIPT=${encodeURIComponent(b64)}`;
+
+            try {
+                const resp = await fetch(url);
+                const data = await resp.json();
+                let c0 = data.C0 || [];
+                let validData = {};
+                c0.forEach(entry => {
+                    if (entry.basicStats && entry.basicStats.mean !== "NaN") {
+                        validData[entry.date] = entry.basicStats.mean;
+                    }
+                });
+                return { key, cfg, dataMap: validData };
+            } catch (e) {
+                console.error("Failed to fetch", key, e);
+                return { key, cfg, dataMap: {} };
+            }
+        });
+
+        // Wait for all index queries to return
+        btn.innerText = "Processing Data Layers...";
+        const results = await Promise.all(fetchPromises);
+
+        // Build Master List of Dates for X-Axis Alignment
+        let allDatesSet = new Set();
+        results.forEach(r => Object.keys(r.dataMap).forEach(d => allDatesSet.add(d)));
+        let sortedDates = Array.from(allDatesSet).sort((a, b) => new Date(a) - new Date(b));
+
+        if (sortedDates.length === 0) {
+            alert("No valid statistical data found for this bounding box (possibly due to clouds or data sparsity).");
             btn.innerText = "Generate Selected Report";
             btn.disabled = false;
             return;
         }
 
+        let chartLabels = sortedDates.map(d => d.slice(0, 10)); // YYYY-MM-DD
+
+        let chartDatasets = results.map(r => {
+            let dataArr = sortedDates.map(d => {
+                return r.dataMap[d] !== undefined ? r.dataMap[d] : null;
+            });
+
+            return {
+                label: r.cfg.name,
+                data: dataArr,
+                borderColor: CHART_COLORS[r.key] || '#ffffff',
+                backgroundColor: 'transparent',
+                fill: false,
+                tension: 0.1,
+                pointRadius: 1,
+                pointHitRadius: 10,
+                spanGaps: true,
+                hidden: r.key !== state.activeIndex // Hide non-active indices by default so chart isn't chaotic
+            };
+        });
+
         btn.innerText = "Generate Selected Report";
         btn.disabled = false;
 
-        document.querySelector('.report-chart h3').innerText = `Real Statistical Trend (AOI Mean) - ${chartTitleLabel}`;
+        document.querySelector('.report-chart h3').innerText = `Multivariate Statistical Trends (AOI Mean) - ${chartTitleLabel}`;
 
         const ctx = document.getElementById('reportChart').getContext('2d');
         if (reportChartInst) reportChartInst.destroy();
@@ -937,22 +984,29 @@ function evaluatePixel(sample) {
         reportChartInst = new Chart(ctx, {
             type: 'line',
             data: {
-                labels: labels.map(d => d.slice(0, 7)), // YYYY-MM
-                datasets: [{
-                    label: `${idx.name} (Actual Mean)`,
-                    data: realData,
-                    borderColor: '#1C85A6',
-                    backgroundColor: 'rgba(28, 133, 166, 0.2)',
-                    fill: true,
-                    tension: 0.1,
-                    pointRadius: 2,
-                    pointHitRadius: 10
-                }]
+                labels: chartLabels,
+                datasets: chartDatasets
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
-                plugins: { legend: { display: true, labels: { color: 'rgba(255,255,255,0.7)' } } },
+                interaction: {
+                    mode: 'index',
+                    intersect: false,
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        labels: { color: 'rgba(255,255,255,0.8)', usePointStyle: true, boxWidth: 8 }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            title: (ctx) => {
+                                return ctx[0].label;
+                            }
+                        }
+                    }
+                },
                 scales: {
                     y: {
                         grid: { color: 'rgba(255,255,255,0.05)' },
@@ -960,7 +1014,7 @@ function evaluatePixel(sample) {
                     },
                     x: {
                         grid: { color: 'rgba(255,255,255,0.05)' },
-                        ticks: { color: 'rgba(255,255,255,0.5)', maxRotation: 45, minRotation: 45, maxTicksLimit: 24 }
+                        ticks: { color: 'rgba(255,255,255,0.5)', maxRotation: 45, minRotation: 45, maxTicksLimit: 12 }
                     }
                 }
             }
@@ -1002,11 +1056,6 @@ function evaluatePixel(sample) {
             }
         }
 
-        if (reportMapInst.overlayLayer) reportMapInst.removeLayer(reportMapInst.overlayLayer);
-        if (overlayLayer) {
-            reportMapInst.overlayLayer = overlayLayer.addTo(reportMapInst);
-        }
-
         // 3. Show Modal
         document.getElementById('report-modal').style.display = 'flex';
 
@@ -1020,6 +1069,11 @@ function evaluatePixel(sample) {
                 reportMapInst.addLayer(reportMapInst._drawnItems);
             }
             L.rectangle(bounds, { color: '#1C85A6', weight: 3, fillOpacity: 0.2 }).addTo(reportMapInst._drawnItems);
+
+            if (reportMapInst.overlayLayer) reportMapInst.removeLayer(reportMapInst.overlayLayer);
+            if (overlayLayer) {
+                reportMapInst.overlayLayer = overlayLayer.addTo(reportMapInst);
+            }
         }, 150);
 
         // 5. Generate Animated GIF if Compare Mode
