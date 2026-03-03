@@ -217,8 +217,9 @@ const INDICES = {
   if(sum === 0) return [0,0,0,0];
   let val = (sample.B11 - sample.B08) / sum;
   // SI is Normalized Difference Salinity Index (NDSI)
-  // Maps roughly -1 to +1, we scale to 0-1 for the palette
-  ${colorBlend('(val + 0.2) * 1.5', PALETTE_SI)}
+  // Maps roughly -1 to +1. Land is typically negative. Salt flats are strongly positive.
+  // We clamp and scale so only strictly positive values trigger the bright orange/reds.
+  ${colorBlend('Math.max(0, val * 2)', PALETTE_SI)}
 `),
         fisBands: ['B11', 'B08'],
         fisLogic: `
@@ -448,13 +449,13 @@ function evaluatePixel(samples) {
             let calc = '0';
             if (state.activeIndex === 'ndmi') calc = '(sample.B8A - sample.B11)/(sample.B8A + sample.B11)';
             else if (state.activeIndex === 'ndwi') calc = '(sample.B03 - sample.B11)/(sample.B03 + sample.B11)';
-            else if (state.activeIndex === 'si') calc = 'Math.sqrt(sample.B02 * sample.B04)*8';
+            else if (state.activeIndex === 'si') calc = '(sample.B11 - sample.B08)/(sample.B11 + sample.B08)';
             else if (state.activeIndex === 'tc') calc = '(sample.B04*2)'; // simplistic proxy for RGB change
 
             let bands = ['B04', 'B03', 'B02'];
             if (state.activeIndex === 'ndmi') bands = ['B8A', 'B11'];
             if (state.activeIndex === 'ndwi') bands = ['B03', 'B11'];
-            if (state.activeIndex === 'si') bands = ['B02', 'B04'];
+            if (state.activeIndex === 'si') bands = ['B11', 'B08'];
 
             scriptContent = genDiffEvalscript(bands, calc);
         }
