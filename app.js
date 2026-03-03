@@ -545,18 +545,33 @@ function evaluatePixel(samples) {
 `;
         } else {
             let calc = '0';
-            if (activeIndex === 'ndmi') calc = '(sample.B8A - sample.B11)/(sample.B8A + sample.B11)';
-            else if (activeIndex === 'ndwi') calc = '(sample.B03 - sample.B11)/(sample.B03 + sample.B11)';
-            else if (activeIndex === 'si') calc = '(sample.B11 - sample.B08)/(sample.B11 + sample.B08)';
-            else if (activeIndex === 'brine') calc = '(sample.B11 - sample.B12)/(sample.B11 + sample.B12)';
-            else if (activeIndex === 'csi') calc = 'sample.B11 / sample.B12';
-            else if (activeIndex === 'tc') calc = '(sample.B04*2)'; // simplistic proxy for RGB change
 
+            // Healthy / Wet / Vegetation Indices (Increase = Blue/Green/Good, Decrease = Red/Loss)
+            if (activeIndex === 'ndvi') calc = '(sample.B08 - sample.B04)/(sample.B08 + sample.B04)';
+            else if (activeIndex === 'ndmi') calc = '(sample.B8A - sample.B11)/(sample.B8A + sample.B11)';
+            else if (activeIndex === 'ndwi') calc = '(sample.B03 - sample.B11)/(sample.B03 + sample.B11)';
+            else if (activeIndex === 'savi') calc = '(((sample.B08 - sample.B04)/(sample.B08 + sample.B04 + 0.5)) * 1.5)';
+
+            // Hazard / Arid / Contamination Indices 
+            // We intrinsically NEGATE the calculations here. By doing so, an INCREASE in contamination/stress
+            // generates a negative delta algebra, correctly mapping the visual threshold to RED/LOSS.
+            else if (activeIndex === 'msi') calc = '-(sample.B11 / sample.B08)';
+            else if (activeIndex === 'si') calc = '-((sample.B11 - sample.B08)/(sample.B11 + sample.B08))';
+            else if (activeIndex === 'brine') calc = '-((sample.B11 - sample.B12)/(sample.B11 + sample.B12))';
+            else if (activeIndex === 'csi') calc = '-(sample.B11 / sample.B12)';
+
+            // Proxies for visual bands
+            else if (activeIndex === 'tc') calc = '(sample.B04*2)'; // simplistic proxy for True Color change
+            else if (activeIndex === 'fc') calc = '(sample.B08*2)'; // simplistic proxy for False Color change
+
+            // Define physical spectral sampling arrays
             let bands = ['B04', 'B03', 'B02'];
             if (activeIndex === 'ndmi') bands = ['B8A', 'B11'];
             if (activeIndex === 'ndwi') bands = ['B03', 'B11'];
-            if (activeIndex === 'si') bands = ['B11', 'B08'];
+            if (activeIndex === 'ndvi' || activeIndex === 'savi') bands = ['B08', 'B04'];
+            if (activeIndex === 'msi' || activeIndex === 'si') bands = ['B11', 'B08'];
             if (activeIndex === 'brine' || activeIndex === 'csi') bands = ['B11', 'B12'];
+            if (activeIndex === 'fc') bands = ['B08', 'B04', 'B03'];
 
             scriptContent = genDiffEvalscript(bands, calc);
         }
@@ -674,6 +689,18 @@ function updateUI() {
     document.getElementById('legend-min').innerText = cfg.min;
     document.getElementById('legend-max').innerText = cfg.max;
     document.getElementById('formula-display').innerText = cfg.formula;
+
+    const diffPos = document.getElementById('diff-label-pos');
+    const diffNeg = document.getElementById('diff-label-neg');
+    if (diffPos && diffNeg) {
+        if (['msi', 'si', 'brine', 'csi'].includes(state.activeIndex)) {
+            diffNeg.innerText = "Increase (Danger)";
+            diffPos.innerText = "Decrease (Recovery)";
+        } else {
+            diffNeg.innerText = "Decrease (Loss)";
+            diffPos.innerText = "Increase (Gain)";
+        }
+    }
 
     const grad = document.getElementById('legend-gradient');
     const diffLegend = document.getElementById('diff-legend');
