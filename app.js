@@ -147,6 +147,32 @@ const PALETTE_CSI = "[[0, 160, 120, 50], [0.5, 100, 220, 80], [1, 0, 255, 255]]"
 
 // Index Configs
 const INDICES = {
+    tc: {
+        name: 'True Color',
+        sensor: 'Sentinel-2 L2A',
+        min: '0.0', max: '0.3',
+        gradient: 'linear-gradient(to right, #000, #fff)',
+        formula: 'RGB',
+        evalscript: genEvalscript(['B04', 'B03', 'B02'], `
+  let factor = 2.5;
+  return [sample.B04 * factor, sample.B03 * factor, sample.B02 * factor, 1];
+`),
+        fisBands: ['B04', 'B03', 'B02'],
+        fisLogic: `return [sample.B04, sample.B03, sample.B02];`
+    },
+    fc: {
+        name: 'False Color (NIR)',
+        sensor: 'Sentinel-2 L2A',
+        min: '0.0', max: '0.3',
+        gradient: 'linear-gradient(to right, #000, #fff)',
+        formula: 'RGB (B08,B04,B03)',
+        evalscript: genEvalscript(['B08', 'B04', 'B03'], `
+  let factor = 2.5;
+  return [sample.B08 * factor, sample.B04 * factor, sample.B03 * factor, 1];
+`),
+        fisBands: ['B08', 'B04', 'B03'],
+        fisLogic: `return [sample.B08, sample.B04, sample.B03];`
+    },
     ndmi: {
         name: 'Moisture Index (NDMI)',
         sensor: 'Sentinel-2 L2A',
@@ -1284,6 +1310,7 @@ function evaluatePixel(sample) {
                         const diffUrl = diffBlob ? URL.createObjectURL(diffBlob) : null;
 
                         const bgImg = new Image();
+                        bgImg.crossOrigin = "Anonymous";
                         bgImg.onload = () => {
                             const canvas = document.createElement('canvas');
                             canvas.width = 400;
@@ -1304,6 +1331,7 @@ function evaluatePixel(sample) {
 
                             if (diffUrl) {
                                 const dfImg = new Image();
+                                dfImg.crossOrigin = "Anonymous";
                                 dfImg.onload = () => {
                                     ctx.drawImage(dfImg, 0, 0, 400, 300);
                                     drawFooter();
@@ -1402,11 +1430,26 @@ function downloadHTMLReport() {
     });
     const baseLayerUrl = BASE_LAYERS[activeBaseKey];
 
-    let wmsUrl = "";
-    let wmsParams = {};
-    if (reportMapInst && reportMapInst.overlayLayer) {
-        wmsUrl = reportMapInst.overlayLayer._url;
-        wmsParams = reportMapInst.overlayLayer.wmsParams;
+    let wmsUrl1 = "";
+    let wmsUrl2 = "";
+    let wmsParams1 = {};
+    let wmsParams2 = {};
+    let isSwipeReport = false;
+
+    if (state.mode === 'compare' && state.compareType === 'swipe') {
+        isSwipeReport = true;
+        let rd1 = document.getElementById('date-t1').value;
+        let rd2 = document.getElementById('date-t2').value;
+        if (rd1 > rd2) { const tmp = rd1; rd1 = rd2; rd2 = tmp; }
+
+        let layer1 = getWMSLayer(rd1, false);
+        let layer2 = getWMSLayer(rd2, false);
+
+        wmsUrl1 = layer1._url; wmsParams1 = layer1.wmsParams || layer1.options;
+        wmsUrl2 = layer2._url; wmsParams2 = layer2.wmsParams || layer2.options;
+    } else if (reportMapInst && reportMapInst.overlayLayer) {
+        wmsUrl2 = reportMapInst.overlayLayer._url;
+        wmsParams2 = reportMapInst.overlayLayer.wmsParams || reportMapInst.overlayLayer.options;
     }
 
     const bounds = aoiDrawnItem.getBounds();
@@ -1525,7 +1568,34 @@ function downloadHTMLReport() {
         const map = L.map('map', { scrollWheelZoom: false, attributionControl: false }).fitBounds(${JSON.stringify(boundsArr)}, { padding: [20, 20] });
         L.tileLayer('${baseLayerUrl}', { maxZoom: 18 }).addTo(map);
         
-        ${wmsUrl ? `L.tileLayer.wms('${wmsUrl}', ${JSON.stringify(wmsParams)}).addTo(map);` : ''}
+        ${isSwipeReport ? `
+        var layer1 = L.tileLayer.wms('${wmsUrl1}', ${JSON.stringify(wmsParams1)}).addTo(map);
+        var layer2 = L.tileLayer.wms('${wmsUrl2}', ${JSON.stringify(wmsParams2)}).addTo(map);
+        
+        var swipeContainer = document.createElement('div');
+        swipeContainer.style.position = 'absolute';
+        swipeContainer.style.top = '10px';
+        swipeContainer.style.left = '50px';
+        swipeContainer.style.zIndex = '1000';
+        swipeContainer.style.background = 'rgba(0,0,0,0.6)';
+        swipeContainer.style.padding = '10px 15px';
+        swipeContainer.style.borderRadius = '6px';
+        swipeContainer.style.border = '1px solid rgba(255,255,255,0.2)';
+        swipeContainer.innerHTML = '<label style="color:#fff; font-size:12px; font-weight:bold; display:block; margin-bottom:8px;">Optical Swipe: <span id="swipe-val">50%</span></label><input type="range" id="swipe-slider" min="0" max="100" value="50" style="width: 200px; cursor: ew-resize;">';
+        document.getElementById('map').appendChild(swipeContainer);
+        
+        function updateClip() {
+            var val = document.getElementById('swipe-slider').value;
+            document.getElementById('swipe-val').innerText = val + '%';
+            var clipX = (map.getSize().x * (val / 100));
+            var el = layer2.getContainer();
+            if (el) el.style.clipPath = 'polygon(' + clipX + 'px 0, 100% 0, 100% 100%, ' + clipX + 'px 100%)';
+        }
+        
+        document.getElementById('swipe-slider').addEventListener('input', updateClip);
+        map.on('move', updateClip);
+        setTimeout(function(){ map.fire('move'); }, 200);
+        ` : wmsUrl2 ? `L.tileLayer.wms('${wmsUrl2}', ${JSON.stringify(wmsParams2)}).addTo(map);` : ''}
 
         L.rectangle(${JSON.stringify(boundsArr)}, { color: '#1C85A6', weight: 3, fillOpacity: 0.2 }).addTo(map);
 
