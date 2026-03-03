@@ -11,7 +11,7 @@ const AOI_LOCATIONS = {
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const START_YEAR = 2016;
 const ALL_DATES = [];
-const today = new Date();
+const today = new Date(); // Reverted to testing current live data
 let iterDate = new Date(Date.UTC(START_YEAR, 0, 1));
 
 while (iterDate <= today) {
@@ -35,8 +35,37 @@ while (iterDate <= today) {
 
 
 // Copernicus Sentinel Hub configuration
+const CDSE_CLIENT_ID = 'sh-90db7a9c-41fd-4caf-935a-0be2f39b28ba';
+const CDSE_CLIENT_SECRET = '10GC2CAhRnaKcONM5aVHlM6pAiWVnxxt';
 const SH_WMS_URL = 'https://sh.dataspace.copernicus.eu/ogc/wms/959ea2c5-5892-4b36-82b3-76e6bdb93c8a';
-const SH_FIS_URL = 'https://sh.dataspace.copernicus.eu/ogc/fis/959ea2c5-5892-4b36-82b3-76e6bdb93c8a';
+const SH_STAT_API_URL = 'https://sh.dataspace.copernicus.eu/api/v1/statistics';
+
+let cachedAccessToken = null;
+let tokenExpiry = null;
+
+async function getCDSEToken() {
+    if (cachedAccessToken && tokenExpiry && Date.now() < tokenExpiry) {
+        return cachedAccessToken;
+    }
+    // The Copernicus Keycloak server blocks direct frontend CORS requests.
+    // We route the authentication handshake securely through a standard CORS proxy to bridge the divide.
+    const authUrl = 'https://corsproxy.io/?' + encodeURIComponent('https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token');
+
+    const resp = await fetch(authUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+            client_id: CDSE_CLIENT_ID,
+            client_secret: CDSE_CLIENT_SECRET,
+            grant_type: 'client_credentials'
+        })
+    });
+    if (!resp.ok) throw new Error("Failed to authenticate with Copernicus OAuth API");
+    const data = await resp.json();
+    cachedAccessToken = data.access_token;
+    tokenExpiry = Date.now() + ((data.expires_in - 60) * 1000);
+    return cachedAccessToken;
+}
 
 // Globals for Report Generation
 let aoiDrawnItem = null;
@@ -885,433 +914,470 @@ function bindEvents() {
 
     document.getElementById('btn-generate-report').addEventListener('click', async () => {
         if (!aoiDrawnItem) return;
+        try {
 
-        // 1. Populate Text Metadata
-        const idx = INDICES[state.activeIndex];
-        document.getElementById('report-date-run').innerText = new Date().toLocaleString();
+            // 1. Populate Text Metadata
+            const idx = INDICES[state.activeIndex];
+            document.getElementById('report-date-run').innerText = new Date().toLocaleString();
 
-        let bounds = aoiDrawnItem.getBounds();
-        let bStr = `N: ${bounds.getNorth().toFixed(4)}°, S: ${bounds.getSouth().toFixed(4)}°, E: ${bounds.getEast().toFixed(4)}°, W: ${bounds.getWest().toFixed(4)}°`;
-        document.getElementById('report-aoi-bounds').innerText = bStr;
+            let bounds = aoiDrawnItem.getBounds();
+            let bboxStr = `${bounds.getWest()},${bounds.getSouth()},${bounds.getEast()},${bounds.getNorth()}`;
+            let bStr = `N: ${bounds.getNorth().toFixed(4)}°, S: ${bounds.getSouth().toFixed(4)}°, E: ${bounds.getEast().toFixed(4)}°, W: ${bounds.getWest().toFixed(4)}°`;
+            document.getElementById('report-aoi-bounds').innerText = bStr;
 
-        document.getElementById('report-index-name').innerText = `${idx.name} [${idx.sensor}]`;
-        document.getElementById('report-math').innerText = idx.formula;
+            document.getElementById('report-index-name').innerText = `${idx.name} [${idx.sensor}]`;
+            document.getElementById('report-math').innerText = idx.formula;
 
-        if (state.mode === 'single') {
-            document.getElementById('report-time').innerText = ALL_DATES[state.monthIndex].displayStr;
-        } else {
-            const d1 = document.getElementById('date-t1').value;
-            const d2 = document.getElementById('date-t2').value;
-            const t1Obj = ALL_DATES.find(d => d.value === d1);
-            const t2Obj = ALL_DATES.find(d => d.value === d2);
-            document.getElementById('report-time').innerText = `${t1Obj ? t1Obj.displayStr : d1} to ${t2Obj ? t2Obj.displayStr : d2} (Change Analysis)`;
-        }
+            if (state.mode === 'single') {
+                document.getElementById('report-time').innerText = ALL_DATES[state.monthIndex].displayStr;
+            } else {
+                const d1 = document.getElementById('date-t1').value;
+                const d2 = document.getElementById('date-t2').value;
+                const t1Obj = ALL_DATES.find(d => d.value === d1);
+                const t2Obj = ALL_DATES.find(d => d.value === d2);
+                document.getElementById('report-time').innerText = `${t1Obj ? t1Obj.displayStr : d1} to ${t2Obj ? t2Obj.displayStr : d2} (Change Analysis)`;
+            }
 
-        let isOptical = (state.activeIndex === 'tc' || state.activeIndex === 'fc');
-        const btn = document.getElementById('btn-generate-report');
-        const chartSection = document.querySelector('.report-chart');
+            let isOptical = (state.activeIndex === 'tc' || state.activeIndex === 'fc');
+            const btn = document.getElementById('btn-generate-report');
+            const chartSection = document.querySelector('.report-chart');
 
-        if (isOptical) {
-            chartSection.style.display = 'none';
-        } else {
-            chartSection.style.display = 'block';
+            if (isOptical) {
+                chartSection.style.display = 'none';
+            } else {
+                chartSection.style.display = 'block';
 
-            // 2. Generate Real Statistical Data via FIS
-            btn.innerText = "Querying Database...";
-            btn.disabled = true;
+                // 2. Generate Real Statistical Data via FIS
+                btn.innerText = "Querying Database...";
+                btn.disabled = true;
 
-            const fisScript = `//VERSION=3
+                let bandsStr = idx.fisBands.map(b => `'${b}'`).join(', ');
+                const fisScript = `//VERSION=3
 function setup() {
   return {
-    input: [${idx.fisBands.map(b => `'${b}'`).join(', ')}, "dataMask"],
-    output: { bands: 1, sampleType: 'FLOAT32' }
+    input: [${bandsStr}, "dataMask"],
+    output: [
+      { id: "default", bands: 1, sampleType: "FLOAT32" },
+      { id: "dataMask", bands: 1, sampleType: "UINT8" }
+    ]
   };
 }
 function evaluatePixel(sample) {
-  if (sample.dataMask === 0) return [NaN];
-  ${idx.fisLogic}
+  let mask = sample.dataMask;
+  let val = NaN;
+  if (mask === 1) {
+    val = (function() {
+      ${idx.fisLogic}
+    })()[0];
+  }
+  return { default: [val], dataMask: [mask] };
 }`;
 
-            const b64Data = btoa(fisScript);
+                // Determine Temporal Range
+                let startD, endD, chartTitleLabel;
 
-            // Determine Temporal Range
-            let timeRange;
-            let chartTitleLabel = "";
-
-            if (state.mode === 'compare') {
-                let d1 = document.getElementById('date-t1').value;
-                let d2 = document.getElementById('date-t2').value;
-
-                if (d1 > d2) {
-                    const temp = d1;
-                    d1 = d2;
-                    d2 = temp;
+                if (state.mode === 'compare') {
+                    let d1 = document.getElementById('date-t1').value;
+                    let d2 = document.getElementById('date-t2').value;
+                    if (d1 > d2) { const temp = d1; d1 = d2; d2 = temp; }
+                    let d1D = new Date(d1);
+                    let d2D = new Date(d2);
+                    startD = new Date(Date.UTC(d1D.getUTCFullYear(), d1D.getUTCMonth() - 3, d1D.getUTCDate()));
+                    endD = new Date(Date.UTC(d2D.getUTCFullYear(), d2D.getUTCMonth() + 3, d2D.getUTCDate()));
+                    if (endD > today) endD = today;
+                    chartTitleLabel = `Comparative T1/T2 Range`;
+                } else {
+                    let targetDateStr = ALL_DATES[state.monthIndex].value;
+                    let sd = new Date(targetDateStr);
+                    startD = new Date(Date.UTC(sd.getUTCFullYear(), sd.getUTCMonth() - 6, sd.getUTCDate()));
+                    endD = new Date(Date.UTC(sd.getUTCFullYear(), sd.getUTCMonth() + 6, sd.getUTCDate()));
+                    if (endD > today) endD = today;
+                    chartTitleLabel = `Selected Date +/- 6 Months`;
                 }
 
-                // Timeline: selected range plus and minus two months
-                let d1D = new Date(d1);
-                let d2D = new Date(d2);
-                let startD = new Date(Date.UTC(d1D.getUTCFullYear(), d1D.getUTCMonth() - 2, d1D.getUTCDate()));
-                let endD = new Date(Date.UTC(d2D.getUTCFullYear(), d2D.getUTCMonth() + 2, d2D.getUTCDate()));
+                const CHART_COLORS = {
+                    ndmi: '#1C85A6', ndwi: '#1450B4', ndvi: '#146428', savi: '#A07832',
+                    msi: '#D46A24', s1_sar: '#999999'
+                };
 
-                if (endD > today) endD = today;
+                const activeKey = state.activeIndex;
+                const cfg = INDICES[activeKey];
 
-                timeRange = `${startD.toISOString().split('T')[0]}/${endD.toISOString().split('T')[0]}`;
-                chartTitleLabel = `Date Range +/- 2 Months`;
-            } else {
-                // Timeline: selected date plus and minus two months
-                let targetDateStr = ALL_DATES[state.monthIndex].value;
-                let sd = new Date(targetDateStr);
-                let startD = new Date(Date.UTC(sd.getUTCFullYear(), sd.getUTCMonth() - 2, sd.getUTCDate()));
-                let endD = new Date(Date.UTC(sd.getUTCFullYear(), sd.getUTCMonth() + 2, sd.getUTCDate()));
+                const bboxCoords = bboxStr.split(',').map(Number);
+                const collectionType = activeKey === 's1_sar' ? 'sentinel-1-grd' : 'sentinel-2-l2a';
 
-                if (endD > today) endD = today;
-
-                timeRange = `${startD.toISOString().split('T')[0]}/${endD.toISOString().split('T')[0]}`;
-                chartTitleLabel = `Selected Date +/- 2 Months`;
-            }
-
-            const CHART_COLORS = {
-                ndmi: '#1C85A6',
-                ndwi: '#1450B4',
-                ndvi: '#146428',
-                savi: '#A07832',
-                msi: '#D46A24',
-                s1_sar: '#999999'
-            };
-
-            const activeKey = state.activeIndex;
-            const cfg = INDICES[activeKey];
-            let layerParam = 'AGRICULTURE';
-            let maxccParam = '&MAXCC=30';
-            if (activeKey === 's1_sar') {
-                layerParam = 'SENTINEL1-GRD';
-                maxccParam = '';
-            }
-
-            const url = `${SH_FIS_URL}?LAYER=${layerParam}&TIME=${timeRange}&BBOX=${bboxStr}&CRS=CRS:84&RESOLUTION=20m${maxccParam}&EVALSCRIPT=${encodeURIComponent(b64Data)}`;
-
-            btn.innerText = "Processing Data Layers...";
-            try {
-                const resp = await fetch(url);
-                const data = await resp.json();
-                let c0 = data.C0 || [];
-                let validData = {};
-                c0.forEach(entry => {
-                    if (entry.basicStats && entry.basicStats.mean !== "NaN" && entry.basicStats.mean !== null) {
-                        validData[entry.date] = entry.basicStats.mean;
+                const statsPayload = {
+                    input: {
+                        bounds: { bbox: bboxCoords },
+                        data: [{
+                            type: collectionType,
+                            dataFilter: {
+                                timeRange: { from: startD.toISOString(), to: endD.toISOString() },
+                                mosaickingOrder: "mostRecent"
+                            }
+                        }]
+                    },
+                    aggregation: {
+                        timeRange: { from: startD.toISOString(), to: endD.toISOString() },
+                        aggregationInterval: { of: "P5D" }, // Sample every 5 days for robust trendline
+                        evalscript: fisScript,
+                        resolution: 60
                     }
-                });
+                };
 
-                let sortedDates = Object.keys(validData).sort((a, b) => new Date(a) - new Date(b));
+                if (activeKey !== 's1_sar') {
+                    statsPayload.input.data[0].dataFilter.maxCloudCoverage = 100;
+                }
 
-                if (sortedDates.length === 0) {
-                    alert("No valid statistical data found for this bounding box (possibly due to clouds or data sparsity).");
+                btn.innerText = "Querying CDSE Analytics Hub...";
+                try {
+                    const token = await getCDSEToken();
+                    const resp = await fetch(SH_STAT_API_URL, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`
+                        },
+                        body: JSON.stringify(statsPayload)
+                    });
+
+                    if (!resp.ok) {
+                        const errPayload = await resp.text();
+                        throw new Error(`CDSE API returned HTTP ${resp.status}: ${errPayload.substring(0, 150)}`);
+                    }
+
+                    const data = await resp.json();
+                    let validData = {};
+                    let rawRecordsCount = 0;
+
+                    if (data.data) {
+                        rawRecordsCount = data.data.length;
+                        data.data.forEach(interval => {
+                            let dateStr = interval.interval.from.slice(0, 10);
+                            let statsObj = interval.outputs?.default?.bands?.B0?.stats;
+                            if (statsObj && statsObj.sampleCount > 0 && statsObj.mean !== null && !isNaN(statsObj.mean)) {
+                                validData[dateStr] = statsObj.mean;
+                            }
+                        });
+                    }
+
+                    let sortedDates = Object.keys(validData).sort((a, b) => new Date(a) - new Date(b));
+
+                    if (sortedDates.length === 0) {
+                        throw new Error(`Data Sparsity Error: CDSE Analytics Hub evaluated ${rawRecordsCount} time slices over the period, but 0 slices contained successfully computed index pixels for this AOI.`);
+                    }
+
+                    let chartLabels = sortedDates.map(d => d.slice(0, 10)); // YYYY-MM-DD
+                    let chartDatasets = [{
+                        label: cfg.name,
+                        data: sortedDates.map(d => validData[d]),
+                        borderColor: CHART_COLORS[activeKey] || '#ffffff',
+                        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                        fill: true,
+                        tension: 0.1,
+                        pointRadius: 3,
+                        pointHitRadius: 10,
+                        spanGaps: true
+                    }];
+
+                    document.querySelector('.report-chart h3').innerText = `Multivariate Statistical Trends (AOI Mean) - ${chartTitleLabel}`;
+
+                    const ctx = document.getElementById('reportChart').getContext('2d');
+                    if (reportChartInst) reportChartInst.destroy();
+
+                    reportChartInst = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: chartLabels,
+                            datasets: chartDatasets
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            interaction: {
+                                mode: 'index',
+                                intersect: false,
+                            },
+                            plugins: {
+                                legend: {
+                                    display: true,
+                                    labels: { color: 'rgba(255,255,255,0.8)', usePointStyle: true, boxWidth: 8 }
+                                },
+                                tooltip: {
+                                    callbacks: {
+                                        title: (ctx) => {
+                                            return ctx[0].label;
+                                        }
+                                    }
+                                }
+                            },
+                            scales: {
+                                y: {
+                                    grid: { color: 'rgba(255,255,255,0.05)' },
+                                    ticks: { color: 'rgba(255,255,255,0.5)' }
+                                },
+                                x: {
+                                    grid: { color: 'rgba(255,255,255,0.05)' },
+                                    ticks: { color: 'rgba(255,255,255,0.5)', maxRotation: 45, minRotation: 45, maxTicksLimit: 12 }
+                                }
+                            }
+                        }
+                    });
+
+                } catch (e) {
+                    console.error("Failed to fetch statistical timeline", e);
+                    alert("Statistical rendering failed. See console.");
                     btn.innerText = "Generate Selected Report";
                     btn.disabled = false;
                     return;
                 }
+            }
 
-                let chartLabels = sortedDates.map(d => d.slice(0, 10)); // YYYY-MM-DD
-                let chartDatasets = [{
-                    label: cfg.name,
-                    data: sortedDates.map(d => validData[d]),
-                    borderColor: CHART_COLORS[activeKey] || '#ffffff',
-                    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                    fill: true,
-                    tension: 0.1,
-                    pointRadius: 3,
-                    pointHitRadius: 10,
-                    spanGaps: true
-                }];
+            btn.innerText = "Generate Selected Report";
+            btn.disabled = false;
 
-                document.querySelector('.report-chart h3').innerText = `Multivariate Statistical Trends (AOI Mean) - ${chartTitleLabel}`;
+            // 4. Show Map in Modal
+            let activeBaseKey = 'imagery';
+            document.querySelectorAll('.layer-toggle').forEach(btn => {
+                if (btn.classList.contains('active')) activeBaseKey = btn.dataset.layer;
+            });
 
-                const ctx = document.getElementById('reportChart').getContext('2d');
-                if (reportChartInst) reportChartInst.destroy();
-
-                reportChartInst = new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: chartLabels,
-                        datasets: chartDatasets
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        interaction: {
-                            mode: 'index',
-                            intersect: false,
-                        },
-                        plugins: {
-                            legend: {
-                                display: true,
-                                labels: { color: 'rgba(255,255,255,0.8)', usePointStyle: true, boxWidth: 8 }
-                            },
-                            tooltip: {
-                                callbacks: {
-                                    title: (ctx) => {
-                                        return ctx[0].label;
-                                    }
-                                }
-                            }
-                        },
-                        scales: {
-                            y: {
-                                grid: { color: 'rgba(255,255,255,0.05)' },
-                                ticks: { color: 'rgba(255,255,255,0.5)' }
-                            },
-                            x: {
-                                grid: { color: 'rgba(255,255,255,0.05)' },
-                                ticks: { color: 'rgba(255,255,255,0.5)', maxRotation: 45, minRotation: 45, maxTicksLimit: 12 }
-                            }
-                        }
-                    }
+            if (!reportMapInst) {
+                reportMapInst = L.map('report-map', {
+                    zoomControl: true,
+                    attributionControl: false,
+                    dragging: false,
+                    scrollWheelZoom: false,
+                    doubleClickZoom: false,
+                    keyboard: false
                 });
-
-            } catch (e) {
-                console.error("Failed to fetch statistical timeline", e);
-                alert("Statistical rendering failed. See console.");
-                btn.innerText = "Generate Selected Report";
-                btn.disabled = false;
-                return;
-            }
-        }
-
-        btn.innerText = "Generate Selected Report";
-        btn.disabled = false;
-
-        // 4. Show Map in Modal
-        let activeBaseKey = 'imagery';
-        document.querySelectorAll('.layer-toggle').forEach(btn => {
-            if (btn.classList.contains('active')) activeBaseKey = btn.dataset.layer;
-        });
-
-        if (!reportMapInst) {
-            reportMapInst = L.map('report-map', {
-                zoomControl: true,
-                attributionControl: false,
-                dragging: false,
-                scrollWheelZoom: false,
-                doubleClickZoom: false,
-                keyboard: false
-            });
-            reportMapInst.baseLayer = L.tileLayer(BASE_LAYERS[activeBaseKey], { maxZoom: 18 }).addTo(reportMapInst);
-        } else {
-            if (reportMapInst.baseLayer) reportMapInst.removeLayer(reportMapInst.baseLayer);
-            reportMapInst.baseLayer = L.tileLayer(BASE_LAYERS[activeBaseKey], { maxZoom: 18 }).addTo(reportMapInst);
-        }
-
-        let overlayLayer = null;
-        if (state.mode === 'single') {
-            overlayLayer = getWMSLayer(ALL_DATES[state.monthIndex].value, false);
-        } else {
-            let rd1 = document.getElementById('date-t1').value;
-            let rd2 = document.getElementById('date-t2').value;
-            if (rd1 > rd2) { const tmp = rd1; rd1 = rd2; rd2 = tmp; }
-
-            if (state.compareType === 'swipe') {
-                overlayLayer = getWMSLayer(rd2, false); // Just show the 'after' image for swipe
+                reportMapInst.baseLayer = L.tileLayer(BASE_LAYERS[activeBaseKey], { maxZoom: 18 }).addTo(reportMapInst);
             } else {
-                overlayLayer = getWMSLayer(`${rd1}/${rd2}`, true);
+                if (reportMapInst.baseLayer) reportMapInst.removeLayer(reportMapInst.baseLayer);
+                reportMapInst.baseLayer = L.tileLayer(BASE_LAYERS[activeBaseKey], { maxZoom: 18 }).addTo(reportMapInst);
             }
-        }
 
-        // 3. Show Modal
-        document.getElementById('report-modal').style.display = 'flex';
-
-        setTimeout(() => {
-            reportMapInst.invalidateSize();
-            reportMapInst.fitBounds(bounds, { padding: [20, 20] });
-
-            if (reportMapInst._drawnItems) reportMapInst._drawnItems.clearLayers();
-            else {
-                reportMapInst._drawnItems = new L.FeatureGroup();
-                reportMapInst.addLayer(reportMapInst._drawnItems);
-            }
-            L.rectangle(bounds, { color: '#1C85A6', weight: 3, fillOpacity: 0.2 }).addTo(reportMapInst._drawnItems);
-
-            if (reportMapInst.overlayLayer) reportMapInst.removeLayer(reportMapInst.overlayLayer);
-            if (overlayLayer) {
-                reportMapInst.overlayLayer = overlayLayer.addTo(reportMapInst);
-            }
-        }, 150);
-
-        // 5. Generate Animated GIF if Compare Mode
-        const gifSection = document.getElementById('report-gif-section');
-        if (state.mode === 'compare') {
-            gifSection.style.display = 'block';
-
-            const gifLoader = document.getElementById('gif-loader-text');
-            const gifImg = document.getElementById('report-gif-result');
-            const gifBtn = document.getElementById('btn-download-gif');
-
-            gifLoader.style.display = 'block';
-            gifLoader.innerText = 'Calculating temporal frames...';
-            gifImg.style.display = 'none';
-            gifBtn.style.pointerEvents = 'none';
-            gifBtn.style.opacity = '0.5';
-
-            let d1 = document.getElementById('date-t1').value;
-            let d2 = document.getElementById('date-t2').value;
-            if (d1 > d2) { const temp = d1; d1 = d2; d2 = temp; }
-
-            const t1ObjIdx = ALL_DATES.findIndex(d => d.value === d1);
-            const t2ObjIdx = ALL_DATES.findIndex(d => d.value === d2);
-
-            // Build indices for max 12 frames
-            let frameIndices = [];
-            const steps = 12;
-            if (t2ObjIdx - t1ObjIdx <= steps) {
-                for (let i = t1ObjIdx; i <= t2ObjIdx; i++) frameIndices.push(i);
+            let overlayLayer = null;
+            if (state.mode === 'single') {
+                overlayLayer = getWMSLayer(ALL_DATES[state.monthIndex].value, false);
             } else {
-                const stepRate = (t2ObjIdx - t1ObjIdx) / steps;
-                for (let i = 0; i < steps; i++) {
-                    frameIndices.push(Math.round(t1ObjIdx + i * stepRate));
+                let rd1 = document.getElementById('date-t1').value;
+                let rd2 = document.getElementById('date-t2').value;
+                if (rd1 > rd2) { const tmp = rd1; rd1 = rd2; rd2 = tmp; }
+
+                if (state.compareType === 'swipe') {
+                    overlayLayer = getWMSLayer(rd2, false); // Just show the 'after' image for swipe
+                } else {
+                    overlayLayer = getWMSLayer(`${rd1}/${rd2}`, true);
                 }
-                frameIndices.push(t2ObjIdx);
-                frameIndices = [...new Set(frameIndices)];
             }
 
-            // Generate URLs
-            let wmsLayerParam = 'AGRICULTURE';
-            if (state.activeIndex === 's1_sar') wmsLayerParam = 'SENTINEL1-GRD';
+            // 3. Show Modal
+            document.getElementById('report-modal').style.display = 'flex';
 
-            const isDiffAnim = state.compareType === 'diff';
-            const b64MathStd = btoa(INDICES[state.activeIndex].evalscript);
+            setTimeout(() => {
+                reportMapInst.invalidateSize();
+                reportMapInst.fitBounds(bounds, { padding: [20, 20] });
 
-            // For base maps in diff mode, fallback to true color if possible
-            let b64Bg = b64MathStd;
-            if (isDiffAnim && state.activeIndex !== 's1_sar') {
-                b64Bg = btoa(INDICES['tc'].evalscript);
-            }
+                if (reportMapInst._drawnItems) reportMapInst._drawnItems.clearLayers();
+                else {
+                    reportMapInst._drawnItems = new L.FeatureGroup();
+                    reportMapInst.addLayer(reportMapInst._drawnItems);
+                }
+                L.rectangle(bounds, { color: '#1C85A6', weight: 3, fillOpacity: 0.2 }).addTo(reportMapInst._drawnItems);
 
-            let diffB64Math = "";
-            if (isDiffAnim) diffB64Math = btoa(getScriptContent(state.activeIndex, true));
+                if (reportMapInst.overlayLayer) reportMapInst.removeLayer(reportMapInst.overlayLayer);
+                if (overlayLayer) {
+                    reportMapInst.overlayLayer = overlayLayer.addTo(reportMapInst);
+                }
+            }, 150);
 
-            // Generate Standard Imagery URLs (Backgrounds)
-            const bgUrls = frameIndices.map(i => {
-                const dateStr = ALL_DATES[i].value;
-                let dTarget = new Date(dateStr);
-                let dPrior = new Date(dTarget);
-                dPrior.setUTCDate(dPrior.getUTCDate() - 20);
-                let pStr = dPrior.toISOString().split('T')[0];
-                let rangeStr = `${pStr}/${dateStr}`;
-                return `${SH_WMS_URL}?SERVICE=WMS&REQUEST=GetMap&LAYERS=${wmsLayerParam}&FORMAT=image/png&TRANSPARENT=false&VERSION=1.3.0&TIME=${rangeStr}&MAXCC=15&WIDTH=400&HEIGHT=300&CRS=CRS:84&BBOX=${bboxStr}&EVALSCRIPT=${encodeURIComponent(b64Bg)}`;
-            });
+            // 5. Generate Animated GIF if Compare Mode
+            const gifSection = document.getElementById('report-gif-section');
+            if (state.mode === 'compare') {
+                gifSection.style.display = 'block';
 
-            // Generate Difference Mask URLs
-            let diffUrls = [];
-            if (isDiffAnim) {
-                diffUrls = frameIndices.map(i => {
+                const gifLoader = document.getElementById('gif-loader-text');
+                const gifImg = document.getElementById('report-gif-result');
+                const gifBtn = document.getElementById('btn-download-gif');
+                const gifContStd = document.getElementById('gif-container-standard');
+                const gifImgDiff = document.getElementById('report-gif-result-diff');
+                const gifBtnDiff = document.getElementById('btn-download-gif-diff');
+                const gifContDiff = document.getElementById('gif-container-diff');
+
+                gifLoader.style.display = 'block';
+                gifLoader.innerText = 'Calculating temporal frames...';
+                gifImg.style.display = 'none';
+                gifBtn.style.pointerEvents = 'none';
+                gifBtn.style.opacity = '0.5';
+
+                let d1 = document.getElementById('date-t1').value;
+                let d2 = document.getElementById('date-t2').value;
+                if (d1 > d2) { const temp = d1; d1 = d2; d2 = temp; }
+
+                const t1ObjIdx = ALL_DATES.findIndex(d => d.value === d1);
+                const t2ObjIdx = ALL_DATES.findIndex(d => d.value === d2);
+
+                // Build indices for max 12 frames
+                let frameIndices = [];
+                const steps = 12;
+                if (t2ObjIdx - t1ObjIdx <= steps) {
+                    for (let i = t1ObjIdx; i <= t2ObjIdx; i++) frameIndices.push(i);
+                } else {
+                    const stepRate = (t2ObjIdx - t1ObjIdx) / steps;
+                    for (let i = 0; i < steps; i++) {
+                        frameIndices.push(Math.round(t1ObjIdx + i * stepRate));
+                    }
+                    frameIndices.push(t2ObjIdx);
+                    frameIndices = [...new Set(frameIndices)];
+                }
+
+                // Generate URLs
+                let wmsLayerParam = 'AGRICULTURE';
+                if (state.activeIndex === 's1_sar') wmsLayerParam = 'SENTINEL1-GRD';
+
+                const isDiffAnim = state.compareType === 'diff';
+                const b64MathStd = btoa(INDICES[state.activeIndex].evalscript);
+
+                // For base maps in diff mode, fallback to true color if possible
+                let b64Bg = b64MathStd;
+                if (isDiffAnim && state.activeIndex !== 's1_sar') {
+                    b64Bg = btoa(INDICES['tc'].evalscript);
+                }
+
+                let diffB64Math = "";
+                if (isDiffAnim) diffB64Math = btoa(getScriptContent(state.activeIndex, true));
+
+                // Generate Standard Imagery URLs (Backgrounds)
+                const bgUrls = frameIndices.map(i => {
                     const dateStr = ALL_DATES[i].value;
-                    let dBase = new Date(d1);
-                    dBase.setUTCDate(dBase.getUTCDate() - 20); // buffer
-                    let baseStr = dBase.toISOString().split('T')[0];
-                    let dCurr = new Date(dateStr);
-                    if (dCurr <= dBase) dCurr.setUTCDate(dBase.getUTCDate() + 10);
-                    let currStr = dCurr.toISOString().split('T')[0];
-                    let rangeStr = `${baseStr}/${currStr}`;
-                    return `${SH_WMS_URL}?SERVICE=WMS&REQUEST=GetMap&LAYERS=${wmsLayerParam}&FORMAT=image/png&TRANSPARENT=true&VERSION=1.3.0&TIME=${rangeStr}&MAXCC=15&WIDTH=400&HEIGHT=300&CRS=CRS:84&BBOX=${bboxStr}&EVALSCRIPT=${encodeURIComponent(diffB64Math)}`;
+                    let dTarget = new Date(dateStr);
+                    let dPrior = new Date(dTarget);
+                    dPrior.setUTCDate(dPrior.getUTCDate() - 20);
+                    let pStr = dPrior.toISOString().split('T')[0];
+                    let rangeStr = `${pStr}/${dateStr}`;
+                    return `${SH_WMS_URL}?SERVICE=WMS&REQUEST=GetMap&LAYERS=${wmsLayerParam}&FORMAT=image/png&TRANSPARENT=false&VERSION=1.3.0&TIME=${rangeStr}&MAXCC=15&WIDTH=400&HEIGHT=300&CRS=CRS:84&BBOX=${bboxStr}&EVALSCRIPT=${encodeURIComponent(b64Bg)}`;
                 });
-            }
 
-            gifLoader.innerText = `Fetching ${bgUrls.length * (isDiffAnim ? 2 : 1)} satellite frames...`;
-
-            // Canvas composite renderer helper
-            const renderCanvas = (bgBlob, diffBlob, dateText) => {
-                return new Promise((resolve) => {
-                    const bgUrl = URL.createObjectURL(bgBlob);
-                    const diffUrl = diffBlob ? URL.createObjectURL(diffBlob) : null;
-
-                    const bgImg = new Image();
-                    bgImg.onload = () => {
-                        const canvas = document.createElement('canvas');
-                        canvas.width = 400;
-                        canvas.height = 330;
-                        const ctx = canvas.getContext('2d');
-                        ctx.drawImage(bgImg, 0, 0, 400, 300);
-
-                        const drawFooter = () => {
-                            ctx.fillStyle = '#111111';
-                            ctx.fillRect(0, 300, 400, 30);
-                            ctx.fillStyle = '#ffffff';
-                            ctx.font = '600 13px sans-serif';
-                            ctx.textBaseline = 'middle';
-                            ctx.textAlign = 'center';
-                            ctx.fillText(dateText, 200, 315);
-                            resolve(canvas.toDataURL('image/jpeg', 0.95));
-                        };
-
-                        if (diffUrl) {
-                            const dfImg = new Image();
-                            dfImg.onload = () => {
-                                ctx.drawImage(dfImg, 0, 0, 400, 300);
-                                drawFooter();
-                            };
-                            dfImg.onerror = drawFooter;
-                            dfImg.src = diffUrl;
-                        } else {
-                            drawFooter();
-                        }
-                    };
-                    bgImg.onerror = () => resolve(bgUrl);
-                    bgImg.src = bgUrl;
-                });
-            };
-
-            const buildStandardGif = async () => {
-                const blobs = await Promise.all(bgUrls.map(u => fetch(u).then(r => r.blob())));
-                const canvases = await Promise.all(blobs.map((b, i) => renderCanvas(b, null, ALL_DATES[frameIndices[i]].displayStr)));
-
-                return new Promise(resolve => {
-                    gifshot.createGIF({ images: canvases, gifWidth: 400, gifHeight: 330, interval: 0.35, sampleInterval: 10 }, obj => {
-                        if (!obj.error) {
-                            gifImg.src = obj.image;
-                            gifBtn.href = obj.image;
-                            gifContStd.style.display = 'block';
-                        }
-                        resolve();
+                // Generate Difference Mask URLs
+                let diffUrls = [];
+                if (isDiffAnim) {
+                    diffUrls = frameIndices.map(i => {
+                        const dateStr = ALL_DATES[i].value;
+                        let dBase = new Date(d1);
+                        dBase.setUTCDate(dBase.getUTCDate() - 20); // buffer
+                        let baseStr = dBase.toISOString().split('T')[0];
+                        let dCurr = new Date(dateStr);
+                        if (dCurr <= dBase) dCurr.setUTCDate(dBase.getUTCDate() + 10);
+                        let currStr = dCurr.toISOString().split('T')[0];
+                        let rangeStr = `${baseStr}/${currStr}`;
+                        return `${SH_WMS_URL}?SERVICE=WMS&REQUEST=GetMap&LAYERS=${wmsLayerParam}&FORMAT=image/png&TRANSPARENT=true&VERSION=1.3.0&TIME=${rangeStr}&MAXCC=15&WIDTH=400&HEIGHT=300&CRS=CRS:84&BBOX=${bboxStr}&EVALSCRIPT=${encodeURIComponent(diffB64Math)}`;
                     });
-                });
-            };
-
-            const buildDiffGif = async () => {
-                const bgBlobs = await Promise.all(bgUrls.map(u => fetch(u).then(r => r.blob())));
-                const diffBlobs = await Promise.all(diffUrls.map(u => fetch(u).then(r => r.blob())));
-                const canvases = await Promise.all(bgBlobs.map((b, i) => renderCanvas(b, diffBlobs[i], ALL_DATES[frameIndices[i]].displayStr)));
-
-                return new Promise(resolve => {
-                    gifshot.createGIF({ images: canvases, gifWidth: 400, gifHeight: 330, interval: 0.35, sampleInterval: 10 }, obj => {
-                        if (!obj.error) {
-                            gifImgDiff.src = obj.image;
-                            gifBtnDiff.href = obj.image;
-                            gifContDiff.style.display = 'block';
-                        }
-                        resolve();
-                    });
-                });
-            };
-
-            (async () => {
-                try {
-                    gifLoader.innerText = 'Encoding Standard Imagery GIF...';
-                    await buildStandardGif();
-
-                    if (isDiffAnim) {
-                        gifLoader.innerText = 'Encoding Difference Heatmap GIF...';
-                        await buildDiffGif();
-                    }
-
-                    gifLoader.style.display = 'none';
-                } catch (e) {
-                    gifLoader.innerText = 'Failed to fetch or encode imagery for GIFs.';
-                    console.error("GIF Render Error:", e);
                 }
-            })();
 
-        } else {
-            gifSection.style.display = 'none';
+                gifLoader.innerText = `Fetching ${bgUrls.length * (isDiffAnim ? 2 : 1)} satellite frames...`;
+
+                // Canvas composite renderer helper
+                const renderCanvas = (bgBlob, diffBlob, dateText) => {
+                    return new Promise((resolve) => {
+                        const bgUrl = URL.createObjectURL(bgBlob);
+                        const diffUrl = diffBlob ? URL.createObjectURL(diffBlob) : null;
+
+                        const bgImg = new Image();
+                        bgImg.onload = () => {
+                            const canvas = document.createElement('canvas');
+                            canvas.width = 400;
+                            canvas.height = 330;
+                            const ctx = canvas.getContext('2d');
+                            ctx.drawImage(bgImg, 0, 0, 400, 300);
+
+                            const drawFooter = () => {
+                                ctx.fillStyle = '#111111';
+                                ctx.fillRect(0, 300, 400, 30);
+                                ctx.fillStyle = '#ffffff';
+                                ctx.font = '600 13px sans-serif';
+                                ctx.textBaseline = 'middle';
+                                ctx.textAlign = 'center';
+                                ctx.fillText(dateText, 200, 315);
+                                resolve(canvas.toDataURL('image/jpeg', 0.95));
+                            };
+
+                            if (diffUrl) {
+                                const dfImg = new Image();
+                                dfImg.onload = () => {
+                                    ctx.drawImage(dfImg, 0, 0, 400, 300);
+                                    drawFooter();
+                                };
+                                dfImg.onerror = drawFooter;
+                                dfImg.src = diffUrl;
+                            } else {
+                                drawFooter();
+                            }
+                        };
+                        bgImg.onerror = () => resolve(bgUrl);
+                        bgImg.src = bgUrl;
+                    });
+                };
+
+                const buildStandardGif = async () => {
+                    const blobs = await Promise.all(bgUrls.map(u => fetch(u).then(r => r.blob())));
+                    const canvases = await Promise.all(blobs.map((b, i) => renderCanvas(b, null, ALL_DATES[frameIndices[i]].displayStr)));
+
+                    return new Promise(resolve => {
+                        gifshot.createGIF({ images: canvases, gifWidth: 400, gifHeight: 330, interval: 0.35, sampleInterval: 10 }, obj => {
+                            if (!obj.error) {
+                                gifImg.src = obj.image;
+                                gifBtn.href = obj.image;
+                                gifContStd.style.display = 'block';
+                            }
+                            resolve();
+                        });
+                    });
+                };
+
+                const buildDiffGif = async () => {
+                    const bgBlobs = await Promise.all(bgUrls.map(u => fetch(u).then(r => r.blob())));
+                    const diffBlobs = await Promise.all(diffUrls.map(u => fetch(u).then(r => r.blob())));
+                    const canvases = await Promise.all(bgBlobs.map((b, i) => renderCanvas(b, diffBlobs[i], ALL_DATES[frameIndices[i]].displayStr)));
+
+                    return new Promise(resolve => {
+                        gifshot.createGIF({ images: canvases, gifWidth: 400, gifHeight: 330, interval: 0.35, sampleInterval: 10 }, obj => {
+                            if (!obj.error) {
+                                gifImgDiff.src = obj.image;
+                                gifBtnDiff.href = obj.image;
+                                gifContDiff.style.display = 'block';
+                            }
+                            resolve();
+                        });
+                    });
+                };
+
+                (async () => {
+                    try {
+                        gifLoader.innerText = 'Encoding Standard Imagery GIF...';
+                        await buildStandardGif();
+
+                        if (isDiffAnim) {
+                            gifLoader.innerText = 'Encoding Difference Heatmap GIF...';
+                            await buildDiffGif();
+                        }
+
+                        gifLoader.style.display = 'none';
+                    } catch (e) {
+                        gifLoader.innerText = 'Failed to fetch or encode imagery for GIFs.';
+                        console.error("GIF Render Error:", e);
+                    }
+                })();
+
+            } else {
+                gifSection.style.display = 'none';
+            }
+        } catch (fatal_err) {
+            console.error(fatal_err);
+            const errBtn = document.getElementById('btn-generate-report');
+            errBtn.innerText = "Crash: " + fatal_err.message;
+            errBtn.style.color = "red";
+            errBtn.disabled = false;
         }
 
     });
