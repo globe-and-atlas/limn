@@ -900,11 +900,9 @@ function evaluatePixel(sample) {
             s1_sar: '#999999'
         };
 
-        const keysToChart = Object.keys(INDICES).filter(k => k !== 'tc' && k !== 'fc');
-
-        let fetchPromises = keysToChart.map(async (key) => {
-            const cfg = INDICES[key];
-            const script = `//VERSION=3
+        const activeKey = state.activeIndex;
+        const cfg = INDICES[activeKey];
+        const script = `//VERSION=3
 function setup() {
   return {
     input: [${cfg.fisBands.map(b => `'${b}'`).join(', ')}, "dataMask"],
@@ -915,116 +913,104 @@ function evaluatePixel(sample) {
   if (sample.dataMask === 0) return [NaN];
   ${cfg.fisLogic}
 }`;
-            const b64 = btoa(script);
-            let layerParam = 'AGRICULTURE';
-            let maxccParam = '&MAXCC=30';
-            if (key === 's1_sar') {
-                layerParam = 'SENTINEL1-GRD';
-                maxccParam = '';
-            }
+        const b64Data = btoa(script);
+        let layerParam = 'AGRICULTURE';
+        let maxccParam = '&MAXCC=30';
+        if (activeKey === 's1_sar') {
+            layerParam = 'SENTINEL1-GRD';
+            maxccParam = '';
+        }
 
-            const url = `https://sh.dataspace.copernicus.eu/ogc/fis/959ea2c5-5892-4b36-82b3-76e6bdb93c8a?LAYER=${layerParam}&TIME=${timeRange}&BBOX=${bboxStr}&CRS=CRS:84&RESOLUTION=20m${maxccParam}&EVALSCRIPT=${encodeURIComponent(b64)}`;
+        const url = `${SH_FIS_URL}?LAYER=${layerParam}&TIME=${timeRange}&BBOX=${bboxStr}&CRS=CRS:84&RESOLUTION=20m${maxccParam}&EVALSCRIPT=${encodeURIComponent(b64Data)}`;
 
-            try {
-                const resp = await fetch(url);
-                const data = await resp.json();
-                let c0 = data.C0 || [];
-                let validData = {};
-                c0.forEach(entry => {
-                    if (entry.basicStats && entry.basicStats.mean !== "NaN") {
-                        validData[entry.date] = entry.basicStats.mean;
-                    }
-                });
-                return { key, cfg, dataMap: validData };
-            } catch (e) {
-                console.error("Failed to fetch", key, e);
-                return { key, cfg, dataMap: {} };
-            }
-        });
-
-        // Wait for all index queries to return
         btn.innerText = "Processing Data Layers...";
-        const results = await Promise.all(fetchPromises);
+        try {
+            const resp = await fetch(url);
+            const data = await resp.json();
+            let c0 = data.C0 || [];
+            let validData = {};
+            c0.forEach(entry => {
+                if (entry.basicStats && entry.basicStats.mean !== "NaN" && entry.basicStats.mean !== null) {
+                    validData[entry.date] = entry.basicStats.mean;
+                }
+            });
 
-        // Build Master List of Dates for X-Axis Alignment
-        let allDatesSet = new Set();
-        results.forEach(r => Object.keys(r.dataMap).forEach(d => allDatesSet.add(d)));
-        let sortedDates = Array.from(allDatesSet).sort((a, b) => new Date(a) - new Date(b));
+            let sortedDates = Object.keys(validData).sort((a, b) => new Date(a) - new Date(b));
 
-        if (sortedDates.length === 0) {
-            alert("No valid statistical data found for this bounding box (possibly due to clouds or data sparsity).");
+            if (sortedDates.length === 0) {
+                alert("No valid statistical data found for this bounding box (possibly due to clouds or data sparsity).");
+                btn.innerText = "Generate Selected Report";
+                btn.disabled = false;
+                return;
+            }
+
+            let chartLabels = sortedDates.map(d => d.slice(0, 10)); // YYYY-MM-DD
+            let chartDatasets = [{
+                label: cfg.name,
+                data: sortedDates.map(d => validData[d]),
+                borderColor: CHART_COLORS[activeKey] || '#ffffff',
+                backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                fill: true,
+                tension: 0.1,
+                pointRadius: 3,
+                pointHitRadius: 10,
+                spanGaps: true
+            }];
+
+            btn.innerText = "Generate Selected Report";
+            btn.disabled = false;
+
+            document.querySelector('.report-chart h3').innerText = `Multivariate Statistical Trends (AOI Mean) - ${chartTitleLabel}`;
+
+            const ctx = document.getElementById('reportChart').getContext('2d');
+            if (reportChartInst) reportChartInst.destroy();
+
+            reportChartInst = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: chartLabels,
+                    datasets: chartDatasets
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    plugins: {
+                        legend: {
+                            display: true,
+                            labels: { color: 'rgba(255,255,255,0.8)', usePointStyle: true, boxWidth: 8 }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                title: (ctx) => {
+                                    return ctx[0].label;
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            grid: { color: 'rgba(255,255,255,0.05)' },
+                            ticks: { color: 'rgba(255,255,255,0.5)' }
+                        },
+                        x: {
+                            grid: { color: 'rgba(255,255,255,0.05)' },
+                            ticks: { color: 'rgba(255,255,255,0.5)', maxRotation: 45, minRotation: 45, maxTicksLimit: 12 }
+                        }
+                    }
+                }
+            });
+
+        } catch (e) {
+            console.error("Failed to fetch statistical timeline", e);
+            alert("Statistical rendering failed. See console.");
             btn.innerText = "Generate Selected Report";
             btn.disabled = false;
             return;
         }
-
-        let chartLabels = sortedDates.map(d => d.slice(0, 10)); // YYYY-MM-DD
-
-        let chartDatasets = results.map(r => {
-            let dataArr = sortedDates.map(d => {
-                return r.dataMap[d] !== undefined ? r.dataMap[d] : null;
-            });
-
-            return {
-                label: r.cfg.name,
-                data: dataArr,
-                borderColor: CHART_COLORS[r.key] || '#ffffff',
-                backgroundColor: 'transparent',
-                fill: false,
-                tension: 0.1,
-                pointRadius: 1,
-                pointHitRadius: 10,
-                spanGaps: true,
-                hidden: r.key !== state.activeIndex // Hide non-active indices by default so chart isn't chaotic
-            };
-        });
-
-        btn.innerText = "Generate Selected Report";
-        btn.disabled = false;
-
-        document.querySelector('.report-chart h3').innerText = `Multivariate Statistical Trends (AOI Mean) - ${chartTitleLabel}`;
-
-        const ctx = document.getElementById('reportChart').getContext('2d');
-        if (reportChartInst) reportChartInst.destroy();
-
-        reportChartInst = new Chart(ctx, {
-            type: 'line',
-            data: {
-                labels: chartLabels,
-                datasets: chartDatasets
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                interaction: {
-                    mode: 'index',
-                    intersect: false,
-                },
-                plugins: {
-                    legend: {
-                        display: true,
-                        labels: { color: 'rgba(255,255,255,0.8)', usePointStyle: true, boxWidth: 8 }
-                    },
-                    tooltip: {
-                        callbacks: {
-                            title: (ctx) => {
-                                return ctx[0].label;
-                            }
-                        }
-                    }
-                },
-                scales: {
-                    y: {
-                        grid: { color: 'rgba(255,255,255,0.05)' },
-                        ticks: { color: 'rgba(255,255,255,0.5)' }
-                    },
-                    x: {
-                        grid: { color: 'rgba(255,255,255,0.05)' },
-                        ticks: { color: 'rgba(255,255,255,0.5)', maxRotation: 45, minRotation: 45, maxTicksLimit: 12 }
-                    }
-                }
-            }
-        });
 
         // 4. Show Map in Modal
         let activeBaseKey = 'imagery';
