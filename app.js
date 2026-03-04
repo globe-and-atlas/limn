@@ -149,6 +149,7 @@ const PALETTE_BRINE = "[[0, 10, 60, 100], [0.35, 120, 100, 50], [0.6, 240, 80, 3
 const PALETTE_CSI = "[[0, 160, 120, 50], [0.5, 100, 220, 80], [1, 0, 255, 255]]"; // Brown -> Lime -> Cyan
 const PALETTE_HCAI = "[[0, 245, 222, 179], [0.5, 139, 69, 19], [1, 0, 0, 0]]"; // Wheat -> SaddleBrown -> Black
 const PALETTE_HMRI = "[[0, 230, 230, 250], [0.5, 128, 0, 128], [1, 255, 0, 255]]"; // Lavender -> Purple -> Magenta
+const PALETTE_PWMI = "[[0, 0, 0, 0], [0.1, 0, 255, 255], [0.5, 255, 0, 255], [1, 204, 255, 0]]"; // Transparent -> Cyan -> Magenta -> Neon Yellow
 
 // Index Configs
 const INDICES = {
@@ -393,6 +394,58 @@ const INDICES = {
         fisLogic: `
   if(sample.B03 === 0) return [0];
   return [sample.B12 / sample.B03];
+`
+    },
+    pwmi: {
+        name: 'Produced Water (PWMI)',
+        sensor: 'Sentinel-2 L2A',
+        min: 'Background', max: 'Confirmed Spill',
+        gradient: 'linear-gradient(to right, #000000, #00FFFF, #FF00FF, #CCFF00)',
+        formula: 'NDSI × HCAI × HMRI',
+        info: 'Produced Water Magic Index is a highly restrictive composite. It multiplies normalized signatures for Saline Brine (NDSI), Hydrocarbons (HCAI), and Heavy Metals (HMRI). This filter suppresses false positives (like dry salt flats or road asphalt), isolating areas where all three toxic pollutants are strongly co-located.',
+        diffLabels: ['Less / Recovery', 'Toxic Concentration'],
+        evalscript: genEvalscript(['B03', 'B04', 'B11', 'B12'], `
+  // Brine (NDSI)
+  let sumBrine = sample.B11 + sample.B12;
+  if(sumBrine === 0) return [0,0,0,0];
+  let brine = (sample.B11 - sample.B12) / sumBrine;
+  
+  // Hydrocarbons (HCAI)
+  let sumHcai = sample.B11 + sample.B04;
+  if(sumHcai === 0) return [0,0,0,0];
+  let hcai = (sample.B11 - sample.B04) / sumHcai;
+  
+  // Heavy Metals (HMRI)
+  if(sample.B03 === 0) return [0,0,0,0];
+  let hmri = sample.B12 / sample.B03;
+  
+  // Combine: All must be elevated.
+  // Brine and HCAI are typically > 0. HMRI baseline is ~0.5.
+  let brineScore = Math.max(0, brine);
+  let hcaiScore = Math.max(0, hcai * 2);
+  let hmriScore = Math.max(0, (hmri - 0.5) * 2);
+  
+  let pwmi = brineScore * hcaiScore * hmriScore;
+  
+  // Apply a non-linear scaler to make true hits pop
+  let mapped = Math.min(1, pwmi * 5);
+  ${colorBlend('mapped', PALETTE_PWMI)}
+`),
+        fisBands: ['B03', 'B04', 'B11', 'B12'],
+        fisLogic: `
+  let sumBrine = sample.B11 + sample.B12;
+  if(sumBrine === 0) return [0];
+  let brine = (sample.B11 - sample.B12) / sumBrine;
+  
+  let sumHcai = sample.B11 + sample.B04;
+  if(sumHcai === 0) return [0];
+  let hcai = (sample.B11 - sample.B04) / sumHcai;
+  
+  if(sample.B03 === 0) return [0];
+  let hmri = sample.B12 / sample.B03;
+  
+  let pwmi = Math.max(0, brine) * Math.max(0, hcai * 2) * Math.max(0, (hmri - 0.5) * 2);
+  return [pwmi];
 `
     },
     s1_sar: {
