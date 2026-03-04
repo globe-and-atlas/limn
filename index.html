@@ -273,9 +273,16 @@
                     <p><strong>Selected Date(s):</strong> <span id="report-time"></span></p>
                 </div>
 
-                <div class="report-map-container">
+                <div class="report-map-container" id="report-map-wrapper">
                     <h3 id="report-map-label">Area of Interest (AOI)</h3>
-                    <div id="report-map"></div>
+                    <div id="report-map" style="display: none;"></div>
+                    <div id="side-by-side-maps"
+                        style="display: flex; gap: 8px; width: 100%; height: 250px; display: none;">
+                        <div id="report-map-t1"
+                            style="flex: 1; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.05);"></div>
+                        <div id="report-map-t2"
+                            style="flex: 1; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.05);"></div>
+                    </div>
                 </div>
 
                 <div class="report-map-container" id="report-map-diff-container" style="display:none;">
