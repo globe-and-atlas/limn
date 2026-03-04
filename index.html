@@ -87,7 +87,7 @@
                 </svg>
                 <div>
                     <h1>SENTINEL EXPLORER <span id="app-version-badge"
-                            style="font-size: 0.5em; font-weight: 500; font-family: 'JetBrains Mono', monospace; color: var(--text-muted); vertical-align: middle; background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px;">v20</span>
+                            style="font-size: 0.5em; font-weight: 500; font-family: 'JetBrains Mono', monospace; color: var(--text-muted); vertical-align: middle; background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px;">v21</span>
                     </h1>
                     <h2>Well-Pad Environmental Analysis</h2>
                 </div>
@@ -216,8 +216,13 @@
                         style="display: block; font-size: 10px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; margin-bottom: 8px;">Compare
                         Layout</label>
                     <div class="toggle-switch mode-toggle" id="compare-type-toggle">
-                        <button id="btn-swipe" class="active">Swipe</button>
-                        <button id="btn-diff">Diff (∆)</button>
+                        <button id="btn-swipe" class="active"
+                            data-tooltip="Standard side-by-side comparison with a vertical slider.">Swipe</button>
+                        <button id="btn-diff"
+                            data-tooltip="Renders a heatmap showing the mathematical difference (After - Before). Red = Loss/Decrease, Blue = Gain/Increase.">Diff
+                            (∆)</button>
+                        <button id="btn-cumulative"
+                            data-tooltip="Aggregates ALL scenes within the date range and displays the maximum detection value found at each pixel. Ideal for tracking spill footprints over time.">Cumulative</button>
                     </div>
                     <div id="diff-legend" style="margin-top: 12px; display: none;">
                         <div
@@ -315,11 +320,20 @@
                 </div>
 
                 <div class="report-chart">
-                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                        <h3 style="margin: 0;">Statistical Trend</h3>
-                        <span class="chart-info-badge"
-                            data-tooltip="Each data point is the mean index value computed from all cloud-free satellite pixels that fall within your drawn AOI bounding box. No pixels outside the box are included. Statistics are sampled every 5 days via the Copernicus CDSE Analytics API.">ⓘ
-                            What is this?</span>
+                    <div
+                        style="display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <h3 style="margin: 0;">Statistical Trend</h3>
+                            <span class="chart-info-badge"
+                                data-tooltip="Each data point is the mean index value computed from all cloud-free satellite pixels that fall within your drawn AOI bounding box. No pixels outside the box are included. Statistics are sampled every 5 days via the Copernicus CDSE Analytics API.">ⓘ
+                                What is this?</span>
+                        </div>
+                        <div class="trendline-toggle" style="display: flex; align-items: center; gap: 6px;">
+                            <input type="checkbox" id="toggle-trendline" checked>
+                            <label for="toggle-trendline"
+                                style="font-size: 13px; color: var(--text-muted); cursor: pointer; font-family: 'Space Grotesk', sans-serif;">Smoothed
+                                Trend</label>
+                        </div>
                     </div>
                     <div class="chart-container-report">
                         <canvas id="reportChart"></canvas>

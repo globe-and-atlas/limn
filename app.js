@@ -67,7 +67,7 @@ async function getCDSEToken() {
     return cachedAccessToken;
 }
 
-const APP_VERSION = 'v19';
+const APP_VERSION = 'v21';
 
 // Globals for Report Generation
 let aoiDrawnItem = null;
@@ -113,8 +113,38 @@ function evaluatePixel(samples) {
   if (diff < -0.15) return [1.0, 0.2, 0.2, 0.8]; // Strong decrease
   if (diff < -0.05) return [1.0, 0.4, 0.4, 0.6]; // Slight decrease
   if (diff > 0.15) return [0.2, 0.6, 1.0, 0.8]; // Strong increase
-  if (diff > 0.05) return [0.4, 0.7, 1.0, 0.6]; // Slight increase
-  return [0.2, 0.2, 0.2, 0.3]; // Stable
+    if (diff > 0.05) return [0.4, 0.7, 1.0, 0.6]; // Slight increase
+    return [0.2, 0.2, 0.2, 0.3]; // Stable
+}
+`;
+
+/**
+ * Multi-Temporal Evalscript for Cumulative MAX detection
+ * Spans a date range and finds the maximum pixel value observed.
+ */
+const genCumulativeEvalscript = (bands, logic, paletteStr) => `
+//VERSION=3
+function setup() {
+  return {
+    input: [${bands.map(b => `'${b}'`).join(', ')}, "dataMask"],
+    output: { bands: 4 },
+    mosaicking: "ORBIT"
+  };
+}
+
+function evaluatePixel(samples) {
+  let maxVal = 0;
+  for (let i = 0; i < samples.length; i++) {
+    let sample = samples[i];
+    if (sample.dataMask === 0) continue;
+    let val = ${logic};
+    if (val > maxVal) maxVal = val;
+  }
+  
+  if (maxVal === 0) return [0, 0, 0, 0];
+  
+  // Apply palette to the max discovered value
+  ${colorBlend('maxVal', paletteStr)}
 }
 `;
 
@@ -420,9 +450,9 @@ const INDICES = {
   let hmri = sample.B12 / sample.B03;
   
   // Permian-calibrated thresholds:
-  // NDSI > 0.10 — dry soil is 0.05–0.10; salt/brine pushes past 0.10
-  // HCAI > 0.30 — red dirt peaks at 0.25–0.30; oil contamination 0.40+
-  // HMRI > 2.0  — caliche ~1.0, normal soil 1.5–1.9; contamination 2.0+
+  // NDSI > 0.10 - dry soil is 0.05-0.10; salt/brine pushes past 0.10
+  // HCAI > 0.30 - red dirt peaks at 0.25-0.30; oil contamination 0.40+
+  // HMRI > 2.0  - caliche ~1.0, normal soil 1.5-1.9; contamination 2.0+
   let brineScore = Math.max(0, brine - 0.10);
   let hcaiScore = Math.max(0, (hcai - 0.30) * 2);
   let hmriScore = Math.max(0, (hmri - 2.0) * 2);
@@ -735,11 +765,59 @@ function createGifPlayer(frames, imgEl, downloadBtn, width = 400, height = 330) 
     }
 }
 
-function getScriptContent(activeIndex, isDiff) {
+function getScriptContent(activeIndex, isDiff, isCumulative = false) {
     const cfg = INDICES[activeIndex];
     let scriptContent = cfg.evalscript;
 
-    if (isDiff) {
+    if (isCumulative) {
+        // Build the cumulative max-composite logic
+        let logic = "";
+        let palette = "[[0,0,0,0], [1,255,255,255]]"; // fallback
+
+        // Note: we must strip the surrounding colorBlend and return [val] from the logic
+        if (activeIndex === 'ndmi') { logic = "(sample.B8A - sample.B11) / (sample.B8A + sample.B11) + 0.3"; palette = PALETTE_NDMI; }
+        else if (activeIndex === 'ndwi') { logic = "(sample.B03 - sample.B11) / (sample.B03 + sample.B11) + 0.3"; palette = PALETTE_NDWI; }
+        else if (activeIndex === 'ndvi') { logic = "(sample.B08 - sample.B04) / (sample.B08 + sample.B04)"; palette = PALETTE_VEG; }
+        else if (activeIndex === 'savi') { logic = "((sample.B08 - sample.B04) / (sample.B08 + sample.B04 + 0.5)) * 1.5 + 0.2"; palette = PALETTE_VEG; }
+        else if (activeIndex === 'msi') { logic = "sample.B11 / sample.B08"; palette = PALETTE_MSI; } // Corrected palette
+        else if (activeIndex === 'si') { logic = "(sample.B11 - sample.B08) / (sample.B11 + sample.B08) + 0.5"; palette = PALETTE_SI; } // Corrected palette
+        else if (activeIndex === 'brine') { logic = "(sample.B11 - sample.B12) / (sample.B11 + sample.B12) + 0.1"; palette = PALETTE_BRINE; }
+        else if (activeIndex === 'csi') { logic = "sample.B11 / sample.B12 - 0.5"; palette = PALETTE_CSI; } // Corrected palette
+        else if (activeIndex === 'hcai') { logic = "(sample.B11 - sample.B04) / (sample.B11 + sample.B04) + 0.1"; palette = PALETTE_HCAI; } // Corrected palette
+        else if (activeIndex === 'hmri') { logic = "sample.B12 / sample.B03 - 2.0"; palette = PALETTE_HMRI; }
+        else if (activeIndex === 'pwi') {
+            logic = `
+                (function() {
+                    let sumBrine = sample.B11 + sample.B12;
+                    if(sumBrine === 0) return 0;
+                    let brine = (sample.B11 - sample.B12) / sumBrine;
+                    
+                    let sumHcai = sample.B11 + sample.B04;
+                    if(sumHcai === 0) return 0;
+                    let hcai = (sample.B11 - sample.B04) / sumHcai;
+                    
+                    if(sample.B03 === 0) return 0;
+                    let hmri = sample.B12 / sample.B03;
+                    
+                    let pScore = Math.max(0, brine - 0.10) * Math.max(0, (hcai - 0.30) * 2) * Math.max(0, (hmri - 2.0) * 2);
+                    return Math.min(1, Math.pow(pScore * 20, 3));
+                })()
+            `;
+            palette = PALETTE_PWI;
+        }
+
+        let bands = ['B04', 'B03', 'B02'];
+        if (activeIndex === 'ndmi') bands = ['B8A', 'B11'];
+        if (activeIndex === 'ndwi') bands = ['B03', 'B11'];
+        if (activeIndex === 'ndvi' || activeIndex === 'savi') bands = ['B08', 'B04'];
+        if (activeIndex === 'msi' || activeIndex === 'si') bands = ['B11', 'B08'];
+        if (activeIndex === 'brine' || activeIndex === 'csi') bands = ['B11', 'B12'];
+        if (activeIndex === 'hcai') bands = ['B11', 'B04'];
+        if (activeIndex === 'hmri') bands = ['B12', 'B03'];
+        if (activeIndex === 'pwi') bands = ['B11', 'B12', 'B04', 'B03'];
+
+        scriptContent = genCumulativeEvalscript(bands, logic, palette);
+    } else if (isDiff) {
         if (cfg.diffscript) {
             scriptContent = cfg.diffscript;
         } else if (activeIndex === 's1_sar') {
@@ -812,7 +890,8 @@ function evaluatePixel(samples) {
 
 function getWMSLayer(timeStr, isDiff, overrideIndex = null) {
     const activeIdx = overrideIndex || state.activeIndex;
-    let scriptContent = getScriptContent(activeIdx, isDiff);
+    const isCumulative = (state.mode === 'compare' && state.compareType === 'cumulative' && !overrideIndex);
+    let scriptContent = getScriptContent(activeIdx, isDiff, isCumulative);
 
     let wmsLayerParam = 'AGRICULTURE';
     if (activeIdx === 's1_sar') wmsLayerParam = 'SENTINEL1-GRD';
@@ -890,6 +969,16 @@ function applyIndex() {
 
             if (state.sarFusion && state.activeIndex !== 's1_sar') {
                 layersToGroup.push(getWMSLayer(timeRange, true, 's1_sar'));
+            }
+
+            state.overlayGroup = L.layerGroup(layersToGroup).addTo(state.map);
+        } else if (state.compareType === 'cumulative') {
+            const timeRange = `${t1}/${t2}`;
+            const cumulativeLayer = getWMSLayer(timeRange, false, false); // isDiff=false here, we handle logic in getScriptContent
+            layersToGroup.push(cumulativeLayer);
+
+            if (state.sarFusion && state.activeIndex !== 's1_sar') {
+                layersToGroup.push(getWMSLayer(timeRange, false, 's1_sar'));
             }
 
             state.overlayGroup = L.layerGroup(layersToGroup).addTo(state.map);
@@ -985,17 +1074,27 @@ function bindEvents() {
     // Compare Layout Toggle
     const btnSwipe = document.getElementById('btn-swipe');
     const btnDiff = document.getElementById('btn-diff');
-    if (btnSwipe && btnDiff) {
-        btnSwipe.addEventListener('click', (e) => {
+    const btnCumulative = document.getElementById('btn-cumulative'); // Added this line
+    if (btnSwipe && btnDiff && btnCumulative) { // Modified condition
+        document.getElementById('btn-swipe').addEventListener('click', () => {
             state.compareType = 'swipe';
-            btnSwipe.classList.add('active');
-            btnDiff.classList.remove('active');
+            document.getElementById('btn-swipe').classList.add('active');
+            document.getElementById('btn-diff').classList.remove('active');
+            document.getElementById('btn-cumulative').classList.remove('active');
             applyIndex();
         });
-        btnDiff.addEventListener('click', (e) => {
+        document.getElementById('btn-diff').addEventListener('click', () => {
             state.compareType = 'diff';
-            btnDiff.classList.add('active');
-            btnSwipe.classList.remove('active');
+            document.getElementById('btn-diff').classList.add('active');
+            document.getElementById('btn-swipe').classList.remove('active');
+            document.getElementById('btn-cumulative').classList.remove('active');
+            applyIndex();
+        });
+        document.getElementById('btn-cumulative').addEventListener('click', () => {
+            state.compareType = 'cumulative';
+            document.getElementById('btn-cumulative').classList.add('active');
+            document.getElementById('btn-swipe').classList.remove('active');
+            document.getElementById('btn-diff').classList.remove('active');
             applyIndex();
         });
     }
@@ -1120,6 +1219,18 @@ function bindEvents() {
         dateSingleEl.addEventListener('change', (e) => {
             state.monthIndex = parseInt(e.target.value, 10);
             if (state.mode === 'single') applyIndex();
+        });
+    }
+
+    // Trendline Toggle
+    const toggleTrendline = document.getElementById('toggle-trendline');
+    if (toggleTrendline) {
+        toggleTrendline.addEventListener('change', (e) => {
+            if (reportChartInst && reportChartInst.data.datasets.length > 0) {
+                // The smoothed trend is at index 0
+                reportChartInst.data.datasets[0].hidden = !e.target.checked;
+                reportChartInst.update();
+            }
         });
     }
 
@@ -1445,17 +1556,50 @@ function evaluatePixel(sample) {
                         document.getElementById('metric-leak-start').innerText = leakStr;
                     }
 
-                    let chartDatasets = [{
-                        label: cfg.name,
-                        data: dataArr,
-                        borderColor: CHART_COLORS[activeKey] || '#ffffff',
-                        backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                        fill: true,
-                        tension: 0.1,
-                        pointRadius: 3,
-                        pointHitRadius: 10,
-                        spanGaps: true
-                    }];
+                    // Calculate Smoothed Trendline (3-point centered moving average)
+                    let trendlineData = [];
+                    for (let i = 0; i < dataArr.length; i++) {
+                        let sum = 0;
+                        let count = 0;
+                        // Window of -1 to +1
+                        for (let j = Math.max(0, i - 1); j <= Math.min(dataArr.length - 1, i + 1); j++) {
+                            sum += dataArr[j];
+                            count++;
+                        }
+                        trendlineData.push(sum / count);
+                    }
+
+                    const showTrend = document.getElementById('toggle-trendline') ? document.getElementById('toggle-trendline').checked : true;
+
+                    let chartDatasets = [
+                        {
+                            label: "Smoothed Trend",
+                            data: trendlineData,
+                            borderColor: '#FF8F00',
+                            backgroundColor: 'transparent',
+                            borderWidth: 2,
+                            fill: false,
+                            tension: 0.4,
+                            pointRadius: 0,
+                            pointHitRadius: 10,
+                            spanGaps: true,
+                            hidden: !showTrend,
+                            order: 1
+                        },
+                        {
+                            label: cfg.name,
+                            data: dataArr,
+                            borderColor: CHART_COLORS[activeKey] || '#ffffff',
+                            backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                            borderWidth: 1.5,
+                            fill: true,
+                            tension: 0.1,
+                            pointRadius: 3,
+                            pointHitRadius: 10,
+                            spanGaps: true,
+                            order: 2
+                        }
+                    ];
 
                     document.querySelector('.report-chart h3').innerText = `Multivariate Statistical Trends (AOI Mean) - ${chartTitleLabel}`;
 
@@ -2067,11 +2211,14 @@ async function downloadHTMLReport() {
                     data: ds.data,
                     borderColor: ds.borderColor,
                     backgroundColor: ds.backgroundColor,
+                    borderWidth: ds.borderWidth,
                     fill: ds.fill,
                     tension: ds.tension,
                     pointRadius: ds.pointRadius,
                     pointHitRadius: ds.pointHitRadius,
-                    spanGaps: ds.spanGaps
+                    spanGaps: ds.spanGaps,
+                    hidden: ds.hidden,
+                    order: ds.order
                 }))
             };
 
