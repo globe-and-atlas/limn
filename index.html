@@ -87,7 +87,7 @@
                 </svg>
                 <div>
                     <h1>SENTINEL EXPLORER <span id="app-version-badge"
-                            style="font-size: 0.5em; font-weight: 500; font-family: 'JetBrains Mono', monospace; color: var(--text-muted); vertical-align: middle; background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px;">v18</span>
+                            style="font-size: 0.5em; font-weight: 500; font-family: 'JetBrains Mono', monospace; color: var(--text-muted); vertical-align: middle; background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px;">v20</span>
                     </h1>
                     <h2>Well-Pad Environmental Analysis</h2>
                 </div>
@@ -103,13 +103,13 @@
                     style="padding: 6px 12px; margin: 0; min-width: 60px;">GO</button>
             </div>
             <div class="location-picker">
-                <button class="loc-btn active" data-loc="lea">Lea Co. Incident</button>
-                <button class="loc-btn" data-loc="ward">Ward Co. Seep</button>
-                <button class="loc-btn" data-loc="eddy">Eddy Co. Pond</button>
+                <button class="loc-btn active" data-loc="dixon">Hugh Dixon No.1-9</button>
+                <button class="loc-btn" data-loc="rocker">Rocker B "B" 1</button>
+                <button class="loc-btn" data-loc="sweatt">John W Sweatt 1</button>
             </div>
             <div class="coord-display">
-                <span class="coord-label">LAT:</span> <span id="disp-lat">31.5500°</span>
-                <span class="coord-label" style="margin-left: 10px;">LNG:</span> <span id="disp-lng">-103.9500°</span>
+                <span class="coord-label">LAT:</span> <span id="disp-lat">31.8933°</span>
+                <span class="coord-label" style="margin-left: 10px;">LNG:</span> <span id="disp-lng">-101.8640°</span>
             </div>
         </section>
 
@@ -152,9 +152,8 @@
                     <span class="index-short">HCAI</span>
                     <span class="index-full">Hydrocarbons</span>
                 </button>
-                <button class="index-btn magic-btn" data-index="pwmi"
-                    style="border-color: #00D2FF; box-shadow: 0 0 10px rgba(0,210,255,0.2);">
-                    <span class="index-short" style="color: #00D2FF; font-weight: bold;">PWMI (MAGIC)</span>
+                <button class="index-btn" data-index="pwi">
+                    <span class="index-short" style="font-weight: bold;">PWI</span>
                     <span class="index-full">Produced Water Composite</span>
                 </button>
                 <button class="index-btn" data-index="hmri">
@@ -193,15 +192,11 @@
                 </div>
             </div>
 
-            <!-- Single Mode Time Slider -->
+            <!-- Single Mode Date Selector -->
             <div id="single-time-container">
-                <div class="month-display" id="current-month-display">September 2024</div>
-                <div class="slider-wrapper">
-                    <div class="slider-track-bg"></div>
-                    <div class="slider-track-fill" id="time-slider-fill"></div>
-                    <input type="range" class="slider custom-slider" id="time-slider" min="0" max="11" value="8">
-                </div>
-                <div class="slider-ticks" id="slider-ticks-container">
+                <div class="date-input-group">
+                    <label>Observation Date</label>
+                    <select id="date-single" class="date-picker date-dropdown"></select>
                 </div>
             </div>
 
@@ -329,6 +324,28 @@
                     <div class="chart-container-report">
                         <canvas id="reportChart"></canvas>
                     </div>
+
+                    <div class="report-metrics" id="report-metrics-panel"
+                        style="margin-top: 15px; padding: 15px; background: rgba(0,0,0,0.3); border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); display: none;">
+                        <h4
+                            style="margin: 0 0 10px 0; color: var(--accent-blue); font-size: 13px; text-transform: uppercase;">
+                            Key Metrics</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 12px;">
+                            <div><strong style="color: var(--text-color);">Max Single Date:</strong> <span
+                                    id="metric-max-date" style="color: var(--text-muted);">--</span> (<span
+                                    id="metric-max-val"
+                                    style="color: var(--accent-orange); font-family: var(--font-mono);">--</span>)</div>
+                            <div><strong style="color: var(--text-color);">Highest 5-Scene Avg:</strong> <span
+                                    id="metric-avg-dates" style="color: var(--text-muted);">--</span> (<span
+                                    id="metric-avg-val"
+                                    style="color: var(--accent-orange); font-family: var(--font-mono);">--</span>)</div>
+                            <div style="grid-column: span 2;"><strong style="color: var(--text-color);">Likely Leak
+                                    Start:</strong> <span id="metric-leak-start"
+                                    style="color: var(--accent-blue); font-family: var(--font-mono);">--</span> <span
+                                    style="color: var(--text-muted); font-size: 10px;">(Largest positive jump leading to
+                                    peak concentration)</span></div>
+                        </div>
+                    </div>
                 </div>
 
                 <div class="report-gif" id="report-gif-section"
@@ -384,13 +401,14 @@
         </div>
     </div>
 
-    <script src="app.js?v=17"></script>
+    <script src="app.js?v=20"></script>
     <script>
         // JS-powered tooltip for .chart-info-badge
         // Uses body-level element to avoid modal overflow-y clipping
         (function () {
             let tip = null;
             document.addEventListener('mouseenter', function (e) {
+                if (!e.target || typeof e.target.closest !== 'function') return;
                 const badge = e.target.closest('.chart-info-badge');
                 if (!badge) return;
                 const text = badge.dataset.tooltip;
@@ -421,6 +439,7 @@
                 });
             }, true);
             document.addEventListener('mouseleave', function (e) {
+                if (!e.target || typeof e.target.closest !== 'function') return;
                 const badge = e.target.closest('.chart-info-badge');
                 if (!badge || !tip) return;
                 tip.remove(); tip = null;

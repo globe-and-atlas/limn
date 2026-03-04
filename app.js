@@ -3,9 +3,9 @@
    ========================================================================== */
 
 const AOI_LOCATIONS = {
-    lea: { lat: 31.55, lng: -103.95, zoom: 15 },
-    ward: { lat: 31.82, lng: -102.25, zoom: 15 },
-    eddy: { lat: 32.85, lng: -103.45, zoom: 15 }
+    dixon: { lat: 31.893285, lng: -101.864031, zoom: 15 },
+    rocker: { lat: 31.244621, lng: -101.261754, zoom: 15 },
+    sweatt: { lat: 31.480407, lng: -103.423865, zoom: 15 }
 };
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -67,7 +67,7 @@ async function getCDSEToken() {
     return cachedAccessToken;
 }
 
-const APP_VERSION = 'v17';
+const APP_VERSION = 'v19';
 
 // Globals for Report Generation
 let aoiDrawnItem = null;
@@ -149,7 +149,7 @@ const PALETTE_BRINE = "[[0, 10, 60, 100], [0.35, 120, 100, 50], [0.6, 240, 80, 3
 const PALETTE_CSI = "[[0, 160, 120, 50], [0.5, 100, 220, 80], [1, 0, 255, 255]]"; // Brown -> Lime -> Cyan
 const PALETTE_HCAI = "[[0, 245, 222, 179], [0.5, 139, 69, 19], [1, 0, 0, 0]]"; // Wheat -> SaddleBrown -> Black
 const PALETTE_HMRI = "[[0, 230, 230, 250], [0.5, 128, 0, 128], [1, 255, 0, 255]]"; // Lavender -> Purple -> Magenta
-const PALETTE_PWMI = "[[0, 0, 0, 0], [0.1, 0, 255, 255], [0.5, 255, 0, 255], [1, 204, 255, 0]]"; // Transparent -> Cyan -> Magenta -> Neon Yellow
+const PALETTE_PWI = "[[0, 0, 0, 0], [0.1, 0, 255, 255], [0.5, 255, 0, 255], [1, 204, 255, 0]]"; // Transparent -> Cyan -> Magenta -> Neon Yellow
 
 // Index Configs
 const INDICES = {
@@ -251,7 +251,7 @@ const INDICES = {
         sensor: 'Sentinel-2 L2A',
         min: 'Barren Soil', max: 'Dense Brush',
         gradient: 'linear-gradient(to right, #A07832, #D2B43C, #146428)',
-        formula: '((B08 - B04) / (B08 + B04 + 0.5)) × 1.5',
+        formula: '((B08 - B04) / (B08 + B04 + 0.5)) * 1.5',
         info: 'Soil Adjusted Vegetation Index is similar to NDVI but introduces a soil-brightness correction factor (L=0.5) to minimize the influence of background soil reflectance in arid, desert, or sparsely vegetated regions.',
         diffLabels: ['Unhealthier / Loss', 'Healthier / Gain'],
         evalscript: genEvalscript(['B08', 'B04'], `
@@ -360,20 +360,20 @@ const INDICES = {
         min: 'Background', max: 'High Contamination',
         gradient: 'linear-gradient(to right, #F5DEB3, #8B4513, #000000)',
         formula: '(B11 - B04) / (B11 + B04)',
-        info: 'Hydrocarbon Absorption Index separates brine-only spills from produced water spills containing crude oil traces. Hydrocarbons strongly absorb red light (B04) but reflect SWIR (B11), creating a distinct oil/water signature.',
+        info: 'Hydrocarbon Absorption Index. Permian red dirt baseline is typically 0.15–0.30. Oil-contaminated surfaces absorb Red light dramatically, pushing HCAI to 0.40+ which clearly separates spills from bare soil.',
         diffLabels: ['More Hydrocarbons', 'Less / Recovery'],
         evalscript: genEvalscript(['B11', 'B04'], `
   let sum = sample.B11 + sample.B04;
   if(sum === 0) return [0,0,0,0];
   let val = (sample.B11 - sample.B04) / sum;
-  let mapped = Math.max(0, (val - 0.1) * 3);
+  let mapped = Math.max(0, (val - 0.30) * 3);
   ${colorBlend('mapped', PALETTE_HCAI)}
 `),
         fisBands: ['B11', 'B04'],
         fisLogic: `
   let sum = sample.B11 + sample.B04;
   if(sum === 0) return [0];
-  return [Math.max(0, ((sample.B11 - sample.B04) / sum) - 0.1)];
+  return [Math.max(0, ((sample.B11 - sample.B04) / sum) - 0.30)];
 `
     },
     hmri: {
@@ -382,27 +382,27 @@ const INDICES = {
         min: 'Background', max: 'High Toxicity',
         gradient: 'linear-gradient(to right, #E6E6FA, #800080, #FF00FF)',
         formula: 'B12 / B03',
-        info: 'Heavy Metal Reflectance Index tracks the ratio of SWIR (B12) to Green (B03) light. Soils subjected to severe brine/produced water contamination often precipitate heavy metals (barium, strontium) which alter background mineralogy and induce severe localized vegetation stress.',
+        info: 'Heavy Metal Reflectance Index tracks the ratio of SWIR (B12) to Green (B03) light. Permian caliche and red dirt baseline is high (1.5-1.9). Confirmed severe brine/produced water contamination precipitates heavy metals (barium, strontium) that push this ratio over 2.0.',
         diffLabels: ['More Metals / Stress', 'Less / Recovery'],
         evalscript: genEvalscript(['B12', 'B03'], `
   if(sample.B03 === 0) return [0,0,0,0];
   let val = sample.B12 / sample.B03;
-  let mapped = Math.max(0, Math.min(1, (val - 1.5) / 3.0));
+  let mapped = Math.max(0, Math.min(1, (val - 2.0) / 3.0));
   ${colorBlend('mapped', PALETTE_HMRI)}
 `),
         fisBands: ['B12', 'B03'],
         fisLogic: `
   if(sample.B03 === 0) return [0];
-  return [Math.max(0, sample.B12 / sample.B03 - 1.5)];
+  return [Math.max(0, sample.B12 / sample.B03 - 2.0)];
 `
     },
-    pwmi: {
-        name: 'Produced Water (PWMI)',
+    pwi: {
+        name: 'Produced Water (PWI)',
         sensor: 'Sentinel-2 L2A',
         min: 'Background', max: 'Confirmed Spill',
         gradient: 'linear-gradient(to right, #000000, #00FFFF, #FF00FF, #CCFF00)',
-        formula: 'NDSI × HCAI × HMRI',
-        info: 'Produced Water Magic Index is a highly restrictive composite. It multiplies normalized signatures for Saline Brine (NDSI), Hydrocarbons (HCAI), and Heavy Metals (HMRI). This filter suppresses false positives (like dry salt flats or road asphalt), isolating areas where all three toxic pollutants are strongly co-located.',
+        formula: 'NDSI * HCAI * HMRI',
+        info: 'Produced Water Index — restrictive composite. Multiplies Brine (NDSI > 0.10), Hydrocarbons (HCAI > 0.30), and Heavy Metals (HMRI > 2.0). All three must spike simultaneously. Cubic power scaling (*20)^3 aggressively suppresses marginal bare-soil signals while amplifying confirmed spills.',
         diffLabels: ['Less / Recovery', 'Toxic Concentration'],
         evalscript: genEvalscript(['B03', 'B04', 'B11', 'B12'], `
   // Brine (NDSI)
@@ -419,20 +419,20 @@ const INDICES = {
   if(sample.B03 === 0) return [0,0,0,0];
   let hmri = sample.B12 / sample.B03;
   
-  // Combine: All must be strongly elevated.
-  // Permian Desert baseline for HMRI is extreme (>1.5). We only care if it spikes past 1.8.
-  // Permian Desert baseline for HCAI is positive due to high albedo. We only care if > 0.15.
-  // Brine (NDSI) must also be confidently positive (> 0.1) to avoid dry false positives.
-  let brineScore = Math.max(0, brine - 0.1);
-  let hcaiScore = Math.max(0, (hcai - 0.15) * 2);
-  let hmriScore = Math.max(0, (hmri - 1.8) * 2);
+  // Permian-calibrated thresholds:
+  // NDSI > 0.10 — dry soil is 0.05–0.10; salt/brine pushes past 0.10
+  // HCAI > 0.30 — red dirt peaks at 0.25–0.30; oil contamination 0.40+
+  // HMRI > 2.0  — caliche ~1.0, normal soil 1.5–1.9; contamination 2.0+
+  let brineScore = Math.max(0, brine - 0.10);
+  let hcaiScore = Math.max(0, (hcai - 0.30) * 2);
+  let hmriScore = Math.max(0, (hmri - 2.0) * 2);
   
-  // If any of the three are 0 (failed to meet the extreme threshold), the whole equation zeroes out.
-  let pwmi = brineScore * hcaiScore * hmriScore;
+  let pwi = brineScore * hcaiScore * hmriScore;
   
-  // Apply a non-linear scaler (cube) to aggressively suppress remaining noise and make true hits pop
-  let mapped = Math.min(1, Math.pow(pwmi * 20, 3));
-  ${colorBlend('mapped', PALETTE_PWMI)}
+  // Cubic scaling: marginal bare-soil leakage (raw ~0.0006) cubes to ~0.000002 (invisible)
+  // Strong spills (raw ~0.06) cube to 1.0 (full strength)
+  let mapped = Math.min(1, Math.pow(pwi * 20, 3));
+  ${colorBlend('mapped', PALETTE_PWI)}
 `),
         fisBands: ['B03', 'B04', 'B11', 'B12'],
         fisLogic: `
@@ -447,8 +447,8 @@ const INDICES = {
   if(sample.B03 === 0) return [0];
   let hmri = sample.B12 / sample.B03;
   
-  let pwmi = Math.max(0, brine - 0.1) * Math.max(0, (hcai - 0.15) * 2) * Math.max(0, (hmri - 1.8) * 2);
-  return [Math.pow(pwmi * 20, 3)];
+  let pwi = Math.max(0, brine - 0.10) * Math.max(0, (hcai - 0.30) * 2) * Math.max(0, (hmri - 2.0) * 2);
+  return [Math.pow(pwi * 20, 3)];
 `
     },
     s1_sar: {
@@ -509,7 +509,7 @@ const BASE_LAYERS = {
 const state = {
     map: null,
     baseLayerInst: null,
-    activeLoc: 'lea',
+    activeLoc: 'dixon',
     activeIndex: 'ndmi',
     mode: 'single', // 'single' or 'compare'
     monthIndex: Math.max(0, ALL_DATES.length - 1),
@@ -560,68 +560,17 @@ document.addEventListener('DOMContentLoaded', () => {
         t2Sel.selectedIndex = Math.max(0, ALL_DATES.length - 1);
     }
 
-    // Configure single mode slider & ticks
-    const slider = document.getElementById('time-slider');
-    const ticksContainer = document.getElementById('slider-ticks-container');
-    const sliderFill = document.getElementById('time-slider-fill');
-
-    if (slider) {
-        slider.max = Math.max(0, ALL_DATES.length - 1);
-        slider.value = state.monthIndex;
-        // initial fill
-        if (sliderFill) {
-            const pct = (slider.value / slider.max) * 100;
-            sliderFill.style.width = `${pct}%`;
-        }
-    }
-
-    if (ticksContainer) {
-        ticksContainer.innerHTML = '';
-        let lastDisplayedYear = 0;
+    // Configure single mode date dropdown
+    const dateSingleSel = document.getElementById('date-single');
+    if (dateSingleSel) {
         ALL_DATES.forEach((d, i) => {
-            let currentYear = parseInt(d.value.split('-')[0]);
-
-            // We want tick marks for EVERY date for interactive snapping,
-            // but we only want labels for the start of the year so it doesn't get cluttered.
-            let div = document.createElement('div');
-            div.className = 'tick-mark';
-            div.style.left = `${(i / (ALL_DATES.length - 1)) * 100}%`;
-
-            let tooltip = document.createElement('div');
-            tooltip.className = 'tick-tooltip';
-            tooltip.innerText = d.short;
-            div.appendChild(tooltip);
-
-            // Add year labels sparsely
-            if (currentYear > lastDisplayedYear) {
-                lastDisplayedYear = currentYear;
-                let label = document.createElement('div');
-                label.className = 'tick-label';
-                label.innerText = "'" + String(currentYear).slice(-2);
-                div.appendChild(label);
-            }
-
-            // Make the tick clickable
-            div.addEventListener('click', () => {
-                if (state.monthIndex !== i) {
-                    slider.value = i;
-                    // manually trigger the logic the slider input event would do
-                    state.monthIndex = parseInt(i, 10);
-                    document.getElementById('current-month-display').innerText = ALL_DATES[state.monthIndex].displayStr;
-                    if (sliderFill) {
-                        const pct = (i / slider.max) * 100;
-                        sliderFill.style.width = `${pct}%`;
-                    }
-                    applyIndex();
-                }
-            });
-
-            ticksContainer.appendChild(div);
+            let opt = document.createElement('option');
+            opt.value = i;
+            opt.textContent = d.label;
+            dateSingleSel.appendChild(opt);
         });
+        dateSingleSel.selectedIndex = state.monthIndex;
     }
-
-    // Set initial display before initMap overwrites via applyIndex()
-    document.getElementById('current-month-display').innerText = ALL_DATES[state.monthIndex].displayStr;
 
 
     initMap();
@@ -655,7 +604,7 @@ function initMap() {
 // Injects playback controls (play/pause, step, seek, speed) below imgEl.
 // Uses pre-rendered data-URL frames from renderCanvas — no re-fetch needed.
 // Also triggers gifshot encoding in background so downloadBtn gets a real GIF file.
-function createGifPlayer(frames, imgEl, downloadBtn) {
+function createGifPlayer(frames, imgEl, downloadBtn, width = 400, height = 330) {
     if (!frames || frames.length === 0) return;
 
     // Forward-declared mutable refs (closures capture by reference)
@@ -676,17 +625,25 @@ function createGifPlayer(frames, imgEl, downloadBtn) {
         if (seekFillEl) seekFillEl.style.width = `${((current + 1) / frames.length) * 100}%`;
     };
 
+    // Clean up any previously running timer on this specific image element
+    if (imgEl._gifTimer) {
+        clearInterval(imgEl._gifTimer);
+    }
+
     const pause = () => {
         playing = false;
-        clearInterval(timer); timer = null;
+        if (imgEl._gifTimer) {
+            clearInterval(imgEl._gifTimer);
+            imgEl._gifTimer = null;
+        }
         if (playBtnEl) { playBtnEl.textContent = '▶'; playBtnEl.classList.remove('active'); }
     };
 
     const play = () => {
-        clearInterval(timer);
+        if (imgEl._gifTimer) clearInterval(imgEl._gifTimer);
         playing = true;
         if (playBtnEl) { playBtnEl.textContent = '⏸'; playBtnEl.classList.add('active'); }
-        timer = setInterval(() => show(current + 1), intervalMs);
+        imgEl._gifTimer = setInterval(() => show(current + 1), intervalMs);
     };
 
     // ── Build controls row ──────────────────────────────────
@@ -764,7 +721,7 @@ function createGifPlayer(frames, imgEl, downloadBtn) {
         downloadBtn.title = 'Encoding GIF…';
         gifshot.createGIF({
             images: frames,
-            gifWidth: 400, gifHeight: 330,
+            gifWidth: width, gifHeight: height,
             interval: intervalMs / 1000,
             sampleInterval: 10
         }, obj => {
@@ -826,6 +783,10 @@ function evaluatePixel(samples) {
             else if (activeIndex === 'si') calc = '-((sample.B11 - sample.B08)/(sample.B11 + sample.B08))';
             else if (activeIndex === 'brine') calc = '-((sample.B11 - sample.B12)/(sample.B11 + sample.B12))';
             else if (activeIndex === 'csi') calc = '-(sample.B11 / sample.B12)';
+            else if (activeIndex === 'hcai') calc = '-((sample.B11 - sample.B04)/(sample.B11 + sample.B04))';
+            else if (activeIndex === 'hmri') calc = '-(sample.B12 / sample.B03)';
+            else if (activeIndex === 'pwi') calc = '-(Math.max(0, ((sample.B11 - sample.B12)/(sample.B11 + sample.B12)) - 0.10) * Math.max(0, (((sample.B11 - sample.B04)/(sample.B11 + sample.B04)) - 0.30) * 2) * Math.max(0, ((sample.B12 / sample.B03) - 2.0) * 2))';
+
 
             // Proxies for visual bands
             else if (activeIndex === 'tc') calc = '(sample.B04*2)'; // simplistic proxy for True Color change
@@ -838,6 +799,9 @@ function evaluatePixel(samples) {
             if (activeIndex === 'ndvi' || activeIndex === 'savi') bands = ['B08', 'B04'];
             if (activeIndex === 'msi' || activeIndex === 'si') bands = ['B11', 'B08'];
             if (activeIndex === 'brine' || activeIndex === 'csi') bands = ['B11', 'B12'];
+            if (activeIndex === 'hcai') bands = ['B11', 'B04'];
+            if (activeIndex === 'hmri') bands = ['B12', 'B03'];
+            if (activeIndex === 'pwi') bands = ['B11', 'B12', 'B04', 'B03'];
             if (activeIndex === 'fc') bands = ['B08', 'B04', 'B03'];
 
             scriptContent = genDiffEvalscript(bands, calc);
@@ -1150,18 +1114,11 @@ function bindEvents() {
         });
     }
 
-    // Sliders
-    const slider = document.getElementById('time-slider');
-    const sliderFill = document.getElementById('time-slider-fill');
-    if (slider) {
-        slider.addEventListener('input', (e) => {
+    // Single Date Dropdown
+    const dateSingleEl = document.getElementById('date-single');
+    if (dateSingleEl) {
+        dateSingleEl.addEventListener('change', (e) => {
             state.monthIndex = parseInt(e.target.value, 10);
-            document.getElementById('current-month-display').innerText = ALL_DATES[state.monthIndex].displayStr;
-
-            if (sliderFill) {
-                const pct = (state.monthIndex / slider.max) * 100;
-                sliderFill.style.width = `${pct}%`;
-            }
             if (state.mode === 'single') applyIndex();
         });
     }
@@ -1376,10 +1333,121 @@ function evaluatePixel(sample) {
                         throw new Error(`Data Sparsity Error: CDSE Analytics Hub evaluated ${rawRecordsCount} time slices over the period, but 0 slices contained successfully computed index pixels for this AOI.`);
                     }
 
-                    let chartLabels = sortedDates.map(d => d.slice(0, 10)); // YYYY-MM-DD
+                    // 1. Interpolate '0' values (often false measurements/clouds for most indices)
+                    let chartLabels = [];
+                    let dataArr = [];
+
+                    for (let i = 0; i < sortedDates.length; i++) {
+                        let d = sortedDates[i];
+                        let val = validData[d];
+
+                        if (val === 0 || isNaN(val)) {
+                            let leftVal = null, rightVal = null;
+                            for (let j = i - 1; j >= 0; j--) {
+                                if (validData[sortedDates[j]] !== 0 && !isNaN(validData[sortedDates[j]])) { leftVal = validData[sortedDates[j]]; break; }
+                            }
+                            for (let j = i + 1; j < sortedDates.length; j++) {
+                                if (validData[sortedDates[j]] !== 0 && !isNaN(validData[sortedDates[j]])) { rightVal = validData[sortedDates[j]]; break; }
+                            }
+                            if (leftVal !== null && rightVal !== null) {
+                                val = (leftVal + rightVal) / 2;
+                            } else if (leftVal !== null) {
+                                val = leftVal;
+                            } else if (rightVal !== null) {
+                                val = rightVal;
+                            } else {
+                                val = 0;
+                            }
+                        }
+
+                        chartLabels.push(d.slice(0, 10)); // YYYY-MM-DD
+                        dataArr.push(val);
+                    }
+
+                    // 1.5 Secondary Smoothing (Detect anomalous sharp drops/outliers)
+                    // If a point drops below 30% of the average of its immediate neighbors, 
+                    // and those neighbors are reasonably elevated (e.g. > 0.05), we interpolate it.
+                    let outliersSmoothed = 0;
+                    for (let i = 1; i < dataArr.length - 1; i++) {
+                        let prev = dataArr[i - 1];
+                        let next = dataArr[i + 1];
+                        let curr = dataArr[i];
+
+                        let neighborAvg = (prev + next) / 2;
+
+                        if (neighborAvg > 0.05) {
+                            if (curr < (neighborAvg * 0.3)) {
+                                dataArr[i] = neighborAvg; // Interpolate the outlier
+                                outliersSmoothed++;
+                            }
+                        }
+                    }
+
+                    // 2. Metrics Calculation
+                    let maxVal = -Infinity;
+                    let maxDate = null;
+
+                    for (let i = 0; i < dataArr.length; i++) {
+                        // For Hazard indices, higher is more dangerous. For healthy indices, higher is better.
+                        // We will just find the absolute peak value.
+                        if (dataArr[i] > maxVal) { maxVal = dataArr[i]; maxDate = chartLabels[i]; }
+                    }
+                    if (maxVal === -Infinity) maxVal = 0; // fallback
+
+                    let max5Avg = -Infinity;
+                    let max5StartIndex = 0;
+                    if (dataArr.length >= 5) {
+                        for (let i = 0; i <= dataArr.length - 5; i++) {
+                            let sum = 0;
+                            for (let j = 0; j < 5; j++) sum += dataArr[i + j];
+                            let avg = sum / 5;
+                            if (avg > max5Avg) { max5Avg = avg; max5StartIndex = i; }
+                        }
+                    } else if (dataArr.length > 0) {
+                        let sum = 0;
+                        for (let j = 0; j < dataArr.length; j++) sum += dataArr[j];
+                        max5Avg = sum / dataArr.length;
+                        max5StartIndex = 0;
+                    }
+                    if (max5Avg === -Infinity) max5Avg = 0;
+
+                    // Estimate leak start (Find largest positive jump leading up to or inside the max 5-scene window)
+                    let maxJump = -Infinity;
+                    let leakStartDate = "N/A";
+                    for (let i = 1; i <= Math.min(dataArr.length - 1, max5StartIndex + 4); i++) {
+                        let jump = dataArr[i] - dataArr[i - 1];
+                        if (jump > maxJump && jump > 0) { // must be a positive increase
+                            maxJump = jump;
+                            leakStartDate = chartLabels[i];
+                        }
+                    }
+                    if (dataArr.length < 2) leakStartDate = "Insufficient Data";
+
+                    // Update DOM Metrics Panel in LIVE app UI (not just export)
+                    const metricPanel = document.getElementById('report-metrics-panel');
+                    if (metricPanel) {
+                        metricPanel.style.display = 'block';
+                        document.getElementById('metric-max-date').innerText = maxDate || '--';
+                        document.getElementById('metric-max-val').innerText = maxVal === 0 ? '0' : maxVal.toFixed(4);
+                        if (dataArr.length >= 5 || dataArr.length > 0) {
+                            let endIdx = Math.min(dataArr.length - 1, max5StartIndex + 4);
+                            document.getElementById('metric-avg-dates').innerText = `${chartLabels[max5StartIndex]} to ${chartLabels[endIdx]}`;
+                            document.getElementById('metric-avg-val').innerText = max5Avg.toFixed(4);
+                        } else {
+                            document.getElementById('metric-avg-dates').innerText = '--';
+                            document.getElementById('metric-avg-val').innerText = '--';
+                        }
+
+                        let leakStr = leakStartDate;
+                        if (outliersSmoothed > 0) {
+                            leakStr += ` (Includes ${outliersSmoothed} interpolated outlier${outliersSmoothed > 1 ? 's' : ''})`;
+                        }
+                        document.getElementById('metric-leak-start').innerText = leakStr;
+                    }
+
                     let chartDatasets = [{
                         label: cfg.name,
-                        data: sortedDates.map(d => validData[d]),
+                        data: dataArr,
                         borderColor: CHART_COLORS[activeKey] || '#ffffff',
                         backgroundColor: 'rgba(255, 255, 255, 0.1)',
                         fill: true,
@@ -1627,6 +1695,20 @@ function evaluatePixel(sample) {
 
                 let diffB64Math = safeB64(getScriptContent(state.activeIndex, true));
 
+                // Calculate dynamic GIF dimensions based on AOI aspect ratio to prevent squashing
+                let latRad = bounds.getCenter().lat * Math.PI / 180;
+                let aspect = (bounds.getEast() - bounds.getWest()) * Math.cos(latRad) / (bounds.getNorth() - bounds.getSouth());
+
+                let gifW = 400;
+                let gifH = Math.round(400 / aspect);
+                if (gifH > 400) {
+                    gifH = 400;
+                    gifW = Math.round(400 * aspect);
+                }
+                gifW = Math.max(100, Math.floor(gifW));
+                gifH = Math.max(100, Math.floor(gifH));
+                let canvasH = gifH + 30; // +30 for footer
+
                 // Generate Standard Imagery URLs (Backgrounds) — always TC, MAXCC=60 for good coverage
                 const bgUrls = frameIndices.map(i => {
                     const dateStr = ALL_DATES[i].value;
@@ -1634,7 +1716,7 @@ function evaluatePixel(sample) {
                     dPrior.setUTCDate(dPrior.getUTCDate() - 20);
                     let pStr = dPrior.toISOString().split('T')[0];
                     let rangeStr = `${pStr}/${dateStr}`;
-                    return `${SH_WMS_URL}?SERVICE=WMS&REQUEST=GetMap&LAYERS=${wmsLayerParam}&FORMAT=image/png&TRANSPARENT=false&VERSION=1.3.0&TIME=${rangeStr}&MAXCC=60&WIDTH=400&HEIGHT=300&CRS=CRS:84&BBOX=${bboxStr}&EVALSCRIPT=${encodeURIComponent(b64TcBg)}`;
+                    return `${SH_WMS_URL}?SERVICE=WMS&REQUEST=GetMap&LAYERS=${wmsLayerParam}&FORMAT=image/png&TRANSPARENT=false&VERSION=1.3.0&TIME=${rangeStr}&MAXCC=60&WIDTH=${gifW}&HEIGHT=${gifH}&CRS=CRS:84&BBOX=${bboxStr}&EVALSCRIPT=${encodeURIComponent(b64TcBg)}`;
                 });
 
                 // Generate Difference Mask URLs — capture-to-capture (each frame = change from previous frame)
@@ -1649,7 +1731,7 @@ function evaluatePixel(sample) {
                     dPrev.setUTCDate(dPrev.getUTCDate() - 5);
                     let pBuffStr = dPrev.toISOString().split('T')[0];
                     let rangeStr = `${pBuffStr}/${currDateStr}`;
-                    return `${SH_WMS_URL}?SERVICE=WMS&REQUEST=GetMap&LAYERS=${wmsLayerParam}&FORMAT=image/png&TRANSPARENT=true&VERSION=1.3.0&TIME=${rangeStr}&MAXCC=60&WIDTH=400&HEIGHT=300&CRS=CRS:84&BBOX=${bboxStr}&EVALSCRIPT=${encodeURIComponent(diffB64Math)}`;
+                    return `${SH_WMS_URL}?SERVICE=WMS&REQUEST=GetMap&LAYERS=${wmsLayerParam}&FORMAT=image/png&TRANSPARENT=true&VERSION=1.3.0&TIME=${rangeStr}&MAXCC=60&WIDTH=${gifW}&HEIGHT=${gifH}&CRS=CRS:84&BBOX=${bboxStr}&EVALSCRIPT=${encodeURIComponent(diffB64Math)}`;
                 });
 
                 gifLoader.innerText = `Fetching ${bgUrls.length * 2} satellite frames...`;
@@ -1658,19 +1740,19 @@ function evaluatePixel(sample) {
                 const renderCanvas = (bgBlob, diffBlob, dateText, overlayAlpha = 1.0) => {
                     return new Promise((resolve) => {
                         const canvas = document.createElement('canvas');
-                        canvas.width = 400;
-                        canvas.height = 330;
+                        canvas.width = gifW;
+                        canvas.height = canvasH;
                         const ctx = canvas.getContext('2d');
 
                         const drawFooter = () => {
                             ctx.globalAlpha = 1.0;
                             ctx.fillStyle = '#111111';
-                            ctx.fillRect(0, 300, 400, 30);
+                            ctx.fillRect(0, gifH, gifW, 30);
                             ctx.fillStyle = '#ffffff';
                             ctx.font = '600 13px sans-serif';
                             ctx.textBaseline = 'middle';
                             ctx.textAlign = 'center';
-                            ctx.fillText(dateText, 200, 315);
+                            ctx.fillText(dateText, gifW / 2, gifH + 15);
                             resolve(canvas.toDataURL('image/jpeg', 0.95));
                         };
 
@@ -1681,7 +1763,7 @@ function evaluatePixel(sample) {
                             dfImg.crossOrigin = 'Anonymous';
                             dfImg.onload = () => {
                                 ctx.globalAlpha = overlayAlpha;
-                                ctx.drawImage(dfImg, 0, 0, 400, 300);
+                                ctx.drawImage(dfImg, 0, 0, gifW, gifH);
                                 ctx.globalAlpha = 1.0;
                                 drawFooter();
                             };
@@ -1692,12 +1774,12 @@ function evaluatePixel(sample) {
                         if (!bgBlob) {
                             // Placeholder for frames where WMS returned no data
                             ctx.fillStyle = '#1a1c28';
-                            ctx.fillRect(0, 0, 400, 300);
+                            ctx.fillRect(0, 0, gifW, gifH);
                             ctx.fillStyle = 'rgba(255,255,255,0.25)';
                             ctx.font = '13px sans-serif';
                             ctx.textAlign = 'center';
                             ctx.textBaseline = 'middle';
-                            ctx.fillText('No imagery available', 200, 150);
+                            ctx.fillText('No imagery available', gifW / 2, gifH / 2);
                             drawDiffOverlay();
                             return;
                         }
@@ -1705,16 +1787,16 @@ function evaluatePixel(sample) {
                         const bgUrl = URL.createObjectURL(bgBlob);
                         const bgImg = new Image();
                         bgImg.crossOrigin = 'Anonymous';
-                        bgImg.onload = () => { ctx.drawImage(bgImg, 0, 0, 400, 300); drawDiffOverlay(); };
+                        bgImg.onload = () => { ctx.drawImage(bgImg, 0, 0, gifW, gifH); drawDiffOverlay(); };
                         bgImg.onerror = () => {
                             // Image bytes couldn't be decoded (probably WMS XML error) — show placeholder
                             ctx.fillStyle = '#1a1c28';
-                            ctx.fillRect(0, 0, 400, 300);
+                            ctx.fillRect(0, 0, gifW, gifH);
                             ctx.fillStyle = 'rgba(255,255,255,0.25)';
                             ctx.font = '13px sans-serif';
                             ctx.textAlign = 'center';
                             ctx.textBaseline = 'middle';
-                            ctx.fillText('No imagery available', 200, 150);
+                            ctx.fillText('No imagery available', gifW / 2, gifH / 2);
                             drawDiffOverlay();
                         };
                         bgImg.src = bgUrl;
@@ -1727,7 +1809,7 @@ function evaluatePixel(sample) {
                     ));
                     const canvases = await Promise.all(bgBlobs.map((b, i) => renderCanvas(b, diffBlobs[i], ALL_DATES[frameIndices[i]].displayStr)));
                     gifContDiff.style.display = 'block';
-                    createGifPlayer(canvases, gifImgDiff, gifBtnDiff);
+                    createGifPlayer(canvases, gifImgDiff, gifBtnDiff, gifW, canvasH);
                 };
 
                 const gifContIndex = document.getElementById('gif-container-index');
@@ -1746,7 +1828,7 @@ function evaluatePixel(sample) {
                     let pStr = dPrior.toISOString().split('T')[0];
                     let rangeStr = `${pStr}/${dateStr}`;
                     // Set TRANSPARENT=true to allow base aerials to show underneath
-                    return `${SH_WMS_URL}?SERVICE=WMS&REQUEST=GetMap&LAYERS=${wmsLayerParam}&FORMAT=image/png&TRANSPARENT=true&VERSION=1.3.0&TIME=${rangeStr}&MAXCC=60&WIDTH=400&HEIGHT=300&CRS=CRS:84&BBOX=${bboxStr}&EVALSCRIPT=${encodeURIComponent(b64IndexScript)}`;
+                    return `${SH_WMS_URL}?SERVICE=WMS&REQUEST=GetMap&LAYERS=${wmsLayerParam}&FORMAT=image/png&TRANSPARENT=true&VERSION=1.3.0&TIME=${rangeStr}&MAXCC=60&WIDTH=${gifW}&HEIGHT=${gifH}&CRS=CRS:84&BBOX=${bboxStr}&EVALSCRIPT=${encodeURIComponent(b64IndexScript)}`;
                 });
 
                 const buildIndexGif = async (bgBlobs) => {
@@ -1756,7 +1838,7 @@ function evaluatePixel(sample) {
                     // 0.65 opacity overlay to see aerial below
                     const canvases = await Promise.all(bgBlobs.map((b, i) => renderCanvas(b, indexBlobs[i], ALL_DATES[frameIndices[i]].displayStr, 0.65)));
                     gifContIndex.style.display = 'block';
-                    createGifPlayer(canvases, gifImgIndex, gifBtnIndex);
+                    createGifPlayer(canvases, gifImgIndex, gifBtnIndex, gifW, canvasH);
                 };
 
                 (async () => {
@@ -1861,11 +1943,38 @@ async function downloadHTMLReport() {
             ? safeB64(getScriptContent('s1_sar', false))
             : safeB64(getScriptContent('tc', false));
 
-        const getWmsUrl = (timeStr, evalB64, transparent) => {
-            return `${SH_WMS_URL}?SERVICE=WMS&REQUEST=GetMap&LAYERS=${wmsLayerParam}&FORMAT=image/png&TRANSPARENT=${transparent}&VERSION=1.3.0&TIME=${timeStr}&MAXCC=60&WIDTH=600&HEIGHT=400&CRS=CRS:84&BBOX=${bboxStr}&EVALSCRIPT=${encodeURIComponent(evalB64)}`;
+        const getWmsUrl = (timeRangeStr, evalB64, transparent) => {
+            return `${SH_WMS_URL}?SERVICE=WMS&REQUEST=GetMap&LAYERS=${wmsLayerParam}&FORMAT=image/png&TRANSPARENT=${transparent}&VERSION=1.3.0&TIME=${timeRangeStr}&MAXCC=60&WIDTH=600&HEIGHT=400&CRS=CRS:84&BBOX=${bboxStr}&EVALSCRIPT=${encodeURIComponent(evalB64)}`;
         };
 
         let mapHtml = "";
+
+        // Grab metrics data
+        let mMaxD = document.getElementById('metric-max-date') ? document.getElementById('metric-max-date').innerText : '--';
+        let mMaxV = document.getElementById('metric-max-val') ? document.getElementById('metric-max-val').innerText : '--';
+        let mAvgD = document.getElementById('metric-avg-dates') ? document.getElementById('metric-avg-dates').innerText : '--';
+        let mAvgV = document.getElementById('metric-avg-val') ? document.getElementById('metric-avg-val').innerText : '--';
+        let mLeak = document.getElementById('metric-leak-start') ? document.getElementById('metric-leak-start').innerText : '--';
+
+        let metricsHtml = `
+            <div style="margin-top: 20px; padding: 15px; background: #1a1a1a; border-radius: 6px; border: 1px solid #333;">
+                <h4 style="margin: 0 0 10px 0; color: #33AAFF; font-size: 14px; text-transform: uppercase;">Key Metrics</h4>
+                <table style="width: 100%; font-size: 13px; color: #ddd; border-collapse: collapse;">
+                    <tr>
+                        <td style="padding: 5px 0;"><strong>Max Single Date:</strong></td>
+                        <td style="padding: 5px 0;">${mMaxD} (<span style="color: #F0501E; font-family: monospace;">${mMaxV}</span>)</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 5px 0;"><strong>Highest 5-Scene Avg:</strong></td>
+                        <td style="padding: 5px 0;">${mAvgD} (<span style="color: #F0501E; font-family: monospace;">${mAvgV}</span>)</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 5px 0; vertical-align: top;"><strong>Likely Leak Start:</strong></td>
+                        <td style="padding: 5px 0; color: #33AAFF; font-family: monospace;">${mLeak}</td>
+                    </tr>
+                </table>
+            </div>
+        `;
 
         if (isCompare) {
             let rd1 = document.getElementById('date-t1').value;
@@ -1883,7 +1992,9 @@ async function downloadHTMLReport() {
             const t2BgB64 = await fetchAsBase64(getWmsUrl(`${getPStr(rd2)}/${rd2}`, b64TcBg, false));
             const t2IdxB64 = await fetchAsBase64(getWmsUrl(`${getPStr(rd2)}/${rd2}`, safeB64(getScriptContent(state.activeIndex, false)), true));
 
-            const diffIdxB64 = await fetchAsBase64(getWmsUrl(`${rd1}/${rd2}`, safeB64(getScriptContent(state.activeIndex, true)), true));
+            // The diff logic uses the true time-range syntax for the evalscript
+            const diffB64Math = safeB64(getScriptContent(state.activeIndex, true));
+            const diffIdxB64 = await fetchAsBase64(getWmsUrl(`${rd1}/${rd2}`, diffB64Math, true));
 
             const stackImgs = (bg, fg, label) => `
                 <div style="position: relative; width: 100%; height: 260px; background: #000; border-radius: 6px; overflow: hidden; border: 1px solid #333;">

@@ -124,7 +124,121 @@ The application relies on Sentinel-2 Level-2A surface reflectance data. Specific
     // MSI typically ranges from 0.4 (low stress) to 2.0+ (high stress).
     ```
 
-### 2.7 True Color & False Color Composites
+### 2.7 Brine / Salt Water (NDSI)
+
+* **Purpose**: Detects highly absorptive brine and produced water spills. Brine significantly reduces the standard SWIR reflectance curve of typical soil, allowing for targeted chemical anomaly detection.
+* **Satellites**: Sentinel-2 (Bands 11 and 12)
+* **Bands Used**:
+  * `B11` (SWIR1): 1610 nm
+  * `B12` (SWIR2): 2190 nm
+* **Formula**: `(B11 - B12) / (B11 + B12)`
+* **Sentinel Hub Evalscript**:
+
+    ```javascript
+    let sum = sample.B11 + sample.B12;
+    if(sum === 0) return [0,0,0,0];
+    let val = (sample.B11 - sample.B12) / sum;
+    // Scaled mapped: Math.max(0, val * 2) to a Blue -> Brown -> Orange -> Red palette
+    ```
+
+### 2.8 Contaminated Soil (Clay Ratio)
+
+* **Purpose**: Highly sensitive to clay minerals, helping distinguish mechanically disturbed, stripped, or eroded topsoil from healthy surrounding earth.
+* **Satellites**: Sentinel-2 (Bands 11 and 12)
+* **Bands Used**:
+  * `B11` (SWIR1): 1610 nm
+  * `B12` (SWIR2): 2190 nm
+* **Formula**: `B11 / B12`
+* **Sentinel Hub Evalscript**:
+
+    ```javascript
+    if(sample.B12 === 0) return [0,0,0,0];
+    let val = sample.B11 / sample.B12;
+    let mapped = Math.max(0, Math.min(1, (val - 0.5) / 2.0));
+    // Scaled to a Brown -> Lime -> Cyan palette
+    ```
+
+### 2.9 Hydrocarbons (HCAI)
+
+* **Purpose**: Separates brine-only spills from produced water spills containing crude oil traces. Hydrocarbons strongly absorb red light (B04) but reflect SWIR (B11), creating a distinct oil/water signature.
+* **Satellites**: Sentinel-2 (Bands 11 and 4)
+* **Bands Used**:
+  * `B11` (SWIR1): 1610 nm
+  * `B04` (Red): 665 nm
+* **Formula**: `(B11 - B04) / (B11 + B04)`
+* **Sentinel Hub Evalscript**:
+
+    ```javascript
+    let sum = sample.B11 + sample.B04;
+    if(sum === 0) return [0,0,0,0];
+    let val = (sample.B11 - sample.B04) / sum;
+    let mapped = Math.max(0, (val - 0.1) * 3);
+    // Scaled to a Wheat -> SaddleBrown -> Black palette
+    ```
+
+### 2.10 Heavy Metals (HMRI)
+
+* **Purpose**: Tracks severe brine/produced water contamination that precipitates heavy metals (barium, strontium), altering background mineralogy and inducing severe localized vegetation stress.
+* **Satellites**: Sentinel-2 (Bands 12 and 3)
+* **Bands Used**:
+  * `B12` (SWIR2): 2190 nm
+  * `B03` (Green): 560 nm
+* **Formula**: `B12 / B03`
+* **Sentinel Hub Evalscript**:
+
+    ```javascript
+    if(sample.B03 === 0) return [0,0,0,0];
+    let val = sample.B12 / sample.B03;
+    let mapped = Math.max(0, Math.min(1, (val - 1.5) / 3.0));
+    // Scaled to a Lavender -> Purple -> Magenta palette
+    ```
+
+### 2.11 Produced Water Index (PWI)
+
+* **Formula**: `NDSI × HCAI × HMRI` (with extreme squelching thresholds applied before multiplication)
+* **Scientific Logic**: Produced water is a mixture of saline brine, residual hydrocarbons, and heavy metals. This highly restrictive composite requires a positive signature across all three to register. By applying thresholds tailored to the high albedo of the Permian Basin, dry salt flats and rock outcroppings are squelched out.
+* **Sentinel Hub Evalscript**:
+
+    ```javascript
+    // 1. Calculate base indices
+    let sumBrine = sample.B11 + sample.B12;
+    let brine = (sumBrine === 0) ? 0 : (sample.B11 - sample.B12) / sumBrine;
+    
+    let sumHcai = sample.B11 + sample.B04;
+    let hcai = (sumHcai === 0) ? 0 : (sample.B11 - sample.B04) / sumHcai;
+    
+    let hmri = (sample.B03 === 0) ? 0 : sample.B12 / sample.B03;
+    
+    // 2. Permian-calibrated thresholds
+    // Dry soil NDSI: 0.05–0.10; HCAI: 0.15–0.30; HMRI: 1.5–1.9
+    let brineScore = Math.max(0, brine - 0.10);
+    let hcaiScore = Math.max(0, (hcai - 0.30) * 2);
+    let hmriScore = Math.max(0, (hmri - 2.0) * 2);
+    
+    // 3. Multiplication AND Gate (if any is zero, PWI is zero)
+    let pwi = brineScore * hcaiScore * hmriScore;
+    
+    // 4. Cubic scaling — marginal soil leakage cubes to ~0 while real spills hit 1.0
+    let finalMapped = Math.min(1.0, Math.pow(pwi * 20, 3));
+    // Mapped to a Transparent -> Cyan -> Magenta -> Neon Yellow palette
+    ```
+
+### 2.12 Synthetic Aperture Radar (SAR) Moisture (VV/VH)
+
+* **Purpose**: Utilizes C-band microwaves to penetrate clouds/darkness and measure surface roughness and dielectric constant. Smooth surfaces (water) appear dark, rough surfaces appear reflective.
+* **Satellites**: Sentinel-1 GRD
+* **Polarizations**: `VV` and `VH`
+* **Formula**: `VV / (VH + 0.001)`
+* **Evaluating Logic**:
+
+    ```javascript
+    let vv = Math.max(0, Math.log10(sample.VV) * 10 + 20) / 20;
+    let vh = Math.max(0, Math.log10(sample.VH) * 10 + 20) / 20;
+    let ratio = vv / (vh + 0.001);
+    // Returns [vv, vh, ratio * 0.5, 1];
+    ```
+
+### 2.13 True Color & False Color Composites
 
 * **True Color (RGB)**: Uses `B04` (Red), `B03` (Green), and `B02` (Blue). Rendered directly with a `2.5x` brightness multiplier for visual clarity.
 * **False Color (NIR)**: Uses `B08` (NIR), `B04` (Red), and `B03` (Green). Translates invisible near-infrared light into visible red, making healthy vegetation appear bright crimson.
