@@ -230,9 +230,20 @@
             <h3>Advanced Data Fusion</h3>
             <div
                 style="display: flex; align-items: center; justify-content: space-between; padding: 10px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); border-radius: 6px;">
-                <label for="toggle-sar-fusion"
-                    style="font-size: 11px; font-weight: 600; color: var(--text-color); margin: 0; cursor: pointer;">Enable
-                    SAR Fusion Matrix</label>
+                <div class="tooltip-wrapper" style="display: flex; align-items: center; gap: 8px;">
+                    <label for="toggle-sar-fusion"
+                        style="font-size: 11px; font-weight: 600; color: var(--text-color); margin: 0; cursor: pointer;">Enable
+                        SAR Fusion Matrix</label>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)"
+                        stroke-width="2" style="cursor: help;">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M12 16v-4"></path>
+                        <path d="M12 8h.01"></path>
+                    </svg>
+                    <span class="tooltip-text" style="width: 250px;">Overlays Sentinel-1 C-Band synthetic aperture radar
+                        geometry to provide cloud-penetrating structural texture and highlight surface topographic
+                        anomalies.</span>
+                </div>
                 <input type="checkbox" id="toggle-sar-fusion" style="cursor: pointer; width: 16px; height: 16px;">
             </div>
         </section>

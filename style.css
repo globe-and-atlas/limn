@@ -579,6 +579,52 @@ button {
     color: var(--text-dim);
 }
 
+/* Tooltips */
+.tooltip-wrapper {
+    position: relative;
+    display: inline-flex;
+}
+
+.tooltip-text {
+    visibility: hidden;
+    position: absolute;
+    bottom: calc(100% + 10px);
+    left: 50%;
+    transform: translateX(-50%) translateY(4px);
+    background: rgba(10, 11, 20, 0.97);
+    color: rgba(255, 255, 255, 0.85);
+    border: 1px solid rgba(0, 210, 255, 0.3);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 11px;
+    font-family: var(--font-ui);
+    line-height: 1.6;
+    text-align: left;
+    white-space: normal;
+    z-index: 1000;
+    opacity: 0;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+    pointer-events: none;
+}
+
+.tooltip-wrapper:hover .tooltip-text {
+    visibility: visible;
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+.tooltip-text::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: rgba(0, 210, 255, 0.3) transparent transparent transparent;
+}
+
 /* Index Grid */
 .index-grid {
     display: grid;
