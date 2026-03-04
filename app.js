@@ -147,6 +147,8 @@ const PALETTE_VEG = "[[0, 160, 120, 50], [0.3, 210, 180, 60], [0.6, 90, 160, 60]
 const PALETTE_MSI = "[[0, 28, 133, 166], [0.5, 239, 216, 122], [1, 212, 106, 36]]"; // Blue -> Yellow -> Orange (Inverse of NDMI)
 const PALETTE_BRINE = "[[0, 10, 60, 100], [0.35, 120, 100, 50], [0.6, 240, 80, 30], [1, 230, 20, 20]]"; // Blue -> Brown -> Orange -> Red
 const PALETTE_CSI = "[[0, 160, 120, 50], [0.5, 100, 220, 80], [1, 0, 255, 255]]"; // Brown -> Lime -> Cyan
+const PALETTE_HCAI = "[[0, 245, 222, 179], [0.5, 139, 69, 19], [1, 0, 0, 0]]"; // Wheat -> SaddleBrown -> Black
+const PALETTE_HMRI = "[[0, 230, 230, 250], [0.5, 128, 0, 128], [1, 255, 0, 255]]"; // Lavender -> Purple -> Magenta
 
 // Index Configs
 const INDICES = {
@@ -349,6 +351,48 @@ const INDICES = {
         fisLogic: `
   if(sample.B12 === 0) return [0];
   return [sample.B11 / sample.B12];
+`
+    },
+    hcai: {
+        name: 'Hydrocarbons (HCAI)',
+        sensor: 'Sentinel-2 L2A',
+        min: 'Background', max: 'High Contamination',
+        gradient: 'linear-gradient(to right, #F5DEB3, #8B4513, #000000)',
+        formula: '(B11 - B04) / (B11 + B04)',
+        info: 'Hydrocarbon Absorption Index separates brine-only spills from produced water spills containing crude oil traces. Hydrocarbons strongly absorb red light (B04) but reflect SWIR (B11), creating a distinct oil/water signature.',
+        diffLabels: ['More Hydrocarbons', 'Less / Recovery'],
+        evalscript: genEvalscript(['B11', 'B04'], `
+  let sum = sample.B11 + sample.B04;
+  if(sum === 0) return [0,0,0,0];
+  let val = (sample.B11 - sample.B04) / sum;
+  let mapped = Math.max(0, val * 2);
+  ${colorBlend('mapped', PALETTE_HCAI)}
+`),
+        fisBands: ['B11', 'B04'],
+        fisLogic: `
+  let sum = sample.B11 + sample.B04;
+  if(sum === 0) return [0];
+  return [(sample.B11 - sample.B04) / sum];
+`
+    },
+    hmri: {
+        name: 'Heavy Metals (HMRI)',
+        sensor: 'Sentinel-2 L2A',
+        min: 'Background', max: 'High Toxicity',
+        gradient: 'linear-gradient(to right, #E6E6FA, #800080, #FF00FF)',
+        formula: 'B12 / B03',
+        info: 'Heavy Metal Reflectance Index tracks the ratio of SWIR (B12) to Green (B03) light. Soils subjected to severe brine/produced water contamination often precipitate heavy metals (barium, strontium) which alter background mineralogy and induce severe localized vegetation stress.',
+        diffLabels: ['More Metals / Stress', 'Less / Recovery'],
+        evalscript: genEvalscript(['B12', 'B03'], `
+  if(sample.B03 === 0) return [0,0,0,0];
+  let val = sample.B12 / sample.B03;
+  let mapped = Math.max(0, Math.min(1, (val - 0.5) / 2.0));
+  ${colorBlend('mapped', PALETTE_HMRI)}
+`),
+        fisBands: ['B12', 'B03'],
+        fisLogic: `
+  if(sample.B03 === 0) return [0];
+  return [sample.B12 / sample.B03];
 `
     },
     s1_sar: {
