@@ -623,6 +623,10 @@ function createGifPlayer(frames, imgEl, downloadBtn) {
     });
     row.appendChild(speedGroup);
 
+    // Remove existing controls if any
+    const existingControls = imgEl.parentElement.querySelectorAll('.gif-player-controls');
+    existingControls.forEach(c => c.remove());
+
     // Insert controls after the img
     imgEl.insertAdjacentElement('afterend', row);
 
