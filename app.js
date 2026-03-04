@@ -366,14 +366,14 @@ const INDICES = {
   let sum = sample.B11 + sample.B04;
   if(sum === 0) return [0,0,0,0];
   let val = (sample.B11 - sample.B04) / sum;
-  let mapped = Math.max(0, val * 2);
+  let mapped = Math.max(0, (val - 0.1) * 3);
   ${colorBlend('mapped', PALETTE_HCAI)}
 `),
         fisBands: ['B11', 'B04'],
         fisLogic: `
   let sum = sample.B11 + sample.B04;
   if(sum === 0) return [0];
-  return [(sample.B11 - sample.B04) / sum];
+  return [Math.max(0, ((sample.B11 - sample.B04) / sum) - 0.1)];
 `
     },
     hmri: {
@@ -387,13 +387,13 @@ const INDICES = {
         evalscript: genEvalscript(['B12', 'B03'], `
   if(sample.B03 === 0) return [0,0,0,0];
   let val = sample.B12 / sample.B03;
-  let mapped = Math.max(0, Math.min(1, (val - 0.5) / 2.0));
+  let mapped = Math.max(0, Math.min(1, (val - 1.5) / 3.0));
   ${colorBlend('mapped', PALETTE_HMRI)}
 `),
         fisBands: ['B12', 'B03'],
         fisLogic: `
   if(sample.B03 === 0) return [0];
-  return [sample.B12 / sample.B03];
+  return [Math.max(0, sample.B12 / sample.B03 - 1.5)];
 `
     },
     pwmi: {
@@ -419,16 +419,17 @@ const INDICES = {
   if(sample.B03 === 0) return [0,0,0,0];
   let hmri = sample.B12 / sample.B03;
   
-  // Combine: All must be elevated.
-  // Brine and HCAI are typically > 0. HMRI baseline is ~0.5.
+  // Combine: All must be strongly elevated.
+  // Desert baseline for HMRI is often > 1.0. We only care if it spikes past 1.5.
+  // Desert baseline for HCAI is often slightly positive. We only care if > 0.1.
   let brineScore = Math.max(0, brine);
-  let hcaiScore = Math.max(0, hcai * 2);
-  let hmriScore = Math.max(0, (hmri - 0.5) * 2);
+  let hcaiScore = Math.max(0, (hcai - 0.1) * 2);
+  let hmriScore = Math.max(0, (hmri - 1.5) * 2);
   
   let pwmi = brineScore * hcaiScore * hmriScore;
   
-  // Apply a non-linear scaler to make true hits pop
-  let mapped = Math.min(1, pwmi * 5);
+  // Apply a non-linear scaler (square) to suppress noise and make extreme outliers pop
+  let mapped = Math.min(1, Math.pow(pwmi * 15, 2));
   ${colorBlend('mapped', PALETTE_PWMI)}
 `),
         fisBands: ['B03', 'B04', 'B11', 'B12'],
@@ -444,8 +445,8 @@ const INDICES = {
   if(sample.B03 === 0) return [0];
   let hmri = sample.B12 / sample.B03;
   
-  let pwmi = Math.max(0, brine) * Math.max(0, hcai * 2) * Math.max(0, (hmri - 0.5) * 2);
-  return [pwmi];
+  let pwmi = Math.max(0, brine) * Math.max(0, (hcai - 0.1) * 2) * Math.max(0, (hmri - 1.5) * 2);
+  return [Math.pow(pwmi * 15, 2)];
 `
     },
     s1_sar: {
