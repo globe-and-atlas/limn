@@ -91,8 +91,8 @@
                         <circle cx="12" cy="12" r="3" fill="#00D2FF" />
                     </svg>
                     <div>
-                        <h1>SENTINEL EXPLORER <span
-                                style="font-size: 0.5em; font-weight: 500; font-family: 'JetBrains Mono', monospace; color: var(--text-muted); vertical-align: middle; background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px;">v7.0</span>
+                        <h1>SENTINEL EXPLORER <span id="app-version-badge"
+                                style="font-size: 0.5em; font-weight: 500; font-family: 'JetBrains Mono', monospace; color: var(--text-muted); vertical-align: middle; background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px;">v17</span>
                         </h1>
                         <h2>Well-Pad Environmental Analysis</h2>
                     </div>
@@ -274,12 +274,22 @@
                 </div>
 
                 <div class="report-map-container">
-                    <h3>Area of Interest (AOI)</h3>
+                    <h3 id="report-map-label">Area of Interest (AOI)</h3>
                     <div id="report-map"></div>
                 </div>
 
+                <div class="report-map-container" id="report-map-diff-container" style="display:none;">
+                    <h3 style="color:var(--accent-orange);">Change Detection Map (Δ T1 → T2)</h3>
+                    <div id="report-map-diff"></div>
+                </div>
+
                 <div class="report-chart">
-                    <h3>Simulated Trend (Scaled by AOI Area)</h3>
+                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                        <h3 style="margin: 0;">Statistical Trend</h3>
+                        <span class="chart-info-badge"
+                            data-tooltip="Each data point is the mean index value computed from all cloud-free satellite pixels that fall within your drawn AOI bounding box. No pixels outside the box are included. Statistics are sampled every 5 days via the Copernicus CDSE Analytics API.">ⓘ
+                            What is this?</span>
+                    </div>
                     <div class="chart-container-report">
                         <canvas id="reportChart"></canvas>
                     </div>
@@ -295,26 +305,38 @@
                         style="color: var(--accent-blue); font-size: 12px; padding: 20px; text-align: center; font-family: var(--font-mono);">
                         Generating web-map animation frames...</div>
 
-                    <div class="gif-container" id="gif-container-standard"
-                        style="text-align: center; margin-bottom: 15px; background: rgba(0, 0, 0, 0.2); border-radius: 6px; padding: 16px; border: 1px solid rgba(255, 255, 255, 0.05); display: none;">
-                        <h4 style="margin: 0 0 10px 0; font-size: 13px; color: #aaa;">Standard Imagery</h3>
-                            <img id="report-gif-result" style="max-width: 100%; border-radius: 6px;" />
-                            <div style="margin-top: 10px;">
-                                <a id="btn-download-gif" class="print-btn tool-btn"
-                                    style="text-decoration: none; display: inline-block; cursor: pointer; font-size: 11px;"
-                                    download="sentinel-explorer-imagery.gif">Download Imagery</a>
-                            </div>
+
+
+                    <div class="gif-container" id="gif-container-index"
+                        style="text-align: center; margin-bottom: 15px; background: rgba(0, 0, 0, 0.2); border-radius: 6px; padding: 16px; border: 1px solid rgba(255, 140, 0, 0.15); display: none;">
+                        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+                            <h4 id="gif-index-title" style="margin:0;font-size:13px;color:#FF8F00;">Index Gradient</h4>
+                            <span class="chart-info-badge"
+                                data-tooltip="Shows the active spectral index rendered frame-by-frame. Each frame is a single-date rendering of the index (Salinity, NDMI, etc.) so you can watch how the colour gradient itself evolves from T1 to T2.">ⓘ
+                                What is this?</span>
+                        </div>
+                        <img id="report-gif-result-index" style="max-width: 100%; border-radius: 6px;" />
+                        <div style="margin-top: 10px;">
+                            <a id="btn-download-gif-index" class="print-btn tool-btn"
+                                style="text-decoration: none; display: inline-block; cursor: pointer; font-size: 11px;"
+                                download="sentinel-explorer-index.gif">Download Index GIF</a>
+                        </div>
                     </div>
 
                     <div class="gif-container" id="gif-container-diff"
                         style="text-align: center; margin-bottom: 15px; background: rgba(0, 0, 0, 0.2); border-radius: 6px; padding: 16px; border: 1px solid rgba(255, 255, 255, 0.05); display: none;">
-                        <h4 style="margin: 0 0 10px 0; font-size: 13px; color: #aaa;">Difference Heatmap</h3>
-                            <img id="report-gif-result-diff" style="max-width: 100%; border-radius: 6px;" />
-                            <div style="margin-top: 10px;">
-                                <a id="btn-download-gif-diff" class="print-btn tool-btn"
-                                    style="text-decoration: none; display: inline-block; cursor: pointer; font-size: 11px;"
-                                    download="sentinel-explorer-heatmap.gif">Download Heatmap</a>
-                            </div>
+                        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+                            <h4 style="margin:0;font-size:13px;color:#aaa;">Difference Heatmap</h4>
+                            <span class="chart-info-badge"
+                                data-tooltip="Capture-to-capture delta: each frame shows the spectral change between the immediately preceding capture and the current one — NOT versus the T1 baseline. Blue = increase, Red = decrease relative to the prior frame.">ⓘ
+                                What is this?</span>
+                        </div>
+                        <img id="report-gif-result-diff" style="max-width: 100%; border-radius: 6px;" />
+                        <div style="margin-top: 10px;">
+                            <a id="btn-download-gif-diff" class="print-btn tool-btn"
+                                style="text-decoration: none; display: inline-block; cursor: pointer; font-size: 11px;"
+                                download="sentinel-explorer-heatmap.gif">Download Heatmap</a>
+                        </div>
                     </div>
                 </div>
 
@@ -326,7 +348,49 @@
         </div>
     </div>
 
-    <script src="app.js?v=8"></script>
+    <script src="app.js?v=17"></script>
+    <script>
+        // JS-powered tooltip for .chart-info-badge
+        // Uses body-level element to avoid modal overflow-y clipping
+        (function () {
+            let tip = null;
+            document.addEventListener('mouseenter', function (e) {
+                const badge = e.target.closest('.chart-info-badge');
+                if (!badge) return;
+                const text = badge.dataset.tooltip;
+                if (!text) return;
+                tip = document.createElement('div');
+                tip.id = 'js-tooltip';
+                tip.textContent = text;
+                tip.style.cssText = [
+                    'position:fixed', 'z-index:99999', 'max-width:280px',
+                    'background:rgba(10,11,20,0.97)', 'color:rgba(255,255,255,0.88)',
+                    'border:1px solid rgba(0,210,255,0.35)', 'border-radius:8px',
+                    'padding:10px 14px', 'font-size:11px', 'line-height:1.65',
+                    'font-family:"Space Grotesk",sans-serif', 'pointer-events:none',
+                    'box-shadow:0 8px 24px rgba(0,0,0,0.6)',
+                    'transition:opacity 0.15s ease', 'opacity:0'
+                ].join(';');
+                document.body.appendChild(tip);
+                const rect = badge.getBoundingClientRect();
+                const tipW = 280;
+                let left = rect.left + rect.width / 2 - tipW / 2;
+                left = Math.max(8, Math.min(left, window.innerWidth - tipW - 8));
+                tip.style.left = left + 'px';
+                tip.style.top = (rect.top - tip.offsetHeight - 12) + 'px';
+                // Recalculate after render (offsetHeight is available now)
+                requestAnimationFrame(() => {
+                    tip.style.top = (rect.top - tip.offsetHeight - 12) + 'px';
+                    tip.style.opacity = '1';
+                });
+            }, true);
+            document.addEventListener('mouseleave', function (e) {
+                const badge = e.target.closest('.chart-info-badge');
+                if (!badge || !tip) return;
+                tip.remove(); tip = null;
+            }, true);
+        })();
+    </script>
 </body>
 
 </html>

@@ -67,10 +67,13 @@ async function getCDSEToken() {
     return cachedAccessToken;
 }
 
+const APP_VERSION = 'v17';
+
 // Globals for Report Generation
 let aoiDrawnItem = null;
 let reportChartInst = null;
 let reportMapInst = null;
+let reportDiffMapInst = null;
 
 // Evalscript wrapper utility
 const genEvalscript = (bands, logic) => `
@@ -410,6 +413,9 @@ const state = {
 
 // ── INIT ───────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+    const vBadge = document.getElementById('app-version-badge');
+    if (vBadge) vBadge.textContent = APP_VERSION;
+
     // Populate Compare Mode DOM dropdowns
     const t1Sel = document.getElementById('date-t1');
     const t2Sel = document.getElementById('date-t2');
@@ -520,6 +526,129 @@ function initMap() {
     state.baseLayerInst = L.tileLayer(BASE_LAYERS.imagery, { maxZoom: 18 }).addTo(state.map);
 
     applyIndex();
+}
+
+// ─── GIF Frame Player ─────────────────────────────────────────────────────────
+// Injects playback controls (play/pause, step, seek, speed) below imgEl.
+// Uses pre-rendered data-URL frames from renderCanvas — no re-fetch needed.
+// Also triggers gifshot encoding in background so downloadBtn gets a real GIF file.
+function createGifPlayer(frames, imgEl, downloadBtn) {
+    if (!frames || frames.length === 0) return;
+
+    // Forward-declared mutable refs (closures capture by reference)
+    let current = 0;
+    let playing = false;
+    let intervalMs = 400;
+    let timer = null;
+    let playBtnEl = null;
+    let counterEl = null;
+    let seekFillEl = null;
+
+    const clamp = (i) => ((i % frames.length) + frames.length) % frames.length;
+
+    const show = (idx) => {
+        current = clamp(idx);
+        imgEl.src = frames[current];
+        if (counterEl) counterEl.textContent = `${current + 1} / ${frames.length}`;
+        if (seekFillEl) seekFillEl.style.width = `${((current + 1) / frames.length) * 100}%`;
+    };
+
+    const pause = () => {
+        playing = false;
+        clearInterval(timer); timer = null;
+        if (playBtnEl) { playBtnEl.textContent = '▶'; playBtnEl.classList.remove('active'); }
+    };
+
+    const play = () => {
+        clearInterval(timer);
+        playing = true;
+        if (playBtnEl) { playBtnEl.textContent = '⏸'; playBtnEl.classList.add('active'); }
+        timer = setInterval(() => show(current + 1), intervalMs);
+    };
+
+    // ── Build controls row ──────────────────────────────────
+    const row = document.createElement('div');
+    row.className = 'gif-player-controls';
+
+    const mkBtn = (label, title, onClick) => {
+        const b = document.createElement('button');
+        b.className = 'gif-player-btn';
+        b.textContent = label; b.title = title;
+        b.addEventListener('click', onClick);
+        return b;
+    };
+
+    row.appendChild(mkBtn('⏮', 'First frame', () => { pause(); show(0); }));
+    row.appendChild(mkBtn('◀', 'Previous frame', () => { pause(); show(current - 1); }));
+
+    playBtnEl = mkBtn('⏸', 'Play / Pause', () => playing ? pause() : play());
+    playBtnEl.classList.add('active');
+    row.appendChild(playBtnEl);
+
+    row.appendChild(mkBtn('▶', 'Next frame', () => { pause(); show(current + 1); }));
+    row.appendChild(mkBtn('⏭', 'Last frame', () => { pause(); show(frames.length - 1); }));
+
+    // Seek bar
+    const seekBar = document.createElement('div');
+    seekBar.className = 'gif-player-seek';
+    seekFillEl = document.createElement('div');
+    seekFillEl.className = 'gif-player-seek-fill';
+    seekBar.appendChild(seekFillEl);
+    seekBar.addEventListener('click', (e) => {
+        const r = seekBar.getBoundingClientRect();
+        const ratio = Math.max(0, Math.min(1, (e.clientX - r.left) / r.width));
+        pause();
+        show(Math.round(ratio * (frames.length - 1)));
+    });
+    row.appendChild(seekBar);
+
+    counterEl = document.createElement('span');
+    counterEl.className = 'gif-player-counter';
+    row.appendChild(counterEl);
+
+    // Speed group
+    const speedGroup = document.createElement('div');
+    speedGroup.className = 'gif-speed-group';
+    [{ label: '0.5×', ms: 800 }, { label: '1×', ms: 400 }, { label: '2×', ms: 200 }, { label: '4×', ms: 100 }].forEach((s, i) => {
+        const sb = document.createElement('button');
+        sb.className = 'gif-speed-btn' + (i === 1 ? ' active' : '');
+        sb.textContent = s.label;
+        sb.addEventListener('click', () => {
+            intervalMs = s.ms;
+            speedGroup.querySelectorAll('.gif-speed-btn').forEach(b => b.classList.remove('active'));
+            sb.classList.add('active');
+            if (playing) play();
+        });
+        speedGroup.appendChild(sb);
+    });
+    row.appendChild(speedGroup);
+
+    // Insert controls after the img
+    imgEl.insertAdjacentElement('afterend', row);
+
+    // Start player
+    show(0);
+    play();
+
+    // ── Background GIF encoding for download ───────────────
+    if (downloadBtn) {
+        downloadBtn.style.opacity = '0.4';
+        downloadBtn.style.pointerEvents = 'none';
+        downloadBtn.title = 'Encoding GIF…';
+        gifshot.createGIF({
+            images: frames,
+            gifWidth: 400, gifHeight: 330,
+            interval: intervalMs / 1000,
+            sampleInterval: 10
+        }, obj => {
+            if (!obj.error) {
+                downloadBtn.href = obj.image;
+                downloadBtn.style.opacity = '1';
+                downloadBtn.style.pointerEvents = '';
+                downloadBtn.title = 'Download GIF';
+            }
+        });
+    }
 }
 
 function getScriptContent(activeIndex, isDiff) {
@@ -721,18 +850,6 @@ function updateUI() {
     if (state.mode === 'compare' && state.compareType === 'diff') {
         if (diffLegend) {
             diffLegend.style.display = 'block';
-            diffLegend.style.position = 'absolute';
-            diffLegend.style.bottom = '10px';
-            diffLegend.style.left = '16px';
-            diffLegend.style.right = '16px';
-            diffLegend.style.zIndex = '1000';
-            diffLegend.style.background = 'rgba(0,0,0,0.8)';
-            diffLegend.style.padding = '10px';
-            diffLegend.style.borderRadius = '6px';
-            diffLegend.style.border = '1px solid var(--border-color)';
-
-            // Append it to the map area instead of inside the small sidebar box
-            document.querySelector('.map-container').appendChild(diffLegend);
         }
         grad.style.display = 'none';
         document.getElementById('legend-min').style.display = 'none';
@@ -1200,20 +1317,20 @@ function evaluatePixel(sample) {
             btn.innerText = "Generate Selected Report";
             btn.disabled = false;
 
-            // 4. Show Map in Modal
+            // 4. Show Maps in Modal
+            const diffContainer = document.getElementById('report-map-diff-container');
+            const mapLabel = document.getElementById('report-map-label');
             let activeBaseKey = 'imagery';
             document.querySelectorAll('.layer-toggle').forEach(btn => {
                 if (btn.classList.contains('active')) activeBaseKey = btn.dataset.layer;
             });
 
+            // --- Primary map (imagery / T2 date) ---
             if (!reportMapInst) {
                 reportMapInst = L.map('report-map', {
-                    zoomControl: true,
-                    attributionControl: false,
-                    dragging: false,
-                    scrollWheelZoom: false,
-                    doubleClickZoom: false,
-                    keyboard: false
+                    zoomControl: true, attributionControl: false,
+                    dragging: false, scrollWheelZoom: false,
+                    doubleClickZoom: false, keyboard: false
                 });
                 reportMapInst.baseLayer = L.tileLayer(BASE_LAYERS[activeBaseKey], { maxZoom: 18 }).addTo(reportMapInst);
             } else {
@@ -1222,17 +1339,24 @@ function evaluatePixel(sample) {
             }
 
             let overlayLayer = null;
+            let rd1Compare = null, rd2Compare = null;
             if (state.mode === 'single') {
                 overlayLayer = getWMSLayer(ALL_DATES[state.monthIndex].value, false);
+                mapLabel.innerText = 'Area of Interest (AOI)';
+                diffContainer.style.display = 'none';
             } else {
-                let rd1 = document.getElementById('date-t1').value;
-                let rd2 = document.getElementById('date-t2').value;
-                if (rd1 > rd2) { const tmp = rd1; rd1 = rd2; rd2 = tmp; }
+                rd1Compare = document.getElementById('date-t1').value;
+                rd2Compare = document.getElementById('date-t2').value;
+                if (rd1Compare > rd2Compare) { const tmp = rd1Compare; rd1Compare = rd2Compare; rd2Compare = tmp; }
 
                 if (state.compareType === 'swipe') {
-                    overlayLayer = getWMSLayer(rd2, false); // Just show the 'after' image for swipe
+                    overlayLayer = getWMSLayer(rd2Compare, false);
+                    mapLabel.innerText = `Imagery: T2 (${rd2Compare})`;
+                    diffContainer.style.display = 'block';
                 } else {
-                    overlayLayer = getWMSLayer(`${rd1}/${rd2}`, true);
+                    overlayLayer = getWMSLayer(`${rd1Compare}/${rd2Compare}`, true);
+                    mapLabel.innerText = 'Change Detection Map (\u0394 T1 \u2192 T2)';
+                    diffContainer.style.display = 'none';
                 }
             }
 
@@ -1251,8 +1375,34 @@ function evaluatePixel(sample) {
                 L.rectangle(bounds, { color: '#1C85A6', weight: 3, fillOpacity: 0.2 }).addTo(reportMapInst._drawnItems);
 
                 if (reportMapInst.overlayLayer) reportMapInst.removeLayer(reportMapInst.overlayLayer);
-                if (overlayLayer) {
-                    reportMapInst.overlayLayer = overlayLayer.addTo(reportMapInst);
+                if (overlayLayer) reportMapInst.overlayLayer = overlayLayer.addTo(reportMapInst);
+
+                // Init diff map if in swipe compare mode
+                if (state.mode === 'compare' && state.compareType === 'swipe') {
+                    if (!reportDiffMapInst) {
+                        reportDiffMapInst = L.map('report-map-diff', {
+                            zoomControl: false, attributionControl: false,
+                            dragging: false, scrollWheelZoom: false,
+                            doubleClickZoom: false, keyboard: false
+                        });
+                        reportDiffMapInst.baseLayer = L.tileLayer(BASE_LAYERS[activeBaseKey], { maxZoom: 18 }).addTo(reportDiffMapInst);
+                    } else {
+                        if (reportDiffMapInst.baseLayer) reportDiffMapInst.removeLayer(reportDiffMapInst.baseLayer);
+                        reportDiffMapInst.baseLayer = L.tileLayer(BASE_LAYERS[activeBaseKey], { maxZoom: 18 }).addTo(reportDiffMapInst);
+                    }
+
+                    reportDiffMapInst.invalidateSize();
+                    reportDiffMapInst.fitBounds(bounds, { padding: [20, 20] });
+
+                    if (reportDiffMapInst._drawnItems) reportDiffMapInst._drawnItems.clearLayers();
+                    else {
+                        reportDiffMapInst._drawnItems = new L.FeatureGroup();
+                        reportDiffMapInst.addLayer(reportDiffMapInst._drawnItems);
+                    }
+                    L.rectangle(bounds, { color: '#FF8F00', weight: 3, fillOpacity: 0.15 }).addTo(reportDiffMapInst._drawnItems);
+
+                    if (reportDiffMapInst.overlayLayer) reportDiffMapInst.removeLayer(reportDiffMapInst.overlayLayer);
+                    reportDiffMapInst.overlayLayer = getWMSLayer(`${rd1Compare}/${rd2Compare}`, true).addTo(reportDiffMapInst);
                 }
             }, 150);
 
@@ -1262,18 +1412,12 @@ function evaluatePixel(sample) {
                 gifSection.style.display = 'block';
 
                 const gifLoader = document.getElementById('gif-loader-text');
-                const gifImg = document.getElementById('report-gif-result');
-                const gifBtn = document.getElementById('btn-download-gif');
-                const gifContStd = document.getElementById('gif-container-standard');
                 const gifImgDiff = document.getElementById('report-gif-result-diff');
                 const gifBtnDiff = document.getElementById('btn-download-gif-diff');
                 const gifContDiff = document.getElementById('gif-container-diff');
 
                 gifLoader.style.display = 'block';
                 gifLoader.innerText = 'Calculating temporal frames...';
-                gifImg.style.display = 'none';
-                gifBtn.style.pointerEvents = 'none';
-                gifBtn.style.opacity = '0.5';
 
                 let d1 = document.getElementById('date-t1').value;
                 let d2 = document.getElementById('date-t2').value;
@@ -1300,133 +1444,161 @@ function evaluatePixel(sample) {
                 let wmsLayerParam = 'AGRICULTURE';
                 if (state.activeIndex === 's1_sar') wmsLayerParam = 'SENTINEL1-GRD';
 
-                const isDiffAnim = state.compareType === 'diff';
-                const b64MathStd = btoa(INDICES[state.activeIndex].evalscript);
+                const isDiffAnim = true; // Always build the Difference Heatmap GIF
 
-                // For base maps in diff mode, fallback to true color if possible
-                let b64Bg = b64MathStd;
-                if (isDiffAnim && state.activeIndex !== 's1_sar') {
-                    b64Bg = btoa(INDICES['tc'].evalscript);
-                }
+                // Standard imagery GIF always uses True Color — reliable across all WMS time-range requests.
+                // Index-specific visualization is the diff heatmap GIF's job.
+                const safeB64 = (str) => btoa(unescape(encodeURIComponent(str)));
+                const b64TcBg = state.activeIndex === 's1_sar'
+                    ? safeB64(getScriptContent('s1_sar', false))  // SAR stays SAR for background
+                    : safeB64(getScriptContent('tc', false));      // All optical indices use TC
 
-                let diffB64Math = "";
-                if (isDiffAnim) diffB64Math = btoa(getScriptContent(state.activeIndex, true));
+                let diffB64Math = safeB64(getScriptContent(state.activeIndex, true));
 
-                // Generate Standard Imagery URLs (Backgrounds)
+                // Generate Standard Imagery URLs (Backgrounds) — always TC, MAXCC=60 for good coverage
                 const bgUrls = frameIndices.map(i => {
                     const dateStr = ALL_DATES[i].value;
-                    let dTarget = new Date(dateStr);
-                    let dPrior = new Date(dTarget);
+                    let dPrior = new Date(dateStr);
                     dPrior.setUTCDate(dPrior.getUTCDate() - 20);
                     let pStr = dPrior.toISOString().split('T')[0];
                     let rangeStr = `${pStr}/${dateStr}`;
-                    return `${SH_WMS_URL}?SERVICE=WMS&REQUEST=GetMap&LAYERS=${wmsLayerParam}&FORMAT=image/png&TRANSPARENT=false&VERSION=1.3.0&TIME=${rangeStr}&MAXCC=15&WIDTH=400&HEIGHT=300&CRS=CRS:84&BBOX=${bboxStr}&EVALSCRIPT=${encodeURIComponent(b64Bg)}`;
+                    return `${SH_WMS_URL}?SERVICE=WMS&REQUEST=GetMap&LAYERS=${wmsLayerParam}&FORMAT=image/png&TRANSPARENT=false&VERSION=1.3.0&TIME=${rangeStr}&MAXCC=60&WIDTH=400&HEIGHT=300&CRS=CRS:84&BBOX=${bboxStr}&EVALSCRIPT=${encodeURIComponent(b64TcBg)}`;
                 });
 
-                // Generate Difference Mask URLs
-                let diffUrls = [];
-                if (isDiffAnim) {
-                    diffUrls = frameIndices.map(i => {
-                        const dateStr = ALL_DATES[i].value;
-                        let dBase = new Date(d1);
-                        dBase.setUTCDate(dBase.getUTCDate() - 20); // buffer
-                        let baseStr = dBase.toISOString().split('T')[0];
-                        let dCurr = new Date(dateStr);
-                        if (dCurr <= dBase) dCurr.setUTCDate(dBase.getUTCDate() + 10);
-                        let currStr = dCurr.toISOString().split('T')[0];
-                        let rangeStr = `${baseStr}/${currStr}`;
-                        return `${SH_WMS_URL}?SERVICE=WMS&REQUEST=GetMap&LAYERS=${wmsLayerParam}&FORMAT=image/png&TRANSPARENT=true&VERSION=1.3.0&TIME=${rangeStr}&MAXCC=15&WIDTH=400&HEIGHT=300&CRS=CRS:84&BBOX=${bboxStr}&EVALSCRIPT=${encodeURIComponent(diffB64Math)}`;
-                    });
-                }
+                // Generate Difference Mask URLs — capture-to-capture (each frame = change from previous frame)
+                // Always generated now
+                let diffUrls = frameIndices.map((idx, pos) => {
+                    const currDateStr = ALL_DATES[idx].value;
+                    // Previous frame for comparison (use T1 for first frame, previous frame date for rest)
+                    const prevIdx = pos === 0 ? t1ObjIdx : frameIndices[pos - 1];
+                    const prevDateStr = ALL_DATES[prevIdx].value;
+                    // Small buffer: start a few days before prevDate for cloud avoidance
+                    let dPrev = new Date(prevDateStr);
+                    dPrev.setUTCDate(dPrev.getUTCDate() - 5);
+                    let pBuffStr = dPrev.toISOString().split('T')[0];
+                    let rangeStr = `${pBuffStr}/${currDateStr}`;
+                    return `${SH_WMS_URL}?SERVICE=WMS&REQUEST=GetMap&LAYERS=${wmsLayerParam}&FORMAT=image/png&TRANSPARENT=true&VERSION=1.3.0&TIME=${rangeStr}&MAXCC=60&WIDTH=400&HEIGHT=300&CRS=CRS:84&BBOX=${bboxStr}&EVALSCRIPT=${encodeURIComponent(diffB64Math)}`;
+                });
 
-                gifLoader.innerText = `Fetching ${bgUrls.length * (isDiffAnim ? 2 : 1)} satellite frames...`;
+                gifLoader.innerText = `Fetching ${bgUrls.length * 2} satellite frames...`;
 
                 // Canvas composite renderer helper
-                const renderCanvas = (bgBlob, diffBlob, dateText) => {
+                const renderCanvas = (bgBlob, diffBlob, dateText, overlayAlpha = 1.0) => {
                     return new Promise((resolve) => {
-                        const bgUrl = URL.createObjectURL(bgBlob);
-                        const diffUrl = diffBlob ? URL.createObjectURL(diffBlob) : null;
+                        const canvas = document.createElement('canvas');
+                        canvas.width = 400;
+                        canvas.height = 330;
+                        const ctx = canvas.getContext('2d');
 
-                        const bgImg = new Image();
-                        bgImg.crossOrigin = "Anonymous";
-                        bgImg.onload = () => {
-                            const canvas = document.createElement('canvas');
-                            canvas.width = 400;
-                            canvas.height = 330;
-                            const ctx = canvas.getContext('2d');
-                            ctx.drawImage(bgImg, 0, 0, 400, 300);
-
-                            const drawFooter = () => {
-                                ctx.fillStyle = '#111111';
-                                ctx.fillRect(0, 300, 400, 30);
-                                ctx.fillStyle = '#ffffff';
-                                ctx.font = '600 13px sans-serif';
-                                ctx.textBaseline = 'middle';
-                                ctx.textAlign = 'center';
-                                ctx.fillText(dateText, 200, 315);
-                                resolve(canvas.toDataURL('image/jpeg', 0.95));
-                            };
-
-                            if (diffUrl) {
-                                const dfImg = new Image();
-                                dfImg.crossOrigin = "Anonymous";
-                                dfImg.onload = () => {
-                                    ctx.drawImage(dfImg, 0, 0, 400, 300);
-                                    drawFooter();
-                                };
-                                dfImg.onerror = drawFooter;
-                                dfImg.src = diffUrl;
-                            } else {
-                                drawFooter();
-                            }
+                        const drawFooter = () => {
+                            ctx.globalAlpha = 1.0;
+                            ctx.fillStyle = '#111111';
+                            ctx.fillRect(0, 300, 400, 30);
+                            ctx.fillStyle = '#ffffff';
+                            ctx.font = '600 13px sans-serif';
+                            ctx.textBaseline = 'middle';
+                            ctx.textAlign = 'center';
+                            ctx.fillText(dateText, 200, 315);
+                            resolve(canvas.toDataURL('image/jpeg', 0.95));
                         };
-                        bgImg.onerror = () => resolve(bgUrl);
+
+                        const drawDiffOverlay = () => {
+                            if (!diffBlob) { drawFooter(); return; }
+                            const diffUrl = URL.createObjectURL(diffBlob);
+                            const dfImg = new Image();
+                            dfImg.crossOrigin = 'Anonymous';
+                            dfImg.onload = () => {
+                                ctx.globalAlpha = overlayAlpha;
+                                ctx.drawImage(dfImg, 0, 0, 400, 300);
+                                ctx.globalAlpha = 1.0;
+                                drawFooter();
+                            };
+                            dfImg.onerror = drawFooter;
+                            dfImg.src = diffUrl;
+                        };
+
+                        if (!bgBlob) {
+                            // Placeholder for frames where WMS returned no data
+                            ctx.fillStyle = '#1a1c28';
+                            ctx.fillRect(0, 0, 400, 300);
+                            ctx.fillStyle = 'rgba(255,255,255,0.25)';
+                            ctx.font = '13px sans-serif';
+                            ctx.textAlign = 'center';
+                            ctx.textBaseline = 'middle';
+                            ctx.fillText('No imagery available', 200, 150);
+                            drawDiffOverlay();
+                            return;
+                        }
+
+                        const bgUrl = URL.createObjectURL(bgBlob);
+                        const bgImg = new Image();
+                        bgImg.crossOrigin = 'Anonymous';
+                        bgImg.onload = () => { ctx.drawImage(bgImg, 0, 0, 400, 300); drawDiffOverlay(); };
+                        bgImg.onerror = () => {
+                            // Image bytes couldn't be decoded (probably WMS XML error) — show placeholder
+                            ctx.fillStyle = '#1a1c28';
+                            ctx.fillRect(0, 0, 400, 300);
+                            ctx.fillStyle = 'rgba(255,255,255,0.25)';
+                            ctx.font = '13px sans-serif';
+                            ctx.textAlign = 'center';
+                            ctx.textBaseline = 'middle';
+                            ctx.fillText('No imagery available', 200, 150);
+                            drawDiffOverlay();
+                        };
                         bgImg.src = bgUrl;
                     });
                 };
 
-                const buildStandardGif = async () => {
-                    const blobs = await Promise.all(bgUrls.map(u => fetch(u).then(r => r.blob())));
-                    const canvases = await Promise.all(blobs.map((b, i) => renderCanvas(b, null, ALL_DATES[frameIndices[i]].displayStr)));
-
-                    return new Promise(resolve => {
-                        gifshot.createGIF({ images: canvases, gifWidth: 400, gifHeight: 330, interval: 0.35, sampleInterval: 10 }, obj => {
-                            if (!obj.error) {
-                                gifImg.src = obj.image;
-                                gifBtn.href = obj.image;
-                                gifContStd.style.display = 'block';
-                            }
-                            resolve();
-                        });
-                    });
+                const buildDiffGif = async (bgBlobs) => {
+                    const diffBlobs = await Promise.all(diffUrls.map(u =>
+                        fetch(u).then(r => r.ok ? r.blob() : null).catch(() => null)
+                    ));
+                    const canvases = await Promise.all(bgBlobs.map((b, i) => renderCanvas(b, diffBlobs[i], ALL_DATES[frameIndices[i]].displayStr)));
+                    gifContDiff.style.display = 'block';
+                    createGifPlayer(canvases, gifImgDiff, gifBtnDiff);
                 };
 
-                const buildDiffGif = async () => {
-                    const bgBlobs = await Promise.all(bgUrls.map(u => fetch(u).then(r => r.blob())));
-                    const diffBlobs = await Promise.all(diffUrls.map(u => fetch(u).then(r => r.blob())));
-                    const canvases = await Promise.all(bgBlobs.map((b, i) => renderCanvas(b, diffBlobs[i], ALL_DATES[frameIndices[i]].displayStr)));
+                const gifContIndex = document.getElementById('gif-container-index');
+                const gifImgIndex = document.getElementById('report-gif-result-index');
+                const gifBtnIndex = document.getElementById('btn-download-gif-index');
+                const gifIndexTitle = document.getElementById('gif-index-title');
+                const idxName = INDICES[state.activeIndex]?.name || state.activeIndex.toUpperCase();
+                if (gifIndexTitle) gifIndexTitle.innerText = `${idxName} — Index Gradient`;
 
-                    return new Promise(resolve => {
-                        gifshot.createGIF({ images: canvases, gifWidth: 400, gifHeight: 330, interval: 0.35, sampleInterval: 10 }, obj => {
-                            if (!obj.error) {
-                                gifImgDiff.src = obj.image;
-                                gifBtnDiff.href = obj.image;
-                                gifContDiff.style.display = 'block';
-                            }
-                            resolve();
-                        });
-                    });
+                // Build index-specific evalscript URLs (one per frame, single-date)
+                const b64IndexScript = safeB64(getScriptContent(state.activeIndex, false));
+                const indexUrls = frameIndices.map(i => {
+                    const dateStr = ALL_DATES[i].value;
+                    let dPrior = new Date(dateStr);
+                    dPrior.setUTCDate(dPrior.getUTCDate() - 20);
+                    let pStr = dPrior.toISOString().split('T')[0];
+                    let rangeStr = `${pStr}/${dateStr}`;
+                    // Set TRANSPARENT=true to allow base aerials to show underneath
+                    return `${SH_WMS_URL}?SERVICE=WMS&REQUEST=GetMap&LAYERS=${wmsLayerParam}&FORMAT=image/png&TRANSPARENT=true&VERSION=1.3.0&TIME=${rangeStr}&MAXCC=60&WIDTH=400&HEIGHT=300&CRS=CRS:84&BBOX=${bboxStr}&EVALSCRIPT=${encodeURIComponent(b64IndexScript)}`;
+                });
+
+                const buildIndexGif = async (bgBlobs) => {
+                    const indexBlobs = await Promise.all(indexUrls.map(u =>
+                        fetch(u).then(r => r.ok ? r.blob() : null).catch(() => null)
+                    ));
+                    // 0.65 opacity overlay to see aerial below
+                    const canvases = await Promise.all(bgBlobs.map((b, i) => renderCanvas(b, indexBlobs[i], ALL_DATES[frameIndices[i]].displayStr, 0.65)));
+                    gifContIndex.style.display = 'block';
+                    createGifPlayer(canvases, gifImgIndex, gifBtnIndex);
                 };
 
                 (async () => {
                     try {
-                        gifLoader.innerText = 'Encoding Standard Imagery GIF...';
-                        await buildStandardGif();
+                        gifLoader.innerText = 'Pre-fetching Aerial Base Layers...';
+                        const bgBlobs = await Promise.all(bgUrls.map(u =>
+                            fetch(u).then(r => r.ok ? r.blob() : null).catch(() => null)
+                        ));
 
-                        if (isDiffAnim) {
-                            gifLoader.innerText = 'Encoding Difference Heatmap GIF...';
-                            await buildDiffGif();
-                        }
+                        gifLoader.innerText = `Encoding ${idxName} Index Gradient GIF...`;
+                        await buildIndexGif(bgBlobs);
+
+                        gifLoader.innerText = 'Encoding Difference Heatmap GIF...';
+                        await buildDiffGif(bgBlobs);
 
                         gifLoader.style.display = 'none';
                     } catch (e) {
@@ -1454,6 +1626,23 @@ function evaluatePixel(sample) {
 
 }
 
+// Helper: Build clean WMS params for offline HTML export (bypasses Leaflet object serialization)
+function buildHTMLWMSParams(timeStr, isDiff) {
+    const scriptContent = getScriptContent(state.activeIndex, isDiff);
+    const wmsLayer = state.activeIndex === 's1_sar' ? 'SENTINEL1-GRD' : 'AGRICULTURE';
+    return {
+        service: 'WMS',
+        request: 'GetMap',
+        version: '1.3.0',
+        layers: wmsLayer,
+        format: 'image/png',
+        transparent: true,
+        time: timeStr,
+        maxcc: 20,
+        evalscript: btoa(unescape(encodeURIComponent(scriptContent)))
+    };
+}
+
 // ── HTML REPORT EXPORT ────────────────────────────
 function downloadHTMLReport() {
     const runDate = document.getElementById('report-date-run').innerText;
@@ -1468,26 +1657,21 @@ function downloadHTMLReport() {
     });
     const baseLayerUrl = BASE_LAYERS[activeBaseKey];
 
-    let wmsUrl1 = "";
-    let wmsUrl2 = "";
-    let wmsParams1 = {};
-    let wmsParams2 = {};
-    let isSwipeReport = false;
+    let isCompare = state.mode === 'compare';
+    const activeCfg = INDICES[state.activeIndex] || {};
 
-    if (state.mode === 'compare' && state.compareType === 'swipe') {
-        isSwipeReport = true;
-        let rd1 = document.getElementById('date-t1').value;
-        let rd2 = document.getElementById('date-t2').value;
+    let rd1 = isCompare ? document.getElementById('date-t1').value : null;
+    let rd2 = isCompare ? document.getElementById('date-t2').value : null;
+
+    let wmsParamsSwipe1 = {}, wmsParamsSwipe2 = {}, wmsParamsDiff = {}, wmsParamsSingle = {};
+
+    if (isCompare) {
         if (rd1 > rd2) { const tmp = rd1; rd1 = rd2; rd2 = tmp; }
-
-        let layer1 = getWMSLayer(rd1, false);
-        let layer2 = getWMSLayer(rd2, false);
-
-        wmsUrl1 = layer1._url; wmsParams1 = layer1.wmsParams || layer1.options;
-        wmsUrl2 = layer2._url; wmsParams2 = layer2.wmsParams || layer2.options;
-    } else if (reportMapInst && reportMapInst.overlayLayer) {
-        wmsUrl2 = reportMapInst.overlayLayer._url;
-        wmsParams2 = reportMapInst.overlayLayer.wmsParams || reportMapInst.overlayLayer.options;
+        wmsParamsSwipe1 = buildHTMLWMSParams(rd1, false);
+        wmsParamsSwipe2 = buildHTMLWMSParams(rd2, false);
+        wmsParamsDiff = buildHTMLWMSParams(`${rd1}/${rd2}`, true);
+    } else {
+        wmsParamsSingle = buildHTMLWMSParams(ALL_DATES[state.monthIndex].value, false);
     }
 
     const bounds = aoiDrawnItem.getBounds();
@@ -1496,18 +1680,9 @@ function downloadHTMLReport() {
         [bounds.getNorth(), bounds.getEast()]
     ];
 
-    const gifImg = document.getElementById('report-gif-result');
     const gifImgDiff = document.getElementById('report-gif-result-diff');
 
     let gifHtml = "";
-
-    if (gifImg && gifImg.src && document.getElementById('gif-container-standard').style.display !== 'none') {
-        gifHtml += `
-        <div style="margin-top: 30px; text-align: center;">
-            <h3 style="color: #1C85A6;">Standard Change (GIF)</h3>
-            <img src="${gifImg.src}" style="max-width: 100%; border-radius: 6px; border: 1px solid #333;" />
-        </div>`;
-    }
 
     if (gifImgDiff && gifImgDiff.src && document.getElementById('gif-container-diff').style.display !== 'none') {
         gifHtml += `
@@ -1570,6 +1745,7 @@ function downloadHTMLReport() {
     <meta charset="utf-8">
     <title>Sentinel Report - ${runDate}</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+    <script>reportDiffMapInst = null;</script>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
@@ -1579,7 +1755,7 @@ function downloadHTMLReport() {
         .meta-box { background: rgba(0,0,0,0.3); padding: 15px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #333; line-height: 1.5; }
         .meta-box p { margin: 5px 0; }
         .chart-wrapper { height: 400px; background: rgba(0,0,0,0.2); border-radius: 6px; border: 1px solid #333; padding: 15px; margin-top: 20px; }
-        #map { height: 350px; background: #000; border-radius: 6px; border: 1px solid #333; margin-top: 20px; }
+        .map-box { height: 350px; background: #000; border-radius: 6px; border: 1px solid #333; margin-top: 15px; margin-bottom: 30px; position: relative;}
     </style>
 </head>
 <body>
@@ -1594,8 +1770,20 @@ function downloadHTMLReport() {
             <p><strong>Math Logic:</strong><br/>${mathLogic}</p>
         </div>
 
+        ${isCompare ? `
+        <h3>Interactive Swipe (T1 vs T2)</h3>
+        <div id="mapSwipe" class="map-box"></div>
+        
+        <h3 style="color: #F0501E; margin-top: 40px;">Delta Difference Map</h3>
+        <p style="font-size: 13px; color: #bbb; margin-top: -10px; margin-bottom: 15px;">
+            <strong style="color: #FF3333;">Red</strong> = ${activeCfg.diffLabels ? activeCfg.diffLabels[0] : 'Decrease'} &nbsp;|&nbsp; 
+            <strong style="color: #33AAFF;">Blue</strong> = ${activeCfg.diffLabels ? activeCfg.diffLabels[1] : 'Increase'}
+        </p>
+        <div id="mapDiff" class="map-box"></div>
+        ` : `
         <h3>Area of Interest (AOI)</h3>
-        <div id="map"></div>
+        <div id="mapSingle" class="map-box"></div>
+        `}
 
         ${chartContainerHtml}
         
@@ -1603,12 +1791,17 @@ function downloadHTMLReport() {
     </div>
 
     <script>
-        const map = L.map('map', { scrollWheelZoom: false, attributionControl: false }).fitBounds(${JSON.stringify(boundsArr)}, { padding: [20, 20] });
-        L.tileLayer('${baseLayerUrl}', { maxZoom: 18 }).addTo(map);
+        const baseOpts = { scrollWheelZoom: false, attributionControl: false };
+        const boundsArr = ${JSON.stringify(boundsArr)};
+
+        ${isCompare ? `
+        // --- Swipe Map ---
+        const mapSwipe = L.map('mapSwipe', baseOpts).fitBounds(boundsArr, { padding: [20, 20] });
+        L.tileLayer('${baseLayerUrl}', { maxZoom: 18 }).addTo(mapSwipe);
+        L.rectangle(boundsArr, { color: '#1C85A6', weight: 3, fillOpacity: 0.2 }).addTo(mapSwipe);
         
-        ${isSwipeReport ? `
-        var layer1 = L.tileLayer.wms('${wmsUrl1}', ${JSON.stringify(wmsParams1)}).addTo(map);
-        var layer2 = L.tileLayer.wms('${wmsUrl2}', ${JSON.stringify(wmsParams2)}).addTo(map);
+        var layer1 = L.tileLayer.wms('${SH_WMS_URL}', ${JSON.stringify(wmsParamsSwipe1)}).addTo(mapSwipe);
+        var layer2 = L.tileLayer.wms('${SH_WMS_URL}', ${JSON.stringify(wmsParamsSwipe2)}).addTo(mapSwipe);
         
         var swipeContainer = document.createElement('div');
         swipeContainer.style.position = 'absolute';
@@ -1620,22 +1813,33 @@ function downloadHTMLReport() {
         swipeContainer.style.borderRadius = '6px';
         swipeContainer.style.border = '1px solid rgba(255,255,255,0.2)';
         swipeContainer.innerHTML = '<label style="color:#fff; font-size:12px; font-weight:bold; display:block; margin-bottom:8px;">Optical Swipe: <span id="swipe-val">50%</span></label><input type="range" id="swipe-slider" min="0" max="100" value="50" style="width: 200px; cursor: ew-resize;">';
-        document.getElementById('map').appendChild(swipeContainer);
+        document.getElementById('mapSwipe').appendChild(swipeContainer);
         
         function updateClip() {
             var val = document.getElementById('swipe-slider').value;
             document.getElementById('swipe-val').innerText = val + '%';
-            var clipX = (map.getSize().x * (val / 100));
+            var clipX = (mapSwipe.getSize().x * (val / 100));
             var el = layer2.getContainer();
             if (el) el.style.clipPath = 'polygon(' + clipX + 'px 0, 100% 0, 100% 100%, ' + clipX + 'px 100%)';
         }
         
         document.getElementById('swipe-slider').addEventListener('input', updateClip);
-        map.on('move', updateClip);
-        setTimeout(function(){ map.fire('move'); }, 200);
-        ` : wmsUrl2 ? `L.tileLayer.wms('${wmsUrl2}', ${JSON.stringify(wmsParams2)}).addTo(map);` : ''}
+        mapSwipe.on('move', updateClip);
+        setTimeout(function(){ mapSwipe.fire('move'); }, 200);
 
-        L.rectangle(${JSON.stringify(boundsArr)}, { color: '#1C85A6', weight: 3, fillOpacity: 0.2 }).addTo(map);
+        // --- Diff Map ---
+        const mapDiff = L.map('mapDiff', baseOpts).fitBounds(boundsArr, { padding: [20, 20] });
+        L.tileLayer('${baseLayerUrl}', { maxZoom: 18 }).addTo(mapDiff);
+        L.rectangle(boundsArr, { color: '#1C85A6', weight: 3, fillOpacity: 0.2 }).addTo(mapDiff);
+        L.tileLayer.wms('${SH_WMS_URL}', ${JSON.stringify(wmsParamsDiff)}).addTo(mapDiff);
+
+        ` : `
+        // --- Single Map ---
+        const mapSingle = L.map('mapSingle', baseOpts).fitBounds(boundsArr, { padding: [20, 20] });
+        L.tileLayer('${baseLayerUrl}', { maxZoom: 18 }).addTo(mapSingle);
+        L.rectangle(boundsArr, { color: '#1C85A6', weight: 3, fillOpacity: 0.2 }).addTo(mapSingle);
+        ${Object.keys(wmsParamsSingle).length ? `L.tileLayer.wms('${SH_WMS_URL}', ${JSON.stringify(wmsParamsSingle)}).addTo(mapSingle);` : ''}
+        `}
 
         ${chartScriptHtml}
     </script>

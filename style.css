@@ -297,7 +297,8 @@ button {
     text-transform: uppercase;
 }
 
-#report-map {
+#report-map,
+#report-map-diff {
     width: 100%;
     height: 250px;
     background: rgba(0, 0, 0, 0.2);
@@ -652,29 +653,36 @@ button {
 /* Toggle Switch */
 .toggle-switch {
     display: flex;
-    background: rgba(0, 0, 0, 0.3);
+    background: rgba(0, 0, 0, 0.4);
     border-radius: 6px;
-    padding: 2px;
+    padding: 3px;
     border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.5);
 }
 
 .toggle-switch button {
     flex: 1;
     background: transparent;
-    border: none;
-    color: var(--text-muted);
-    padding: 6px 0;
+    border: 1px solid transparent;
+    color: var(--text-dim);
+    padding: 8px 0;
     font-size: 11px;
     font-weight: 600;
     border-radius: 4px;
     cursor: pointer;
-    transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.toggle-switch button:hover:not(.active) {
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text-dark);
 }
 
 .toggle-switch button.active {
-    background: rgba(255, 255, 255, 0.1);
+    background: rgba(0, 210, 255, 0.15);
+    border-color: var(--accent-blue);
     color: #fff;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 0 10px rgba(0, 210, 255, 0.2), inset 0 0 5px rgba(0, 210, 255, 0.1);
 }
 
 /* Custom Slider Wrapper */
@@ -896,4 +904,145 @@ button {
 
 .leaflet-sbs-range {
     cursor: ew-resize !important;
+}
+
+/* Chart Info Badge Tooltip */
+.chart-info-badge {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--accent-blue);
+    background: rgba(0, 210, 255, 0.08);
+    border: 1px solid rgba(0, 210, 255, 0.25);
+    border-radius: 20px;
+    padding: 3px 9px;
+    cursor: default;
+    white-space: nowrap;
+    transition: background 0.2s, border-color 0.2s;
+    flex-shrink: 0;
+}
+
+.chart-info-badge:hover {
+    background: rgba(0, 210, 255, 0.15);
+    border-color: rgba(0, 210, 255, 0.5);
+}
+
+.chart-info-badge::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: calc(100% + 10px);
+    left: 50%;
+    transform: translateX(-50%);
+    width: 280px;
+    background: rgba(10, 11, 20, 0.97);
+    color: rgba(255, 255, 255, 0.85);
+    border: 1px solid rgba(0, 210, 255, 0.3);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 11px;
+    font-family: var(--font-ui);
+    line-height: 1.6;
+    white-space: normal;
+    text-align: left;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.2s ease, transform 0.2s ease;
+    transform: translateX(-50%) translateY(4px);
+    z-index: 9999;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+}
+
+.chart-info-badge:hover::after {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+}
+
+/* ─── GIF Frame Player ────────────────────────────────────── */
+.gif-player-controls {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 10px 0 4px;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+
+.gif-player-btn {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    color: #fff;
+    padding: 4px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    transition: background 0.15s, border-color 0.15s;
+    user-select: none;
+}
+
+.gif-player-btn:hover {
+    background: rgba(255, 255, 255, 0.16);
+}
+
+.gif-player-btn.active {
+    background: var(--accent-blue);
+    border-color: var(--accent-blue);
+}
+
+.gif-player-seek {
+    flex: 1;
+    min-width: 80px;
+    height: 5px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 3px;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+}
+
+.gif-player-seek-fill {
+    height: 100%;
+    background: var(--accent-blue);
+    border-radius: 3px;
+    width: 0%;
+    pointer-events: none;
+    transition: width 0.08s linear;
+}
+
+.gif-player-counter {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.45);
+    font-family: var(--font-mono);
+    min-width: 38px;
+    text-align: center;
+}
+
+.gif-speed-group {
+    display: flex;
+    gap: 3px;
+}
+
+.gif-speed-btn {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.55);
+    padding: 2px 7px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 10px;
+    transition: all 0.15s;
+}
+
+.gif-speed-btn:hover {
+    background: rgba(0, 210, 255, 0.12);
+    color: var(--accent-blue);
+}
+
+.gif-speed-btn.active {
+    background: rgba(0, 210, 255, 0.2);
+    color: var(--accent-blue);
+    border-color: var(--accent-blue);
 }
