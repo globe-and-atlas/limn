@@ -156,6 +156,7 @@ const INDICES = {
         min: '0.0', max: '0.3',
         gradient: 'linear-gradient(to right, #000, #fff)',
         formula: 'RGB',
+        info: 'Standard RGB bands (Red, Green, Blue) configured to provide human-readable, true-color imagery of the surface exactly as the eye would see it.',
         diffLabels: ['Decrease / Darker', 'Increase / Brighter'],
         evalscript: genEvalscript(['B04', 'B03', 'B02'], `
   let factor = 2.5;
@@ -170,6 +171,7 @@ const INDICES = {
         min: '0.0', max: '0.3',
         gradient: 'linear-gradient(to right, #000, #fff)',
         formula: 'RGB (B08,B04,B03)',
+        info: 'Utilizes Near-Infrared (NIR), Red, and Green bands. NIR reflects strongly off healthy vegetation while deeply absorbing water, making it ideal for highlighting plant health and defining sharp water boundaries.',
         diffLabels: ['Decrease / Darker', 'Increase / Brighter'],
         evalscript: genEvalscript(['B08', 'B04', 'B03'], `
   let factor = 2.5;
@@ -184,6 +186,7 @@ const INDICES = {
         min: 'High Stress', max: 'High Moisture',
         gradient: 'linear-gradient(to right, #D46A24, #EFD87A, #1C85A6)',
         formula: '(B8A - B11) / (B8A + B11)',
+        info: 'Normalized Difference Moisture Index uses NIR (B8A) and Short-wave Infrared (SWIR, B11). SWIR is highly sensitive to water content in leaves and soil. The normalized difference between NIR and SWIR closely tracks canopy water stress and topsoil moisture.',
         diffLabels: ['Drier / Moisture Loss', 'Wetter / Moisture Gain'],
         evalscript: genEvalscript(['B8A', 'B11'], `
   let sum = sample.B8A + sample.B11;
@@ -204,6 +207,7 @@ const INDICES = {
         min: 'Dry Surface', max: 'Saturated',
         gradient: 'linear-gradient(to right, #824614, #D7AA3C, #1450B4)',
         formula: '(B03 - B11) / (B03 + B11)',
+        info: 'Normalized Difference Water Index uses Green (B03) and SWIR (B11) bands. Green reflects off visible water bodies, while SWIR strongly absorbs it. This ratio effectively isolates open surface water from dry land and vegetation anomalies.',
         diffLabels: ['Dries / Recedes', 'Wetter / Expands'],
         evalscript: genEvalscript(['B03', 'B11'], `
   let sum = sample.B03 + sample.B11;
@@ -224,6 +228,7 @@ const INDICES = {
         min: 'Barren', max: 'Lush Vegetation',
         gradient: 'linear-gradient(to right, #A07832, #D2B43C, #146428)',
         formula: '(B08 - B04) / (B08 + B04)',
+        info: 'Normalized Difference Vegetation Index uses NIR (B08) and Red (B04). Chlorophyll absorbs Red light for photosynthesis, while leaf cell structures powerfully reflect NIR. This ratio is the standard proxy for surveying live, green vegetation density.',
         diffLabels: ['Unhealthier / Loss', 'Healthier / Gain'],
         evalscript: genEvalscript(['B08', 'B04'], `
   let sum = sample.B08 + sample.B04;
@@ -244,6 +249,7 @@ const INDICES = {
         min: 'Barren Soil', max: 'Dense Brush',
         gradient: 'linear-gradient(to right, #A07832, #D2B43C, #146428)',
         formula: '((B08 - B04) / (B08 + B04 + 0.5)) × 1.5',
+        info: 'Soil Adjusted Vegetation Index is similar to NDVI but introduces a soil-brightness correction factor (L=0.5) to minimize the influence of background soil reflectance in arid, desert, or sparsely vegetated regions.',
         diffLabels: ['Unhealthier / Loss', 'Healthier / Gain'],
         evalscript: genEvalscript(['B08', 'B04'], `
   let sum = sample.B08 + sample.B04 + 0.5;
@@ -264,6 +270,7 @@ const INDICES = {
         min: 'High Content', max: 'Severe Stress',
         gradient: 'linear-gradient(to right, #1C85A6, #EFD87A, #D46A24)',
         formula: 'B11 / B08',
+        info: 'Moisture Stress Index is a simple band ratio of SWIR (B11) to NIR (B08). Higher values indicate lower moisture availability, inversely tracking drought stress and dry soil conditions impacting plant canopies.',
         diffLabels: ['More Stressed / Drier', 'Less Stressed / Wetter'],
         evalscript: genEvalscript(['B11', 'B08'], `
   if(sample.B08 === 0) return [0,0,0,0];
@@ -285,6 +292,7 @@ const INDICES = {
         min: 'Low Salt', max: 'High Salt',
         gradient: 'linear-gradient(to right, #243340, #EFD87A, #F0501E)',
         formula: '(B11 - B08) / (B11 + B08)',
+        info: 'Normalized Difference Salinity Index uses SWIR (B11) and NIR (B08) to detect surface salt crusts. Salt flats have high reflectance in both, enabling the detection of damaging soil salinity accumulations.',
         diffLabels: ['Saltier / Hazard', 'Less Salty / Recovery'],
         evalscript: genEvalscript(['B11', 'B08'], `
   let sum = sample.B11 + sample.B08;
@@ -308,6 +316,7 @@ const INDICES = {
         min: 'Dry / Fresh', max: 'High Brine',
         gradient: 'linear-gradient(to right, #0A3C64, #786432, #F0501E, #E61414)',
         formula: '(B11 - B12) / (B11 + B12)',
+        info: 'Utilizes the two SWIR bands (B11, B12) to detect highly absorptive brine and produced water spills. Brine significantly reduces the standard SWIR reflectance curve of typical soil, allowing for targeted chemical anomaly detection.',
         diffLabels: ['More Brine / Hazard', 'Less Brine / Recovery'],
         evalscript: genEvalscript(['B11', 'B12'], `
   let sum = sample.B11 + sample.B12;
@@ -328,6 +337,7 @@ const INDICES = {
         min: 'Healthy Soil', max: 'Contaminated',
         gradient: 'linear-gradient(to right, #A07832, #64DC50, #00FFFF)',
         formula: 'B11 / B12',
+        info: 'Contaminated Soil / Clay Ratio uses the ratio of SWIR bands (B11/B12). This index is highly sensitive to clay minerals, helping distinguish mechanically disturbed, stripped, or eroded topsoil from healthy surrounding earth.',
         diffLabels: ['More Contaminated', 'Less Contaminated / Recovery'],
         evalscript: genEvalscript(['B11', 'B12'], `
   if(sample.B12 === 0) return [0,0,0,0];
@@ -347,6 +357,7 @@ const INDICES = {
         min: 'Dry / Smooth', max: 'Wet / Rough',
         gradient: 'linear-gradient(to right, #000000, #448833, #CCDD55)',
         formula: 'RGB [VV, VH, VV/VH]',
+        info: 'Synthetic Aperture Radar utilizes C-band microwaves (VV/VH polarizations) which penetrate clouds and darkness to measure surface roughness and dielectric constant. Smooth water surfaces appear dark, while rough terrain or physical structures appear brightly reflective.',
         diffLabels: ['Smoother / Drier', 'Rougher / Wetter'],
         evalscript: `//VERSION=3
 function setup() {
@@ -1716,118 +1727,194 @@ function buildHTMLWMSParams(timeStr, isDiff) {
 }
 
 // ── HTML REPORT EXPORT ────────────────────────────
-function downloadHTMLReport() {
-    const runDate = document.getElementById('report-date-run').innerText;
-    const aoiBounds = document.getElementById('report-aoi-bounds').innerText;
-    const indexName = document.getElementById('report-index-name').innerText;
-    const mathLogic = document.getElementById('report-math').innerHTML;
-    const timeText = document.getElementById('report-time').innerText;
-
-    let activeBaseKey = 'imagery';
-    document.querySelectorAll('.layer-toggle').forEach(btn => {
-        if (btn.classList.contains('active')) activeBaseKey = btn.dataset.layer;
-    });
-    const baseLayerUrl = BASE_LAYERS[activeBaseKey];
-
-    let isCompare = state.mode === 'compare';
-    const activeCfg = INDICES[state.activeIndex] || {};
-
-    let rd1 = isCompare ? document.getElementById('date-t1').value : null;
-    let rd2 = isCompare ? document.getElementById('date-t2').value : null;
-
-    let wmsParamsSwipe1 = {}, wmsParamsSwipe2 = {}, wmsParamsDiff = {}, wmsParamsSingle = {};
-
-    if (isCompare) {
-        if (rd1 > rd2) { const tmp = rd1; rd1 = rd2; rd2 = tmp; }
-        wmsParamsSwipe1 = buildHTMLWMSParams(rd1, false);
-        wmsParamsSwipe2 = buildHTMLWMSParams(rd2, false);
-        wmsParamsDiff = buildHTMLWMSParams(`${rd1}/${rd2}`, true);
-    } else {
-        wmsParamsSingle = buildHTMLWMSParams(ALL_DATES[state.monthIndex].value, false);
+async function downloadHTMLReport() {
+    const btn = document.getElementById('btn-print-report');
+    if (btn) {
+        btn.innerText = "Building Offline Report... Please Wait";
+        btn.disabled = true;
     }
 
-    const bounds = aoiDrawnItem.getBounds();
-    const boundsArr = [
-        [bounds.getSouth(), bounds.getWest()],
-        [bounds.getNorth(), bounds.getEast()]
-    ];
+    try {
+        const runDate = document.getElementById('report-date-run').innerText;
+        const aoiBounds = document.getElementById('report-aoi-bounds').innerText;
+        const indexName = document.getElementById('report-index-name').innerText;
+        const mathLogic = document.getElementById('report-math').innerHTML;
+        const infoText = document.getElementById('report-info').innerText;
+        const timeText = document.getElementById('report-time').innerText;
 
-    const gifImgDiff = document.getElementById('report-gif-result-diff');
+        let isCompare = state.mode === 'compare';
+        const activeCfg = INDICES[state.activeIndex] || {};
 
-    let gifHtml = "";
+        const bounds = aoiDrawnItem.getBounds();
+        const bboxStr = `${bounds.getWest()},${bounds.getSouth()},${bounds.getEast()},${bounds.getNorth()}`;
 
-    if (gifImgDiff && gifImgDiff.src && document.getElementById('gif-container-diff').style.display !== 'none') {
-        gifHtml += `
-        <div style="margin-top: 30px; text-align: center;">
-            <h3 style="color: #F0501E;">Difference Heatmap (GIF)</h3>
-            <img src="${gifImgDiff.src}" style="max-width: 100%; border-radius: 6px; border: 1px solid #333;" />
-        </div>`;
-    }
-
-    let chartContainerHtml = "";
-    let chartScriptHtml = "";
-
-    if (reportChartInst && document.querySelector('.report-chart').style.display !== 'none') {
-        const cleanData = {
-            labels: reportChartInst.data.labels,
-            datasets: reportChartInst.data.datasets.map(ds => ({
-                label: ds.label,
-                data: ds.data,
-                borderColor: ds.borderColor,
-                backgroundColor: ds.backgroundColor,
-                fill: ds.fill,
-                tension: ds.tension,
-                pointRadius: ds.pointRadius,
-                pointHitRadius: ds.pointHitRadius,
-                spanGaps: ds.spanGaps
-            }))
+        // Helpers for fetching WMS as Base64 for offline embedding
+        const fetchAsBase64 = async (url) => {
+            try {
+                const resp = await fetch(url);
+                if (!resp.ok) return null;
+                const blob = await resp.blob();
+                return new Promise((res) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => res(reader.result);
+                    reader.readAsDataURL(blob);
+                });
+            } catch (e) {
+                console.warn("Failed to fetch map overlay for offline export", e);
+                return null;
+            }
         };
 
-        chartContainerHtml = `
-        <div class="chart-wrapper">
-            <canvas id="chart"></canvas>
-        </div>`;
+        const wmsLayerParam = state.activeIndex === 's1_sar' ? 'SENTINEL1-GRD' : 'AGRICULTURE';
+        const safeB64 = (str) => btoa(unescape(encodeURIComponent(str)));
 
-        chartScriptHtml = `
-        const ctx = document.getElementById('chart').getContext('2d');
-        const chartData = ${JSON.stringify(cleanData)};
-        
-        new Chart(ctx, {
-            type: 'line',
-            data: chartData,
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                interaction: { mode: 'index', intersect: false },
-                plugins: { 
-                    legend: { display: true, labels: { color: 'rgba(255,255,255,0.8)', usePointStyle: true, boxWidth: 8 } },
-                    tooltip: { callbacks: { title: function(ctx) { return ctx[0].label; } } }
-                },
-                scales: {
-                    y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: 'rgba(255,255,255,0.5)' } },
-                    x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: 'rgba(255,255,255,0.5)', maxRotation: 45, minRotation: 45, maxTicksLimit: 12 } }
+        let b64TcBg = state.activeIndex === 's1_sar'
+            ? safeB64(getScriptContent('s1_sar', false))
+            : safeB64(getScriptContent('tc', false));
+
+        const getWmsUrl = (timeStr, evalB64, transparent) => {
+            return `${SH_WMS_URL}?SERVICE=WMS&REQUEST=GetMap&LAYERS=${wmsLayerParam}&FORMAT=image/png&TRANSPARENT=${transparent}&VERSION=1.3.0&TIME=${timeStr}&MAXCC=60&WIDTH=600&HEIGHT=400&CRS=CRS:84&BBOX=${bboxStr}&EVALSCRIPT=${encodeURIComponent(evalB64)}`;
+        };
+
+        let mapHtml = "";
+
+        if (isCompare) {
+            let rd1 = document.getElementById('date-t1').value;
+            let rd2 = document.getElementById('date-t2').value;
+            if (rd1 > rd2) { const tmp = rd1; rd1 = rd2; rd2 = tmp; }
+
+            let getPStr = (dStr) => {
+                let dPrior = new Date(dStr); dPrior.setUTCDate(dPrior.getUTCDate() - 20);
+                return dPrior.toISOString().split('T')[0];
+            };
+
+            const t1BgB64 = await fetchAsBase64(getWmsUrl(`${getPStr(rd1)}/${rd1}`, b64TcBg, false));
+            const t1IdxB64 = await fetchAsBase64(getWmsUrl(`${getPStr(rd1)}/${rd1}`, safeB64(getScriptContent(state.activeIndex, false)), true));
+
+            const t2BgB64 = await fetchAsBase64(getWmsUrl(`${getPStr(rd2)}/${rd2}`, b64TcBg, false));
+            const t2IdxB64 = await fetchAsBase64(getWmsUrl(`${getPStr(rd2)}/${rd2}`, safeB64(getScriptContent(state.activeIndex, false)), true));
+
+            const diffIdxB64 = await fetchAsBase64(getWmsUrl(`${rd1}/${rd2}`, safeB64(getScriptContent(state.activeIndex, true)), true));
+
+            const stackImgs = (bg, fg, label) => `
+                <div style="position: relative; width: 100%; height: 260px; background: #000; border-radius: 6px; overflow: hidden; border: 1px solid #333;">
+                    ${bg ? `<img src="${bg}" style="position: absolute; width: 100%; height: 100%; object-fit: cover;" />` : ''}
+                    ${fg ? `<img src="${fg}" style="position: absolute; width: 100%; height: 100%; object-fit: cover; mix-blend-mode: normal;" />` : ''}
+                    <div style="position: absolute; bottom: 10px; right: 10px; background: rgba(0,0,0,0.7); padding: 5px 10px; border-radius: 4px; font-size: 12px; font-weight: bold; color: #fff;">${label}</div>
+                </div>
+            `;
+
+            mapHtml = `
+            <h3>Side-by-Side Analysis (T1 vs T2)</h3>
+            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                <div style="flex: 1;">${stackImgs(t1BgB64, t1IdxB64, `T1: ${rd1}`)}</div>
+                <div style="flex: 1;">${stackImgs(t2BgB64, t2IdxB64, `T2: ${rd2}`)}</div>
+            </div>
+            <h3 style="color: #F0501E; margin-top: 30px;">Difference Heatmap (\u0394 T1 \u2192 T2)</h3>
+            <p style="font-size: 13px; color: #bbb; margin-top: -10px; margin-bottom: 15px;">
+                <strong style="color: #FF3333;">Red</strong> = ${activeCfg.diffLabels ? activeCfg.diffLabels[0] : 'Decrease'} &nbsp;|&nbsp; 
+                <strong style="color: #33AAFF;">Blue</strong> = ${activeCfg.diffLabels ? activeCfg.diffLabels[1] : 'Increase'}
+            </p>
+            ${stackImgs(t2BgB64, diffIdxB64, 'Delta Extent')}
+            `;
+        } else {
+            let rd = ALL_DATES[state.monthIndex].value;
+            let getPStr = (dStr) => {
+                let dPrior = new Date(dStr); dPrior.setUTCDate(dPrior.getUTCDate() - 20);
+                return dPrior.toISOString().split('T')[0];
+            };
+            const sBgB64 = await fetchAsBase64(getWmsUrl(`${getPStr(rd)}/${rd}`, b64TcBg, false));
+            const sIdxB64 = await fetchAsBase64(getWmsUrl(`${getPStr(rd)}/${rd}`, safeB64(getScriptContent(state.activeIndex, false)), true));
+
+            mapHtml = `
+            <h3>Area of Interest (AOI)</h3>
+            <div style="position: relative; width: 100%; height: 350px; background: #000; border-radius: 6px; overflow: hidden; border: 1px solid #333;">
+                ${sBgB64 ? `<img src="${sBgB64}" style="position: absolute; width: 100%; height: 100%; object-fit: cover;" />` : ''}
+                ${sIdxB64 ? `<img src="${sIdxB64}" style="position: absolute; width: 100%; height: 100%; object-fit: cover; mix-blend-mode: normal;" />` : ''}
+            </div>
+            `;
+        }
+
+        let gifHtml = "";
+        const diffBtn = document.getElementById('btn-download-gif-diff');
+        const idxBtn = document.getElementById('btn-download-gif-index');
+
+        // Note: the gifshot encoder creates a 'data:' URI and places it directly in the 'href'
+        if (diffBtn && diffBtn.href && diffBtn.href.startsWith('data:image/gif')) {
+            gifHtml += `
+            <div style="margin-top: 30px; text-align: center;">
+                <h3 style="color: #F0501E;">Difference Heatmap (GIF)</h3>
+                <img src="${diffBtn.href}" style="max-width: 100%; border-radius: 6px; border: 1px solid #333;" />
+            </div>`;
+        }
+
+        if (idxBtn && idxBtn.href && idxBtn.href.startsWith('data:image/gif')) {
+            gifHtml += `
+            <div style="margin-top: 30px; text-align: center;">
+                <h3 style="color: #1C85A6;">Index Gradient (GIF)</h3>
+                <img src="${idxBtn.href}" style="max-width: 100%; border-radius: 6px; border: 1px solid #333;" />
+            </div>`;
+        }
+
+        let chartContainerHtml = "";
+        let chartScriptHtml = "";
+
+        if (reportChartInst && document.querySelector('.report-chart').style.display !== 'none') {
+            const cleanData = {
+                labels: reportChartInst.data.labels,
+                datasets: reportChartInst.data.datasets.map(ds => ({
+                    label: ds.label,
+                    data: ds.data,
+                    borderColor: ds.borderColor,
+                    backgroundColor: ds.backgroundColor,
+                    fill: ds.fill,
+                    tension: ds.tension,
+                    pointRadius: ds.pointRadius,
+                    pointHitRadius: ds.pointHitRadius,
+                    spanGaps: ds.spanGaps
+                }))
+            };
+
+            chartContainerHtml = `
+            <div class="chart-wrapper">
+                <canvas id="chart"></canvas>
+            </div>`;
+
+            chartScriptHtml = `
+            const ctx = document.getElementById('chart').getContext('2d');
+            const chartData = ${JSON.stringify(cleanData)};
+            
+            new Chart(ctx, {
+                type: 'line',
+                data: chartData,
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: { 
+                        legend: { display: true, labels: { color: 'rgba(255,255,255,0.8)', usePointStyle: true, boxWidth: 8 } }
+                    },
+                    scales: {
+                        y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: 'rgba(255,255,255,0.5)' } },
+                        x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: 'rgba(255,255,255,0.5)', maxRotation: 45, minRotation: 45, maxTicksLimit: 12 } }
+                    }
                 }
-            }
-        });`;
-    }
+            });`;
+        }
 
-    const htmlContent = `<!DOCTYPE html>
+        const htmlContent = `<!DOCTYPE html>
 <html>
 <head>
     <meta charset="utf-8">
     <title>Sentinel Report - ${runDate}</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
-    <script>reportDiffMapInst = null;</script>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <style>
         body { font-family: sans-serif; background-color: #121212; color: #fff; margin: 40px; }
         .container { max-width: 900px; margin: auto; background: #1e1e1e; padding: 30px; border-radius: 8px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
         h1, h2, h3 { color: #1C85A6; }
         .meta-box { background: rgba(0,0,0,0.3); padding: 15px; border-radius: 6px; margin-bottom: 20px; border: 1px solid #333; line-height: 1.5; }
-        .meta-box p { margin: 5px 0; }
+        .meta-box p { margin: 5px 0; font-size: 14px; }
         .chart-wrapper { height: 400px; background: rgba(0,0,0,0.2); border-radius: 6px; border: 1px solid #333; padding: 15px; margin-top: 20px; }
-        .map-box { height: 350px; background: #000; border-radius: 6px; border: 1px solid #333; margin-top: 15px; margin-bottom: 30px; position: relative;}
     </style>
 </head>
 <body>
@@ -1839,23 +1926,11 @@ function downloadHTMLReport() {
             <p><strong>AOI Bounds:</strong> ${aoiBounds}</p>
             <p><strong>Active Index:</strong> ${indexName}</p>
             <p><strong>Selected Date(s):</strong> ${timeText}</p>
-            <p><strong>Math Logic:</strong><br/>${mathLogic}</p>
+            <p><strong>Scientific Context:</strong><br/>${infoText}</p>
+            <p style="margin-top: 10px; font-family: monospace; color: #1C85A6;">${mathLogic}</p>
         </div>
 
-        ${isCompare ? `
-        <h3>Interactive Swipe (T1 vs T2)</h3>
-        <div id="mapSwipe" class="map-box"></div>
-        
-        <h3 style="color: #F0501E; margin-top: 40px;">Delta Difference Map</h3>
-        <p style="font-size: 13px; color: #bbb; margin-top: -10px; margin-bottom: 15px;">
-            <strong style="color: #FF3333;">Red</strong> = ${activeCfg.diffLabels ? activeCfg.diffLabels[0] : 'Decrease'} &nbsp;|&nbsp; 
-            <strong style="color: #33AAFF;">Blue</strong> = ${activeCfg.diffLabels ? activeCfg.diffLabels[1] : 'Increase'}
-        </p>
-        <div id="mapDiff" class="map-box"></div>
-        ` : `
-        <h3>Area of Interest (AOI)</h3>
-        <div id="mapSingle" class="map-box"></div>
-        `}
+        ${mapHtml}
 
         ${chartContainerHtml}
         
@@ -1863,66 +1938,27 @@ function downloadHTMLReport() {
     </div>
 
     <script>
-        const baseOpts = { scrollWheelZoom: false, attributionControl: false };
-        const boundsArr = ${JSON.stringify(boundsArr)};
-
-        ${isCompare ? `
-        // --- Swipe Map ---
-        const mapSwipe = L.map('mapSwipe', baseOpts).fitBounds(boundsArr, { padding: [20, 20] });
-        L.tileLayer('${baseLayerUrl}', { maxZoom: 18 }).addTo(mapSwipe);
-        L.rectangle(boundsArr, { color: '#1C85A6', weight: 3, fillOpacity: 0.2 }).addTo(mapSwipe);
-        
-        var layer1 = L.tileLayer.wms('${SH_WMS_URL}', ${JSON.stringify(wmsParamsSwipe1)}).addTo(mapSwipe);
-        var layer2 = L.tileLayer.wms('${SH_WMS_URL}', ${JSON.stringify(wmsParamsSwipe2)}).addTo(mapSwipe);
-        
-        var swipeContainer = document.createElement('div');
-        swipeContainer.style.position = 'absolute';
-        swipeContainer.style.top = '10px';
-        swipeContainer.style.left = '50px';
-        swipeContainer.style.zIndex = '1000';
-        swipeContainer.style.background = 'rgba(0,0,0,0.6)';
-        swipeContainer.style.padding = '10px 15px';
-        swipeContainer.style.borderRadius = '6px';
-        swipeContainer.style.border = '1px solid rgba(255,255,255,0.2)';
-        swipeContainer.innerHTML = '<label style="color:#fff; font-size:12px; font-weight:bold; display:block; margin-bottom:8px;">Optical Swipe: <span id="swipe-val">50%</span></label><input type="range" id="swipe-slider" min="0" max="100" value="50" style="width: 200px; cursor: ew-resize;">';
-        document.getElementById('mapSwipe').appendChild(swipeContainer);
-        
-        function updateClip() {
-            var val = document.getElementById('swipe-slider').value;
-            document.getElementById('swipe-val').innerText = val + '%';
-            var clipX = (mapSwipe.getSize().x * (val / 100));
-            var el = layer2.getContainer();
-            if (el) el.style.clipPath = 'polygon(' + clipX + 'px 0, 100% 0, 100% 100%, ' + clipX + 'px 100%)';
-        }
-        
-        document.getElementById('swipe-slider').addEventListener('input', updateClip);
-        mapSwipe.on('move', updateClip);
-        setTimeout(function(){ mapSwipe.fire('move'); }, 200);
-
-        // --- Diff Map ---
-        const mapDiff = L.map('mapDiff', baseOpts).fitBounds(boundsArr, { padding: [20, 20] });
-        L.tileLayer('${baseLayerUrl}', { maxZoom: 18 }).addTo(mapDiff);
-        L.rectangle(boundsArr, { color: '#1C85A6', weight: 3, fillOpacity: 0.2 }).addTo(mapDiff);
-        L.tileLayer.wms('${SH_WMS_URL}', ${JSON.stringify(wmsParamsDiff)}).addTo(mapDiff);
-
-        ` : `
-        // --- Single Map ---
-        const mapSingle = L.map('mapSingle', baseOpts).fitBounds(boundsArr, { padding: [20, 20] });
-        L.tileLayer('${baseLayerUrl}', { maxZoom: 18 }).addTo(mapSingle);
-        L.rectangle(boundsArr, { color: '#1C85A6', weight: 3, fillOpacity: 0.2 }).addTo(mapSingle);
-        ${Object.keys(wmsParamsSingle).length ? `L.tileLayer.wms('${SH_WMS_URL}', ${JSON.stringify(wmsParamsSingle)}).addTo(mapSingle);` : ''}
-        `}
-
         ${chartScriptHtml}
     </script>
 </body>
 </html>`;
 
-    const blob = new Blob([htmlContent], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `Sentinel_Report_${new Date().toISOString().slice(0, 10)}.html`;
-    a.click();
-    URL.revokeObjectURL(url);
+        const blob = new Blob([htmlContent], { type: 'text/html' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `sentinel-report-${Date.now()}.html`;
+        a.click();
+        URL.revokeObjectURL(url);
+
+    } catch (err) {
+        console.error("Report Export Failed:", err);
+        alert("Failed to build offline report. See console.");
+    } finally {
+        if (btn) {
+            btn.innerText = "Save Report (.html)";
+            btn.disabled = false;
+        }
+    }
 }
+
