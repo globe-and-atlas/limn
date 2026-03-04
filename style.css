@@ -464,37 +464,7 @@ button {
     box-shadow: 0 0 10px rgba(0, 210, 255, 0.2);
 }
 
-/* Mode Switcher */
-.mode-switcher-wrapper {
-    position: absolute;
-    top: 24px;
-    left: 50%;
-    transform: translateX(-50%);
-    z-index: 1000;
-}
 
-.mode-switcher {
-    display: flex;
-    background: var(--bg-panel);
-    backdrop-filter: var(--panel-blur);
-    border-radius: 20px;
-    padding: 4px;
-    border: 1px solid var(--border-color);
-}
-
-.mode-btn {
-    padding: 8px 20px;
-    border-radius: 16px;
-    font-size: 12px;
-    font-weight: 600;
-    color: var(--text-dim);
-    transition: background 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.3s cubic-bezier(0.16, 1, 0.3, 1), color 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-}
-
-.mode-btn.active {
-    background: #fff;
-    color: #000;
-}
 
 /* Legend */
 .legend-panel {
