@@ -1386,104 +1386,80 @@ function evaluatePixel(sample) {
                 rd2Compare = document.getElementById('date-t2').value;
                 if (rd1Compare > rd2Compare) { const tmp = rd1Compare; rd1Compare = rd2Compare; rd2Compare = tmp; }
 
-                if (state.compareType === 'swipe') {
-                    mapWrapperSingle.style.display = 'none';
-                    mapWrapperCompare.style.display = 'flex';
-                    mapLabel.innerText = `Side by Side: T1 (${rd1Compare}) vs T2 (${rd2Compare})`;
-                    diffContainer.style.display = 'block';
+                mapWrapperSingle.style.display = 'none';
+                mapWrapperCompare.style.display = 'flex';
+                mapLabel.innerText = `Side by Side: T1 (${rd1Compare}) vs T2 (${rd2Compare})`;
+                diffContainer.style.display = 'block';
 
-                    setTimeout(() => {
-                        // We recycle reportMapInst for T1, and reportDiffMapInst (or a new one) for T2
-                        if (!reportMapInst) {
-                            reportMapInst = L.map('report-map-t1', {
-                                zoomControl: false, attributionControl: false,
-                                dragging: false, scrollWheelZoom: false,
-                                doubleClickZoom: false, keyboard: false
-                            });
-                        } else {
-                            // map already exists, just reparent if needed
-                            reportMapInst.remove();
-                            reportMapInst = L.map('report-map-t1', {
-                                zoomControl: false, attributionControl: false,
-                                dragging: false, scrollWheelZoom: false,
-                                doubleClickZoom: false, keyboard: false
-                            });
-                        }
-
-                        if (window.reportMapInstT2) {
-                            window.reportMapInstT2.remove();
-                        }
-
-                        window.reportMapInstT2 = L.map('report-map-t2', {
+                setTimeout(() => {
+                    // We recycle reportMapInst for T1, and reportDiffMapInst (or a new one) for T2
+                    if (!reportMapInst) {
+                        reportMapInst = L.map('report-map-t1', {
                             zoomControl: false, attributionControl: false,
                             dragging: false, scrollWheelZoom: false,
                             doubleClickZoom: false, keyboard: false
                         });
+                    } else {
+                        // map already exists, just reparent if needed
+                        reportMapInst.remove();
+                        reportMapInst = L.map('report-map-t1', {
+                            zoomControl: false, attributionControl: false,
+                            dragging: false, scrollWheelZoom: false,
+                            doubleClickZoom: false, keyboard: false
+                        });
+                    }
 
-                        L.tileLayer(BASE_LAYERS[activeBaseKey], { maxZoom: 18 }).addTo(reportMapInst);
-                        L.tileLayer(BASE_LAYERS[activeBaseKey], { maxZoom: 18 }).addTo(window.reportMapInstT2);
+                    if (window.reportMapInstT2) {
+                        window.reportMapInstT2.remove();
+                    }
 
-                        reportMapInst.invalidateSize();
-                        window.reportMapInstT2.invalidateSize();
+                    window.reportMapInstT2 = L.map('report-map-t2', {
+                        zoomControl: false, attributionControl: false,
+                        dragging: false, scrollWheelZoom: false,
+                        doubleClickZoom: false, keyboard: false
+                    });
 
-                        reportMapInst.fitBounds(bounds, { padding: [10, 10] });
-                        window.reportMapInstT2.fitBounds(bounds, { padding: [10, 10] });
+                    L.tileLayer(BASE_LAYERS[activeBaseKey], { maxZoom: 18 }).addTo(reportMapInst);
+                    L.tileLayer(BASE_LAYERS[activeBaseKey], { maxZoom: 18 }).addTo(window.reportMapInstT2);
 
-                        L.rectangle(bounds, { color: '#1C85A6', weight: 3, fillOpacity: 0.2 }).addTo(reportMapInst);
-                        L.rectangle(bounds, { color: '#1C85A6', weight: 3, fillOpacity: 0.2 }).addTo(window.reportMapInstT2);
+                    reportMapInst.invalidateSize();
+                    window.reportMapInstT2.invalidateSize();
 
-                        getWMSLayer(rd1Compare, false).addTo(reportMapInst);
-                        getWMSLayer(rd2Compare, false).addTo(window.reportMapInstT2);
+                    reportMapInst.fitBounds(bounds, { padding: [10, 10] });
+                    window.reportMapInstT2.fitBounds(bounds, { padding: [10, 10] });
 
-                        // Init diff map below side-by-side
-                        if (!reportDiffMapInst) {
-                            reportDiffMapInst = L.map('report-map-diff', {
-                                zoomControl: false, attributionControl: false,
-                                dragging: false, scrollWheelZoom: false,
-                                doubleClickZoom: false, keyboard: false
-                            });
-                            reportDiffMapInst.baseLayer = L.tileLayer(BASE_LAYERS[activeBaseKey], { maxZoom: 18 }).addTo(reportDiffMapInst);
-                        } else {
-                            if (reportDiffMapInst.baseLayer) reportDiffMapInst.removeLayer(reportDiffMapInst.baseLayer);
-                            reportDiffMapInst.baseLayer = L.tileLayer(BASE_LAYERS[activeBaseKey], { maxZoom: 18 }).addTo(reportDiffMapInst);
-                        }
+                    L.rectangle(bounds, { color: '#1C85A6', weight: 3, fillOpacity: 0.2 }).addTo(reportMapInst);
+                    L.rectangle(bounds, { color: '#1C85A6', weight: 3, fillOpacity: 0.2 }).addTo(window.reportMapInstT2);
 
-                        reportDiffMapInst.invalidateSize();
-                        reportDiffMapInst.fitBounds(bounds, { padding: [20, 20] });
+                    getWMSLayer(rd1Compare, false).addTo(reportMapInst);
+                    getWMSLayer(rd2Compare, false).addTo(window.reportMapInstT2);
 
-                        if (reportDiffMapInst._drawnItems) reportDiffMapInst._drawnItems.clearLayers();
-                        else {
-                            reportDiffMapInst._drawnItems = new L.FeatureGroup();
-                            reportDiffMapInst.addLayer(reportDiffMapInst._drawnItems);
-                        }
-                        L.rectangle(bounds, { color: '#FF8F00', weight: 3, fillOpacity: 0.15 }).addTo(reportDiffMapInst._drawnItems);
+                    // Init diff map below side-by-side
+                    if (!reportDiffMapInst) {
+                        reportDiffMapInst = L.map('report-map-diff', {
+                            zoomControl: false, attributionControl: false,
+                            dragging: false, scrollWheelZoom: false,
+                            doubleClickZoom: false, keyboard: false
+                        });
+                        reportDiffMapInst.baseLayer = L.tileLayer(BASE_LAYERS[activeBaseKey], { maxZoom: 18 }).addTo(reportDiffMapInst);
+                    } else {
+                        if (reportDiffMapInst.baseLayer) reportDiffMapInst.removeLayer(reportDiffMapInst.baseLayer);
+                        reportDiffMapInst.baseLayer = L.tileLayer(BASE_LAYERS[activeBaseKey], { maxZoom: 18 }).addTo(reportDiffMapInst);
+                    }
 
-                        if (reportDiffMapInst.overlayLayer) reportDiffMapInst.removeLayer(reportDiffMapInst.overlayLayer);
-                        reportDiffMapInst.overlayLayer = getWMSLayer(`${rd1Compare}/${rd2Compare}`, true).addTo(reportDiffMapInst);
-                    }, 150);
+                    reportDiffMapInst.invalidateSize();
+                    reportDiffMapInst.fitBounds(bounds, { padding: [20, 20] });
 
-                } else {
-                    mapWrapperSingle.style.display = 'block';
-                    mapWrapperCompare.style.display = 'none';
-                    overlayLayer = getWMSLayer(`${rd1Compare}/${rd2Compare}`, true);
-                    mapLabel.innerText = 'Change Detection Map (\u0394 T1 \u2192 T2)';
-                    diffContainer.style.display = 'none';
+                    if (reportDiffMapInst._drawnItems) reportDiffMapInst._drawnItems.clearLayers();
+                    else {
+                        reportDiffMapInst._drawnItems = new L.FeatureGroup();
+                        reportDiffMapInst.addLayer(reportDiffMapInst._drawnItems);
+                    }
+                    L.rectangle(bounds, { color: '#FF8F00', weight: 3, fillOpacity: 0.15 }).addTo(reportDiffMapInst._drawnItems);
 
-                    setTimeout(() => {
-                        reportMapInst.invalidateSize();
-                        reportMapInst.fitBounds(bounds, { padding: [20, 20] });
-
-                        if (reportMapInst._drawnItems) reportMapInst._drawnItems.clearLayers();
-                        else {
-                            reportMapInst._drawnItems = new L.FeatureGroup();
-                            reportMapInst.addLayer(reportMapInst._drawnItems);
-                        }
-                        L.rectangle(bounds, { color: '#1C85A6', weight: 3, fillOpacity: 0.2 }).addTo(reportMapInst._drawnItems);
-
-                        if (reportMapInst.overlayLayer) reportMapInst.removeLayer(reportMapInst.overlayLayer);
-                        if (overlayLayer) reportMapInst.overlayLayer = overlayLayer.addTo(reportMapInst);
-                    }, 150);
-                }
+                    if (reportDiffMapInst.overlayLayer) reportDiffMapInst.removeLayer(reportDiffMapInst.overlayLayer);
+                    reportDiffMapInst.overlayLayer = getWMSLayer(`${rd1Compare}/${rd2Compare}`, true).addTo(reportDiffMapInst);
+                }, 150);
             }
 
             // 3. Show Modal
