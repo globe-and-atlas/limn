@@ -601,7 +601,8 @@ button {
     line-height: 1.6;
     text-align: left;
     white-space: normal;
-    z-index: 1000;
+    width: 250px;
+    z-index: 10000;
     opacity: 0;
     transition: opacity 0.2s ease, transform 0.2s ease;
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);

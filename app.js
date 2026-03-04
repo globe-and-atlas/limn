@@ -527,6 +527,18 @@ document.addEventListener('DOMContentLoaded', () => {
     const vBadge = document.getElementById('app-version-badge');
     if (vBadge) vBadge.textContent = APP_VERSION;
 
+    // Inject Tooltips (Scientific Context) to Index Buttons
+    document.querySelectorAll('.index-btn').forEach(btn => {
+        const idx = btn.getAttribute('data-index');
+        if (INDICES[idx] && INDICES[idx].info) {
+            btn.classList.add('tooltip-wrapper'); // Ensure wrapper class is applied
+            const tooltip = document.createElement('div');
+            tooltip.className = 'tooltip-text';
+            tooltip.innerHTML = `<strong>${INDICES[idx].name}</strong><br><br>${INDICES[idx].info}`;
+            btn.appendChild(tooltip);
+        }
+    });
+
     // Populate Compare Mode DOM dropdowns
     const t1Sel = document.getElementById('date-t1');
     const t2Sel = document.getElementById('date-t2');
@@ -1223,6 +1235,7 @@ function bindEvents() {
 
             document.getElementById('report-index-name').innerText = `${idx.name} [${idx.sensor}]`;
             document.getElementById('report-math').innerText = idx.formula;
+            document.getElementById('report-info').innerText = idx.info || "No additional scientific context available.";
 
             if (state.mode === 'single') {
                 document.getElementById('report-time').innerText = ALL_DATES[state.monthIndex].displayStr;
