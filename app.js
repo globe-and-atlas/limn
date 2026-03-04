@@ -420,16 +420,18 @@ const INDICES = {
   let hmri = sample.B12 / sample.B03;
   
   // Combine: All must be strongly elevated.
-  // Desert baseline for HMRI is often > 1.0. We only care if it spikes past 1.5.
-  // Desert baseline for HCAI is often slightly positive. We only care if > 0.1.
-  let brineScore = Math.max(0, brine);
-  let hcaiScore = Math.max(0, (hcai - 0.1) * 2);
-  let hmriScore = Math.max(0, (hmri - 1.5) * 2);
+  // Permian Desert baseline for HMRI is extreme (>1.5). We only care if it spikes past 1.8.
+  // Permian Desert baseline for HCAI is positive due to high albedo. We only care if > 0.15.
+  // Brine (NDSI) must also be confidently positive (> 0.1) to avoid dry false positives.
+  let brineScore = Math.max(0, brine - 0.1);
+  let hcaiScore = Math.max(0, (hcai - 0.15) * 2);
+  let hmriScore = Math.max(0, (hmri - 1.8) * 2);
   
+  // If any of the three are 0 (failed to meet the extreme threshold), the whole equation zeroes out.
   let pwmi = brineScore * hcaiScore * hmriScore;
   
-  // Apply a non-linear scaler (square) to suppress noise and make extreme outliers pop
-  let mapped = Math.min(1, Math.pow(pwmi * 15, 2));
+  // Apply a non-linear scaler (cube) to aggressively suppress remaining noise and make true hits pop
+  let mapped = Math.min(1, Math.pow(pwmi * 20, 3));
   ${colorBlend('mapped', PALETTE_PWMI)}
 `),
         fisBands: ['B03', 'B04', 'B11', 'B12'],
@@ -445,8 +447,8 @@ const INDICES = {
   if(sample.B03 === 0) return [0];
   let hmri = sample.B12 / sample.B03;
   
-  let pwmi = Math.max(0, brine) * Math.max(0, (hcai - 0.1) * 2) * Math.max(0, (hmri - 1.5) * 2);
-  return [Math.pow(pwmi * 15, 2)];
+  let pwmi = Math.max(0, brine - 0.1) * Math.max(0, (hcai - 0.15) * 2) * Math.max(0, (hmri - 1.8) * 2);
+  return [Math.pow(pwmi * 20, 3)];
 `
     },
     s1_sar: {
