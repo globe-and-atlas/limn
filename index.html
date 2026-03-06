@@ -107,7 +107,19 @@
                     <h1>SENTINEL EXPLORER <span id="app-version-badge"
                             style="font-size: 0.5em; font-weight: 500; font-family: 'JetBrains Mono', monospace; color: var(--text-muted); vertical-align: middle; background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px;">v22</span>
                     </h1>
-                    <h2>Well-Pad Environmental Analysis</h2>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <h2>Well-Pad Environmental Analysis</h2>
+                        <a href="help.html" target="_blank" class="tool-btn"
+                            style="text-decoration: none; padding: 4px 10px; font-size: 10px; margin: 0; display: inline-flex; align-items: center; gap: 4px; background: rgba(0, 210, 255, 0.1); border-color: rgba(0, 210, 255, 0.3); color: #00D2FF;">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <path d="M12 16v-4"></path>
+                                <path d="M12 8h.01"></path>
+                            </svg>
+                            SCIENCE DOCS
+                        </a>
+                    </div>
                 </div>
             </div>
         </header>
@@ -176,10 +188,12 @@
                     <span class="index-short" style="color: #f1c40f;">HPWI</span>
                     <span class="index-full" style="font-weight: 600;">Hybrid S1+S2 Fusion</span>
                 </button>
+            </div>
 
-                <!-- Divider -->
-                <div style="grid-column: 1 / -1; height: 1px; background: rgba(255,255,255,0.1); margin: 4px 0;"></div>
+            <!-- Divider -->
+            <div style="height: 1px; background: rgba(255,255,255,0.1); margin: 16px 0;"></div>
 
+            <div class="index-grid">
                 <!-- Secondary / Standard Indices (Alphabetical) -->
                 <button class="index-btn" data-index="csi">
                     <span class="index-short">CSI</span>
