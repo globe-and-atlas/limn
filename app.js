@@ -149,7 +149,7 @@ function evaluatePixel(samples) {
 // Advanced continuous color blending logic for evalscripts
 function colorBlend(valExpr, stopsStr) {
     return `
-  let v = Math.max(0, Math.min(1, ${valExpr}));
+  let v = ${valExpr};
   const stops = ${stopsStr};
   let i = 0;
   while (i < stops.length - 1 && v >= stops[i+1][0]) { i++; }
@@ -575,17 +575,17 @@ const INDICES = {
             function setup() {
                 return {
                     input: [
-                        {datasource: "SENTINEL2L2A", bands: ["B02", "B12", "dataMask"]},
-                        {datasource: "SENTINEL1", bands: ["VH", "dataMask"]}
+                        {datasource: "S2L2A", bands: ["B02", "B12", "dataMask"], id: "s2"},
+                        {datasource: "S1GRD", bands: ["VH", "dataMask"], id: "s1"}
                     ],
                     output: { bands: 4 }
                 };
             }
             function evaluatePixel(samples) {
-                let s2 = samples.SENTINEL2L2A[0];
-                let s1 = samples.SENTINEL1[0];
+                let s2 = samples.s2[0];
+                let s1 = samples.s1[0];
 
-                if (s2.dataMask === 0 || s1.dataMask === 0) return [0,0,0,0];
+                if (!s2 || !s1 || s2.dataMask === 0 || s1.dataMask === 0) return [0,0,0,0];
 
                 // 1. Calculate Optical Chemistry (NDOI for Hydrocarbons)
                 let sumNdoi = s2.B02 + s2.B12;
@@ -1132,12 +1132,21 @@ function getWMSLayer(timeStr, isDiff, overrideIndex = null) {
     let wmsLayerParam = 'AGRICULTURE';
     if (activeIdx === 's1_sar') wmsLayerParam = 'SENTINEL1-GRD';
 
+    // Auto-expand time window for Fusion to ensure intersection
+    let queryTime = timeStr;
+    if (activeIdx === 'hpwi' && !timeStr.includes('/')) {
+        let dateObj = new Date(timeStr);
+        let pastObj = new Date(dateObj);
+        pastObj.setDate(pastObj.getDate() - 12);
+        queryTime = pastObj.toISOString().split('T')[0] + '/' + timeStr;
+    }
+
     return L.tileLayer.wms(SH_WMS_URL, {
         layers: wmsLayerParam,
         format: 'image/png',
         transparent: true,
         version: '1.3.0',
-        time: timeStr,
+        time: queryTime,
         maxcc: 20,
         showlogo: false,
         evalscript: btoa(scriptContent),
