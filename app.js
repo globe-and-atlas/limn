@@ -150,6 +150,7 @@ function evaluatePixel(samples) {
 function colorBlend(valExpr, stopsStr) {
     return `
   let v = ${valExpr};
+  if (typeof VISUAL_FILTER !== 'undefined' && v < VISUAL_FILTER) return [0,0,0,0];
   const stops = ${stopsStr};
   let i = 0;
   while (i < stops.length - 1 && v >= stops[i+1][0]) { i++; }
@@ -749,6 +750,7 @@ const state = {
     monthIndex: Math.max(0, ALL_DATES.length - 1),
     sarFusion: false, // track the state of the SAR Overlay toggle
     opacity: 0.85,
+    visualFilter: 0,
     overlayGroup: null,
     leftGroup: null,
     rightGroup: null,
@@ -1121,6 +1123,10 @@ function evaluatePixel(samples) {
         scriptContent = cfg.evalscript; // HPWI doesn't easily support temporal diffing due to multi-source limits in our current engine
     }
 
+    // Inject visual filter globally into the raw script string
+    const filterInject = `//VERSION=3\nconst VISUAL_FILTER = ${state.visualFilter};`;
+    scriptContent = scriptContent.replace(/\/\/\s*VERSION=3/i, filterInject);
+
     return scriptContent;
 }
 
@@ -1309,6 +1315,19 @@ function updateUI() {
 
 // ── EVENT BINDINGS ─────────────────────────────────
 function bindEvents() {
+    // Visual Filter Slider
+    const visFilterSlider = document.getElementById('visual-filter-slider');
+    const visFilterVal = document.getElementById('visual-filter-val');
+    if (visFilterSlider && visFilterVal) {
+        visFilterSlider.addEventListener('input', (e) => {
+            visFilterVal.innerText = e.target.value + '%';
+        });
+        visFilterSlider.addEventListener('change', (e) => {
+            state.visualFilter = parseInt(e.target.value) / 100.0;
+            applyIndex();
+        });
+    }
+
     // Mode Switcher
     const mSing = document.getElementById('mode-single');
     const mComp = document.getElementById('mode-compare');
