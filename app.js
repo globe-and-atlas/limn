@@ -1038,10 +1038,11 @@ function getScriptContent(activeIndex, isDiff, isCumulative = false) {
         if (activeIndex === 'pwi') bands = ['B02', 'B03', 'B04', 'B08', 'B11', 'B12'];
 
         // Data fusion indices like HPWI are too complex for the basic cumulative script generator
-        if (activeIndex === 'hpwi') return cfg.evalscript;
-
-        scriptContent = genCumulativeEvalscript(bands, logic, palette);
-    } else if (isDiff) {
+        if (activeIndex !== 'hpwi') {
+            if (activeIndex === 'msi') palette = PALETTE_MSI_INV;
+            scriptContent = genCumulativeEvalscript(bands, logic, palette);
+        }
+    } else {
         if (cfg.diffscript) {
             scriptContent = cfg.diffscript;
         } else if (activeIndex === 's1_sar') {
@@ -1143,7 +1144,7 @@ function getWMSLayer(timeStr, isDiff, overrideIndex = null) {
     if (activeIdx === 'hpwi' && !timeStr.includes('/')) {
         let dateObj = new Date(timeStr);
         let pastObj = new Date(dateObj);
-        pastObj.setDate(pastObj.getDate() - 12);
+        pastObj.setDate(pastObj.getDate() - 30);
         queryTime = pastObj.toISOString().split('T')[0] + '/' + timeStr;
     }
 
