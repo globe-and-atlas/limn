@@ -769,6 +769,30 @@ button {
         opacity: 0.6;
     }
 
+    /* HPWI - Hybrid SAR / Optical */
+    .index-btn[data-index="hpwi"] .index-short {
+        color: #f1c40f;
+    }
+
+    .index-btn[data-index="hpwi"]:hover,
+    .index-btn[data-index="hpwi"].active {
+        border-color: #f1c40f;
+        box-shadow: 0 0 10px rgba(241, 196, 15, 0.3);
+    }
+
+    .index-btn[data-index="hpwi"]::before {
+        content: '';
+        display: block;
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        border-radius: 0 0 8px 8px;
+        background: linear-gradient(to right, #111111, #4b0082, #e74c3c, #f1c40f);
+        opacity: 0.6;
+    }
+
     /* EHC - Evaporite Halo Composite */
     .index-btn[data-index="ehc"] .index-short {
         background: linear-gradient(to right, #e74c3c, #2ecc71, #3498db);

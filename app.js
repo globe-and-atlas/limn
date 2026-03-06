@@ -562,6 +562,64 @@ const INDICES = {
         fisBands: ['B02', 'B04', 'B08', 'B11', 'B12'],
         fisLogic: `return [0];` // Complex RGB indices don't chart well
     },
+    hpwi: {
+        name: 'Hybrid SAR+Optical (HPWI)',
+        sensor: 'S1-GRD + S2-L2A (Fusion)',
+        min: 'Background', max: 'Confirmed Liquid Spill',
+        gradient: 'linear-gradient(to right, #111111, #4b0082, #e74c3c, #f1c40f)',
+        formula: 'NDOI * (1 - norm(VH))',
+        info: 'ADVANCED DATA FUSION: Combines Sentinel-2 optical chemistry (Hydrocarbons via NDOI) with Sentinel-1 radar physics (Surface dampening via VH backscatter). It eliminates dry-soil false positives by mathematically requiring both the chemical signature of oil AND the physical smoothness of a liquid puddle.',
+        diffLabels: ['Stable', 'New Spill Detected'],
+        evalscript: `
+            // VERSION=3
+            function setup() {
+                return {
+                    input: [
+                        {datasource: "SENTINEL2L2A", bands: ["B02", "B12", "dataMask"]},
+                        {datasource: "SENTINEL1", bands: ["VH", "dataMask"]}
+                    ],
+                    output: { bands: 4 }
+                };
+            }
+            function evaluatePixel(samples) {
+                let s2 = samples.SENTINEL2L2A[0];
+                let s1 = samples.SENTINEL1[0];
+
+                if (s2.dataMask === 0 || s1.dataMask === 0) return [0,0,0,0];
+
+                // 1. Calculate Optical Chemistry (NDOI for Hydrocarbons)
+                let sumNdoi = s2.B02 + s2.B12;
+                let ndoi = sumNdoi === 0 ? 0 : (s2.B02 - s2.B12) / sumNdoi;
+                ndoi = Math.max(0, ndoi); // Only positive hydrocarbon signals
+
+                // 2. Calculate Radar Physics (VH Dampening)
+                // Sentinel-1 VH backscatter usually ranges from ~0.005 (smooth/wet) to ~0.05 (rough/dry)
+                // We want a multiplier that is HIGH (1.0) when VH is LOW (smooth liquid puddle), and LOW (0.0) when VH is high (dry rough soil)
+                // Normalize VH (clamp between 0.005 and 0.05) and invert it
+                let vh = s1.VH;
+                let minVh = 0.005;
+                let maxVh = 0.05;
+                let normVh = (Math.max(minVh, Math.min(vh, maxVh)) - minVh) / (maxVh - minVh);
+                let smoothMultiplier = 1.0 - normVh; 
+
+                // 3. The Hybrid Score
+                // Multiply optical probability by physical dampening probability
+                let hpwi = ndoi * smoothMultiplier;
+
+                // Scale for display (HPWI is usually very small, ~0.05 to 0.25 max)
+                let mapped = Math.max(0, Math.min(1, hpwi * 4.0));
+
+                ${colorBlend('mapped', `[
+                    [0.0, 17, 17, 17],    // Black/Dark Gray
+                    [0.3, 75, 0, 130],    // Indigo
+                    [0.7, 231, 76, 60],   // Bright Red
+                    [1.0, 241, 196, 15]   // Yellow/Hot
+                ]`)}
+            }
+        `,
+        fisBands: ['B02', 'B12'], // FIS won't easily support cross-datasource queries right now
+        fisLogic: `return [0];`
+    },
     pwi: {
         sensor: 'Sentinel-2 L2A',
         min: 'Background', max: 'Confirmed Spill',
@@ -977,6 +1035,9 @@ function getScriptContent(activeIndex, isDiff, isCumulative = false) {
         if (activeIndex === 'aoi') bands = ['B02', 'B04', 'B11', 'B12'];
         if (activeIndex === 'pwi') bands = ['B02', 'B03', 'B04', 'B08', 'B11', 'B12'];
 
+        // Data fusion indices like HPWI are too complex for the basic cumulative script generator
+        if (activeIndex === 'hpwi') return cfg.evalscript;
+
         scriptContent = genCumulativeEvalscript(bands, logic, palette);
     } else if (isDiff) {
         if (cfg.diffscript) {
@@ -1030,6 +1091,7 @@ function evaluatePixel(samples) {
             else if (activeIndex === 'ehc') calc = '-(((sample.B02-sample.B12)/(sample.B02+sample.B12)) + ((sample.B11-sample.B12)/(sample.B11+sample.B12)))'; // simplistic diff proxy for color composite
             else if (activeIndex === 'pwi') calc = '-( ((sample.B11+sample.B04)-(sample.B08+sample.B02))/((sample.B11+sample.B04)+(sample.B08+sample.B02)) > 0 ? (Math.max(0, ((sample.B11 - sample.B12)/(sample.B11 + sample.B12)) - 0.10) * Math.max(0, (((sample.B11 - sample.B04)/(sample.B11 + sample.B04)) - 0.30) * 2) * Math.max(0, ((sample.B12 / sample.B03) - 2.0) * 2)) : 0)';
 
+
             // Proxies for visual bands
             else if (activeIndex === 'tc') calc = '(sample.B04*2)'; // simplistic proxy for True Color change
             else if (activeIndex === 'fc') calc = '(sample.B08*2)'; // simplistic proxy for False Color change
@@ -1053,6 +1115,12 @@ function evaluatePixel(samples) {
             scriptContent = genDiffEvalscript(bands, calc);
         }
     }
+
+    // Fallback for Data Fusion in Diff/Cumulative Modes (not supported by simple array builders)
+    if (activeIndex === 'hpwi' && isDiff) {
+        scriptContent = cfg.evalscript; // HPWI doesn't easily support temporal diffing due to multi-source limits in our current engine
+    }
+
     return scriptContent;
 }
 
