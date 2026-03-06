@@ -65,7 +65,7 @@ async function getCDSEToken() {
     return cachedAccessToken;
 }
 
-const APP_VERSION = 'v21';
+const APP_VERSION = 'v22';
 
 // Globals for Report Generation
 let aoiDrawnItem = null;
@@ -427,48 +427,190 @@ const INDICES = {
   return [Math.max(0, sample.B12 / sample.B03 - 2.0)];
 `
     },
+    ndoi: {
+        name: 'Oil Slicks (NDOI)',
+        sensor: 'Sentinel-2 L2A',
+        min: 'Background', max: 'Hydrocarbons',
+        gradient: 'linear-gradient(to right, #2c3e50, #7f8c8d, #f1c40f, #e74c3c)',
+        formula: '(B02 - B12) / (B02 + B12)',
+        info: 'Normalized Difference Oil Index isolates thick crude oil/hydrocarbon slicks. It heavily contrasts the highly-absorptive SWIR2 band (B12) against the bright reflectance of the Blue band (B02).',
+        diffLabels: ['Less Oil', 'Concentrated Oil'],
+        evalscript: genEvalscript(['B02', 'B12'], `
+  let sum = sample.B02 + sample.B12;
+  if(sum === 0) return [0,0,0,0];
+  let val = (sample.B02 - sample.B12) / sum;
+  
+  // NDOI usually ranges from -0.5 to 0.5. Oil pushes it positive.
+  let mapped = Math.max(0, val * 2);
+  ${colorBlend('mapped', `[
+      [0.0, 43, 62, 80],
+      [0.3, 127, 140, 141],
+      [0.7, 241, 196, 15],
+      [1.0, 231, 76, 60]
+  ]`)}
+`),
+        fisBands: ['B02', 'B12'],
+        fisLogic: `
+  let sum = sample.B02 + sample.B12;
+  if(sum === 0) return [0];
+  return [(sample.B02 - sample.B12) / sum];
+`
+    },
+    crsi: {
+        name: 'Salt Stress (CRSI)',
+        sensor: 'Sentinel-2 L2A',
+        min: 'Healthy Veg', max: 'Salt Shock',
+        gradient: 'linear-gradient(to right, #27ae60, #f1c40f, #e67e22, #c0392b)',
+        formula: 'sqrt((B08*B04 - B03*B02) / (B08*B04 + B03*B02))',
+        info: 'Canopy Response Salinity Index. Directly measures the physiological stress of salt brine on sparse vegetation (like scrub brush) rather than looking for bare salt crusts. Excellent secondary indicator for brine spreading off-pad.',
+        diffLabels: ['Healthy / Recovery', 'Salt-Induced Mortality'],
+        evalscript: genEvalscript(['B02', 'B03', 'B04', 'B08'], `
+  let top = (sample.B08 * sample.B04) - (sample.B03 * sample.B02);
+  let bot = (sample.B08 * sample.B04) + (sample.B03 * sample.B02);
+  if(bot === 0 || top < 0) return [0,0,0,0];
+  
+  let crsi = Math.sqrt(top / bot);
+  
+  // CRSI drops as salinity increases and vegetation dies.
+  // We invert it so Red/High = Bad (Salt Shock).
+  let mapped = 1.0 - Math.min(1, Math.max(0, crsi)); 
+  ${colorBlend('mapped', `[
+      [0.0, 39, 174, 96],
+      [0.4, 241, 196, 15],
+      [0.7, 230, 126, 34],
+      [1.0, 192, 57, 43]
+  ]`)}
+`),
+        fisBands: ['B02', 'B03', 'B04', 'B08'],
+        fisLogic: `
+  let top = (sample.B08 * sample.B04) - (sample.B03 * sample.B02);
+  let bot = (sample.B08 * sample.B04) + (sample.B03 * sample.B02);
+  if(bot === 0 || top < 0) return [0];
+  let crsi = Math.sqrt(top / bot);
+  return [1.0 - Math.min(1, Math.max(0, crsi))];
+`
+    },
+    aoi: {
+        name: 'Anoxic Oxidation (AOI)',
+        sensor: 'Sentinel-2 L2A',
+        min: 'Background', max: 'Oxidized Minerals',
+        gradient: 'linear-gradient(to right, #2c3e50, #8e44ad, #c0392b)',
+        formula: '(B04 / B02) * (B11 / B12)',
+        info: 'Detects the unique chemical signature of deep-earth formation water oxidizing on the surface. Combines an iron oxide ratio (Red/Blue) with a hydrocarbon absorption ratio (SWIR1/SWIR2) to identify the dark rust "scab" of a produced water spill.',
+        diffLabels: ['Less Oxidation', 'Extreme Oxidation'],
+        evalscript: genEvalscript(['B02', 'B04', 'B11', 'B12'], `
+  if(sample.B02 === 0 || sample.B12 === 0) return [0,0,0,0];
+  let ironOxide = sample.B04 / sample.B02;
+  let hydrocarbon = sample.B11 / sample.B12;
+  
+  let aoi = ironOxide * hydrocarbon;
+  
+  // AOI background is typically ~1.5 to 2.0. Severe oxidation pushes it to 3.5+
+  let mapped = Math.max(0, Math.min(1, (aoi - 2.0) / 2.0));
+  
+  ${colorBlend('mapped', `[
+      [0.0, 44, 62, 80],    // Dark Slate
+      [0.4, 142, 68, 173],  // Purple
+      [0.8, 192, 57, 43],   // Deep Red
+      [1.0, 255, 0, 0]      // Bright Red
+  ]`)}
+`),
+        fisBands: ['B02', 'B04', 'B11', 'B12'],
+        fisLogic: `
+  if(sample.B02 === 0 || sample.B12 === 0) return [0];
+  let aoi = (sample.B04 / sample.B02) * (sample.B11 / sample.B12);
+  return [Math.max(0, (aoi - 2.0) / 2.0)];
+`
+    },
+    ehc: {
+        name: 'Evaporite Halo (Visual)',
+        sensor: 'Sentinel-2 L2A',
+        min: 'False Color RGB', max: '',
+        gradient: 'linear-gradient(to right, #ff0000, #00ff00, #0000ff)',
+        formula: 'R=NDOI, G=BSI, B=NDSI',
+        info: 'A custom RGB false-color composite designed to highlight the geometry of a blowout. Shows a dark/red oily center, surrounded by a bright blue ring of crystallized salt, over a green mud footprint.',
+        diffLabels: ['N/A', 'N/A'],
+        evalscript: `
+            // VERSION=3
+            function setup() {
+                return {
+                    input: ["B02","B04","B08","B11","B12", "dataMask"],
+                    output: { bands: 4 }
+                };
+            }
+            function evaluatePixel(sample) {
+                if(sample.dataMask === 0) return [0,0,0,0];
+                
+                // Red Channel = NDOI (Oil)
+                let sumNdoi = sample.B02 + sample.B12;
+                let ndoi = sumNdoi === 0 ? 0 : (sample.B02 - sample.B12) / sumNdoi;
+                let red = Math.max(0, ndoi * 3); // Boost oil signal
+
+                // Green Channel = BSI (Bare Soil/Mud)
+                let bsiTop = (sample.B11 + sample.B04) - (sample.B08 + sample.B02);
+                let bsiBot = (sample.B11 + sample.B04) + (sample.B08 + sample.B02);
+                let bsi = bsiBot === 0 ? 0 : bsiTop / bsiBot;
+                let green = Math.max(0, bsi * 2);
+
+                // Blue Channel = NDSI (Brine/Salt)
+                let ndsiSum = sample.B11 + sample.B12;
+                let ndsi = ndsiSum === 0 ? 0 : (sample.B11 - sample.B12) / ndsiSum;
+                let blue = Math.max(0, ndsi * 4); // Salt is highly reflective
+                
+                return [red, green, blue, 1];
+            }`,
+        fisBands: ['B02', 'B04', 'B08', 'B11', 'B12'],
+        fisLogic: `return [0];` // Complex RGB indices don't chart well
+    },
     pwi: {
-        name: 'Produced Water (PWI)',
         sensor: 'Sentinel-2 L2A',
         min: 'Background', max: 'Confirmed Spill',
         gradient: 'linear-gradient(to right, #000000, #00FFFF, #FF00FF, #CCFF00)',
-        formula: 'NDSI * HCAI * HMRI',
-        info: 'Produced Water Index — restrictive composite. Multiplies Brine (NDSI > 0.10), Hydrocarbons (HCAI > 0.30), and Heavy Metals (HMRI > 2.0). All three must spike simultaneously. Cubic power scaling (*20)^3 aggressively suppresses marginal bare-soil signals while amplifying confirmed spills.',
+        formula: 'NDSI * HCAI * HMRI * BSI_Mask',
+        info: 'Produced Water Index — highly restrictive composite. Multiplies Brine (NDSI > 0.10), Hydrocarbons (HCAI > 0.30), and Heavy Metals (HMRI > 2.0). All three must spike simultaneously. It also strictly requires a positive Bare Soil Index (BSI > 0) to mask out false positives triggered by asphalt roads and residential roofing. Cubic power scaling aggressively suppresses marginal signals.',
         diffLabels: ['Less / Recovery', 'Toxic Concentration'],
-        evalscript: genEvalscript(['B03', 'B04', 'B11', 'B12'], `
-  // Brine (NDSI)
+        evalscript: genEvalscript(['B02', 'B03', 'B04', 'B08', 'B11', 'B12'], `
+  // 1. Bare Soil Index (BSI) -- URBAN / WATER / VEG MASK
+  // BSI = ((SWIR1 + RED) - (NIR + BLUE)) / ((SWIR1 + RED) + (NIR + BLUE))
+  let bsiTop = (sample.B11 + sample.B04) - (sample.B08 + sample.B02);
+  let bsiBot = (sample.B11 + sample.B04) + (sample.B08 + sample.B02);
+  if (bsiBot === 0) return [0,0,0,0];
+  let bsi = bsiTop / bsiBot;
+  
+  // If it's not bare soil (i.e. it's asphalt, water, or dense veg), zero it out immediately.
+  if (bsi <= 0) return [0,0,0,0];
+
+  // 2. Brine (NDSI)
   let sumBrine = sample.B11 + sample.B12;
   if(sumBrine === 0) return [0,0,0,0];
   let brine = (sample.B11 - sample.B12) / sumBrine;
   
-  // Hydrocarbons (HCAI)
+  // 3. Hydrocarbons (HCAI)
   let sumHcai = sample.B11 + sample.B04;
   if(sumHcai === 0) return [0,0,0,0];
   let hcai = (sample.B11 - sample.B04) / sumHcai;
   
-  // Heavy Metals (HMRI)
+  // 4. Heavy Metals (HMRI)
   if(sample.B03 === 0) return [0,0,0,0];
   let hmri = sample.B12 / sample.B03;
   
   // Permian-calibrated thresholds:
-  // NDSI > 0.10 - dry soil is 0.05-0.10; salt/brine pushes past 0.10
-  // HCAI > 0.30 - red dirt peaks at 0.25-0.30; oil contamination 0.40+
-  // HMRI > 2.0  - caliche ~1.0, normal soil 1.5-1.9; contamination 2.0+
   let brineScore = Math.max(0, brine - 0.10);
   let hcaiScore = Math.max(0, (hcai - 0.30) * 2);
   let hmriScore = Math.max(0, (hmri - 2.0) * 2);
   
   let pwi = brineScore * hcaiScore * hmriScore;
   
-  // Cubic scaling: aggressive multiplier (100x) to bring aged spills into visible range.
-  // Bare soil leakage (raw ~0.0006) cubes to ~0.0000002 (invisible)
-  // Aged spills (raw ~0.0036) cube to ~0.04 (visible faint cyan)
-  // Strong spills (raw ~0.06) cube to 1.0 (full strength)
-  let mapped = Math.min(1, Math.pow(pwi * 100, 3));
+  // Power scaling: multiplier (100x) brings aged spills into visible range.
+  let mapped = Math.min(1, Math.pow(pwi * 100, 1.5));
   ${colorBlend('mapped', PALETTE_PWI)}
 `),
-        fisBands: ['B03', 'B04', 'B11', 'B12'],
+        fisBands: ['B02', 'B03', 'B04', 'B08', 'B11', 'B12'],
         fisLogic: `
+  let bsiTop = (sample.B11 + sample.B04) - (sample.B08 + sample.B02);
+  let bsiBot = (sample.B11 + sample.B04) + (sample.B08 + sample.B02);
+  if (bsiBot === 0 || (bsiTop / bsiBot) <= 0) return [0];
+
   let sumBrine = sample.B11 + sample.B12;
   if(sumBrine === 0) return [0];
   let brine = (sample.B11 - sample.B12) / sumBrine;
@@ -481,7 +623,7 @@ const INDICES = {
   let hmri = sample.B12 / sample.B03;
   
   let pwi = Math.max(0, brine - 0.10) * Math.max(0, (hcai - 0.30) * 2) * Math.max(0, (hmri - 2.0) * 2);
-  return [Math.pow(pwi * 100, 3)];
+  return [Math.pow(pwi * 100, 1.5)];
 `
     },
     s1_sar: {
@@ -536,7 +678,8 @@ function evaluatePixel(sample) {
 const BASE_LAYERS = {
     imagery: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
     topo: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}',
-    osm: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+    osm: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    dark: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
 };
 
 const state = {
@@ -553,7 +696,7 @@ const state = {
     rightGroup: null,
     sbsControl: null,
     chartInst: null,
-    timelineInterval: null,
+
     anomalousDates: [] // Array of 'YYYY-MM-DD' strings flagged by the scanner
 };
 
@@ -607,13 +750,7 @@ document.addEventListener('DOMContentLoaded', () => {
         state.monthIndex = ALL_DATES.length - 1;
         selSingle.value = state.monthIndex;
 
-        // Initialize the timeline scrubber max value
-        const scrubberSlider = document.getElementById('scrubber-slider');
-        if (scrubberSlider) {
-            scrubberSlider.max = ALL_DATES.length - 1;
-            scrubberSlider.value = state.monthIndex;
-            document.getElementById('scrubber-date-label').innerText = ALL_DATES[state.monthIndex].value;
-        }
+
     }
 
 
@@ -796,12 +933,19 @@ function getScriptContent(activeIndex, isDiff, isCumulative = false) {
         else if (activeIndex === 'msi') { logic = "sample.B11 / sample.B08"; palette = PALETTE_MSI; } // Corrected palette
         else if (activeIndex === 'si') { logic = "(sample.B11 - sample.B08) / (sample.B11 + sample.B08) + 0.5"; palette = PALETTE_SI; } // Corrected palette
         else if (activeIndex === 'brine') { logic = "(sample.B11 - sample.B12) / (sample.B11 + sample.B12) + 0.1"; palette = PALETTE_BRINE; }
-        else if (activeIndex === 'csi') { logic = "sample.B11 / sample.B12 - 0.5"; palette = PALETTE_CSI; } // Corrected palette
-        else if (activeIndex === 'hcai') { logic = "(sample.B11 - sample.B04) / (sample.B11 + sample.B04) + 0.1"; palette = PALETTE_HCAI; } // Corrected palette
+        else if (activeIndex === 'csi') { logic = "sample.B11 / sample.B12 - 0.5"; palette = PALETTE_CSI; }
+        else if (activeIndex === 'hcai') { logic = "(sample.B11 - sample.B04) / (sample.B11 + sample.B04) + 0.1"; palette = PALETTE_HCAI; }
         else if (activeIndex === 'hmri') { logic = "sample.B12 / sample.B03 - 2.0"; palette = PALETTE_HMRI; }
+        else if (activeIndex === 'ndoi') { logic = "(sample.B02 - sample.B12) / (sample.B02 + sample.B12)"; palette = "[ [0.0, 43, 62, 80], [0.3, 127, 140, 141], [0.7, 241, 196, 15], [1.0, 231, 76, 60] ]"; }
+        else if (activeIndex === 'crsi') { logic = "1.0 - Math.min(1, Math.max(0, Math.sqrt(Math.max(0, ((sample.B08*sample.B04)-(sample.B03*sample.B02))/((sample.B08*sample.B04)+(sample.B03*sample.B02))))))"; palette = "[ [0.0, 39, 174, 96], [0.4, 241, 196, 15], [0.7, 230, 126, 34], [1.0, 192, 57, 43] ]"; }
+        else if (activeIndex === 'aoi') { logic = "Math.max(0, (((sample.B04/sample.B02)*(sample.B11/sample.B12)) - 2.0) / 2.0)"; palette = "[ [0.0, 44, 62, 80], [0.4, 142, 68, 173], [0.8, 192, 57, 43], [1.0, 255, 0, 0] ]"; }
         else if (activeIndex === 'pwi') {
             logic = `
                 (function() {
+                    let bsiTop = (sample.B11 + sample.B04) - (sample.B08 + sample.B02);
+                    let bsiBot = (sample.B11 + sample.B04) + (sample.B08 + sample.B02);
+                    if (bsiBot === 0 || (bsiTop / bsiBot) <= 0) return 0;
+                    
                     let sumBrine = sample.B11 + sample.B12;
                     if(sumBrine === 0) return 0;
                     let brine = (sample.B11 - sample.B12) / sumBrine;
@@ -814,7 +958,7 @@ function getScriptContent(activeIndex, isDiff, isCumulative = false) {
                     let hmri = sample.B12 / sample.B03;
                     
                     let pScore = Math.max(0, brine - 0.10) * Math.max(0, (hcai - 0.30) * 2) * Math.max(0, (hmri - 2.0) * 2);
-                    return Math.min(1, Math.pow(pScore * 100, 3));
+                    return Math.min(1, Math.pow(pScore * 100, 1.5));
                 })()
             `;
             palette = PALETTE_PWI;
@@ -828,7 +972,10 @@ function getScriptContent(activeIndex, isDiff, isCumulative = false) {
         if (activeIndex === 'brine' || activeIndex === 'csi') bands = ['B11', 'B12'];
         if (activeIndex === 'hcai') bands = ['B11', 'B04'];
         if (activeIndex === 'hmri') bands = ['B12', 'B03'];
-        if (activeIndex === 'pwi') bands = ['B11', 'B12', 'B04', 'B03'];
+        if (activeIndex === 'ndoi') bands = ['B02', 'B12'];
+        if (activeIndex === 'crsi') bands = ['B02', 'B03', 'B04', 'B08'];
+        if (activeIndex === 'aoi') bands = ['B02', 'B04', 'B11', 'B12'];
+        if (activeIndex === 'pwi') bands = ['B02', 'B03', 'B04', 'B08', 'B11', 'B12'];
 
         scriptContent = genCumulativeEvalscript(bands, logic, palette);
     } else if (isDiff) {
@@ -877,8 +1024,11 @@ function evaluatePixel(samples) {
             else if (activeIndex === 'csi') calc = '-(sample.B11 / sample.B12)';
             else if (activeIndex === 'hcai') calc = '-((sample.B11 - sample.B04)/(sample.B11 + sample.B04))';
             else if (activeIndex === 'hmri') calc = '-(sample.B12 / sample.B03)';
-            else if (activeIndex === 'pwi') calc = '-(Math.max(0, ((sample.B11 - sample.B12)/(sample.B11 + sample.B12)) - 0.10) * Math.max(0, (((sample.B11 - sample.B04)/(sample.B11 + sample.B04)) - 0.30) * 2) * Math.max(0, ((sample.B12 / sample.B03) - 2.0) * 2))';
-
+            else if (activeIndex === 'ndoi') calc = '-((sample.B02 - sample.B12)/(sample.B02 + sample.B12))';
+            else if (activeIndex === 'crsi') calc = '-(Math.sqrt(Math.max(0, ((sample.B08*sample.B04)-(sample.B03*sample.B02))/((sample.B08*sample.B04)+(sample.B03*sample.B02)))))';
+            else if (activeIndex === 'aoi') calc = '-((sample.B04/sample.B02)*(sample.B11/sample.B12))';
+            else if (activeIndex === 'ehc') calc = '-(((sample.B02-sample.B12)/(sample.B02+sample.B12)) + ((sample.B11-sample.B12)/(sample.B11+sample.B12)))'; // simplistic diff proxy for color composite
+            else if (activeIndex === 'pwi') calc = '-( ((sample.B11+sample.B04)-(sample.B08+sample.B02))/((sample.B11+sample.B04)+(sample.B08+sample.B02)) > 0 ? (Math.max(0, ((sample.B11 - sample.B12)/(sample.B11 + sample.B12)) - 0.10) * Math.max(0, (((sample.B11 - sample.B04)/(sample.B11 + sample.B04)) - 0.30) * 2) * Math.max(0, ((sample.B12 / sample.B03) - 2.0) * 2)) : 0)';
 
             // Proxies for visual bands
             else if (activeIndex === 'tc') calc = '(sample.B04*2)'; // simplistic proxy for True Color change
@@ -893,7 +1043,11 @@ function evaluatePixel(samples) {
             if (activeIndex === 'brine' || activeIndex === 'csi') bands = ['B11', 'B12'];
             if (activeIndex === 'hcai') bands = ['B11', 'B04'];
             if (activeIndex === 'hmri') bands = ['B12', 'B03'];
-            if (activeIndex === 'pwi') bands = ['B11', 'B12', 'B04', 'B03'];
+            if (activeIndex === 'ndoi') bands = ['B02', 'B12'];
+            if (activeIndex === 'crsi') bands = ['B02', 'B03', 'B04', 'B08'];
+            if (activeIndex === 'aoi') bands = ['B02', 'B04', 'B11', 'B12'];
+            if (activeIndex === 'ehc') bands = ['B02', 'B12', 'B11'];
+            if (activeIndex === 'pwi') bands = ['B02', 'B03', 'B04', 'B08', 'B11', 'B12'];
             if (activeIndex === 'fc') bands = ['B08', 'B04', 'B03'];
 
             scriptContent = genDiffEvalscript(bands, calc);
@@ -930,20 +1084,6 @@ function getWMSLayer(timeStr, isDiff, overrideIndex = null) {
 function applyIndex(isScrubbing = false) {
     if (!state.map) return;
 
-    // Show/hide scrubber based on mode
-    const scrubberPanel = document.getElementById('timeline-scrubber-panel');
-    if (state.mode === 'single') {
-        if (scrubberPanel && ALL_DATES.length > 0) scrubberPanel.style.display = 'flex';
-        // Ensure scrubber slider is synced if not triggered by it
-        const scrubberSlider = document.getElementById('scrubber-slider');
-        if (scrubberSlider && !isScrubbing) {
-            scrubberSlider.max = Math.max(0, ALL_DATES.length - 1);
-            scrubberSlider.value = state.monthIndex;
-            document.getElementById('scrubber-date-label').innerText = ALL_DATES[state.monthIndex]?.value;
-        }
-    } else {
-        if (scrubberPanel) scrubberPanel.style.display = 'none';
-    }
 
     if (!isScrubbing) {
         if (state.overlayGroup) { state.map.removeLayer(state.overlayGroup); state.overlayGroup = null; }
@@ -1110,10 +1250,8 @@ function bindEvents() {
         mComp.classList.add('active'); mSing.classList.remove('active');
         cComp.style.display = 'block'; cSing.style.display = 'none';
 
-        // Hide scrubber in compare mode
-        const scrubberPanel = document.getElementById('timeline-scrubber-panel');
-        if (scrubberPanel) scrubberPanel.style.display = 'none';
-        if (state.timelineInterval) stopTimeline();
+
+
 
         applyIndex();
     });
@@ -1300,77 +1438,6 @@ function bindEvents() {
     document.getElementById('date-t1').addEventListener('change', () => { if (state.mode === 'compare') applyIndex(); });
     document.getElementById('date-t2').addEventListener('change', () => { if (state.mode === 'compare') applyIndex(); });
 
-    // ==========================================================================
-    // Timeline Scrubber Logic
-    // ==========================================================================
-    const scrubberPanel = document.getElementById('timeline-scrubber-panel');
-    const scrubberSlider = document.getElementById('scrubber-slider');
-    const scrubberDateLabel = document.getElementById('scrubber-date-label');
-    const btnPlayTimeline = document.getElementById('btn-play-timeline');
-    const iconPlay = document.getElementById('icon-play');
-    const iconPause = document.getElementById('icon-pause');
-
-    function updateScrubberUI(idx) {
-        if (!ALL_DATES || ALL_DATES.length === 0) return;
-        scrubberSlider.value = idx;
-        scrubberDateLabel.innerText = ALL_DATES[idx].value;
-    }
-
-    function toggleTimelinePlay() {
-        if (state.timelineInterval) {
-            stopTimeline();
-        } else {
-            startTimeline();
-        }
-    }
-
-    function startTimeline() {
-        if (state.mode !== 'single') return;
-        iconPlay.style.display = 'none';
-        iconPause.style.display = 'block';
-
-        state.timelineInterval = setInterval(() => {
-            let nextIdx = state.monthIndex + 1;
-            if (nextIdx >= ALL_DATES.length) nextIdx = 0; // Loop back
-
-            state.monthIndex = nextIdx;
-
-            // Sync UI Dropdown
-            const dSingle = document.getElementById('date-single');
-            if (dSingle) dSingle.value = state.monthIndex;
-
-            updateScrubberUI(state.monthIndex);
-
-            // Reapply index silently
-            applyIndex(true); // pass true to indicate a silent/scrubber update
-        }, 1500); // 1.5 seconds per frame
-    }
-
-    function stopTimeline() {
-        if (state.timelineInterval) {
-            clearInterval(state.timelineInterval);
-            state.timelineInterval = null;
-        }
-        iconPlay.style.display = 'block';
-        iconPause.style.display = 'none';
-    }
-
-    if (scrubberSlider && btnPlayTimeline) {
-        scrubberSlider.addEventListener('input', (e) => {
-            stopTimeline(); // Stop auto-play on manual drag
-            const newIdx = parseInt(e.target.value, 10);
-            state.monthIndex = newIdx;
-
-            // Sync UI Dropdown
-            const dSingle = document.getElementById('date-single');
-            if (dSingle) dSingle.value = state.monthIndex;
-
-            updateScrubberUI(newIdx);
-            applyIndex(true);
-        });
-
-        btnPlayTimeline.addEventListener('click', toggleTimelinePlay);
-    }
 
     // Map Mouse Move for exact coordinate tracking (optional enhancement)
     state.map.on('mousemove', function (e) {
@@ -1544,7 +1611,7 @@ function evaluatePixel(sample) {
             }
 
             // Re-render UI to show highlights
-            renderCalendar();
+            highlightAnomalies();
 
         } catch (err) {
             console.error("Anomaly scan failed", err);
@@ -1554,6 +1621,25 @@ function evaluatePixel(sample) {
             btn.disabled = false;
         }
     });
+
+    function highlightAnomalies() {
+        if (!state.anomalousDates || state.anomalousDates.length === 0) return;
+
+        ['date-single', 'date-t1', 'date-t2'].forEach(selectId => {
+            const selectEl = document.getElementById(selectId);
+            if (selectEl) {
+                Array.from(selectEl.options).forEach(opt => {
+                    if (state.anomalousDates.includes(opt.value)) {
+                        if (!opt.text.includes('⚠️')) {
+                            opt.text = '⚠️ ' + opt.text;
+                            opt.style.color = '#FF8F00';
+                            opt.style.fontWeight = 'bold';
+                        }
+                    }
+                });
+            }
+        });
+    }
 
     document.getElementById('btn-generate-report').addEventListener('click', async () => {
         if (!aoiDrawnItem) return;

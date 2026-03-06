@@ -425,6 +425,7 @@ button {
     flex-direction: column;
     padding: 24px;
     overflow-y: auto;
+    overflow-x: hidden;
 }
 
 /* Map Controls (Top Right) */
@@ -589,8 +590,8 @@ button {
     visibility: hidden;
     position: absolute;
     bottom: calc(100% + 10px);
-    left: 50%;
-    transform: translateX(-50%) translateY(4px);
+    left: 0;
+    transform: translateY(4px);
     background: rgba(10, 11, 20, 0.97);
     color: rgba(255, 255, 255, 0.85);
     border: 1px solid rgba(0, 210, 255, 0.3);
@@ -612,14 +613,27 @@ button {
 .tooltip-wrapper:hover .tooltip-text {
     visibility: visible;
     opacity: 1;
-    transform: translateX(-50%) translateY(0);
+    transform: translateY(0);
+}
+
+/* Prevent clipping for tooltips on the right half of the sidebar grid */
+.index-grid>*:nth-child(even) .tooltip-text,
+.tooltip-wrapper.right-align .tooltip-text {
+    left: auto;
+    right: 0;
+}
+
+.index-grid>*:nth-child(even) .tooltip-text::after,
+.tooltip-wrapper.right-align .tooltip-text::after {
+    left: auto;
+    right: 20px;
 }
 
 .tooltip-text::after {
     content: '';
     position: absolute;
     top: 100%;
-    left: 50%;
+    left: 20px;
     margin-left: -5px;
     border-width: 5px;
     border-style: solid;
@@ -664,6 +678,341 @@ button {
 
 .index-btn.active .index-short {
     color: var(--accent-blue);
+}
+
+/* --- Themed Button Styling --- */
+/* PWI (Produced Water Composite) - Aggressive High-Contrast */
+.index-btn[data-index="pwi"] .index-short {
+    color: #4df;
+}
+
+.index-btn[data-index="pwi"]:hover,
+.index-btn[data-index="pwi"].active {
+    background: linear-gradient(135deg, rgba(0, 255, 255, 0.1), rgba(255, 0, 255, 0.05));
+    border-color: #0ff;
+    box-shadow: inset 0 0 15px rgba(0, 255, 255, 0.1);
+}
+
+.index-btn[data-index="pwi"]::before {
+    content: '';
+    display: block;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    border-radius: 0 0 8px 8px;
+    background: linear-gradient(to right, #000000, #00FFFF, #FF00FF, #CCFF00);
+    opacity: 0.6;
+}
+
+/* Brine - Salt Accumulation */
+.index-btn[data-index="brine"] .index-short {
+    color: #F0501E;
+}
+
+.index-btn[data-index="brine"]:hover,
+.index-btn[data-index="brine"].active {
+    border-color: #F0501E;
+}
+
+.index-btn[data-index="brine"]::before {
+    content: '';
+    display: block;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+
+    /* CRSI - Salt Stress */
+    .index-btn[data-index="crsi"] .index-short {
+        color: #e67e22;
+    }
+
+    .index-btn[data-index="crsi"]:hover,
+    .index-btn[data-index="crsi"].active {
+        border-color: #e67e22;
+    }
+
+    .index-btn[data-index="crsi"]::before {
+        content: '';
+        display: block;
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        border-radius: 0 0 8px 8px;
+        background: linear-gradient(to right, #27ae60, #f1c40f, #e67e22, #c0392b);
+        opacity: 0.6;
+    }
+
+    /* AOI - Anoxic Oxidation */
+    .index-btn[data-index="aoi"] .index-short {
+        color: #c0392b;
+    }
+
+    .index-btn[data-index="aoi"]:hover,
+    .index-btn[data-index="aoi"].active {
+        border-color: #c0392b;
+    }
+
+    .index-btn[data-index="aoi"]::before {
+        content: '';
+        display: block;
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        border-radius: 0 0 8px 8px;
+        background: linear-gradient(to right, #2c3e50, #8e44ad, #c0392b);
+        opacity: 0.6;
+    }
+
+    /* EHC - Evaporite Halo Composite */
+    .index-btn[data-index="ehc"] .index-short {
+        background: linear-gradient(to right, #e74c3c, #2ecc71, #3498db);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+    }
+
+    .index-btn[data-index="ehc"]:hover,
+    .index-btn[data-index="ehc"].active {
+        border-color: #3498db;
+    }
+
+    .index-btn[data-index="ehc"]::before {
+        content: '';
+        display: block;
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 3px;
+        border-radius: 0 0 8px 8px;
+        background: linear-gradient(to right, #e74c3c, #2ecc71, #3498db);
+        opacity: 0.6;
+    }
+
+    background: linear-gradient(to right, #2c3e50, #7f8c8d, #f1c40f, #e74c3c);
+    opacity: 0.6;
+}
+
+/* CRSI - Salt Stress */
+.index-btn[data-index="crsi"] .index-short {
+    color: #e67e22;
+}
+
+.index-btn[data-index="crsi"]:hover,
+.index-btn[data-index="crsi"].active {
+    border-color: #e67e22;
+}
+
+.index-btn[data-index="crsi"]::before {
+    content: '';
+    display: block;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    border-radius: 0 0 8px 8px;
+    background: linear-gradient(to right, #27ae60, #f1c40f, #e67e22, #c0392b);
+    opacity: 0.6;
+}
+
+/* HCAI - Hydrocarbons / Oil */
+.index-btn[data-index="hcai"] .index-short {
+    color: #8B4513;
+}
+
+.index-btn[data-index="hcai"]:hover,
+.index-btn[data-index="hcai"].active {
+    border-color: #8B4513;
+}
+
+.index-btn[data-index="hcai"]::before {
+    content: '';
+    display: block;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    border-radius: 0 0 8px 8px;
+    background: linear-gradient(to right, #F5DEB3, #8B4513, #000000);
+    opacity: 0.6;
+}
+
+/* HMRI - Heavy Metals */
+.index-btn[data-index="hmri"] .index-short {
+    color: #FF00FF;
+}
+
+.index-btn[data-index="hmri"]:hover,
+.index-btn[data-index="hmri"].active {
+    border-color: #FF00FF;
+}
+
+.index-btn[data-index="hmri"]::before {
+    content: '';
+    display: block;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    border-radius: 0 0 8px 8px;
+    background: linear-gradient(to right, #E6E6FA, #800080, #FF00FF);
+    opacity: 0.6;
+}
+
+/* CSI - Contaminated Soil (Clay Ratio) */
+.index-btn[data-index="csi"] .index-short {
+    color: #64DC50;
+}
+
+.index-btn[data-index="csi"]:hover,
+.index-btn[data-index="csi"].active {
+    border-color: #64DC50;
+}
+
+.index-btn[data-index="csi"]::before {
+    content: '';
+    display: block;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    border-radius: 0 0 8px 8px;
+    background: linear-gradient(to right, #A07832, #64DC50, #00FFFF);
+    opacity: 0.6;
+}
+
+/* Standard Blue Variables (Water/Moisture) */
+.index-btn[data-index="ndwi"]::before,
+.index-btn[data-index="ndmi"]::before {
+    content: '';
+    display: block;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    border-radius: 0 0 8px 8px;
+    background: linear-gradient(to right, #D46A24, #EFD87A, #1C85A6);
+    opacity: 0.6;
+}
+
+.index-btn[data-index="ndwi"] .index-short,
+.index-btn[data-index="ndmi"] .index-short {
+    color: #1C85A6;
+}
+
+/* Standard Green Variables (Vegetation) */
+.index-btn[data-index="ndvi"]::before,
+.index-btn[data-index="savi"]::before {
+    content: '';
+    display: block;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    border-radius: 0 0 8px 8px;
+    background: linear-gradient(to right, #824614, #D7AA3C, #146428);
+    opacity: 0.6;
+}
+
+.index-btn[data-index="ndvi"] .index-short,
+.index-btn[data-index="savi"] .index-short {
+    color: #146428;
+}
+
+/* Drought / Arid Variables */
+.index-btn[data-index="msi"]::before {
+    content: '';
+    display: block;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    border-radius: 0 0 8px 8px;
+    background: linear-gradient(to right, #1C85A6, #EFD87A, #D46A24);
+    opacity: 0.6;
+}
+
+.index-btn[data-index="msi"] .index-short {
+    color: #D46A24;
+}
+
+.index-btn[data-index="si"]::before {
+    content: '';
+    display: block;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    border-radius: 0 0 8px 8px;
+    background: linear-gradient(to right, #243340, #EFD87A, #F0501E);
+    opacity: 0.6;
+}
+
+.index-btn[data-index="si"] .index-short {
+    color: #F0501E;
+}
+
+/* SAR - Texture/Roughness */
+.index-btn[data-index="s1_sar"]::before {
+    content: '';
+    display: block;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    border-radius: 0 0 8px 8px;
+    background: linear-gradient(to right, #000000, #448833, #CCDD55);
+    opacity: 0.6;
+}
+
+.index-btn[data-index="s1_sar"] .index-short {
+    color: #CCDD55;
+}
+
+/* Visual Baselines */
+.index-btn[data-index="tc"]::before {
+    content: '';
+    display: block;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    border-radius: 0 0 8px 8px;
+    background: linear-gradient(to right, #000, #fff);
+    opacity: 0.4;
+}
+
+.index-btn[data-index="fc"]::before {
+    content: '';
+    display: block;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    border-radius: 0 0 8px 8px;
+    background: linear-gradient(to right, #AA0000, #FF0000);
+    opacity: 0.4;
+}
+
+.index-btn[data-index="fc"] .index-short {
+    color: #FF4444;
 }
 
 .index-full {

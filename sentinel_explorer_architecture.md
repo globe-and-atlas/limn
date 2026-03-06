@@ -27,6 +27,7 @@ The application relies on Sentinel-2 Level-2A surface reflectance data. Specific
 ### 2.1 Moisture Index / Normalized Difference Moisture Index (NDMI)
 
 * **Purpose**: Detects vegetation water content and soil moisture stress.
+* **Citation/Basis**: *Gao, 1996* (NDWI/NDMI for liquid water remote sensing)
 * **Satellites**: Sentinel-2 (Bands 8A and 11)
 * **Bands Used**:
   * `B8A` (Narrow Near-Infrared / NIR): 865 nm
@@ -44,6 +45,7 @@ The application relies on Sentinel-2 Level-2A surface reflectance data. Specific
 ### 2.2 Wetness Index / Normalized Difference Water Index (NDWI)
 
 * **Purpose**: Specifically highlights surface water bodies, ponding, and saturated soils.
+* **Citation/Basis**: *McFeeters, 1996* (Standard NDWI using Green and NIR/SWIR)
 * **Satellites**: Sentinel-2 (Bands 3 and 11)
 * **Bands Used**:
   * `B03` (Green): 560 nm
@@ -61,6 +63,7 @@ The application relies on Sentinel-2 Level-2A surface reflectance data. Specific
 ### 2.3 Salinity Index / Normalized Difference Salinity Index (NDSI)
 
 * **Purpose**: Highlights surface salt crusts, saline deposits, and degraded soils often associated with spills or natural evaporation pans.
+* **Citation/Basis**: *Metternicht & Zinck, 2003* (Remote sensing of soil salinity)
 * **Satellites**: Sentinel-2 (Bands 11 and 8)
 * **Bands Used**:
   * `B11` (SWIR): 1610 nm
@@ -78,6 +81,7 @@ The application relies on Sentinel-2 Level-2A surface reflectance data. Specific
 ### 2.4 Vegetation Index / Normalized Difference Vegetation Index (NDVI)
 
 * **Purpose**: Essential global standard for measuring vegetation health and density.
+* **Citation/Basis**: *Rouse et al., 1974* (Monitoring vegetation systems)
 * **Satellites**: Sentinel-2 (Bands 8 and 4)
 * **Bands Used**:
   * `B08` (Broad NIR): 842 nm
@@ -95,6 +99,7 @@ The application relies on Sentinel-2 Level-2A surface reflectance data. Specific
 ### 2.5 Arid Vegetation / Soil Adjusted Vegetation Index (SAVI)
 
 * **Purpose**: Similar to NDVI but corrects for soil brightness, making it much more accurate in arid deserts and sparse vegetation areas (like the Permian Basin well-pads).
+* **Citation/Basis**: *Huete, 1988* (A soil-adjusted vegetation index)
 * **Satellites**: Sentinel-2 (Bands 8 and 4)
 * **Bands Used**:
   * `B08` (Broad NIR): 842 nm
@@ -111,6 +116,7 @@ The application relies on Sentinel-2 Level-2A surface reflectance data. Specific
 ### 2.6 Moisture Stress Index (MSI)
 
 * **Purpose**: Identifies canopy water stress and drought conditions by comparing shortwave to near-infrared light.
+* **Citation/Basis**: *Rock et al., 1986* (Remote detection of forest damage and moisture stress)
 * **Satellites**: Sentinel-2 (Bands 11 and 8)
 * **Bands Used**:
   * `B11` (SWIR): 1610 nm
@@ -127,6 +133,7 @@ The application relies on Sentinel-2 Level-2A surface reflectance data. Specific
 ### 2.7 Brine / Salt Water (NDSI)
 
 * **Purpose**: Detects highly absorptive brine and produced water spills. Brine significantly reduces the standard SWIR reflectance curve of typical soil, allowing for targeted chemical anomaly detection.
+* **Citation/Basis**: Adaptation of *Metternicht & Zinck, 2003* focusing on dual-SWIR absorption features typical of hydrated salts.
 * **Satellites**: Sentinel-2 (Bands 11 and 12)
 * **Bands Used**:
   * `B11` (SWIR1): 1610 nm
@@ -144,6 +151,7 @@ The application relies on Sentinel-2 Level-2A surface reflectance data. Specific
 ### 2.8 Contaminated Soil (Clay Ratio)
 
 * **Purpose**: Highly sensitive to clay minerals, helping distinguish mechanically disturbed, stripped, or eroded topsoil from healthy surrounding earth.
+* **Citation/Basis**: Standard geological clay alteration mapping (e.g., *Rowan et al., 1974*).
 * **Satellites**: Sentinel-2 (Bands 11 and 12)
 * **Bands Used**:
   * `B11` (SWIR1): 1610 nm
@@ -161,6 +169,7 @@ The application relies on Sentinel-2 Level-2A surface reflectance data. Specific
 ### 2.9 Hydrocarbons (HCAI)
 
 * **Purpose**: Separates brine-only spills from produced water spills containing crude oil traces. Hydrocarbons strongly absorb red light (B04) but reflect SWIR (B11), creating a distinct oil/water signature.
+* **Citation/Basis**: *Kühn et al., 2004* (Detection of hydrocarbon-bearing soils using optical remote sensing).
 * **Satellites**: Sentinel-2 (Bands 11 and 4)
 * **Bands Used**:
   * `B11` (SWIR1): 1610 nm
@@ -179,6 +188,7 @@ The application relies on Sentinel-2 Level-2A surface reflectance data. Specific
 ### 2.10 Heavy Metals (HMRI)
 
 * **Purpose**: Tracks severe brine/produced water contamination that precipitates heavy metals (barium, strontium), altering background mineralogy and inducing severe localized vegetation stress.
+* **Citation/Basis**: *Choe et al., 2008* (Mapping heavy metal pollution in soils using optical remote sensing).
 * **Satellites**: Sentinel-2 (Bands 12 and 3)
 * **Bands Used**:
   * `B12` (SWIR2): 2190 nm
@@ -197,6 +207,7 @@ The application relies on Sentinel-2 Level-2A surface reflectance data. Specific
 
 * **Formula**: `NDSI × HCAI × HMRI` (with extreme squelching thresholds applied before multiplication)
 * **Scientific Logic**: Produced water is a mixture of saline brine, residual hydrocarbons, and heavy metals. This highly restrictive composite requires a positive signature across all three to register. By applying thresholds tailored to the high albedo of the Permian Basin, dry salt flats and rock outcroppings are squelched out.
+* **Citation/Basis**: Custom composite index combining foundational logic from *Metternicht & Zinck (2003)*, *Kühn et al. (2004)*, and *Choe et al. (2008)*, aggressively tailored for regional anomaly isolation.
 * **Sentinel Hub Evalscript**:
 
     ```javascript
