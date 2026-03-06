@@ -35,8 +35,6 @@ while (iterDate <= today) {
 
 
 // Copernicus Sentinel Hub configuration
-const CDSE_CLIENT_ID = 'sh-90db7a9c-41fd-4caf-935a-0be2f39b28ba';
-const CDSE_CLIENT_SECRET = '10GC2CAhRnaKcONM5aVHlM6pAiWVnxxt';
 const SH_WMS_URL = 'https://sh.dataspace.copernicus.eu/ogc/wms/959ea2c5-5892-4b36-82b3-76e6bdb93c8a';
 const SH_STAT_API_URL = 'https://sh.dataspace.copernicus.eu/api/v1/statistics';
 
@@ -55,8 +53,8 @@ async function getCDSEToken() {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: new URLSearchParams({
-            client_id: CDSE_CLIENT_ID,
-            client_secret: CDSE_CLIENT_SECRET,
+            client_id: CONFIG.CDSE_CLIENT_ID,
+            client_secret: CONFIG.CDSE_CLIENT_SECRET,
             grant_type: 'client_credentials'
         })
     });
@@ -157,15 +155,18 @@ function colorBlend(valExpr, stopsStr) {
   while (i < stops.length - 1 && v >= stops[i+1][0]) { i++; }
   if (i === stops.length - 1) { 
       let s = stops[i];
-      return [s[1]/255, s[2]/255, s[3]/255, 1];
+      let a = (s.length > 4) ? s[4] : 1.0;
+      return [s[1]/255, s[2]/255, s[3]/255, a];
   }
   let s0 = stops[i], s1 = stops[i+1];
   let t = (v - s0[0]) / (s1[0] - s0[0]);
+  let a0 = (s0.length > 4) ? s0[4] : 1.0;
+  let a1 = (s1.length > 4) ? s1[4] : 1.0;
   return [
       (s0[1] + t * (s1[1] - s0[1])) / 255,
       (s0[2] + t * (s1[2] - s0[2])) / 255,
       (s0[3] + t * (s1[3] - s0[3])) / 255,
-      1
+      a0 + t * (a1 - a0)
   ];`;
 }
 
@@ -179,7 +180,7 @@ const PALETTE_BRINE = "[[0, 10, 60, 100], [0.35, 120, 100, 50], [0.6, 240, 80, 3
 const PALETTE_CSI = "[[0, 160, 120, 50], [0.5, 100, 220, 80], [1, 0, 255, 255]]"; // Brown -> Lime -> Cyan
 const PALETTE_HCAI = "[[0, 245, 222, 179], [0.5, 139, 69, 19], [1, 0, 0, 0]]"; // Wheat -> SaddleBrown -> Black
 const PALETTE_HMRI = "[[0, 230, 230, 250], [0.5, 128, 0, 128], [1, 255, 0, 255]]"; // Lavender -> Purple -> Magenta
-const PALETTE_PWI = "[[0, 0, 0, 0], [0.1, 0, 255, 255], [0.5, 255, 0, 255], [1, 204, 255, 0]]"; // Transparent -> Cyan -> Magenta -> Neon Yellow
+const PALETTE_PWI = "[[0, 10, 10, 10, 0.0], [0.1, 0, 255, 255, 1.0], [0.5, 255, 0, 255, 1.0], [1, 204, 255, 0, 1.0]]"; // Transparent -> Cyan -> Magenta -> Neon Yellow
 
 // Index Configs
 const INDICES = {
@@ -459,9 +460,11 @@ const INDICES = {
   
   let pwi = brineScore * hcaiScore * hmriScore;
   
-  // Cubic scaling: marginal bare-soil leakage (raw ~0.0006) cubes to ~0.000002 (invisible)
+  // Cubic scaling: aggressive multiplier (100x) to bring aged spills into visible range.
+  // Bare soil leakage (raw ~0.0006) cubes to ~0.0000002 (invisible)
+  // Aged spills (raw ~0.0036) cube to ~0.04 (visible faint cyan)
   // Strong spills (raw ~0.06) cube to 1.0 (full strength)
-  let mapped = Math.min(1, Math.pow(pwi * 20, 3));
+  let mapped = Math.min(1, Math.pow(pwi * 100, 3));
   ${colorBlend('mapped', PALETTE_PWI)}
 `),
         fisBands: ['B03', 'B04', 'B11', 'B12'],
@@ -478,7 +481,7 @@ const INDICES = {
   let hmri = sample.B12 / sample.B03;
   
   let pwi = Math.max(0, brine - 0.10) * Math.max(0, (hcai - 0.30) * 2) * Math.max(0, (hmri - 2.0) * 2);
-  return [Math.pow(pwi * 20, 3)];
+  return [Math.pow(pwi * 100, 3)];
 `
     },
     s1_sar: {
@@ -498,10 +501,10 @@ function setup() {
 }
 function evaluatePixel(sample) {
   if (sample.dataMask === 0) return [0,0,0,0];
-  let vv = Math.max(0, Math.log10(sample.VV) * 10 + 20) / 20;
-  let vh = Math.max(0, Math.log10(sample.VH) * 10 + 20) / 20;
-  let ratio = vv / (vh + 0.001);
-  return [vv, vh, ratio * 0.5, 1];
+  // Convert power to decibels
+  let vv_db = Math.max(0, Math.log10(sample.VV) * 10 + 20) / 20; 
+  // Map backscatter to grayscale (smooth/dark -> rough/white)
+  return [vv_db, vv_db, vv_db, 1];
 }`,
         fisBands: ['VV', 'VH'],
         fisLogic: `
@@ -549,7 +552,9 @@ const state = {
     leftGroup: null,
     rightGroup: null,
     sbsControl: null,
-    chartInst: null
+    chartInst: null,
+    timelineInterval: null,
+    anomalousDates: [] // Array of 'YYYY-MM-DD' strings flagged by the scanner
 };
 
 // ── INIT ───────────────────────────────────────────
@@ -588,18 +593,27 @@ document.addEventListener('DOMContentLoaded', () => {
         // Defaults: T1 = ~1 year ago, T2 = latest
         t1Sel.selectedIndex = Math.max(0, ALL_DATES.length - 13);
         t2Sel.selectedIndex = Math.max(0, ALL_DATES.length - 1);
-    }
 
-    // Configure single mode date dropdown
-    const dateSingleSel = document.getElementById('date-single');
-    if (dateSingleSel) {
+        // Populate timeline dropdown
+        const selSingle = document.getElementById('date-single');
+        selSingle.innerHTML = '';
         ALL_DATES.forEach((d, i) => {
             let opt = document.createElement('option');
             opt.value = i;
-            opt.textContent = d.label;
-            dateSingleSel.appendChild(opt);
+            opt.text = d.displayStr;
+            selSingle.appendChild(opt);
         });
-        dateSingleSel.selectedIndex = state.monthIndex;
+
+        state.monthIndex = ALL_DATES.length - 1;
+        selSingle.value = state.monthIndex;
+
+        // Initialize the timeline scrubber max value
+        const scrubberSlider = document.getElementById('scrubber-slider');
+        if (scrubberSlider) {
+            scrubberSlider.max = ALL_DATES.length - 1;
+            scrubberSlider.value = state.monthIndex;
+            document.getElementById('scrubber-date-label').innerText = ALL_DATES[state.monthIndex].value;
+        }
     }
 
 
@@ -800,7 +814,7 @@ function getScriptContent(activeIndex, isDiff, isCumulative = false) {
                     let hmri = sample.B12 / sample.B03;
                     
                     let pScore = Math.max(0, brine - 0.10) * Math.max(0, (hcai - 0.30) * 2) * Math.max(0, (hmri - 2.0) * 2);
-                    return Math.min(1, Math.pow(pScore * 20, 3));
+                    return Math.min(1, Math.pow(pScore * 100, 3));
                 })()
             `;
             palette = PALETTE_PWI;
@@ -913,33 +927,60 @@ function getWMSLayer(timeStr, isDiff, overrideIndex = null) {
     });
 }
 
-function clearLayers() {
-    if (state.overlayGroup) { state.map.removeLayer(state.overlayGroup); state.overlayGroup = null; }
-    if (state.leftGroup) { state.map.removeLayer(state.leftGroup); state.leftGroup = null; }
-    if (state.rightGroup) { state.map.removeLayer(state.rightGroup); state.rightGroup = null; }
-    if (state.sbsControl) { state.map.removeControl(state.sbsControl); state.sbsControl = null; }
-}
+function applyIndex(isScrubbing = false) {
+    if (!state.map) return;
 
-function applyIndex() {
-    clearLayers();
+    // Show/hide scrubber based on mode
+    const scrubberPanel = document.getElementById('timeline-scrubber-panel');
+    if (state.mode === 'single') {
+        if (scrubberPanel && ALL_DATES.length > 0) scrubberPanel.style.display = 'flex';
+        // Ensure scrubber slider is synced if not triggered by it
+        const scrubberSlider = document.getElementById('scrubber-slider');
+        if (scrubberSlider && !isScrubbing) {
+            scrubberSlider.max = Math.max(0, ALL_DATES.length - 1);
+            scrubberSlider.value = state.monthIndex;
+            document.getElementById('scrubber-date-label').innerText = ALL_DATES[state.monthIndex]?.value;
+        }
+    } else {
+        if (scrubberPanel) scrubberPanel.style.display = 'none';
+    }
+
+    if (!isScrubbing) {
+        if (state.overlayGroup) { state.map.removeLayer(state.overlayGroup); state.overlayGroup = null; }
+        if (state.leftGroup) { state.map.removeLayer(state.leftGroup); state.leftGroup = null; }
+        if (state.rightGroup) { state.map.removeLayer(state.rightGroup); state.rightGroup = null; }
+        if (state.sbsControl) { state.map.removeControl(state.sbsControl); state.sbsControl = null; }
+    }
 
     if (state.activeIndex === 'none') {
         updateUI();
-        return; // Skip adding WMS imagery layers entirely
+        return;
     }
 
-    const layersToGroup = [];
-    const rightLayersGroup = [];
+    let layersToGroup = [];
+    let rightLayersGroup = [];
 
     if (state.mode === 'single') {
+        if (!ALL_DATES[state.monthIndex]) return;
         const timeStr = ALL_DATES[state.monthIndex].value;
-        layersToGroup.push(getWMSLayer(timeStr, false));
 
-        if (state.sarFusion && state.activeIndex !== 's1_sar') {
-            layersToGroup.push(getWMSLayer(timeStr, false, 's1_sar'));
+        if (isScrubbing && state.overlayGroup) {
+            // OPTIMIZED PATH: Just update the WMS time parameter on existing layers
+            state.overlayGroup.eachLayer(layer => {
+                if (layer.setParams) {
+                    layer.setParams({ time: timeStr }, false); // false = don't redraw immediately, let leaflet handle it
+                }
+            });
+        } else {
+            // FULL REBUILD PATH
+            layersToGroup.push(getWMSLayer(timeStr, false));
+
+            if (state.sarFusion && state.activeIndex !== 's1_sar') {
+                layersToGroup.push(getWMSLayer(timeStr, false, 's1_sar'));
+            }
+
+            state.overlayGroup = L.layerGroup(layersToGroup).addTo(state.map);
         }
-
-        state.overlayGroup = L.layerGroup(layersToGroup).addTo(state.map);
     } else {
         const t1 = document.getElementById('date-t1').value;
         const t2 = document.getElementById('date-t2').value;
@@ -1068,6 +1109,12 @@ function bindEvents() {
         state.mode = 'compare';
         mComp.classList.add('active'); mSing.classList.remove('active');
         cComp.style.display = 'block'; cSing.style.display = 'none';
+
+        // Hide scrubber in compare mode
+        const scrubberPanel = document.getElementById('timeline-scrubber-panel');
+        if (scrubberPanel) scrubberPanel.style.display = 'none';
+        if (state.timelineInterval) stopTimeline();
+
         applyIndex();
     });
 
@@ -1253,6 +1300,78 @@ function bindEvents() {
     document.getElementById('date-t1').addEventListener('change', () => { if (state.mode === 'compare') applyIndex(); });
     document.getElementById('date-t2').addEventListener('change', () => { if (state.mode === 'compare') applyIndex(); });
 
+    // ==========================================================================
+    // Timeline Scrubber Logic
+    // ==========================================================================
+    const scrubberPanel = document.getElementById('timeline-scrubber-panel');
+    const scrubberSlider = document.getElementById('scrubber-slider');
+    const scrubberDateLabel = document.getElementById('scrubber-date-label');
+    const btnPlayTimeline = document.getElementById('btn-play-timeline');
+    const iconPlay = document.getElementById('icon-play');
+    const iconPause = document.getElementById('icon-pause');
+
+    function updateScrubberUI(idx) {
+        if (!ALL_DATES || ALL_DATES.length === 0) return;
+        scrubberSlider.value = idx;
+        scrubberDateLabel.innerText = ALL_DATES[idx].value;
+    }
+
+    function toggleTimelinePlay() {
+        if (state.timelineInterval) {
+            stopTimeline();
+        } else {
+            startTimeline();
+        }
+    }
+
+    function startTimeline() {
+        if (state.mode !== 'single') return;
+        iconPlay.style.display = 'none';
+        iconPause.style.display = 'block';
+
+        state.timelineInterval = setInterval(() => {
+            let nextIdx = state.monthIndex + 1;
+            if (nextIdx >= ALL_DATES.length) nextIdx = 0; // Loop back
+
+            state.monthIndex = nextIdx;
+
+            // Sync UI Dropdown
+            const dSingle = document.getElementById('date-single');
+            if (dSingle) dSingle.value = state.monthIndex;
+
+            updateScrubberUI(state.monthIndex);
+
+            // Reapply index silently
+            applyIndex(true); // pass true to indicate a silent/scrubber update
+        }, 1500); // 1.5 seconds per frame
+    }
+
+    function stopTimeline() {
+        if (state.timelineInterval) {
+            clearInterval(state.timelineInterval);
+            state.timelineInterval = null;
+        }
+        iconPlay.style.display = 'block';
+        iconPause.style.display = 'none';
+    }
+
+    if (scrubberSlider && btnPlayTimeline) {
+        scrubberSlider.addEventListener('input', (e) => {
+            stopTimeline(); // Stop auto-play on manual drag
+            const newIdx = parseInt(e.target.value, 10);
+            state.monthIndex = newIdx;
+
+            // Sync UI Dropdown
+            const dSingle = document.getElementById('date-single');
+            if (dSingle) dSingle.value = state.monthIndex;
+
+            updateScrubberUI(newIdx);
+            applyIndex(true);
+        });
+
+        btnPlayTimeline.addEventListener('click', toggleTimelinePlay);
+    }
+
     // Map Mouse Move for exact coordinate tracking (optional enhancement)
     state.map.on('mousemove', function (e) {
         document.getElementById('disp-lat').innerText = e.latlng.lat.toFixed(4) + '°';
@@ -1266,9 +1385,19 @@ function bindEvents() {
     const drawnItems = new L.FeatureGroup();
     state.map.addLayer(drawnItems);
 
-    let drawControl = new L.Draw.Rectangle(state.map, {
+    let drawRect = new L.Draw.Rectangle(state.map, {
         shapeOptions: {
             color: '#1C85A6',
+            weight: 2,
+            fillOpacity: 0.1
+        }
+    });
+
+    let drawPoly = new L.Draw.Polygon(state.map, {
+        allowIntersection: false,
+        showArea: true,
+        shapeOptions: {
+            color: '#FF8F00',
             weight: 2,
             fillOpacity: 0.1
         }
@@ -1278,7 +1407,16 @@ function bindEvents() {
         drawnItems.clearLayers();
         aoiDrawnItem = null;
         document.getElementById('btn-generate-report').disabled = true;
-        drawControl.enable();
+        drawPoly.disable();
+        drawRect.enable();
+    });
+
+    document.getElementById('btn-draw-poly').addEventListener('click', () => {
+        drawnItems.clearLayers();
+        aoiDrawnItem = null;
+        document.getElementById('btn-generate-report').disabled = true;
+        drawRect.disable();
+        drawPoly.enable();
     });
 
     state.map.on(L.Draw.Event.CREATED, function (e) {
@@ -1286,6 +1424,135 @@ function bindEvents() {
         drawnItems.addLayer(layer);
         aoiDrawnItem = layer;
         document.getElementById('btn-generate-report').disabled = false;
+        const scanBtn = document.getElementById('btn-scan-aoi');
+        if (scanBtn) scanBtn.disabled = false;
+    });
+
+    document.getElementById('btn-scan-aoi').addEventListener('click', async () => {
+        if (!aoiDrawnItem) {
+            alert("Please draw an Area of Interest (Rectangle or Polygon) first.");
+            return;
+        }
+
+        const btn = document.getElementById('btn-scan-aoi');
+        const originalText = btn.innerText;
+        btn.innerText = "Scanning 1-Year History...";
+        btn.disabled = true;
+
+        try {
+            // 1. Setup Temporal Range
+            const endDate = new Date();
+            const startDate = new Date();
+            startDate.setUTCFullYear(startDate.getUTCFullYear() - 1); // 1 Year lookback
+
+            // 2. Setup Evalscript
+            // The scanner checks 3 primary indices: PWI, NDMI, NDWI, and Brine
+            const pwiLogic = INDICES['pwi'].fisLogic;
+            const fisScript = `//VERSION=3
+function setup() {
+  return {
+    input: ["B11", "B12", "B04", "B03", "B8A", "dataMask"],
+    output: [
+      { id: "default", bands: 4, sampleType: "FLOAT32" },
+      { id: "dataMask", bands: 1, sampleType: "UINT8" }
+    ]
+  };
+}
+function evaluatePixel(sample) {
+  if (sample.dataMask === 0) return { default: [NaN, NaN, NaN, NaN], dataMask: [0] };
+  
+  // 1. PWI
+  let val_pwi = (function() { ${pwiLogic} })()[0];
+  
+  // 2. NDMI
+  let sum_ndmi = sample.B8A + sample.B11;
+  let val_ndmi = sum_ndmi === 0 ? NaN : (sample.B8A - sample.B11) / sum_ndmi;
+  
+  // 3. NDWI
+  let sum_ndwi = sample.B03 + sample.B11;
+  let val_ndwi = sum_ndwi === 0 ? NaN : (sample.B03 - sample.B11) / sum_ndwi;
+  
+  // 4. Brine
+  let sum_brine = sample.B11 + sample.B12;
+  let val_brine = sum_brine === 0 ? NaN : (sample.B11 - sample.B12) / sum_brine;
+  
+  return { default: [val_pwi, val_ndmi, val_ndwi, val_brine], dataMask: [1] };
+}`;
+
+            const geojson = aoiDrawnItem.toGeoJSON();
+            const statsPayload = {
+                input: {
+                    bounds: { geometry: geojson.geometry },
+                    data: [{
+                        type: "sentinel-2-l2a",
+                        dataFilter: {
+                            timeRange: { from: startDate.toISOString(), to: endDate.toISOString() },
+                            mosaickingOrder: "mostRecent",
+                            maxCloudCoverage: 100
+                        }
+                    }]
+                },
+                aggregation: {
+                    timeRange: { from: startDate.toISOString(), to: endDate.toISOString() },
+                    aggregationInterval: { of: "P5D" },
+                    evalscript: fisScript,
+                    resolution: 60
+                }
+            };
+
+            const token = await getCDSEToken();
+            const resp = await fetch(SH_STAT_API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify(statsPayload)
+            });
+
+            if (!resp.ok) throw new Error("Statistical API failed");
+
+            const data = await resp.json();
+
+            // Clear existing anomalies
+            state.anomalousDates = [];
+
+            // Define "Danger" Thresholds
+            const THRESHOLDS = { pwi: 0.1, ndmi_spike: 0.35, brine: 0.15 };
+
+            if (data.data) {
+                data.data.forEach(interval => {
+                    let dateStr = interval.interval.from.slice(0, 10);
+                    let bandsObj = interval.outputs?.default?.bands;
+                    if (bandsObj && bandsObj.B0 && bandsObj.B0.stats.sampleCount > 0) {
+                        let pwi = bandsObj.B0.stats.mean;
+                        let ndmi = bandsObj.B1.stats.mean;
+                        let ndwi = bandsObj.B2.stats.mean;
+                        let brine = bandsObj.B3.stats.mean;
+
+                        // Rule Engine: Flag if PWI spikes OR if there's a suspicious Brine + Moisture combination
+                        if ((pwi !== null && pwi > THRESHOLDS.pwi) ||
+                            (brine !== null && brine > THRESHOLDS.brine) ||
+                            (ndmi !== null && ndmi > THRESHOLDS.ndmi_spike && ndwi !== null && ndwi < 0.1)) {
+                            state.anomalousDates.push(dateStr);
+                        }
+                    }
+                });
+            }
+
+            if (state.anomalousDates.length > 0) {
+                alert(`Scan Complete: Identified ${state.anomalousDates.length} hazardous dates in the past year. Highlighting calendar.`);
+            } else {
+                alert("Scan Complete: No major anomalies detected above threshold.");
+            }
+
+            // Re-render UI to show highlights
+            renderCalendar();
+
+        } catch (err) {
+            console.error("Anomaly scan failed", err);
+            alert("Anomaly Scan failed. See console.");
+        } finally {
+            btn.innerText = originalText;
+            btn.disabled = false;
+        }
     });
 
     document.getElementById('btn-generate-report').addEventListener('click', async () => {
@@ -1297,6 +1564,7 @@ function bindEvents() {
             document.getElementById('report-date-run').innerText = new Date().toLocaleString();
 
             let bounds = aoiDrawnItem.getBounds();
+            const geojson = aoiDrawnItem.toGeoJSON();
             let bboxStr = `${bounds.getWest()},${bounds.getSouth()},${bounds.getEast()},${bounds.getNorth()}`;
             let bStr = `N: ${bounds.getNorth().toFixed(4)}°, S: ${bounds.getSouth().toFixed(4)}°, E: ${bounds.getEast().toFixed(4)}°, W: ${bounds.getWest().toFixed(4)}°`;
             document.getElementById('report-aoi-bounds').innerText = bStr;
@@ -1328,26 +1596,41 @@ function bindEvents() {
                 btn.innerText = "Querying Database...";
                 btn.disabled = true;
 
-                let bandsStr = idx.fisBands.map(b => `'${b}'`).join(', ');
+                let extraBands = ['B8A', 'B11', 'B03', 'B12'];
+                let allBands = [...new Set([...idx.fisBands, ...extraBands])];
+                let bandsStr = allBands.map(b => `'${b}'`).join(', ');
+                const isSar = state.activeIndex === 's1_sar';
+
                 const fisScript = `//VERSION=3
 function setup() {
   return {
     input: [${bandsStr}, "dataMask"],
     output: [
-      { id: "default", bands: 1, sampleType: "FLOAT32" },
+      { id: "default", bands: ${isSar ? 1 : 4}, sampleType: "FLOAT32" },
       { id: "dataMask", bands: 1, sampleType: "UINT8" }
     ]
   };
 }
 function evaluatePixel(sample) {
   let mask = sample.dataMask;
-  let val = NaN;
-  if (mask === 1) {
-    val = (function() {
-      ${idx.fisLogic}
-    })()[0];
-  }
-  return { default: [val], dataMask: [mask] };
+  if (mask === 0) return { default: ${isSar ? '[NaN]' : '[NaN, NaN, NaN, NaN]'}, dataMask: [0] };
+  
+  let val_active = (function() {
+    ${idx.fisLogic}
+  })()[0];
+
+  ${isSar ? 'return { default: [val_active], dataMask: [1] };' : `
+  let sum_ndmi = sample.B8A + sample.B11;
+  let val_ndmi = sum_ndmi === 0 ? NaN : (sample.B8A - sample.B11) / sum_ndmi + 0.3;
+
+  let sum_ndwi = sample.B03 + sample.B11;
+  let val_ndwi = sum_ndwi === 0 ? NaN : (sample.B03 - sample.B11) / sum_ndwi + 0.3;
+
+  let sum_brine = sample.B11 + sample.B12;
+  let val_brine = sum_brine === 0 ? NaN : (sample.B11 - sample.B12) / sum_brine + 0.1;
+
+  return { default: [val_active, val_ndmi, val_ndwi, val_brine], dataMask: [1] };
+  `}
 }`;
 
                 // Determine Temporal Range
@@ -1374,7 +1657,7 @@ function evaluatePixel(sample) {
 
                 const CHART_COLORS = {
                     ndmi: '#1C85A6', ndwi: '#1450B4', ndvi: '#146428', savi: '#A07832',
-                    msi: '#D46A24', s1_sar: '#999999'
+                    msi: '#D46A24', s1_sar: '#999999', brine: '#FF0000', hcai: '#8B4513'
                 };
 
                 const activeKey = state.activeIndex;
@@ -1385,7 +1668,9 @@ function evaluatePixel(sample) {
 
                 const statsPayload = {
                     input: {
-                        bounds: { bbox: bboxCoords },
+                        bounds: {
+                            geometry: geojson.geometry
+                        },
                         data: [{
                             type: collectionType,
                             dataFilter: {
@@ -1402,6 +1687,85 @@ function evaluatePixel(sample) {
                     }
                 };
 
+                let reportMetadataHtml = '';
+
+                // Fetch Scene Metadata & Weather Data helper
+                async function gatherContextData(dateStr, geom, tokenStr) {
+                    let ctxHtml = `<div style="border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; padding: 10px; margin-bottom: 10px;">
+                        <h5 style="margin: 0 0 8px 0; color: #fff;">Context for ${dateStr}</h5>`;
+
+                    try {
+                        // 1. Sentinel Hub Catalog API
+                        let dateStart = `${dateStr}T00:00:00Z`;
+                        let dateEnd = `${dateStr}T23:59:59Z`;
+
+                        // We use sentinel-2-l2a collection for metadata because S1 doesn't have cloud cover/sun angles
+                        const catalogPayload = {
+                            collections: ["sentinel-2-l2a"],
+                            datetime: `${dateStart}/${dateEnd}`,
+                            intersects: geom,
+                            limit: 1
+                        };
+
+                        const catResp = await fetch('https://sh.dataspace.copernicus.eu/api/v1/catalog/1.0.0/search', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${tokenStr}` },
+                            body: JSON.stringify(catalogPayload)
+                        });
+
+                        if (catResp.ok) {
+                            const catData = await catResp.json();
+                            if (catData && catData.features && catData.features.length > 0) {
+                                const props = catData.features[0].properties;
+                                let cc = props['eo:cloud_cover'] !== undefined ? `${props['eo:cloud_cover'].toFixed(1)}%` : 'N/A';
+                                let sunEl = props['view:sun_elevation'] !== undefined ? `${props['view:sun_elevation'].toFixed(1)}°` : 'N/A';
+                                let sunAz = props['view:sun_azimuth'] !== undefined ? `${props['view:sun_azimuth'].toFixed(1)}°` : 'N/A';
+
+                                ctxHtml += `<div style="margin-bottom: 5px;"><strong>Satellite Telemetry:</strong></div>
+                                    <ul style="margin: 0 0 10px 0; padding-left: 20px;">
+                                        <li>Cloud Cover: ${cc}</li>
+                                        <li>Sun Elevation: ${sunEl}</li>
+                                        <li>Sun Azimuth: ${sunAz}</li>
+                                    </ul>`;
+                            } else {
+                                ctxHtml += `<p style="margin: 0 0 10px 0; font-style: italic;">No optical STAC metadata found for this exact date.</p>`;
+                            }
+                        }
+
+                        // 2. Open-Meteo Historical API (Coordinates from Centroid)
+                        // Simple centroid approximation from BBox for weather API
+                        let centerLat = (bboxCoords[1] + bboxCoords[3]) / 2;
+                        let centerLon = (bboxCoords[0] + bboxCoords[2]) / 2;
+
+                        const meteoUrl = `https://archive-api.open-meteo.com/v1/archive?latitude=${centerLat}&longitude=${centerLon}&start_date=${dateStr}&end_date=${dateStr}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum&timezone=auto`;
+
+                        const wxResp = await fetch(meteoUrl);
+                        if (wxResp.ok) {
+                            const wxData = await wxResp.json();
+                            if (wxData && wxData.daily) {
+                                let tempMax = wxData.daily.temperature_2m_max[0];
+                                let tempMin = wxData.daily.temperature_2m_min[0];
+                                let precip = wxData.daily.precipitation_sum[0];
+
+                                ctxHtml += `<div style="margin-bottom: 5px;"><strong>Ground Weather (Open-Meteo):</strong></div>
+                                    <ul style="margin: 0; padding-left: 20px;">
+                                        <li>Max Temp: ${tempMax !== null ? tempMax + '°C' : 'N/A'}</li>
+                                        <li>Min Temp: ${tempMin !== null ? tempMin + '°C' : 'N/A'}</li>
+                                        <li>Precipitation: ${precip !== null ? precip + 'mm' : 'N/A'}</li>
+                                    </ul>`;
+                            }
+                        } else {
+                            ctxHtml += `<p style="margin: 0; font-style: italic;">Weather data unavailable.</p>`;
+                        }
+
+                    } catch (err) {
+                        ctxHtml += `<p style="color: #ff6b6b; margin:0;">Error loading context: ${err.message}</p>`;
+                    }
+
+                    ctxHtml += `</div>`;
+                    return ctxHtml;
+                }
+
                 if (activeKey !== 's1_sar') {
                     statsPayload.input.data[0].dataFilter.maxCloudCoverage = 100;
                 }
@@ -1409,6 +1773,21 @@ function evaluatePixel(sample) {
                 btn.innerText = "Querying CDSE Analytics Hub...";
                 try {
                     const token = await getCDSEToken();
+
+                    // Fetch metadata in parallel with statistics
+                    if (state.mode === 'single') {
+                        let targetDateStr = ALL_DATES[state.monthIndex].value;
+                        reportMetadataHtml = await gatherContextData(targetDateStr, geojson.geometry, token);
+                    } else {
+                        let d1 = document.getElementById('date-t1').value;
+                        let d2 = document.getElementById('date-t2').value;
+                        if (d1 > d2) { const temp = d1; d1 = d2; d2 = temp; }
+
+                        let html1 = await gatherContextData(d1, geojson.geometry, token);
+                        let html2 = await gatherContextData(d2, geojson.geometry, token);
+                        reportMetadataHtml = html1 + html2;
+                    }
+
                     const resp = await fetch(SH_STAT_API_URL, {
                         method: 'POST',
                         headers: {
@@ -1431,9 +1810,17 @@ function evaluatePixel(sample) {
                         rawRecordsCount = data.data.length;
                         data.data.forEach(interval => {
                             let dateStr = interval.interval.from.slice(0, 10);
-                            let statsObj = interval.outputs?.default?.bands?.B0?.stats;
-                            if (statsObj && statsObj.sampleCount > 0 && statsObj.mean !== null && !isNaN(statsObj.mean)) {
-                                validData[dateStr] = statsObj.mean;
+                            let bandsObj = interval.outputs?.default?.bands;
+                            if (bandsObj && bandsObj.B0 && bandsObj.B0.stats.sampleCount > 0) {
+                                let st0 = bandsObj.B0.stats;
+                                if (st0.mean !== null && !isNaN(st0.mean)) {
+                                    validData[dateStr] = {
+                                        active: st0.mean,
+                                        ndmi: bandsObj.B1?.stats?.mean ?? NaN,
+                                        ndwi: bandsObj.B2?.stats?.mean ?? NaN,
+                                        brine: bandsObj.B3?.stats?.mean ?? NaN
+                                    };
+                                }
                             }
                         });
                     }
@@ -1447,18 +1834,22 @@ function evaluatePixel(sample) {
                     // 1. Interpolate '0' values (often false measurements/clouds for most indices)
                     let chartLabels = [];
                     let dataArr = [];
+                    let ndmiArr = [];
+                    let ndwiArr = [];
+                    let brineArr = [];
 
                     for (let i = 0; i < sortedDates.length; i++) {
                         let d = sortedDates[i];
-                        let val = validData[d];
+                        let vals = validData[d];
+                        let val = vals.active;
 
                         if (val === 0 || isNaN(val)) {
                             let leftVal = null, rightVal = null;
                             for (let j = i - 1; j >= 0; j--) {
-                                if (validData[sortedDates[j]] !== 0 && !isNaN(validData[sortedDates[j]])) { leftVal = validData[sortedDates[j]]; break; }
+                                if (validData[sortedDates[j]].active !== 0 && !isNaN(validData[sortedDates[j]].active)) { leftVal = validData[sortedDates[j]].active; break; }
                             }
                             for (let j = i + 1; j < sortedDates.length; j++) {
-                                if (validData[sortedDates[j]] !== 0 && !isNaN(validData[sortedDates[j]])) { rightVal = validData[sortedDates[j]]; break; }
+                                if (validData[sortedDates[j]].active !== 0 && !isNaN(validData[sortedDates[j]].active)) { rightVal = validData[sortedDates[j]].active; break; }
                             }
                             if (leftVal !== null && rightVal !== null) {
                                 val = (leftVal + rightVal) / 2;
@@ -1473,6 +1864,9 @@ function evaluatePixel(sample) {
 
                         chartLabels.push(d.slice(0, 10)); // YYYY-MM-DD
                         dataArr.push(val);
+                        ndmiArr.push(isNaN(vals.ndmi) ? null : vals.ndmi);
+                        ndwiArr.push(isNaN(vals.ndwi) ? null : vals.ndwi);
+                        brineArr.push(isNaN(vals.brine) ? null : vals.brine);
                     }
 
                     // 1.5 Secondary Smoothing (Detect anomalous sharp drops/outliers)
@@ -1494,66 +1888,115 @@ function evaluatePixel(sample) {
                         }
                     }
 
-                    // 2. Metrics Calculation
-                    let maxVal = -Infinity;
-                    let maxDate = null;
+                    // 2. Metrics Calculation (Multi-Event Detection)
+                    let leakEvents = [];
+                    let isLeakActive = false;
+                    let currentLeakStart = null;
+                    let currentLeakMax = -Infinity;
+
+                    let baseThreshold = 0.1; // Threshold for significant deviation
 
                     for (let i = 0; i < dataArr.length; i++) {
-                        // For Hazard indices, higher is more dangerous. For healthy indices, higher is better.
-                        // We will just find the absolute peak value.
-                        if (dataArr[i] > maxVal) { maxVal = dataArr[i]; maxDate = chartLabels[i]; }
-                    }
-                    if (maxVal === -Infinity) maxVal = 0; // fallback
+                        let val = dataArr[i];
 
-                    let max5Avg = -Infinity;
-                    let max5StartIndex = 0;
-                    if (dataArr.length >= 5) {
-                        for (let i = 0; i <= dataArr.length - 5; i++) {
-                            let sum = 0;
-                            for (let j = 0; j < 5; j++) sum += dataArr[i + j];
-                            let avg = sum / 5;
-                            if (avg > max5Avg) { max5Avg = avg; max5StartIndex = i; }
-                        }
-                    } else if (dataArr.length > 0) {
-                        let sum = 0;
-                        for (let j = 0; j < dataArr.length; j++) sum += dataArr[j];
-                        max5Avg = sum / dataArr.length;
-                        max5StartIndex = 0;
-                    }
-                    if (max5Avg === -Infinity) max5Avg = 0;
+                        if (!isLeakActive && val > baseThreshold) {
+                            // Look back to find where it started rising
+                            let startIdx = i;
+                            while (startIdx > 0 && dataArr[startIdx - 1] < dataArr[startIdx] && dataArr[startIdx - 1] < baseThreshold) {
+                                startIdx--;
+                            }
+                            isLeakActive = true;
+                            currentLeakStart = chartLabels[startIdx];
+                            currentLeakMax = val;
+                        } else if (isLeakActive) {
+                            if (val > currentLeakMax) {
+                                currentLeakMax = val;
+                            }
 
-                    // Estimate leak start (Find largest positive jump leading up to or inside the max 5-scene window)
-                    let maxJump = -Infinity;
-                    let leakStartDate = "N/A";
-                    for (let i = 1; i <= Math.min(dataArr.length - 1, max5StartIndex + 4); i++) {
-                        let jump = dataArr[i] - dataArr[i - 1];
-                        if (jump > maxJump && jump > 0) { // must be a positive increase
-                            maxJump = jump;
-                            leakStartDate = chartLabels[i];
+                            if (val < baseThreshold || i === dataArr.length - 1) {
+                                // Leak ended
+                                let endDate = (val < baseThreshold) ? chartLabels[i] : 'Ongoing';
+                                leakEvents.push({
+                                    start: currentLeakStart,
+                                    end: endDate,
+                                    max: currentLeakMax
+                                });
+                                isLeakActive = false;
+                                currentLeakStart = null;
+                                currentLeakMax = -Infinity;
+                            }
                         }
                     }
-                    if (dataArr.length < 2) leakStartDate = "Insufficient Data";
 
                     // Update DOM Metrics Panel in LIVE app UI (not just export)
                     const metricPanel = document.getElementById('report-metrics-panel');
                     if (metricPanel) {
                         metricPanel.style.display = 'block';
-                        document.getElementById('metric-max-date').innerText = maxDate || '--';
-                        document.getElementById('metric-max-val').innerText = maxVal === 0 ? '0' : maxVal.toFixed(4);
-                        if (dataArr.length >= 5 || dataArr.length > 0) {
-                            let endIdx = Math.min(dataArr.length - 1, max5StartIndex + 4);
-                            document.getElementById('metric-avg-dates').innerText = `${chartLabels[max5StartIndex]} to ${chartLabels[endIdx]}`;
-                            document.getElementById('metric-avg-val').innerText = max5Avg.toFixed(4);
-                        } else {
-                            document.getElementById('metric-avg-dates').innerText = '--';
-                            document.getElementById('metric-avg-val').innerText = '--';
-                        }
 
-                        let leakStr = leakStartDate;
-                        if (outliersSmoothed > 0) {
-                            leakStr += ` (Includes ${outliersSmoothed} interpolated outlier${outliersSmoothed > 1 ? 's' : ''})`;
+                        let eventsContainer = document.getElementById('metric-leak-events');
+                        if (eventsContainer) {
+                            if (leakEvents.length === 0) {
+                                eventsContainer.innerHTML = '<span style="color: var(--text-muted);">No significant anomalous events detected above baseline threshold.</span>';
+                            } else {
+                                let html = leakEvents.map((evt, idx) => `
+                                    <div style="margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.05);">
+                                        <strong style="color: var(--accent-orange);">Event ${idx + 1}:</strong> 
+                                        <span style="font-family: var(--font-mono);">${evt.start}</span> to <span style="font-family: var(--font-mono);">${evt.end}</span><br>
+                                        <span style="color: var(--text-muted); font-size: 11px;">Peak Severity: ${evt.max.toFixed(4)}</span>
+                                    </div>
+                                `).join('');
+
+                                if (outliersSmoothed > 0) {
+                                    html += `<div style="color: var(--text-dim); font-size: 10px; margin-top: 4px;">*Includes ${outliersSmoothed} interpolated outlier${outliersSmoothed > 1 ? 's' : ''}</div>`;
+                                }
+                                eventsContainer.innerHTML = html;
+                            }
                         }
-                        document.getElementById('metric-leak-start').innerText = leakStr;
+                    }
+
+                    // Render Scanned Anomalies Screenshots
+                    const anomaliesPanel = document.getElementById('report-scanned-anomalies-panel');
+                    const anomaliesList = document.getElementById('scanned-anomalies-list');
+                    if (state.anomalousDates && state.anomalousDates.length > 0) {
+                        if (anomaliesPanel) anomaliesPanel.style.display = 'block';
+                        if (anomaliesList) {
+                            let anomalyHtml = '';
+                            state.anomalousDates.forEach(dateStr => {
+                                let tcScript = getScriptContent('tc', false, false);
+                                let pwiScript = getScriptContent('pwi', false, false);
+
+                                // To prevent blank/transparent images due to clouds or orbit gaps on specific days,
+                                // we request a 10-day composite window around the anomaly date
+                                let d = new Date(dateStr);
+                                let start_d = new Date(d); start_d.setDate(d.getDate() - 5);
+                                let end_d = new Date(d); end_d.setDate(d.getDate() + 5);
+                                let timeWindow = `${start_d.toISOString().slice(0, 10)}/${end_d.toISOString().slice(0, 10)}`;
+
+                                let tcUrl = `${SH_WMS_URL}?service=WMS&request=GetMap&version=1.3.0&layers=AGRICULTURE&format=image/jpeg&transparent=false&width=400&height=400&crs=CRS:84&bbox=${bboxStr}&time=${timeWindow}&maxcc=20&evalscript=${btoa(unescape(encodeURIComponent(tcScript)))}`;
+                                let pwiUrl = `${SH_WMS_URL}?service=WMS&request=GetMap&version=1.3.0&layers=AGRICULTURE&format=image/png&transparent=true&width=400&height=400&crs=CRS:84&bbox=${bboxStr}&time=${timeWindow}&maxcc=20&evalscript=${btoa(unescape(encodeURIComponent(pwiScript)))}`;
+
+                                anomalyHtml += `
+                                <div style="position: relative; width: 100%; aspect-ratio: 1; border-radius: 6px; overflow: hidden; border: 1px solid rgba(255,255,255,0.1);">
+                                    <img src="${tcUrl}" style="position: absolute; top:0; left:0; width:100%; height:100%; object-fit: cover; background: #222;" alt="Base">
+                                    <img src="${pwiUrl}" style="position: absolute; top:0; left:0; width:100%; height:100%; object-fit: cover; opacity: 0.85;" alt="PWI">
+                                    <div style="position: absolute; bottom: 8px; left: 8px; background: rgba(0,0,0,0.8); border: 1px solid rgba(255,140,0,0.5); padding: 4px 8px; border-radius: 4px; color: var(--accent-orange); font-family: var(--font-mono); font-size: 11px; font-weight: bold;">
+                                        ⚠️ ${dateStr}
+                                    </div>
+                                </div>
+                                `;
+                            });
+                            anomaliesList.innerHTML = anomalyHtml;
+                        }
+                    } else {
+                        if (anomaliesPanel) anomaliesPanel.style.display = 'none';
+                        if (anomaliesList) anomaliesList.innerHTML = '';
+                    }
+
+                    // Mount Metadata HTML
+                    const metaPanel = document.getElementById('report-metadata-panel');
+                    if (metaPanel) {
+                        metaPanel.style.display = 'block';
+                        document.getElementById('metadata-content').innerHTML = reportMetadataHtml || '<p>Metadata gathering failed.</p>';
                     }
 
                     // Calculate Smoothed Trendline (3-point centered moving average)
@@ -1571,8 +2014,10 @@ function evaluatePixel(sample) {
 
                     const showTrend = document.getElementById('toggle-trendline') ? document.getElementById('toggle-trendline').checked : true;
 
-                    let chartDatasets = [
-                        {
+                    let chartDatasets = [];
+
+                    if (document.getElementById('toggle-trendline') && document.getElementById('toggle-trendline').checked) {
+                        chartDatasets.push({
                             label: "Smoothed Trend",
                             data: trendlineData,
                             borderColor: '#FF8F00',
@@ -1583,23 +2028,74 @@ function evaluatePixel(sample) {
                             pointRadius: 0,
                             pointHitRadius: 10,
                             spanGaps: true,
-                            hidden: !showTrend,
                             order: 1
-                        },
-                        {
-                            label: cfg.name,
-                            data: dataArr,
-                            borderColor: CHART_COLORS[activeKey] || '#ffffff',
-                            backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                            borderWidth: 1.5,
-                            fill: true,
-                            tension: 0.1,
-                            pointRadius: 3,
-                            pointHitRadius: 10,
-                            spanGaps: true,
-                            order: 2
+                        });
+                    }
+
+                    chartDatasets.push({
+                        label: cfg.name,
+                        data: dataArr,
+                        borderColor: CHART_COLORS[activeKey] || '#ffffff',
+                        backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                        borderWidth: 2.5,
+                        fill: true,
+                        tension: 0.1,
+                        pointRadius: 3,
+                        pointHitRadius: 10,
+                        spanGaps: true,
+                        order: 2
+                    });
+
+                    if (activeKey !== 's1_sar') {
+                        if (activeKey !== 'ndmi') {
+                            chartDatasets.push({
+                                label: "Moisture Context (NDMI)",
+                                data: ndmiArr,
+                                borderColor: CHART_COLORS.ndmi,
+                                backgroundColor: 'transparent',
+                                borderWidth: 1.5,
+                                borderDash: [5, 5],
+                                fill: false,
+                                tension: 0.3,
+                                pointRadius: 1,
+                                spanGaps: true,
+                                order: 3,
+                                hidden: true
+                            });
                         }
-                    ];
+                        if (activeKey !== 'ndwi') {
+                            chartDatasets.push({
+                                label: "Wetness Context (NDWI)",
+                                data: ndwiArr,
+                                borderColor: CHART_COLORS.ndwi,
+                                backgroundColor: 'transparent',
+                                borderWidth: 1.5,
+                                borderDash: [5, 5],
+                                fill: false,
+                                tension: 0.3,
+                                pointRadius: 1,
+                                spanGaps: true,
+                                order: 4,
+                                hidden: true
+                            });
+                        }
+                        if (activeKey !== 'brine') {
+                            chartDatasets.push({
+                                label: "Salinity Context (Brine)",
+                                data: brineArr,
+                                borderColor: CHART_COLORS.brine,
+                                backgroundColor: 'transparent',
+                                borderWidth: 1.5,
+                                borderDash: [5, 5],
+                                fill: false,
+                                tension: 0.3,
+                                pointRadius: 1,
+                                spanGaps: true,
+                                order: 5,
+                                hidden: true
+                            });
+                        }
+                    }
 
                     document.querySelector('.report-chart h3').innerText = `Multivariate Statistical Trends (AOI Mean) - ${chartTitleLabel}`;
 
@@ -1700,7 +2196,9 @@ function evaluatePixel(sample) {
                         reportMapInst._drawnItems = new L.FeatureGroup();
                         reportMapInst.addLayer(reportMapInst._drawnItems);
                     }
-                    L.rectangle(bounds, { color: '#1C85A6', weight: 3, fillOpacity: 0.2 }).addTo(reportMapInst._drawnItems);
+                    L.geoJSON(geojson, {
+                        style: { color: '#1C85A6', weight: 3, fillOpacity: 0.2 }
+                    }).addTo(reportMapInst._drawnItems);
 
                     if (reportMapInst.overlayLayer) reportMapInst.removeLayer(reportMapInst.overlayLayer);
                     if (overlayLayer) reportMapInst.overlayLayer = overlayLayer.addTo(reportMapInst);
@@ -1753,8 +2251,12 @@ function evaluatePixel(sample) {
                     reportMapInst.fitBounds(bounds, { padding: [10, 10] });
                     window.reportMapInstT2.fitBounds(bounds, { padding: [10, 10] });
 
-                    L.rectangle(bounds, { color: '#1C85A6', weight: 3, fillOpacity: 0.2 }).addTo(reportMapInst);
-                    L.rectangle(bounds, { color: '#1C85A6', weight: 3, fillOpacity: 0.2 }).addTo(window.reportMapInstT2);
+                    L.geoJSON(geojson, {
+                        style: { color: '#1C85A6', weight: 3, fillOpacity: 0.2 }
+                    }).addTo(reportMapInst);
+                    L.geoJSON(geojson, {
+                        style: { color: '#1C85A6', weight: 3, fillOpacity: 0.2 }
+                    }).addTo(window.reportMapInstT2);
 
                     getWMSLayer(rd1Compare, false).addTo(reportMapInst);
                     getWMSLayer(rd2Compare, false).addTo(window.reportMapInstT2);
@@ -1780,7 +2282,9 @@ function evaluatePixel(sample) {
                         reportDiffMapInst._drawnItems = new L.FeatureGroup();
                         reportDiffMapInst.addLayer(reportDiffMapInst._drawnItems);
                     }
-                    L.rectangle(bounds, { color: '#FF8F00', weight: 3, fillOpacity: 0.15 }).addTo(reportDiffMapInst._drawnItems);
+                    L.geoJSON(geojson, {
+                        style: { color: '#FF8F00', weight: 3, fillOpacity: 0.15 }
+                    }).addTo(reportDiffMapInst._drawnItems);
 
                     if (reportDiffMapInst.overlayLayer) reportDiffMapInst.removeLayer(reportDiffMapInst.overlayLayer);
                     reportDiffMapInst.overlayLayer = getWMSLayer(`${rd1Compare}/${rd2Compare}`, true).addTo(reportDiffMapInst);
