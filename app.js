@@ -49,23 +49,32 @@ async function getCDSEToken() {
     // We route the authentication handshake securely through a standard CORS proxy to bridge the divide.
     const authUrl = 'https://corsproxy.io/?' + encodeURIComponent('https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token');
 
-    const resp = await fetch(authUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: new URLSearchParams({
-            client_id: CONFIG.CDSE_CLIENT_ID,
-            client_secret: CONFIG.CDSE_CLIENT_SECRET,
-            grant_type: 'client_credentials'
-        })
-    });
-    if (!resp.ok) throw new Error("Failed to authenticate with Copernicus OAuth API");
-    const data = await resp.json();
-    cachedAccessToken = data.access_token;
-    tokenExpiry = Date.now() + ((data.expires_in - 60) * 1000);
-    return cachedAccessToken;
+    try {
+        const resp = await fetch(authUrl, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: new URLSearchParams({
+                client_id: CONFIG.CDSE_CLIENT_ID,
+                client_secret: CONFIG.CDSE_CLIENT_SECRET,
+                grant_type: 'client_credentials'
+            })
+        });
+        if (!resp.ok) {
+            const errText = await resp.text();
+            throw new Error(`Copernicus OAuth failed (HTTP ${resp.status}): ${errText.substring(0, 100)}`);
+        }
+        const data = await resp.json();
+        cachedAccessToken = data.access_token;
+        tokenExpiry = Date.now() + ((data.expires_in - 60) * 1000);
+        return cachedAccessToken;
+    } catch (e) {
+        console.error("Auth Error:", e);
+        cachedAccessToken = null;
+        throw e;
+    }
 }
 
-const APP_VERSION = 'v22';
+const APP_VERSION = 'v23';
 
 // Globals for Report Generation
 let aoiDrawnItem = null;
@@ -74,8 +83,7 @@ let reportMapInst = null;
 let reportDiffMapInst = null;
 
 // Evalscript wrapper utility
-const genEvalscript = (bands, logic) => `
-//VERSION=3
+const genEvalscript = (bands, logic) => `//VERSION=3
 function setup() {
   return {
     input: [${bands.map(b => `'${b}'`).join(', ')}, "dataMask"],
@@ -89,8 +97,7 @@ function evaluatePixel(sample) {
 `;
 
 // Multi-Temporal Evalscript wrapper for differences
-const genDiffEvalscript = (bands, calcLogic) => `
-//VERSION=3
+const genDiffEvalscript = (bands, calcLogic) => `//VERSION=3
 function setup() {
   return {
     input: [${bands.map(b => `'${b}'`).join(', ')}, "dataMask"],
@@ -108,11 +115,19 @@ function evaluatePixel(samples) {
   let val2 = ${calcLogic.replace(/sample/g, 's2')};
   let diff = val2 - val1;
   
+  // Apply visual filter masking for difference heatmaps specifically
+  // Difference maps are visually centered around 0 (no difference).
+  // Thus we mask out pixels where the CHANGE (absolute difference) is below the percentage threshold.
+  // diff generally spans roughly -0.3 to 0.3 for most indices, so we scale VISUAL_FILTER to compare it.
+  if (typeof VISUAL_FILTER !== 'undefined' && Math.abs(diff) < (VISUAL_FILTER * 0.3)) {
+      return [0, 0, 0, 0];
+  }
+
   if (diff < -0.15) return [1.0, 0.2, 0.2, 0.8]; // Strong decrease
   if (diff < -0.05) return [1.0, 0.4, 0.4, 0.6]; // Slight decrease
   if (diff > 0.15) return [0.2, 0.6, 1.0, 0.8]; // Strong increase
-    if (diff > 0.05) return [0.4, 0.7, 1.0, 0.6]; // Slight increase
-    return [0.2, 0.2, 0.2, 0.3]; // Stable
+  if (diff > 0.05) return [0.4, 0.7, 1.0, 0.6]; // Slight increase
+  return [0.2, 0.2, 0.2, 0.3]; // Stable
 }
 `;
 
@@ -120,8 +135,7 @@ function evaluatePixel(samples) {
  * Multi-Temporal Evalscript for Cumulative MAX detection
  * Spans a date range and finds the maximum pixel value observed.
  */
-const genCumulativeEvalscript = (bands, logic, paletteStr) => `
-//VERSION=3
+const genCumulativeEvalscript = (bands, logic, paletteStr) => `//VERSION=3
 function setup() {
   return {
     input: [${bands.map(b => `'${b}'`).join(', ')}, "dataMask"],
@@ -195,7 +209,12 @@ const INDICES = {
         diffLabels: ['Decrease / Darker', 'Increase / Brighter'],
         evalscript: genEvalscript(['B04', 'B03', 'B02'], `
   let factor = 2.5;
-  return [sample.B04 * factor, sample.B03 * factor, sample.B02 * factor, 1];
+  let r = sample.B04 * factor;
+  let g = sample.B03 * factor;
+  let b = sample.B02 * factor;
+  let brightness = (r + g + b) / 3;
+  if (typeof VISUAL_FILTER !== 'undefined' && brightness < VISUAL_FILTER) return [0,0,0,0];
+  return [r, g, b, 1];
 `),
         fisBands: ['B04', 'B03', 'B02'],
         fisLogic: `return [sample.B04, sample.B03, sample.B02];`
@@ -210,7 +229,12 @@ const INDICES = {
         diffLabels: ['Decrease / Darker', 'Increase / Brighter'],
         evalscript: genEvalscript(['B08', 'B04', 'B03'], `
   let factor = 2.5;
-  return [sample.B08 * factor, sample.B04 * factor, sample.B03 * factor, 1];
+  let r = sample.B08 * factor;
+  let g = sample.B04 * factor;
+  let b = sample.B03 * factor;
+  let brightness = (r + g + b) / 3;
+  if (typeof VISUAL_FILTER !== 'undefined' && brightness < VISUAL_FILTER) return [0,0,0,0];
+  return [r, g, b, 1];
 `),
         fisBands: ['B08', 'B04', 'B03'],
         fisLogic: `return [sample.B08, sample.B04, sample.B03];`
@@ -531,8 +555,7 @@ const INDICES = {
         formula: 'R=NDOI, G=BSI, B=NDSI',
         info: 'A custom RGB false-color composite designed to highlight the geometry of a blowout. Shows a dark/red oily center, surrounded by a bright blue ring of crystallized salt, over a green mud footprint.',
         diffLabels: ['N/A', 'N/A'],
-        evalscript: `
-            // VERSION=3
+        evalscript: `//VERSION=3
             function setup() {
                 return {
                     input: ["B02","B04","B08","B11","B12", "dataMask"],
@@ -558,70 +581,208 @@ const INDICES = {
                 let ndsi = ndsiSum === 0 ? 0 : (sample.B11 - sample.B12) / ndsiSum;
                 let blue = Math.max(0, ndsi * 4); // Salt is highly reflective
                 
+                let intensity = Math.max(red, green, blue);
+                if (typeof VISUAL_FILTER !== 'undefined' && intensity < VISUAL_FILTER) return [0,0,0,0];
+
                 return [red, green, blue, 1];
             }`,
         fisBands: ['B02', 'B04', 'B08', 'B11', 'B12'],
         fisLogic: `return [0];` // Complex RGB indices don't chart well
     },
     hpwi: {
-        name: 'Hybrid SAR+Optical (HPWI)',
-        sensor: 'S1-GRD + S2-L2A (Fusion)',
+        name: 'Hydro-Optical Spill Index (HPWI)',
+        sensor: 'Sentinel-2 L2A',
         min: 'Background', max: 'Confirmed Liquid Spill',
         gradient: 'linear-gradient(to right, #111111, #4b0082, #e74c3c, #f1c40f)',
-        formula: 'NDOI * (1 - norm(VH))',
-        info: 'ADVANCED DATA FUSION: Combines Sentinel-2 optical chemistry (Hydrocarbons via NDOI) with Sentinel-1 radar physics (Surface dampening via VH backscatter). It eliminates dry-soil false positives by mathematically requiring both the chemical signature of oil AND the physical smoothness of a liquid puddle.',
+        formula: '(NDOI + brineBoost) × norm(smoothness)',
+        info: 'Hydro-Optical Spill Index — requires a liquid chemical signature AND a confirmed surface-smoothness proxy (B03/B11 dampening). NDOI (B02−B12) is the primary hydrocarbon gate; confirmed brine (NDSI > 0.05) provides an additive boost so brine-dominant produced water spills also register. Dry rough bare soil won\'t clear the smoothness gate. Fresh water (flat surface) won\'t carry a chemical signal.',
         diffLabels: ['Stable', 'New Spill Detected'],
-        evalscript: `
-            // VERSION=3
-            function setup() {
-                return {
-                    input: [
-                        {datasource: "S2L2A", bands: ["B02", "B12", "dataMask"], id: "s2"},
-                        {datasource: "S1GRD", bands: ["VH", "dataMask"], id: "s1"}
-                    ],
-                    output: { bands: 4 }
-                };
-            }
-            function evaluatePixel(samples) {
-                let s2 = samples.s2[0];
-                let s1 = samples.s1[0];
+        evalscript: genEvalscript(['B02', 'B03', 'B11', 'B12'], `
+  if (sample.dataMask === 0) return [0,0,0,0];
 
-                if (!s2 || !s1 || s2.dataMask === 0 || s1.dataMask === 0) return [0,0,0,0];
+  // 1. Hydrocarbon gate (primary): NDOI
+  let sumNdoi = sample.B02 + sample.B12;
+  if (sumNdoi === 0) return [0,0,0,0];
+  let ndoi = Math.max(0, (sample.B02 - sample.B12) / sumNdoi);
 
-                // 1. Calculate Optical Chemistry (NDOI for Hydrocarbons)
-                let sumNdoi = s2.B02 + s2.B12;
-                let ndoi = sumNdoi === 0 ? 0 : (s2.B02 - s2.B12) / sumNdoi;
-                ndoi = Math.max(0, ndoi); // Only positive hydrocarbon signals
+  // 2. Brine boost (additive): NDSI > 0.05 only — prevents ambient Permian soil salt from firing
+  let ndsiSum = sample.B11 + sample.B12;
+  let ndsi = ndsiSum === 0 ? 0 : (sample.B11 - sample.B12) / ndsiSum;
+  let brineBoost = Math.max(0, ndsi - 0.05) * 0.8;
 
-                // 2. Calculate Radar Physics (VH Dampening)
-                // Sentinel-1 VH backscatter usually ranges from ~0.005 (smooth/wet) to ~0.05 (rough/dry)
-                // We want a multiplier that is HIGH (1.0) when VH is LOW (smooth liquid puddle), and LOW (0.0) when VH is high (dry rough soil)
-                // Normalize VH (clamp between 0.005 and 0.05) and invert it
-                let vh = s1.VH;
-                let minVh = 0.005;
-                let maxVh = 0.05;
-                let normVh = (Math.max(minVh, Math.min(vh, maxVh)) - minVh) / (maxVh - minVh);
-                let smoothMultiplier = 1.0 - normVh; 
+  // Combined chemical signal: oil or confirmed brine, whichever combination is present
+  let chemSignal = Math.min(1, ndoi + brineBoost);
 
-                // 3. The Hybrid Score
-                // Multiply optical probability by physical dampening probability
-                let hpwi = ndoi * smoothMultiplier;
+  // 3. Surface Smoothness Proxy (S2 stand-in for SAR VH dampening)
+  let sumSmooth = sample.B03 + sample.B11;
+  let smoothness = sumSmooth === 0 ? 0 : (sample.B03 - sample.B11) / sumSmooth;
+  let normSmooth = Math.max(0, Math.min(1, (smoothness + 0.3) / 0.6));
 
-                // Scale for display (HPWI is usually very small, ~0.05 to 0.25 max)
-                let mapped = Math.max(0, Math.min(1, hpwi * 4.0));
+  // 4. Composite
+  let score = chemSignal * normSmooth;
+  let mapped = Math.max(0, Math.min(1, score * 6.0));
 
-                ${colorBlend('mapped', `[
-                    [0.0, 17, 17, 17],    // Black/Dark Gray
-                    [0.3, 75, 0, 130],    // Indigo
-                    [0.7, 231, 76, 60],   // Bright Red
-                    [1.0, 241, 196, 15]   // Yellow/Hot
-                ]`)}
-            }
-        `,
-        fisBands: ['B02', 'B12'], // FIS won't easily support cross-datasource queries right now
-        fisLogic: `return [0];`
+  ${colorBlend('mapped', `[
+      [0.0, 17, 17, 17],
+      [0.3, 75, 0, 130],
+      [0.7, 231, 76, 60],
+      [1.0, 241, 196, 15]
+  ]`)}
+`),
+        fisBands: ['B02', 'B03', 'B11', 'B12'],
+        fisLogic: `
+  let sumNdoi = sample.B02 + sample.B12;
+  if (sumNdoi === 0) return [0];
+  let ndoi = Math.max(0, (sample.B02 - sample.B12) / sumNdoi);
+  let ndsiSum = sample.B11 + sample.B12;
+  let ndsi = ndsiSum === 0 ? 0 : (sample.B11 - sample.B12) / ndsiSum;
+  let brineBoost = Math.max(0, ndsi - 0.05) * 0.8;
+  let chemSignal = Math.min(1, ndoi + brineBoost);
+  let sumSmooth = sample.B03 + sample.B11;
+  let smooth = sumSmooth === 0 ? 0 : Math.max(0, Math.min(1, ((sample.B03 - sample.B11)/sumSmooth + 0.3) / 0.6));
+  return [Math.min(1, chemSignal * smooth * 6.0)];
+`
+    },
+    fbc: {
+        name: 'Ferrugination-Brine Composite (FBC)',
+        sensor: 'Sentinel-2 L2A',
+        min: 'Background', max: 'Iron+Brine Alteration',
+        gradient: 'linear-gradient(to right, #1a0800, #8B2500, #D4581A, #FFB347)',
+        formula: 'sqrt(ironScore × brineScore) × (1 − NDVI)',
+        info: 'Ferrugination-Brine Composite — targets the iron oxidation signature unique to produced water spills. Deep Permian brine is rich in ferrous iron (Fe²⁺); when surfaced it oxidizes to ferric iron (Fe³⁺), creating rust-brown staining with a high Red/Blue ratio. Both the iron gate (B04/B02 > 1.5) and the brine gate (NDSI > 0.02) must be nonzero to fire — combined via geometric mean so a moderate signal on one gate does not completely zero a strong signal on the other. The vegetation gate (1−NDVI) ensures only bare-ground pixels qualify.',
+        diffLabels: ['Less Alteration', 'Active Iron+Brine Event'],
+        evalscript: genEvalscript(['B02', 'B03', 'B04', 'B08', 'B11', 'B12'], `
+  if (sample.dataMask === 0 || sample.B02 === 0) return [0,0,0,0];
+
+  // 1. Iron Oxide Gate: B04/B02 (Red/Blue)
+  // Permian red-dirt baseline: ~1.2–1.6. Iron alteration (Fe²⁺→Fe³⁺) pushes above 1.5.
+  let ironOxide = sample.B04 / sample.B02;
+  let ironScore = Math.max(0, (ironOxide - 1.5) / 1.0);
+
+  // 2. Brine Gate: NDSI = (B11-B12)/(B11+B12)
+  let ndsiSum = sample.B11 + sample.B12;
+  if (ndsiSum === 0) return [0,0,0,0];
+  let ndsi = (sample.B11 - sample.B12) / ndsiSum;
+  let brineScore = Math.max(0, ndsi - 0.02);
+
+  // 3. No-Vegetation Gate
+  let ndviSum = sample.B08 + sample.B04;
+  let ndvi = ndviSum === 0 ? 0 : (sample.B08 - sample.B04) / ndviSum;
+  let noVeg = Math.max(0, 1.0 - Math.max(0, ndvi));
+
+  // Composite: geometric mean so neither gate alone collapses the result,
+  // but both must be nonzero to produce any output.
+  let fbc = Math.sqrt(ironScore * brineScore) * noVeg;
+  let mapped = Math.min(1, fbc * 25.0);
+
+  ${colorBlend('mapped', `[
+      [0.0,  26, 8, 0],
+      [0.3, 139, 37, 0],
+      [0.6, 212, 88, 26],
+      [1.0, 255, 179, 71]
+  ]`)}
+`),
+        fisBands: ['B02', 'B04', 'B08', 'B11', 'B12'],
+        fisLogic: `
+  if (sample.B02 === 0) return [0];
+  let ironScore = Math.max(0, (sample.B04 / sample.B02) - 1.5) / 1.0;
+  let ndsiSum = sample.B11 + sample.B12;
+  if (ndsiSum === 0) return [0];
+  let ndsi = (sample.B11 - sample.B12) / ndsiSum;
+  let brineScore = Math.max(0, ndsi - 0.02);
+  let ndviSum = sample.B08 + sample.B04;
+  let noVeg = Math.max(0, 1.0 - Math.max(0, ndviSum === 0 ? 0 : (sample.B08 - sample.B04) / ndviSum));
+  return [Math.min(1, Math.sqrt(ironScore * brineScore) * noVeg * 25.0)];
+`
+    },
+    reai: {
+        name: 'Red Edge Alteration Index (REAI)',
+        sensor: 'Sentinel-2 L2A',
+        min: 'Background', max: 'Ferric Mineral + Brine',
+        gradient: 'linear-gradient(to right, #0d1a2e, #2e5c8a, #c47a1e, #e8c44a)',
+        formula: '(B06 / B05) × NDSI',
+        info: 'Red Edge Alteration Index — exploits Sentinel-2\'s dedicated Red Edge bands (B05=705nm, B06=740nm), unused by any other index in this suite. In vegetated scenes these bands track chlorophyll. Over bare disturbed soil, a B06/B05 ratio exceeding ~1.10 indicates ferric mineral enrichment (goethite, hematite) from produced water iron precipitation. Multiplied by NDSI, it confirms co-located brine chemistry. Particularly sensitive to subtle early-stage iron staining invisible to the standard visible/SWIR indices.',
+        diffLabels: ['No Alteration', 'Ferric + Brine Signal'],
+        evalscript: genEvalscript(['B05', 'B06', 'B11', 'B12'], `
+  if (sample.dataMask === 0 || sample.B05 === 0) return [0,0,0,0];
+
+  // 1. Red Edge Iron Ratio: B06/B05
+  // Baseline bare soil: ~0.95–1.08. Ferric alteration pushes above 1.10.
+  let redEdge = sample.B06 / sample.B05;
+  let ironScore = Math.max(0, (redEdge - 1.08) / 0.45);
+
+  // 2. Brine confirmation
+  let ndsiSum = sample.B11 + sample.B12;
+  if (ndsiSum === 0) return [0,0,0,0];
+  let ndsi = (sample.B11 - sample.B12) / ndsiSum;
+  let brineScore = Math.max(0, ndsi - 0.05);
+
+  let reai = ironScore * brineScore;
+  let mapped = Math.min(1, reai * 18.0);
+
+  ${colorBlend('mapped', `[
+      [0.0,  13, 26, 46],
+      [0.3,  46, 92, 138],
+      [0.65, 196, 122, 30],
+      [1.0,  232, 196, 74]
+  ]`)}
+`),
+        fisBands: ['B05', 'B06', 'B11', 'B12'],
+        fisLogic: `
+  if (sample.B05 === 0) return [0];
+  let ironScore = Math.max(0, (sample.B06 / sample.B05) - 1.08) / 0.45;
+  let ndsiSum = sample.B11 + sample.B12;
+  let brineScore = ndsiSum === 0 ? 0 : Math.max(0, (sample.B11 - sample.B12) / ndsiSum - 0.05);
+  return [Math.min(1, ironScore * brineScore * 18.0)];
+`
+    },
+    vcbi: {
+        name: 'Vegetation-Confirmed Brine Index (VCBI)',
+        sensor: 'Sentinel-2 L2A',
+        min: 'No Stress', max: 'Brine-Kill Zone',
+        gradient: 'linear-gradient(to right, #0a2010, #1a6030, #c8a000, #e05010)',
+        formula: 'max(0, −CRSI) × NDSI',
+        info: 'Vegetation-Confirmed Brine Index — targets the off-pad migration front where produced water is actively killing surrounding brush and rangeland. CRSI measures the osmotic shock of brine on vegetation; as chloride concentrations rise, CRSI collapses toward zero and goes negative. Multiplied by NDSI (brine chemistry), the index isolates pixels where vegetation is simultaneously dying AND measurable salt chemistry is present. This catches the leading edge of a spill that may not yet show a strong chemical signature at ground zero.',
+        diffLabels: ['Recovery / Less Stress', 'Active Brine-Kill'],
+        evalscript: genEvalscript(['B02', 'B03', 'B04', 'B08', 'B11', 'B12'], `
+  if (sample.dataMask === 0) return [0,0,0,0];
+
+  // 1. Inverted CRSI: high = vegetation mortality from brine stress
+  let top = (sample.B08 * sample.B04) - (sample.B03 * sample.B02);
+  let bot = (sample.B08 * sample.B04) + (sample.B03 * sample.B02);
+  let crsi = (bot <= 0 || top < 0) ? 0 : Math.sqrt(top / bot);
+  // Invert: healthy veg = low score, brine-stressed/dead = high score
+  let stressScore = Math.max(0, 0.55 - crsi) * (1.0 / 0.55);
+
+  // 2. Brine chemistry at same pixel
+  let ndsiSum = sample.B11 + sample.B12;
+  if (ndsiSum === 0) return [0,0,0,0];
+  let ndsi = (sample.B11 - sample.B12) / ndsiSum;
+  let brineScore = Math.max(0, ndsi - 0.04);
+
+  let vcbi = stressScore * brineScore;
+  let mapped = Math.min(1, vcbi * 10.0);
+
+  ${colorBlend('mapped', `[
+      [0.0,  10, 32, 16],
+      [0.3,  26, 96, 48],
+      [0.65, 200, 160, 0],
+      [1.0,  224, 80, 16]
+  ]`)}
+`),
+        fisBands: ['B02', 'B03', 'B04', 'B08', 'B11', 'B12'],
+        fisLogic: `
+  let top = (sample.B08 * sample.B04) - (sample.B03 * sample.B02);
+  let bot = (sample.B08 * sample.B04) + (sample.B03 * sample.B02);
+  let crsi = (bot <= 0 || top < 0) ? 0 : Math.sqrt(top / bot);
+  let stressScore = Math.max(0, 0.55 - crsi) / 0.55;
+  let ndsiSum = sample.B11 + sample.B12;
+  let brineScore = ndsiSum === 0 ? 0 : Math.max(0, (sample.B11 - sample.B12) / ndsiSum - 0.04);
+  return [Math.min(1, stressScore * brineScore * 10.0)];
+`
     },
     pwi: {
+        name: 'Produced Water Index (PWI)',
         sensor: 'Sentinel-2 L2A',
         min: 'Background', max: 'Confirmed Spill',
         gradient: 'linear-gradient(to right, #000000, #00FFFF, #FF00FF, #CCFF00)',
@@ -704,6 +865,9 @@ function evaluatePixel(sample) {
   if (sample.dataMask === 0) return [0,0,0,0];
   // Convert power to decibels
   let vv_db = Math.max(0, Math.log10(sample.VV) * 10 + 20) / 20; 
+  
+  if (typeof VISUAL_FILTER !== 'undefined' && vv_db < VISUAL_FILTER) return [0,0,0,0];
+  
   // Map backscatter to grayscale (smooth/dark -> rough/white)
   return [vv_db, vv_db, vv_db, 1];
 }`,
@@ -757,7 +921,9 @@ const state = {
     sbsControl: null,
     chartInst: null,
 
-    anomalousDates: [] // Array of 'YYYY-MM-DD' strings flagged by the scanner
+    anomalousDates: [], // Array of 'YYYY-MM-DD' strings flagged by the scanner
+    rrcSpillLayer: null, // Leaflet layer group for RRC spill markers
+    rrcSpillData: null   // Cached GeoJSON after first fetch
 };
 
 // ── INIT ───────────────────────────────────────────
@@ -1070,7 +1236,7 @@ function evaluatePixel(samples) {
   return [0.2, 0.2, 0.2, 0.3]; // Stable
 }
 `;
-        } else {
+        } else if (isDiff) {
             let calc = '0';
 
             // Healthy / Wet / Vegetation Indices (Increase = Blue/Green/Good, Decrease = Red/Loss)
@@ -1126,7 +1292,7 @@ function evaluatePixel(samples) {
 
     // Inject visual filter globally into the raw script string
     const filterInject = `//VERSION=3\nconst VISUAL_FILTER = ${state.visualFilter};`;
-    scriptContent = scriptContent.replace(/\/\/\s*VERSION=3/i, filterInject);
+    scriptContent = scriptContent.trim().replace(/\/\/\s*VERSION=3/i, filterInject);
 
     return scriptContent;
 }
@@ -1156,7 +1322,7 @@ function getWMSLayer(timeStr, isDiff, overrideIndex = null) {
         time: queryTime,
         maxcc: 20,
         showlogo: false,
-        evalscript: btoa(scriptContent),
+        evalscript: btoa(unescape(encodeURIComponent(scriptContent))),
         opacity: overrideIndex ? 0.5 : state.opacity,
         attribution: 'Copernicus Sentinel Hub',
         tileSize: 256,
@@ -1299,16 +1465,16 @@ function updateUI() {
         grad.style.display = 'none';
         document.getElementById('legend-min').style.display = 'none';
         document.getElementById('legend-max').style.display = 'none';
-    } else if (cfg.gradient === 'none') {
-        grad.style.display = 'none';
-        document.getElementById('legend-min').style.display = 'none';
-        document.getElementById('legend-max').style.display = 'none';
-    } else {
+    } else if (cfg.gradient && cfg.gradient !== 'none') {
         if (diffLegend) diffLegend.style.display = 'none';
         grad.style.display = 'block';
         document.getElementById('legend-min').style.display = 'block';
         document.getElementById('legend-max').style.display = 'block';
         grad.style.background = cfg.gradient;
+    } else {
+        grad.style.display = 'none';
+        document.getElementById('legend-min').style.display = 'none';
+        document.getElementById('legend-max').style.display = 'none';
     }
 }
 
@@ -1316,18 +1482,6 @@ function updateUI() {
 
 // ── EVENT BINDINGS ─────────────────────────────────
 function bindEvents() {
-    // Visual Filter Slider
-    const visFilterSlider = document.getElementById('visual-filter-slider');
-    const visFilterVal = document.getElementById('visual-filter-val');
-    if (visFilterSlider && visFilterVal) {
-        visFilterSlider.addEventListener('input', (e) => {
-            visFilterVal.innerText = e.target.value + '%';
-        });
-        visFilterSlider.addEventListener('change', (e) => {
-            state.visualFilter = parseInt(e.target.value) / 100.0;
-            applyIndex();
-        });
-    }
 
     // Mode Switcher
     const mSing = document.getElementById('mode-single');
@@ -1495,6 +1649,24 @@ function bindEvents() {
         });
     }
 
+    // RRC Spill Overlay Toggle
+    const toggleRrc = document.getElementById('toggle-rrc-spills');
+    if (toggleRrc) {
+        toggleRrc.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                initRrcSpillOverlay();
+            } else {
+                if (state.rrcSpillLayer) {
+                    state.map.removeLayer(state.rrcSpillLayer);
+                    state.rrcSpillLayer = null;
+                }
+                const badge = document.getElementById('rrc-spill-count');
+                if (badge) badge.style.display = 'none';
+            }
+        });
+    }
+
+
     // Single Date Dropdown
     const dateSingleEl = document.getElementById('date-single');
     if (dateSingleEl) {
@@ -1530,6 +1702,22 @@ function bindEvents() {
         if (state.leftGroup) state.leftGroup.eachLayer(setOp);
         if (state.rightGroup) state.rightGroup.eachLayer(setOp);
     });
+
+    // Visual filter (threshold mask) slider
+    const vfSlider = document.getElementById('visual-filter-slider');
+    const vfVal = document.getElementById('visual-filter-val');
+    if (vfSlider) {
+        let vfDebounce = null;
+        vfSlider.addEventListener('input', (e) => {
+            const pct = parseInt(e.target.value);
+            // Map 0–100 slider pct to the 0.0–1.0 range used by VISUAL_FILTER in evalscripts
+            state.visualFilter = pct / 100;
+            if (vfVal) vfVal.textContent = pct === 0 ? 'Off' : pct + '%';
+            // Debounce applyIndex calls — tile re-fetch is expensive
+            clearTimeout(vfDebounce);
+            vfDebounce = setTimeout(() => applyIndex(), 400);
+        });
+    }
 
     // Compare Dates
     document.getElementById('date-t1').addEventListener('change', () => { if (state.mode === 'compare') applyIndex(); });
@@ -2994,5 +3182,104 @@ async function downloadHTMLReport() {
             btn.disabled = false;
         }
     }
+}
+
+
+// ── RRC Spill Overlay ─────────────────────────────────────────────────────────
+// Loads ./data/rrc_spills.json (once, cached in state.rrcSpillData) and renders
+// orange/red Leaflet circleMarkers. Each marker has a popup with date, volume,
+// operator, county, and RRC district. A sidebar badge shows the total count.
+
+async function initRrcSpillOverlay() {
+    // Remove any existing layer first
+    if (state.rrcSpillLayer) {
+        state.map.removeLayer(state.rrcSpillLayer);
+        state.rrcSpillLayer = null;
+    }
+
+    // Fetch and cache data
+    if (!state.rrcSpillData) {
+        try {
+            const resp = await fetch('./data/rrc_spills.json');
+            if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+            state.rrcSpillData = await resp.json();
+        } catch (err) {
+            console.error('[RRC Overlay] Failed to load spill data:', err);
+            return;
+        }
+    }
+
+    const features = state.rrcSpillData.features || [];
+
+    // Radius by volume (BBL)
+    const getRadius = (vol) => {
+        if (vol >= 2000) return 13;
+        if (vol >= 1000) return 10;
+        if (vol >= 500) return 7;
+        return 5;
+    };
+
+    // Color ramp: orange → deep red
+    const getColor = (vol) => {
+        if (vol >= 2000) return '#FF1744';  // Major — bright red
+        if (vol >= 1000) return '#FF5722';  // Significant — deep orange-red
+        if (vol >= 500) return '#FF6B35';  // Moderate — orange
+        return '#FF9060';                    // Minor — pale orange
+    };
+
+    const spillMarkers = [];
+
+    features.forEach(f => {
+        const p = f.properties;
+        const coords = f.geometry.coordinates; // GeoJSON: [lng, lat]
+        const lat = coords[1], lng = coords[0];
+
+        const vol = p.volume_bbl || 0;
+        const radius = getRadius(vol);
+        const color = getColor(vol);
+
+        const marker = L.circleMarker([lat, lng], {
+            radius: radius,
+            fillColor: color,
+            color: '#1a0a00',
+            weight: 1.5,
+            opacity: 1,
+            fillOpacity: 0.88
+        });
+
+        const volStr = vol.toLocaleString();
+        const severityEmoji =
+            vol >= 2000 ? '🔴 Major' :
+                vol >= 1000 ? '🟠 Significant' :
+                    vol >= 500 ? '🟡 Moderate' : '⚪ Minor';
+
+        marker.bindPopup(`
+            <div style="font-family:'Space Grotesk',sans-serif;min-width:230px;color:#f0f0f0;">
+                <div style="font-size:11px;font-weight:700;color:#FF6B35;text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px;">⚠ RRC Spill Incident</div>
+                <div style="font-weight:600;font-size:13px;margin-bottom:8px;color:#fff;">${p.incident_type}</div>
+                <table style="font-size:11px;border-collapse:collapse;width:100%;">
+                    <tr><td style="color:#999;padding:2px 8px 2px 0;white-space:nowrap;">Operator</td><td style="color:#fff;">${p.operator}</td></tr>
+                    <tr><td style="color:#999;padding:2px 8px 2px 0;">County</td><td style="color:#fff;">${p.county} — RRC District ${p.district}</td></tr>
+                    <tr><td style="color:#999;padding:2px 8px 2px 0;">Date</td><td style="color:#fff;">${p.date}</td></tr>
+                    <tr><td style="color:#999;padding:2px 8px 2px 0;">Volume</td><td style="color:${color};font-weight:700;">${volStr} BBL &nbsp;${severityEmoji}</td></tr>
+                </table>
+                <div style="margin-top:9px;padding:8px;background:rgba(255,107,53,.1);border-radius:4px;border:1px solid rgba(255,107,53,.25);font-size:11px;color:#ccc;line-height:1.5;">${p.description}</div>
+                <div style="margin-top:7px;font-size:10px;color:#555;">Source: TX RRC Inspections &amp; Violations — rrc.texas.gov</div>
+            </div>
+        `, { maxWidth: 310, className: 'rrc-spill-popup' });
+
+        spillMarkers.push(marker);
+    });
+
+    state.rrcSpillLayer = L.layerGroup(spillMarkers).addTo(state.map);
+
+    // Update sidebar count badge
+    const badge = document.getElementById('rrc-spill-count');
+    if (badge) {
+        badge.textContent = `${features.length} incidents loaded`;
+        badge.style.display = 'block';
+    }
+
+    console.log(`[RRC Overlay] Rendered ${spillMarkers.length} spill incidents.`);
 }
 

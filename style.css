@@ -683,14 +683,14 @@ button {
 /* --- Themed Button Styling --- */
 /* PWI (Produced Water Composite) - Aggressive High-Contrast */
 .index-btn[data-index="pwi"] .index-short {
-    color: #4df;
+    color: #00D2FF;
 }
 
 .index-btn[data-index="pwi"]:hover,
 .index-btn[data-index="pwi"].active {
-    background: linear-gradient(135deg, rgba(0, 255, 255, 0.1), rgba(255, 0, 255, 0.05));
-    border-color: #0ff;
-    box-shadow: inset 0 0 15px rgba(0, 255, 255, 0.1);
+    background: linear-gradient(135deg, rgba(0, 210, 255, 0.1), rgba(255, 0, 255, 0.05));
+    border-color: #00D2FF;
+    box-shadow: inset 0 0 15px rgba(0, 210, 255, 0.1);
 }
 
 .index-btn[data-index="pwi"]::before {
@@ -703,10 +703,16 @@ button {
     height: 3px;
     border-radius: 0 0 8px 8px;
     background: linear-gradient(to right, #000000, #00FFFF, #FF00FF, #CCFF00);
-    opacity: 0.6;
+    opacity: 0;
+    transition: opacity 0.2s ease;
 }
 
-/* Brine - Salt Accumulation */
+.index-btn[data-index="pwi"]:hover::before,
+.index-btn[data-index="pwi"].active::before {
+    opacity: 0.8;
+}
+
+/* Brine - Salt Water */
 .index-btn[data-index="brine"] .index-short {
     color: #F0501E;
 }
@@ -722,105 +728,17 @@ button {
     position: absolute;
     bottom: 0;
     left: 0;
+    right: 0;
+    height: 3px;
+    border-radius: 0 0 8px 8px;
+    background: linear-gradient(to right, #000000, #F0501E);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
 
-    /* CRSI - Salt Stress */
-    .index-btn[data-index="crsi"] .index-short {
-        color: #e67e22;
-    }
-
-    .index-btn[data-index="crsi"]:hover,
-    .index-btn[data-index="crsi"].active {
-        border-color: #e67e22;
-    }
-
-    .index-btn[data-index="crsi"]::before {
-        content: '';
-        display: block;
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        height: 3px;
-        border-radius: 0 0 8px 8px;
-        background: linear-gradient(to right, #27ae60, #f1c40f, #e67e22, #c0392b);
-        opacity: 0.6;
-    }
-
-    /* AOI - Anoxic Oxidation */
-    .index-btn[data-index="aoi"] .index-short {
-        color: #c0392b;
-    }
-
-    .index-btn[data-index="aoi"]:hover,
-    .index-btn[data-index="aoi"].active {
-        border-color: #c0392b;
-    }
-
-    .index-btn[data-index="aoi"]::before {
-        content: '';
-        display: block;
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        height: 3px;
-        border-radius: 0 0 8px 8px;
-        background: linear-gradient(to right, #2c3e50, #8e44ad, #c0392b);
-        opacity: 0.6;
-    }
-
-    /* HPWI - Hybrid SAR / Optical */
-    .index-btn[data-index="hpwi"] .index-short {
-        color: #f1c40f;
-    }
-
-    .index-btn[data-index="hpwi"]:hover,
-    .index-btn[data-index="hpwi"].active {
-        border-color: #f1c40f;
-        box-shadow: 0 0 10px rgba(241, 196, 15, 0.3);
-    }
-
-    .index-btn[data-index="hpwi"]::before {
-        content: '';
-        display: block;
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        height: 3px;
-        border-radius: 0 0 8px 8px;
-        background: linear-gradient(to right, #111111, #4b0082, #e74c3c, #f1c40f);
-        opacity: 0.6;
-    }
-
-    /* EHC - Evaporite Halo Composite */
-    .index-btn[data-index="ehc"] .index-short {
-        background: linear-gradient(to right, #e74c3c, #2ecc71, #3498db);
-        -webkit-background-clip: text;
-        background-clip: text;
-        -webkit-text-fill-color: transparent;
-    }
-
-    .index-btn[data-index="ehc"]:hover,
-    .index-btn[data-index="ehc"].active {
-        border-color: #3498db;
-    }
-
-    .index-btn[data-index="ehc"]::before {
-        content: '';
-        display: block;
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        right: 0;
-        height: 3px;
-        border-radius: 0 0 8px 8px;
-        background: linear-gradient(to right, #e74c3c, #2ecc71, #3498db);
-        opacity: 0.6;
-    }
-
-    background: linear-gradient(to right, #2c3e50, #7f8c8d, #f1c40f, #e74c3c);
-    opacity: 0.6;
+.index-btn[data-index="brine"]:hover::before,
+.index-btn[data-index="brine"].active::before {
+    opacity: 0.8;
 }
 
 /* CRSI - Salt Stress */
@@ -843,7 +761,104 @@ button {
     height: 3px;
     border-radius: 0 0 8px 8px;
     background: linear-gradient(to right, #27ae60, #f1c40f, #e67e22, #c0392b);
-    opacity: 0.6;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.index-btn[data-index="crsi"]:hover::before,
+.index-btn[data-index="crsi"].active::before {
+    opacity: 0.8;
+}
+
+/* AOI - Anoxic Oxidation */
+.index-btn[data-index="aoi"] .index-short {
+    color: #c0392b;
+}
+
+.index-btn[data-index="aoi"]:hover,
+.index-btn[data-index="aoi"].active {
+    border-color: #c0392b;
+}
+
+.index-btn[data-index="aoi"]::before {
+    content: '';
+    display: block;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    border-radius: 0 0 8px 8px;
+    background: linear-gradient(to right, #2c3e50, #8e44ad, #c0392b);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.index-btn[data-index="aoi"]:hover::before,
+.index-btn[data-index="aoi"].active::before {
+    opacity: 0.8;
+}
+
+/* HPWI - Hybrid SAR / Optical */
+.index-btn[data-index="hpwi"] .index-short {
+    color: #f1c40f;
+}
+
+.index-btn[data-index="hpwi"]:hover,
+.index-btn[data-index="hpwi"].active {
+    border-color: #f1c40f;
+    box-shadow: 0 0 10px rgba(241, 196, 15, 0.3);
+}
+
+.index-btn[data-index="hpwi"]::before {
+    content: '';
+    display: block;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    border-radius: 0 0 8px 8px;
+    background: linear-gradient(to right, #111111, #4b0082, #e74c3c, #f1c40f);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.index-btn[data-index="hpwi"]:hover::before,
+.index-btn[data-index="hpwi"].active::before {
+    opacity: 0.8;
+}
+
+/* EHC - Evaporite Halo Composite */
+.index-btn[data-index="ehc"] .index-short {
+    background: linear-gradient(to right, #e74c3c, #2ecc71, #3498db);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+.index-btn[data-index="ehc"]:hover,
+.index-btn[data-index="ehc"].active {
+    border-color: #3498db;
+}
+
+.index-btn[data-index="ehc"]::before {
+    content: '';
+    display: block;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    border-radius: 0 0 8px 8px;
+    background: linear-gradient(to right, #e74c3c, #2ecc71, #3498db);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.index-btn[data-index="ehc"]:hover::before,
+.index-btn[data-index="ehc"].active::before {
+    opacity: 0.8;
 }
 
 /* HCAI - Hydrocarbons / Oil */
@@ -866,7 +881,13 @@ button {
     height: 3px;
     border-radius: 0 0 8px 8px;
     background: linear-gradient(to right, #F5DEB3, #8B4513, #000000);
-    opacity: 0.6;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.index-btn[data-index="hcai"]:hover::before,
+.index-btn[data-index="hcai"].active::before {
+    opacity: 0.8;
 }
 
 /* HMRI - Heavy Metals */
@@ -889,7 +910,13 @@ button {
     height: 3px;
     border-radius: 0 0 8px 8px;
     background: linear-gradient(to right, #E6E6FA, #800080, #FF00FF);
-    opacity: 0.6;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.index-btn[data-index="hmri"]:hover::before,
+.index-btn[data-index="hmri"].active::before {
+    opacity: 0.8;
 }
 
 /* CSI - Contaminated Soil (Clay Ratio) */
@@ -912,7 +939,13 @@ button {
     height: 3px;
     border-radius: 0 0 8px 8px;
     background: linear-gradient(to right, #A07832, #64DC50, #00FFFF);
-    opacity: 0.6;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.index-btn[data-index="csi"]:hover::before,
+.index-btn[data-index="csi"].active::before {
+    opacity: 0.8;
 }
 
 /* Standard Blue Variables (Water/Moisture) */
@@ -927,7 +960,15 @@ button {
     height: 3px;
     border-radius: 0 0 8px 8px;
     background: linear-gradient(to right, #D46A24, #EFD87A, #1C85A6);
-    opacity: 0.6;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.index-btn[data-index="ndwi"]:hover::before,
+.index-btn[data-index="ndwi"].active::before,
+.index-btn[data-index="ndmi"]:hover::before,
+.index-btn[data-index="ndmi"].active::before {
+    opacity: 0.8;
 }
 
 .index-btn[data-index="ndwi"] .index-short,
@@ -947,7 +988,15 @@ button {
     height: 3px;
     border-radius: 0 0 8px 8px;
     background: linear-gradient(to right, #824614, #D7AA3C, #146428);
-    opacity: 0.6;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.index-btn[data-index="ndvi"]:hover::before,
+.index-btn[data-index="ndvi"].active::before,
+.index-btn[data-index="savi"]:hover::before,
+.index-btn[data-index="savi"].active::before {
+    opacity: 0.8;
 }
 
 .index-btn[data-index="ndvi"] .index-short,
@@ -966,7 +1015,13 @@ button {
     height: 3px;
     border-radius: 0 0 8px 8px;
     background: linear-gradient(to right, #1C85A6, #EFD87A, #D46A24);
-    opacity: 0.6;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.index-btn[data-index="msi"]:hover::before,
+.index-btn[data-index="msi"].active::before {
+    opacity: 0.8;
 }
 
 .index-btn[data-index="msi"] .index-short {
@@ -983,7 +1038,13 @@ button {
     height: 3px;
     border-radius: 0 0 8px 8px;
     background: linear-gradient(to right, #243340, #EFD87A, #F0501E);
-    opacity: 0.6;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.index-btn[data-index="si"]:hover::before,
+.index-btn[data-index="si"].active::before {
+    opacity: 0.8;
 }
 
 .index-btn[data-index="si"] .index-short {
@@ -1001,7 +1062,13 @@ button {
     height: 3px;
     border-radius: 0 0 8px 8px;
     background: linear-gradient(to right, #000000, #448833, #CCDD55);
-    opacity: 0.6;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.index-btn[data-index="s1_sar"]:hover::before,
+.index-btn[data-index="s1_sar"].active::before {
+    opacity: 0.8;
 }
 
 .index-btn[data-index="s1_sar"] .index-short {
@@ -1019,6 +1086,12 @@ button {
     height: 3px;
     border-radius: 0 0 8px 8px;
     background: linear-gradient(to right, #000, #fff);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.index-btn[data-index="tc"]:hover::before,
+.index-btn[data-index="tc"].active::before {
     opacity: 0.4;
 }
 
@@ -1032,6 +1105,12 @@ button {
     height: 3px;
     border-radius: 0 0 8px 8px;
     background: linear-gradient(to right, #AA0000, #FF0000);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.index-btn[data-index="fc"]:hover::before,
+.index-btn[data-index="fc"].active::before {
     opacity: 0.4;
 }
 
@@ -1440,6 +1519,7 @@ button {
     color: var(--accent-blue);
     border-color: var(--accent-blue);
 }
+
 /* Visual Filter Slider */
 .visual-filter-container {
     margin-top: 15px;
@@ -1491,4 +1571,171 @@ input[type=range]::-webkit-slider-runnable-track {
     cursor: pointer;
     background: rgba(255, 255, 255, 0.2);
     border-radius: 2px;
+}
+
+/* ─── Ground Truth Overlays ──────────────────────────────────── */
+#overlay-controls .overlay-toggle-row {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 12px;
+    background: rgba(255, 107, 53, 0.06);
+    border: 1px solid rgba(255, 107, 53, 0.2);
+    border-radius: 6px;
+}
+
+.overlay-toggle-label {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    flex: 1;
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--text-color);
+    font-weight: 500;
+}
+
+.overlay-dot {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    margin-top: 2px;
+    box-shadow: 0 0 6px currentColor;
+}
+
+.overlay-sub {
+    display: block;
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-top: 2px;
+    font-weight: 400;
+}
+
+.overlay-badge {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: #FF6B35;
+    opacity: 0.8;
+    letter-spacing: 0.03em;
+}
+
+/* ─── RRC Spill Popup ────────────────────────────────────────── */
+.rrc-spill-popup .leaflet-popup-content-wrapper {
+    background: rgba(10, 11, 20, 0.97) !important;
+    border: 1px solid rgba(255, 107, 53, 0.35) !important;
+    border-radius: 8px !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 107, 53, 0.1) !important;
+    color: #f0f0f0 !important;
+    backdrop-filter: blur(8px);
+}
+
+.rrc-spill-popup .leaflet-popup-content {
+    margin: 14px 16px !important;
+    line-height: 1.5 !important;
+}
+
+.rrc-spill-popup .leaflet-popup-tip {
+    background: rgba(10, 11, 20, 0.97) !important;
+    box-shadow: none !important;
+}
+
+.rrc-spill-popup .leaflet-popup-close-button {
+    color: rgba(255, 255, 255, 0.4) !important;
+    font-size: 16px !important;
+    top: 6px !important;
+    right: 10px !important;
+}
+
+.rrc-spill-popup .leaflet-popup-close-button:hover {
+    color: #fff !important;
+}
+
+/* ─── FBC / REAI / VCBI Index Button Accents ───────────────── */
+.index-btn[data-index="fbc"] .index-short {
+    color: #FFB347;
+}
+
+.index-btn[data-index="fbc"]:hover,
+.index-btn[data-index="fbc"].active {
+    border-color: #FFB347;
+    box-shadow: 0 0 10px rgba(255, 179, 71, 0.3);
+}
+
+.index-btn[data-index="fbc"]::before {
+    content: '';
+    display: block;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    border-radius: 0 0 8px 8px;
+    background: linear-gradient(to right, #1a0800, #8B2500, #D4581A, #FFB347);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.index-btn[data-index="fbc"]:hover::before,
+.index-btn[data-index="fbc"].active::before {
+    opacity: 0.8;
+}
+
+.index-btn[data-index="reai"] .index-short {
+    color: #e8c44a;
+}
+
+.index-btn[data-index="reai"]:hover,
+.index-btn[data-index="reai"].active {
+    border-color: #e8c44a;
+    box-shadow: 0 0 10px rgba(232, 196, 74, 0.3);
+}
+
+.index-btn[data-index="reai"]::before {
+    content: '';
+    display: block;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    border-radius: 0 0 8px 8px;
+    background: linear-gradient(to right, #0d1a2e, #2e5c8a, #c47a1e, #e8c44a);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.index-btn[data-index="reai"]:hover::before,
+.index-btn[data-index="reai"].active::before {
+    opacity: 0.8;
+}
+
+.index-btn[data-index="vcbi"] .index-short {
+    color: #c8a000;
+}
+
+.index-btn[data-index="vcbi"]:hover,
+.index-btn[data-index="vcbi"].active {
+    border-color: #c8a000;
+    box-shadow: 0 0 10px rgba(200, 160, 0, 0.3);
+}
+
+.index-btn[data-index="vcbi"]::before {
+    content: '';
+    display: block;
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    border-radius: 0 0 8px 8px;
+    background: linear-gradient(to right, #0a2010, #1a6030, #c8a000, #e05010);
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.index-btn[data-index="vcbi"]:hover::before,
+.index-btn[data-index="vcbi"].active::before {
+    opacity: 0.8;
 }

@@ -10,13 +10,21 @@
         rel="stylesheet">
     <link rel="stylesheet" href="style.css">
     <style>
+        html,
         body {
-            background-color: var(--bg-color);
-            color: var(--text-color);
+            overflow: auto !important;
+            height: auto !important;
+            width: auto !important;
+        }
+
+        body {
+            background-color: var(--bg-base);
+            color: var(--text-main);
             padding: 40px;
             max-width: 1000px;
             margin: 0 auto;
             line-height: 1.6;
+            font-family: var(--font-ui);
         }
 
         h1,
@@ -140,16 +148,29 @@
     </div>
 
     <div class="index-card">
-        <h3><span>Hybrid SAR+Optical Fusion (HPWI)</span> <span class="formula fusion-badge">NDOI * (1 -
-                norm(VH))</span></h3>
-        <p><strong>Mechanisms & Utility:</strong> Advanced data fusion bridging optical chemistry with radar physics.
-            Optical data from Sentinel-2 calculates the chemical probability of a hydrocarbon spill (NDOI), while
-            Sentinel-1 SAR (Synthetic Aperture Radar) VH-polarization backscatter determines the physical "smoothness"
-            and dampening of the terrain.</p>
-        <p><strong>Scientific Basis:</strong> Liquid oil and brine actively dampen capillary waves and physical surface
-            roughness, causing a distinct drop in radar backscatter.<sup><a href="#fn4">4</a></sup> By multiplying the
-            chemical trace by the physical dampening signature, HPWI isolates fresh, active liquid blowouts while
-            entirely dismissing dry topsoil staining.</p>
+        <h3><span>Hydro-Optical Spill Index (HPWI)</span> <span class="formula fusion-badge">(NDOI + brineBoost)
+                × norm(smoothness)</span></h3>
+        <p><strong>Mechanisms &amp; Utility:</strong> A dual-gate optical composite requiring both a <em>liquid
+                chemical signature</em> and confirmed <em>surface smoothness</em> to fire. NDOI (B02−B12) is the
+            primary hydrocarbon gate. Confirmed brine (NDSI &gt; 0.05, weighted 0.8×) provides an additive boost so
+            brine-dominant produced water registers even with no oil signal. The 0.05 floor prevents ambient Permian
+            Basin soil salt from contributing — only meaningful brine elevates the score.</p>
+        <p><strong>Gate Logic:</strong></p>
+        <ul>
+            <li><strong>Chemical Gate:</strong>
+                <code>chemSignal = min(1, NDOI + max(0, NDSI − 0.05) × 0.8)</code> — oil spills drive NDOI; brine
+                spills drive the NDSI boost; mixed produced water drives both. Dry rough terrain won't clear the
+                smoothness gate regardless.
+            </li>
+            <li><strong>Smoothness Gate:</strong>
+                <code>normSmooth = clamp((B03−B11)/(B03+B11) + 0.3) / 0.6</code>. Liquid surfaces suppress SWIR1 and
+                slightly elevate Green. Dry bare soil stays near zero. Standing fresh water passes smoothness but
+                carries no chemical signal, so the composite stays near zero.
+            </li>
+        </ul>
+        <p><strong>Scientific Basis:</strong> Liquid oil and brine suppress SWIR reflectance and slightly elevate Green.
+            The additive chemical gate covers pure-oil to pure-brine spills without opening so wide that any flat
+            Permian surface triggers it.<sup><a href="#fn4">4</a></sup></p>
     </div>
 
     <div class="index-card">
@@ -168,6 +189,125 @@
             dissolved iron and sulfides. When violently brought to the surface during a frac hit or spill, these
             minerals rapidly oxidize, forming a dark "rust scab." AOI isolates the combination of iron oxidation
             (Red/Blue ratio) and dense mineral absorption in the SWIR spectrum.</p>
+    </div>
+
+    <div class="index-card">
+        <h3><span>Ferrugination-Brine Composite (FBC)</span> <span class="formula fusion-badge">(B04/B02) × NDSI ×
+                (1−NDVI)</span></h3>
+        <p><strong>Mechanisms &amp; Utility:</strong> Deep Permian produced water is rich in ferrous iron (Fe²⁺). When
+            surfaced and exposed to oxygen, it oxidizes to ferric iron (Fe³⁺), forming a rust-brown staining with a
+            measurably elevated Red/Blue ratio (B04/B02). FBC enforces three independent physical gates simultaneously:
+            iron alteration, brine chemistry (NDSI), and bare-ground confirmation (1−NDVI). All three must clear their
+            calibrated Permian baseline before a pixel is flagged.</p>
+        <p><strong>Permian-Calibrated Gate Logic:</strong></p>
+        <ul>
+            <li><strong>Gate 1 — Iron Oxidation:</strong> <code>ironScore = max(0, (B04/B02 − 1.5) / 1.0)</code><br>
+                Permian red-dirt baseline B04/B02 ≈ 1.2–1.6. Produced water iron precipitation (Fe²⁺→Fe³⁺) pushes
+                this ratio above 1.5. The offset of <strong>1.5</strong> sits just at the iron-alteration onset,
+                with a scale of <strong>1.0</strong> for high sensitivity on moderate spills.</li>
+            <li><strong>Gate 2 — Brine Chemistry:</strong> <code>brineScore = max(0, NDSI − 0.02)</code><br>
+                NDSI = (B11−B12)/(B11+B12). Clean dry soil is typically NDSI ≈ −0.05 to +0.02; active brine or
+                chloride-enriched surface registers ≥ 0.03. Floor of <strong>0.02</strong> admits early-stage brine
+                before a thick crust forms.</li>
+            <li><strong>Gate 3 — No Vegetation:</strong> <code>noVeg = max(0, 1 − max(0, NDVI))</code><br>
+                Suppresses any pixel with living plant cover. Healthy rangeland around a pad will have NDVI ≈ 0.15–0.35,
+                which pulls noVeg below 0.7 and effectively zeros the composite on vegetated ground.</li>
+        </ul>
+        <p><strong>Composite &amp; Scaling:</strong>
+            <code>FBC = sqrt(ironScore × brineScore) × noVeg × 25</code><br>
+            A <strong>geometric mean</strong> replaces the raw product: both gates must be nonzero to produce output,
+            but a very strong signal on one gate cannot be completely zeroed by a moderately weak signal on the other.
+            The multiplier of <strong>25</strong> is calibrated with sqrt amplification in mind — a moderate spill
+            (ironScore ≈ 0.3, brineScore ≈ 0.05, noVeg ≈ 0.9) maps to
+            sqrt(0.015) × 0.9 × 20 ≈ 2.2, clipped to 1.0 and rendered amber.
+        </p>
+        <p><strong>False-Positive Rejection (Permian Environment):</strong></p>
+        <table style="width:100%; border-collapse:collapse; font-size:0.88em; margin-bottom:12px;">
+            <thead>
+                <tr style="border-bottom:1px solid rgba(255,255,255,0.2);">
+                    <th style="text-align:left; padding:4px 8px; color:var(--accent-blue);">Surface Type</th>
+                    <th style="text-align:center; padding:4px 8px; color:var(--accent-blue);">Iron Gate</th>
+                    <th style="text-align:center; padding:4px 8px; color:var(--accent-blue);">Brine Gate</th>
+                    <th style="text-align:center; padding:4px 8px; color:var(--accent-blue);">No-Veg Gate</th>
+                    <th style="text-align:center; padding:4px 8px; color:var(--accent-blue);">FBC Fires?</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr style="border-bottom:1px solid rgba(255,255,255,0.07);">
+                    <td style="padding:4px 8px;">Clean red dirt (caliche-free)</td>
+                    <td style="text-align:center;">✅ High</td>
+                    <td style="text-align:center;">❌ Near-zero</td>
+                    <td style="text-align:center;">✅ Yes</td>
+                    <td style="text-align:center; color:#e74c3c;">No — brine blocks</td>
+                </tr>
+                <tr style="border-bottom:1px solid rgba(255,255,255,0.07);">
+                    <td style="padding:4px 8px;">Caliche flat / gypsum outcrop</td>
+                    <td style="text-align:center;">❌ Low</td>
+                    <td style="text-align:center;">❌ Negative</td>
+                    <td style="text-align:center;">✅ Yes</td>
+                    <td style="text-align:center; color:#e74c3c;">No — both block</td>
+                </tr>
+                <tr style="border-bottom:1px solid rgba(255,255,255,0.07);">
+                    <td style="padding:4px 8px;">Dry natural salt flat (playa)</td>
+                    <td style="text-align:center;">❌ Low</td>
+                    <td style="text-align:center;">✅ Slightly positive</td>
+                    <td style="text-align:center;">✅ Yes</td>
+                    <td style="text-align:center; color:#e74c3c;">No — iron blocks</td>
+                </tr>
+                <tr style="border-bottom:1px solid rgba(255,255,255,0.07);">
+                    <td style="padding:4px 8px;">Asphalt / well pad surface</td>
+                    <td style="text-align:center;">❌ Low</td>
+                    <td style="text-align:center;">❌ Negative</td>
+                    <td style="text-align:center;">✅ Yes</td>
+                    <td style="text-align:center; color:#e74c3c;">No — both block</td>
+                </tr>
+                <tr>
+                    <td style="padding:4px 8px;"><strong>Produced water spill</strong></td>
+                    <td style="text-align:center; color:#2ecc71;">✅ Elevated Fe³⁺</td>
+                    <td style="text-align:center; color:#2ecc71;">✅ Chlorides</td>
+                    <td style="text-align:center; color:#2ecc71;">✅ Bare ground</td>
+                    <td style="text-align:center; color:#2ecc71;"><strong>Yes ✅</strong></td>
+                </tr>
+            </tbody>
+        </table>
+        <p><strong>Planned Enhancement — BSI Floor Check:</strong> A future gate will also require a positive Bare Soil
+            Index (<code>BSI = ((B11+B04)−(B08+B02)) / ((B11+B04)+(B08+B02)) &gt; 0</code>) to specifically reject
+            playa lake margins and gypsum beds where iron-enriched soil co-occurs with natural salt minerals. This gate
+            is already active in the PWI composite and will be ported to FBC once field-validated.</p>
+        <p><strong>Scientific Basis:</strong><sup><a href="#fn3">3</a></sup><sup><a href="#fn11">11</a></sup>
+            Ferric iron (goethite/hematite) has a characteristic absorption feature at 700–750 nm and elevated Red-band
+            reflectance — a well-established geologic remote-sensing signature applied here to distinguish produced
+            water iron precipitation from the native Permian red-soil background.</p>
+    </div>
+
+    <div class="index-card">
+        <h3><span>Red Edge Alteration Index (REAI)</span> <span class="formula fusion-badge">(B06 / B05) × NDSI</span>
+        </h3>
+        <p><strong>Mechanisms &amp; Utility:</strong> Exploits Sentinel-2's dedicated Red Edge bands (B05=705nm,
+            B06=740nm) — unused by any other index in this suite. Over bare or disturbed soil, a B06/B05 ratio
+            exceeding ~1.10 indicates ferric mineral enrichment (goethite, hematite) from iron precipitation. Multiplied
+            by NDSI, it confirms co-located brine chemistry at the same pixel. REAI is particularly sensitive to
+            early-stage, low-volume iron staining that the standard SWIR composites have not yet detected.</p>
+        <p><strong>Scientific Basis:</strong> Goethite (FeOOH) and hematite (Fe₂O₃) have characteristic absorption
+            features at 700–750nm and high reflectance in the Red Edge range. This is a well-established geologic
+            remote-sensing technique applied here specifically to distinguish produced water iron precipitation from
+            natural red-soil backgrounds.<sup><a href="#fn11">11</a></sup></p>
+    </div>
+
+    <div class="index-card">
+        <h3><span>Vegetation-Confirmed Brine Index (VCBI)</span> <span class="formula fusion-badge">max(0, −CRSI) ×
+                NDSI</span></h3>
+        <p><strong>Mechanisms &amp; Utility:</strong> Targets the off-pad migration front — the leading edge of a spill
+            where produced water is actively killing surrounding brush and rangeland <em>before</em> a strong
+            ground-zero
+            chemical signature develops. CRSI tracks the osmotic shock of chloride intrusion into vegetation; as brine
+            concentrations rise, CRSI collapses. The inverted (−CRSI) term is multiplied by NDSI so the index only fires
+            at pixels where both vegetation stress and measurable brine chemistry co-occur.</p>
+        <p><strong>Scientific Basis:</strong> Salt-induced osmotic stress causes predictable canopy reflectance changes
+            in the Red Edge and NIR bands before visible wilting. VCBI operationalizes this as a change-detection
+            mechanism: a sudden CRSI collapse in a zone of previously healthy rangeland, combined with a rising NDSI
+            signal, is strong evidence of subsurface or surface brine migration off the pad
+            boundary.<sup><a href="#fn6">6</a></sup><sup><a href="#fn1">1</a></sup></p>
     </div>
 
 
@@ -321,6 +461,10 @@
         <li id="fn10"><strong>[10]</strong> McFeeters, S. K. (1996). The use of the Normalized Difference Water Index
             (NDWI) in the delineation of open water features. <em>International Journal of Remote Sensing</em>, 17(7),
             1425-1432.</li>
+        <li id="fn11"><strong>[11]</strong> Rowan, L. C., et al. (1977). Discrimination of rock types and detection of
+            hydrothermally altered areas in south-central Nevada by use of computer-enhanced ERTS images. <em>USGS
+                Professional Paper 883</em>. (Ferric iron / goethite / hematite Red Edge reflectance signatures —
+            foundational geologic remote sensing applied to iron-precipitate detection.)</li>
     </ul>
 
 </body>

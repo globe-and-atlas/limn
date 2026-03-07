@@ -85,7 +85,7 @@
         <div id="formula-display" class="formula-display">(B08 - B11) / (B08 + B11)</div>
         <div class="visual-filter-container" id="visual-filter-container">
             <label for="visual-filter-slider" class="filter-label">
-                Threshold Mask: <span id="visual-filter-val">0%</span>
+                Mask Below: <span id="visual-filter-val">Off</span>
             </label>
             <input type="range" id="visual-filter-slider" min="0" max="100" step="1" value="0">
         </div>
@@ -144,18 +144,55 @@
         </section>
 
         <section class="control-group">
-            <h3>Spectral Analysis Index</h3>
+            <h3>Spill Detection Suite</h3>
             <div class="index-grid">
-                <!-- Primary Target Indices -->
+                <!-- Primary Target Indices — ordered by PW detection effectiveness -->
                 <button class="index-btn" data-index="pwi">
                     <span class="index-short"
                         style="font-weight: bold; color: #00D2FF; text-shadow: 0 0 5px rgba(0, 210, 255, 0.5);">PWI</span>
                     <span class="index-full">Produced Water Composite</span>
                 </button>
+                <button class="index-btn" data-index="fbc">
+                    <span class="index-short" style="color: #FFB347;">FBC</span>
+                    <span class="index-full" style="font-weight: 600;">Iron-Brine Composite</span>
+                </button>
+                <button class="index-btn" data-index="hpwi">
+                    <span class="index-short" style="color: #f1c40f;">HPWI</span>
+                    <span class="index-full" style="font-weight: 600;">Hydro-Optical Fusion</span>
+                </button>
+                <button class="index-btn" data-index="reai">
+                    <span class="index-short" style="color: #e8c44a;">REAI</span>
+                    <span class="index-full" style="font-weight: 600;">Red Edge Alteration</span>
+                </button>
+                <button class="index-btn" data-index="vcbi">
+                    <span class="index-short" style="color: #c8a000;">VCBI</span>
+                    <span class="index-full" style="font-weight: 600;">Veg-Confirmed Brine</span>
+                </button>
+                <button class="index-btn" data-index="aoi">
+                    <span class="index-short" style="color: #c0392b;">AOI</span>
+                    <span class="index-full">Anoxic Oxidation</span>
+                </button>
                 <button class="index-btn" data-index="brine">
                     <span class="index-short">BRINE</span>
                     <span class="index-full">Brine / Salt Water</span>
                 </button>
+                <button class="index-btn" data-index="crsi">
+                    <span class="index-short">CRSI</span>
+                    <span class="index-full">Salt Stress / Mortality</span>
+                </button>
+                <button class="index-btn" data-index="ehc">
+                    <span class="index-short"
+                        style="background: linear-gradient(to right, #e74c3c, #2ecc71, #3498db); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">EHC</span>
+                    <span class="index-full">Evaporite Halo</span>
+                </button>
+            </div>
+
+            <!-- Divider -->
+            <div style="height: 1px; background: rgba(255,255,255,0.1); margin: 24px 0 16px 0;"></div>
+
+            <h3>Standard Environmental Indices</h3>
+            <div class="index-grid">
+                <!-- Secondary / Standard Indices (Alphabetical) -->
                 <button class="index-btn" data-index="hcai">
                     <span class="index-short">HCAI</span>
                     <span class="index-full">Hydrocarbons</span>
@@ -168,56 +205,25 @@
                     <span class="index-short">NDOI</span>
                     <span class="index-full">Oil Slicks</span>
                 </button>
-                <button class="index-btn" data-index="crsi">
-                    <span class="index-short">CRSI</span>
-                    <span class="index-full">Salt Stress / Mortality</span>
-                </button>
-
-                <button class="index-btn" data-index="aoi">
-                    <!-- AOI: Anoxic Oxidation Index -->
-                    <span class="index-short" style="color: #c0392b;">AOI</span>
-                    <span class="index-full">Anoxic Oxidation</span>
-                </button>
-                <button class="index-btn" data-index="ehc">
-                    <!-- EHC: Evaporite Halo Composite -->
-                    <span class="index-short"
-                        style="background: linear-gradient(to right, #e74c3c, #2ecc71, #3498db); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">EHC</span>
-                    <span class="index-full">Evaporite Halo</span>
-                </button>
-                <button class="index-btn" data-index="hpwi">
-                    <span class="index-short" style="color: #f1c40f;">HPWI</span>
-                    <span class="index-full" style="font-weight: 600;">Hybrid S1+S2 Fusion</span>
-                </button>
-            </div>
-
-            <!-- Divider -->
-            <div style="height: 1px; background: rgba(255,255,255,0.1); margin: 16px 0;"></div>
-
-            <div class="index-grid">
-                <!-- Secondary / Standard Indices (Alphabetical) -->
                 <button class="index-btn" data-index="csi">
                     <span class="index-short">CSI</span>
                     <span class="index-full">Contaminated Soil</span>
-                </button>
-                <button class="index-btn" data-index="fc">
-                    <span class="index-short">FC</span>
-                    <span class="index-full">False Color (NIR)</span>
-                </button>
-                <button class="index-btn" data-index="msi">
-                    <span class="index-short">MSI</span>
-                    <span class="index-full">Drought / Canopy</span>
-                </button>
-                <button class="index-btn active" data-index="ndmi">
-                    <span class="index-short">NDMI</span>
-                    <span class="index-full">Moisture Stress</span>
                 </button>
                 <button class="index-btn" data-index="ndvi">
                     <span class="index-short">NDVI</span>
                     <span class="index-full">Vegetation Health</span>
                 </button>
+                <button class="index-btn" data-index="ndmi">
+                    <span class="index-short">NDMI</span>
+                    <span class="index-full">Moisture Stress</span>
+                </button>
                 <button class="index-btn" data-index="ndwi">
                     <span class="index-short">NDWI</span>
                     <span class="index-full">Wetness / Ponding</span>
+                </button>
+                <button class="index-btn" data-index="msi">
+                    <span class="index-short">MSI</span>
+                    <span class="index-full">Drought / Canopy</span>
                 </button>
                 <button class="index-btn" data-index="s1_sar">
                     <span class="index-short">SAR</span>
@@ -321,6 +327,24 @@
                         anomalies.</span>
                 </div>
                 <input type="checkbox" id="toggle-sar-fusion" style="cursor: pointer; width: 16px; height: 16px;">
+            </div>
+        </section>
+
+        <section class="control-group" id="overlay-controls">
+            <h3>Ground Truth Overlays</h3>
+            <div class="overlay-toggle-row" id="overlay-rrc-row">
+                <div style="display: flex; align-items: flex-start; gap: 10px;">
+                    <label class="overlay-toggle-label" for="toggle-rrc-spills">
+                        <span class="overlay-dot" style="background: #FF6B35;"></span>
+                        <span>
+                            <strong>RRC Spill Incidents</strong>
+                            <span class="overlay-sub">TX Railroad Commission — Permian Basin</span>
+                        </span>
+                    </label>
+                    <input type="checkbox" id="toggle-rrc-spills" class="overlay-checkbox"
+                        style="margin-top: 3px; cursor: pointer; min-width: 16px; height: 16px; accent-color: #FF6B35;">
+                </div>
+                <div id="rrc-spill-count" class="overlay-badge" style="display:none;"></div>
             </div>
         </section>
 
@@ -518,7 +542,7 @@
         </div>
     </div>
 
-    <script src="app.js?v=20"></script>
+    <script src="app.js?v=23"></script>
     <script>
         // JS-powered tooltip for .chart-info-badge
         // Uses body-level element to avoid modal overflow-y clipping
