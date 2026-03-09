@@ -74,7 +74,7 @@ async function getCDSEToken() {
     }
 }
 
-const APP_VERSION = 'v37';
+const APP_VERSION = 'v38';
 
 // Globals for Report Generation
 let aoiDrawnItem = null;
@@ -1217,14 +1217,20 @@ function evaluatePixel(sample) {
   let vv = 10 * Math.log10(sample.VV);
   let ratio = vh - vv;
   let score = Math.max(0, (vh + 20) / 10) * Math.max(0, (ratio + 5) / 5);
-  let mapped = Math.min(1, score * 0.5);
-  return [mapped, 0, 0, 1]; // Return red-channel intensity for salt roughness
-}`,
+  let mapped = Math.min(1, score * 0.4);
+  
+  ${colorBlend('mapped', `[
+      [0.0, 0, 0, 0],
+      [0.3, 75, 0, 130],
+      [0.7, 231, 76, 60],
+      [1.0, 241, 196, 15]
+  ]`)}
+}`,,StartLine:1217,TargetContent:`,
         fisBands: ['VV', 'VH'],
         fisLogic: `
   let vh = 10 * Math.log10(sample.VH);
   let vv = 10 * Math.log10(sample.VV);
-  return [(vh + 20) / 10 * (vh - vv + 5) / 5];
+  return [Math.min(1, Math.max(0, (vh + 20) / 10) * Math.max(0, (vh - vv + 5) / 5) * 0.4)];
 `
     },
     s1_sar: {
