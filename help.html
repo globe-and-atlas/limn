@@ -145,9 +145,9 @@
         style="background: rgba(142, 45, 226, 0.05); border: 1px solid rgba(142, 45, 226, 0.2); border-radius: 8px; padding: 20px; margin: 30px 0;">
         <h2 style="margin-top: 0; border-bottom: none; color: #8E2DE2;">Advanced Data Expansion (Phase 3)</h2>
         <p style="font-size: 0.95em; margin-bottom: 10px;"><strong>NASA HLS Temporal Booster:</strong> Toggles the data
-            source to the NASA Harmonized Landsat Sentinel-2 collection. By combining Landsat 8/9 with Sentinel-2,
-            revisit frequency increases to approximately 2.5 days, effectively eliminating the "blind spot" between
-            standard satellite passes.</p>
+            source to the NASA Harmonized Landsat Sentinel-2 collection (fallback to Landsat-8 on CDSE). By enabling
+            this, the platform unlocks the full 1-day temporal resolution of the date-picker, allowing you to find
+            Landsat passes that occur between standard Sentinel missions.</p>
         <p style="font-size: 0.95em; margin-bottom: 0;"><strong>Deep Spectral Fusion:</strong> A multi-source processing
             engine that requires both chemical confirmation (S2 SWIR) and physical smoothness confirmation (S1 SAR
             Backscatter) to flag a pixel. This is the most reliable mode for high-stakes regulatory reporting.</p>

@@ -29,7 +29,7 @@ while (iterDate <= today) {
         displayStr: `${MONTHS[m]} ${d}, ${y}`
     });
 
-    iterDate.setUTCDate(iterDate.getUTCDate() + 5);
+    iterDate.setUTCDate(iterDate.getUTCDate() + 1);
 }
 
 
@@ -1795,8 +1795,8 @@ function getWMSLayer(timeStr, isDiff, overrideIndex = null) {
     let wmsLayerParam = 'AGRICULTURE';
     if (activeIdx === 's1_sar') wmsLayerParam = 'SENTINEL1-GRD';
     if (state.hlsEnabled && activeIdx !== 's1_sar' && activeIdx !== 'hpwi') {
-        // Fallback for CDSE endpoint which lacks native NASA-HLS
-        wmsLayerParam = SH_WMS_URL.includes('copernicus.eu') ? 'LANDSAT-8-L1C' : 'NASA-HLS';
+        // Updated for CDSE: LANDSAT-OT-L1C is the standard OGC identifier for Landsat 8
+        wmsLayerParam = SH_WMS_URL.includes('copernicus.eu') ? 'LANDSAT-OT-L1C' : 'NASA-HLS';
     }
 
     // Handle Deep Fusion Multi-Source Request
