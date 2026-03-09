@@ -195,7 +195,12 @@ const PALETTE_BRINE = "[[0, 10, 60, 100], [0.35, 120, 100, 50], [0.6, 240, 80, 3
 const PALETTE_CSI = "[[0, 160, 120, 50], [0.5, 100, 220, 80], [1, 0, 255, 255]]"; // Brown -> Lime -> Cyan
 const PALETTE_HCAI = "[[0, 245, 222, 179], [0.5, 139, 69, 19], [1, 0, 0, 0]]"; // Wheat -> SaddleBrown -> Black
 const PALETTE_HMRI = "[[0, 230, 230, 250], [0.5, 128, 0, 128], [1, 255, 0, 255]]"; // Lavender -> Purple -> Magenta
-const PALETTE_PWI = "[[0, 10, 10, 10, 0.0], [0.1, 0, 255, 255, 1.0], [0.5, 255, 0, 255, 1.0], [1, 204, 255, 0, 1.0]]"; // Transparent -> Cyan -> Magenta -> Neon Yellow
+const PALETTE_PWI = "[[0, 20, 20, 20, 0.0], [0.02, 0, 255, 255, 1.0], [0.5, 255, 0, 255, 1.0], [1, 204, 255, 0, 1.0]]"; // Fast-ramp Transparent -> Solid Cyan -> Magenta -> Yellow
+const PALETTE_BSI = "[[0, 0, 0, 0], [0.1, 68, 136, 51], [0.15, 210, 180, 60], [1, 160, 120, 50]]"; // Black -> Green -> Yellow -> Brown
+const PALETTE_REAI = "[[0, 13, 26, 46], [0.35, 46, 92, 138], [0.65, 196, 122, 30], [1, 232, 196, 74]]"; // Navy -> Blue -> Bronze -> Yellow
+const PALETTE_VCBI = "[[0, 10, 32, 16], [0.3, 26, 96, 48], [0.6, 200, 160, 0], [1, 224, 80, 16]]"; // Dark Green -> Forest -> Gold -> Orange
+const PALETTE_FBC = "[[0, 26, 8, 0], [0.3, 139, 37, 0], [0.6, 212, 88, 26], [1, 255, 179, 71]]"; // Black -> Deep Red -> Burnt Orange -> Peach
+const PALETTE_HPWI = "[[0, 44, 62, 80], [0.5, 241, 196, 15], [1, 231, 76, 60]]"; // Dark Blue -> Gold -> Red
 
 // Index Configs
 const INDICES = {
@@ -369,14 +374,38 @@ const INDICES = {
   return [(sample.B11 - sample.B08) / sum];
 `
     },
-    brine: {
-        name: 'Brine / Salt Water (NDSI)',
+    bsi: {
+        name: 'Bare Soil Index (BSI)',
+        sensor: 'Sentinel-2 L2A',
+        min: 'Veg / Water', max: 'Bare Soil / Disturbance',
+        gradient: 'linear-gradient(to right, #000000, #448833, #D2B43C, #A07832)',
+        formula: '((B11+B04)-(B08+B02)) / ((B11+B04)+(B08+B02))',
+        info: 'The Bare Soil Index (BSI) combines SWIR, Red, NIR, and Blue bands to distinguish bare ground from vegetation and water. High values indicate exposed soil, pad surfaces, or mechanical disturbances, providing a critical geographic baseline for PWI/FBC anomalies.',
+        diffLabels: ['Revegetation', 'Soil Disturbance'],
+        evalscript: genEvalscript(['B02', 'B04', 'B08', 'B11'], `
+  let top = (sample.B11 + sample.B04) - (sample.B08 + sample.B02);
+  let bot = (sample.B11 + sample.B04) + (sample.B08 + sample.B02);
+  if(bot === 0) return [0,0,0,0];
+  let val = top / bot;
+  // BSI maps -1 to +1. Land is typically 0.05-0.2.
+  ${colorBlend('val', PALETTE_BSI)}
+`),
+        fisBands: ['B02', 'B04', 'B08', 'B11'],
+        fisLogic: `
+  let top = (sample.B11 + sample.B04) - (sample.B08 + sample.B02);
+  let bot = (sample.B11 + sample.B04) + (sample.B08 + sample.B02);
+  if(bot === 0) return [0];
+  return [top / bot];
+`
+    },
+    ndsi: {
+        name: 'Saline Content (NDSI) (Brine)',
         sensor: 'Sentinel-2 L2A',
         min: 'Dry / Fresh', max: 'High Brine',
-        gradient: 'linear-gradient(to right, #0A3C64, #786432, #F0501E, #E61414)',
+        gradient: 'linear-gradient(to right, #000000, #00FFFF, #FF00FF, #CCFF00)',
         formula: '(B11 - B12) / (B11 + B12)',
-        info: 'Utilizes the two SWIR bands (B11, B12) to detect highly absorptive brine and produced water spills. Brine significantly reduces the standard SWIR reflectance curve of typical soil, allowing for targeted chemical anomaly detection.',
-        diffLabels: ['More Brine / Hazard', 'Less Brine / Recovery'],
+        info: 'Normalized Difference Salinity Index (specifically the Brine variant using SWIR B11/B12). This index isolates the unique absorptive signature of highly saline produced water, distinguishing it from standard moist soil or freshwater bodies.',
+        diffLabels: ['Salinity Increase', 'Recovery'],
         evalscript: genEvalscript(['B11', 'B12'], `
   let sum = sample.B11 + sample.B12;
   if(sum === 0) return [0,0,0,0];
@@ -595,7 +624,7 @@ const INDICES = {
         min: 'Background', max: 'Confirmed Liquid Spill',
         gradient: 'linear-gradient(to right, #111111, #4b0082, #e74c3c, #f1c40f)',
         formula: '(NDOI + brineBoost) × norm(smoothness)',
-        info: 'Hydro-Optical Spill Index — requires a liquid chemical signature AND a confirmed surface-smoothness proxy (B03/B11 dampening). NDOI (B02−B12) is the primary hydrocarbon gate; confirmed brine (NDSI > 0.05) provides an additive boost so brine-dominant produced water spills also register. Dry rough bare soil won\'t clear the smoothness gate. Fresh water (flat surface) won\'t carry a chemical signal.',
+        info: 'Hydro-Optical Spill Index — requires a liquid chemical signature AND a confirmed surface-smoothness proxy (B03/B11 dampening). NDOI (B02−B12) is the primary hydrocarbon gate; confirmed brine (NDSI > 0.03) provides an additive boost so brine-dominant produced water spills also register. Dry rough bare soil won\'t clear the smoothness gate. Fresh water (flat surface) won\'t carry a chemical signal.',
         diffLabels: ['Stable', 'New Spill Detected'],
         evalscript: genEvalscript(['B02', 'B03', 'B11', 'B12'], `
   if (sample.dataMask === 0) return [0,0,0,0];
@@ -605,10 +634,10 @@ const INDICES = {
   if (sumNdoi === 0) return [0,0,0,0];
   let ndoi = Math.max(0, (sample.B02 - sample.B12) / sumNdoi);
 
-  // 2. Brine boost (additive): NDSI > 0.05 only — prevents ambient Permian soil salt from firing
+  // 2. Brine boost (additive): NDSI > 0.05 only (modified by sensitivity)
   let ndsiSum = sample.B11 + sample.B12;
   let ndsi = ndsiSum === 0 ? 0 : (sample.B11 - sample.B12) / ndsiSum;
-  let brineBoost = Math.max(0, ndsi - 0.05) * 0.8;
+  let brineBoost = Math.max(0, ndsi - (0.03 - DETECTION_SENSITIVITY)) * 0.8;
 
   // Combined chemical signal: oil or confirmed brine, whichever combination is present
   let chemSignal = Math.min(1, ndoi + brineBoost);
@@ -636,11 +665,12 @@ const INDICES = {
   let ndoi = Math.max(0, (sample.B02 - sample.B12) / sumNdoi);
   let ndsiSum = sample.B11 + sample.B12;
   let ndsi = ndsiSum === 0 ? 0 : (sample.B11 - sample.B12) / ndsiSum;
-  let brineBoost = Math.max(0, ndsi - 0.05) * 0.8;
+  let brineBoost = Math.max(0, ndsi - 0.03) * 0.8;
   let chemSignal = Math.min(1, ndoi + brineBoost);
   let sumSmooth = sample.B03 + sample.B11;
   let smooth = sumSmooth === 0 ? 0 : Math.max(0, Math.min(1, ((sample.B03 - sample.B11)/sumSmooth + 0.3) / 0.6));
-  return [Math.min(1, chemSignal * smooth * 6.0)];
+  let hpwiResult = chemSignal * smooth * 6.0;
+  return [Math.min(1, hpwiResult)];
 `
     },
     fbc: {
@@ -649,7 +679,7 @@ const INDICES = {
         min: 'Background', max: 'Iron+Brine Alteration',
         gradient: 'linear-gradient(to right, #1a0800, #8B2500, #D4581A, #FFB347)',
         formula: 'sqrt(ironScore × brineScore) × (1 − NDVI)',
-        info: 'Ferrugination-Brine Composite — targets the iron oxidation signature unique to produced water spills. Deep Permian brine is rich in ferrous iron (Fe²⁺); when surfaced it oxidizes to ferric iron (Fe³⁺), creating rust-brown staining with a high Red/Blue ratio. Both the iron gate (B04/B02 > 1.5) and the brine gate (NDSI > 0.02) must be nonzero to fire — combined via geometric mean so a moderate signal on one gate does not completely zero a strong signal on the other. The vegetation gate (1−NDVI) ensures only bare-ground pixels qualify.',
+        info: 'Ferrugination-Brine Composite — targets the iron oxidation signature unique to produced water spills. Deep Permian brine is rich in ferrous iron (Fe²⁺); when surfaced it oxidizes to ferric iron (Fe³⁺), creating rust-brown staining with a high Red/Blue ratio. Both the iron gate (B04/B02 > 1.4) and the brine gate (NDSI > 0.02) must be nonzero to fire — combined via geometric mean so a moderate signal on one gate does not completely zero a strong signal on the other. The vegetation gate (1−NDVI) ensures only bare-ground pixels qualify.',
         diffLabels: ['Less Alteration', 'Active Iron+Brine Event'],
         evalscript: genEvalscript(['B02', 'B03', 'B04', 'B08', 'B11', 'B12'], `
   if (sample.dataMask === 0 || sample.B02 === 0) return [0,0,0,0];
@@ -657,13 +687,13 @@ const INDICES = {
   // 1. Iron Oxide Gate: B04/B02 (Red/Blue)
   // Permian red-dirt baseline: ~1.2–1.6. Iron alteration (Fe²⁺→Fe³⁺) pushes above 1.5.
   let ironOxide = sample.B04 / sample.B02;
-  let ironScore = Math.max(0, (ironOxide - 1.5) / 1.0);
+  let ironScore = Math.max(0, (ironOxide - (1.4 - DETECTION_SENSITIVITY)) / 1.0);
 
   // 2. Brine Gate: NDSI = (B11-B12)/(B11+B12)
   let ndsiSum = sample.B11 + sample.B12;
   if (ndsiSum === 0) return [0,0,0,0];
   let ndsi = (sample.B11 - sample.B12) / ndsiSum;
-  let brineScore = Math.max(0, ndsi - 0.02);
+  let brineScore = Math.max(0, ndsi - (0.02 - (DETECTION_SENSITIVITY * 0.1)));
 
   // 3. No-Vegetation Gate
   let ndviSum = sample.B08 + sample.B04;
@@ -685,11 +715,11 @@ const INDICES = {
         fisBands: ['B02', 'B04', 'B08', 'B11', 'B12'],
         fisLogic: `
   if (sample.B02 === 0) return [0];
-  let ironScore = Math.max(0, (sample.B04 / sample.B02) - 1.5) / 1.0;
+  let ironScore = Math.max(0, (sample.B04 / sample.B02) - (1.4 - DETECTION_SENSITIVITY)) / 1.0;
   let ndsiSum = sample.B11 + sample.B12;
   if (ndsiSum === 0) return [0];
   let ndsi = (sample.B11 - sample.B12) / ndsiSum;
-  let brineScore = Math.max(0, ndsi - 0.02);
+  let brineScore = Math.max(0, ndsi - (0.02 - (DETECTION_SENSITIVITY * 0.1)));
   let ndviSum = sample.B08 + sample.B04;
   let noVeg = Math.max(0, 1.0 - Math.max(0, ndviSum === 0 ? 0 : (sample.B08 - sample.B04) / ndviSum));
   return [Math.min(1, Math.sqrt(ironScore * brineScore) * noVeg * 25.0)];
@@ -709,13 +739,13 @@ const INDICES = {
   // 1. Red Edge Iron Ratio: B06/B05
   // Baseline bare soil: ~0.95–1.08. Ferric alteration pushes above 1.10.
   let redEdge = sample.B06 / sample.B05;
-  let ironScore = Math.max(0, (redEdge - 1.08) / 0.45);
+  let ironScore = Math.max(0, (redEdge - (1.10 - DETECTION_SENSITIVITY)) / 0.45);
 
   // 2. Brine confirmation
   let ndsiSum = sample.B11 + sample.B12;
   if (ndsiSum === 0) return [0,0,0,0];
   let ndsi = (sample.B11 - sample.B12) / ndsiSum;
-  let brineScore = Math.max(0, ndsi - 0.05);
+  let brineScore = Math.max(0, ndsi - (0.05 - (DETECTION_SENSITIVITY * 0.2)));
 
   let reai = ironScore * brineScore;
   let mapped = Math.min(1, reai * 18.0);
@@ -730,9 +760,9 @@ const INDICES = {
         fisBands: ['B05', 'B06', 'B11', 'B12'],
         fisLogic: `
   if (sample.B05 === 0) return [0];
-  let ironScore = Math.max(0, (sample.B06 / sample.B05) - 1.08) / 0.45;
+  let ironScore = Math.max(0, (sample.B06 / sample.B05) - (1.08 - DETECTION_SENSITIVITY)) / 0.45;
   let ndsiSum = sample.B11 + sample.B12;
-  let brineScore = ndsiSum === 0 ? 0 : Math.max(0, (sample.B11 - sample.B12) / ndsiSum - 0.05);
+  let brineScore = ndsiSum === 0 ? 0 : Math.max(0, (sample.B11 - sample.B12) / ndsiSum - (0.05 - (DETECTION_SENSITIVITY * 0.2)));
   return [Math.min(1, ironScore * brineScore * 18.0)];
 `
     },
@@ -752,13 +782,13 @@ const INDICES = {
   let bot = (sample.B08 * sample.B04) + (sample.B03 * sample.B02);
   let crsi = (bot <= 0 || top < 0) ? 0 : Math.sqrt(top / bot);
   // Invert: healthy veg = low score, brine-stressed/dead = high score
-  let stressScore = Math.max(0, 0.55 - crsi) * (1.0 / 0.55);
+  let stressScore = Math.max(0, (0.55 + DETECTION_SENSITIVITY) - crsi) * (1.0 / 0.55);
 
   // 2. Brine chemistry at same pixel
   let ndsiSum = sample.B11 + sample.B12;
   if (ndsiSum === 0) return [0,0,0,0];
   let ndsi = (sample.B11 - sample.B12) / ndsiSum;
-  let brineScore = Math.max(0, ndsi - 0.04);
+  let brineScore = Math.max(0, ndsi - (0.04 - (DETECTION_SENSITIVITY * 0.1)));
 
   let vcbi = stressScore * brineScore;
   let mapped = Math.min(1, vcbi * 10.0);
@@ -775,9 +805,9 @@ const INDICES = {
   let top = (sample.B08 * sample.B04) - (sample.B03 * sample.B02);
   let bot = (sample.B08 * sample.B04) + (sample.B03 * sample.B02);
   let crsi = (bot <= 0 || top < 0) ? 0 : Math.sqrt(top / bot);
-  let stressScore = Math.max(0, 0.55 - crsi) / 0.55;
+  let stressScore = Math.max(0, (0.55 + DETECTION_SENSITIVITY) - crsi) / 0.55;
   let ndsiSum = sample.B11 + sample.B12;
-  let brineScore = ndsiSum === 0 ? 0 : Math.max(0, (sample.B11 - sample.B12) / ndsiSum - 0.04);
+  let brineScore = ndsiSum === 0 ? 0 : Math.max(0, (sample.B11 - sample.B12) / ndsiSum - (0.04 - (DETECTION_SENSITIVITY * 0.1)));
   return [Math.min(1, stressScore * brineScore * 10.0)];
 `
     },
@@ -786,19 +816,17 @@ const INDICES = {
         sensor: 'Sentinel-2 L2A',
         min: 'Background', max: 'Confirmed Spill',
         gradient: 'linear-gradient(to right, #000000, #00FFFF, #FF00FF, #CCFF00)',
-        formula: 'NDSI * HCAI * HMRI * BSI_Mask',
-        info: 'Produced Water Index — highly restrictive composite. Multiplies Brine (NDSI > 0.10), Hydrocarbons (HCAI > 0.30), and Heavy Metals (HMRI > 2.0). All three must spike simultaneously. It also strictly requires a positive Bare Soil Index (BSI > 0) to mask out false positives triggered by asphalt roads and residential roofing. Cubic power scaling aggressively suppresses marginal signals.',
-        diffLabels: ['Less / Recovery', 'Toxic Concentration'],
+        formula: '(NDSI - 0.05) * (HCAI - 0.20) * (HMRI - 1.5) [Aggressive Plume Recovery]',
+        info: 'Produced Water Index — optimized for maximum plume sensitivity. Multiplies Brine (NDSI > 0.05), Hydrocarbons (HCAI > 0.20), and Heavy Metals (HMRI > 1.5). Square-root scaling (120x boost) aggressively highlights mid-to-low concentration plumes in rangelands.',
+        diffLabels: ['Stable (No Detection)', 'Spill Anomaly Detected'],
         evalscript: genEvalscript(['B02', 'B03', 'B04', 'B08', 'B11', 'B12'], `
   // 1. Bare Soil Index (BSI) -- URBAN / WATER / VEG MASK
-  // BSI = ((SWIR1 + RED) - (NIR + BLUE)) / ((SWIR1 + RED) + (NIR + BLUE))
   let bsiTop = (sample.B11 + sample.B04) - (sample.B08 + sample.B02);
   let bsiBot = (sample.B11 + sample.B04) + (sample.B08 + sample.B02);
   if (bsiBot === 0) return [0,0,0,0];
   let bsi = bsiTop / bsiBot;
   
-  // If it's not bare soil (i.e. it's asphalt, water, or dense veg), zero it out immediately.
-  if (bsi <= 0) return [0,0,0,0];
+  if (bsi <= 0.01) return [0,0,0,0];
 
   // 2. Brine (NDSI)
   let sumBrine = sample.B11 + sample.B12;
@@ -814,26 +842,26 @@ const INDICES = {
   if(sample.B03 === 0) return [0,0,0,0];
   let hmri = sample.B12 / sample.B03;
   
-  // Permian-calibrated thresholds:
-  let brineScore = Math.max(0, brine - 0.10);
-  let hcaiScore = Math.max(0, (hcai - 0.30) * 2);
-  let hmriScore = Math.max(0, (hmri - 2.0) * 2);
+  // Permian-calibrated thresholds (stable fixed offsets):
+  let brineScore = Math.max(0, brine - 0.05);
+  let hcaiScore = Math.max(0, (hcai - 0.20) * 2.5);
+  let hmriScore = Math.max(0, (hmri - 1.5) * 2.5);
   
   let pwi = brineScore * hcaiScore * hmriScore;
   
-  // Power scaling: multiplier (100x) brings aged spills into visible range.
-  let mapped = Math.min(1, Math.pow(pwi * 100, 1.5));
+  // Balanced scaling: 60x multiplier with 1.5 power for stable, visible plumes.
+  let mapped = Math.min(1, Math.pow(pwi * 60.0, 1.5));
   ${colorBlend('mapped', PALETTE_PWI)}
 `),
         fisBands: ['B02', 'B03', 'B04', 'B08', 'B11', 'B12'],
         fisLogic: `
   let bsiTop = (sample.B11 + sample.B04) - (sample.B08 + sample.B02);
   let bsiBot = (sample.B11 + sample.B04) + (sample.B08 + sample.B02);
-  if (bsiBot === 0 || (bsiTop / bsiBot) <= 0) return [0];
+  if (bsiBot === 0 || (bsiTop / bsiBot) <= 0.01) return [0];
 
-  let sumBrine = sample.B11 + sample.B12;
-  if(sumBrine === 0) return [0];
-  let brine = (sample.B11 - sample.B12) / sumBrine;
+  let sumNdsi = sample.B11 + sample.B12;
+  if(sumNdsi === 0) return [0];
+  let ndsi = (sample.B11 - sample.B12) / sumNdsi;
   
   let sumHcai = sample.B11 + sample.B04;
   if(sumHcai === 0) return [0];
@@ -842,8 +870,276 @@ const INDICES = {
   if(sample.B03 === 0) return [0];
   let hmri = sample.B12 / sample.B03;
   
-  let pwi = Math.max(0, brine - 0.10) * Math.max(0, (hcai - 0.30) * 2) * Math.max(0, (hmri - 2.0) * 2);
-  return [Math.pow(pwi * 100, 1.5)];
+  let pwi = Math.max(0, ndsi - 0.05) * 
+            Math.max(0, (hcai - 0.20) * 2.5) * 
+            Math.max(0, (hmri - 1.5) * 2.5);
+  return [Math.pow(pwi * 60.0, 1.5)];
+`
+    },
+    lbi: {
+        name: 'Liquid Brine Index (LBI)',
+        sensor: 'Sentinel-2 L2A',
+        min: 'Background', max: 'Standing Brine Pool',
+        gradient: 'linear-gradient(to right, #000000, #00D2FF, #0088FF, #FF00FF)',
+        formula: 'NDSI * NDWI * (1 - NDVI)',
+        info: 'Liquid Brine Index — captures standing pools of hazardous produced water. Requires a brine chemical signature (NDSI), a standing water proxy (NDWI), and the absence of vegetation (1-NDVI). This index is designed to filter out legacy residues and focus on active, liquid releases.',
+        diffLabels: ['Receding Liquid', 'New Pooling Event'],
+        evalscript: genEvalscript(['B03', 'B04', 'B08', 'B11', 'B12'], `
+  let ndsiSum = sample.B11 + sample.B12;
+  let ndsi = ndsiSum === 0 ? 0 : (sample.B11 - sample.B12) / ndsiSum;
+  
+  let ndwiSum = sample.B03 + sample.B11;
+  let ndwi = ndwiSum === 0 ? 0 : (sample.B03 - sample.B11) / ndwiSum;
+  
+  let ndviSum = sample.B08 + sample.B04;
+  let ndvi = ndviSum === 0 ? 0 : (sample.B08 - sample.B04) / ndviSum;
+  
+  let bsiTop = (sample.B11 + sample.B04) - (sample.B08 + sample.B02);
+  let bsiBot = (sample.B11 + sample.B04) + (sample.B08 + sample.B02);
+  let bsi = bsiBot === 0 ? 0 : bsiTop / bsiBot;
+  
+  // Liquid gate shifted by +0.5 to catch "Wet Soil" signature in rangelands, plus BSI mask
+  let score = Math.max(0, ndsi) * Math.max(0, ndwi + 0.5) * Math.max(0, 1.0 - ndvi) * Math.max(0, bsi);
+  let mapped = Math.min(1, score * 40.0);
+  
+  ${colorBlend('mapped', `[
+      [0.0, 0, 0, 0],
+      [0.3, 0, 210, 255],
+      [0.7, 0, 136, 255],
+      [1.0, 255, 0, 255]
+  ]`)}
+`),
+        fisBands: ['B03', 'B04', 'B08', 'B11', 'B12'],
+        fisLogic: `
+  let ndsi = (sample.B11 + sample.B12) === 0 ? 0 : (sample.B11 - sample.B12) / (sample.B11 + sample.B12);
+  let ndwi = (sample.B03 + sample.B11) === 0 ? 0 : (sample.B03 - sample.B11) / (sample.B03 + sample.B11);
+  let ndvi = (sample.B08 + sample.B04) === 0 ? 0 : (sample.B08 - sample.B04) / (sample.B08 + sample.B04);
+  let bsi = (sample.B11+sample.B04+sample.B08+sample.B02) === 0 ? 0 : ((sample.B11+sample.B04)-(sample.B08+sample.B02))/((sample.B11+sample.B04)+(sample.B08+sample.B02));
+  return [Math.max(0, ndsi) * Math.max(0, ndwi + 0.5) * Math.max(0, 1.0 - ndvi) * Math.max(0, bsi)];
+`
+    },
+    tri: {
+        name: 'Toxic Residue Index (TRI)',
+        sensor: 'Sentinel-2 L2A',
+        min: 'Background', max: 'Toxic Mineral Scab',
+        gradient: 'linear-gradient(to right, #1a0a00, #804000, #9933ff, #ff00ff)',
+        formula: 'NDSI * HMRI * AOI',
+        info: 'Toxic Residue Index — detects the mineral "scab" left by produced water after evaporation. Combines salt chemistry (NDSI), heavy metal precipitation (HMRI), and anoxic oxidation (AOI). This is a forensic tool for identifying historical spill footprints where liquid is no longer present.',
+        diffLabels: ['Residue Degradation', 'New Mineral Staining'],
+        evalscript: genEvalscript(['B02', 'B03', 'B04', 'B11', 'B12'], `
+  let ndsiSum = sample.B11 + sample.B12;
+  let ndsi = ndsiSum === 0 ? 0 : (sample.B11 - sample.B12) / ndsiSum;
+  
+  let hmri = sample.B03 === 0 ? 0 : sample.B12 / sample.B03;
+  
+  let aoi = (sample.B02 === 0 || sample.B12 === 0) ? 0 : (sample.B04 / sample.B02) * (sample.B11 / sample.B12);
+  
+  let score = Math.max(0, ndsi - 0.05) * Math.max(0, (hmri - 1.5)/2) * Math.max(0, (aoi - 1.5)/2);
+  let mapped = Math.min(1, Math.pow(score * 10, 2.0));
+  
+  ${colorBlend('mapped', `[
+      [0.0, 26, 10, 0],
+      [0.3, 128, 64, 0],
+      [0.7, 153, 51, 255],
+      [1.0, 255, 0, 255]
+  ]`)}
+`),
+        fisBands: ['B02', 'B03', 'B04', 'B11', 'B12'],
+        fisLogic: `
+  let ndsi = (sample.B11 + sample.B12) === 0 ? 0 : (sample.B11 - sample.B12) / (sample.B11 + sample.B12);
+  let hmri = sample.B03 === 0 ? 0 : sample.B12 / sample.B03;
+  let aoi = (sample.B02 === 0 || sample.B12 === 0) ? 0 : (sample.B04 / sample.B02) * (sample.B11 / sample.B12);
+  return [Math.max(0, ndsi - 0.05) * Math.max(0, (hmri - 1.5)/2) * Math.max(0, (aoi - 1.5)/2)];
+`
+    },
+    bpi: {
+        name: 'Brine-Pavement Index (BPI)',
+        sensor: 'Sentinel-2 L2A',
+        min: 'Clean Surface', max: 'Contaminated Pavement',
+        gradient: 'linear-gradient(to right, #222222, #444444, #00FFFF, #FFFF00)',
+        formula: 'NDSI * HCAI * BSI',
+        info: 'Brine-Pavement Index — optimized for detecting leaks on caliche pads and lease roads. Requires brine (NDSI) and hydrocarbon (HCAI) signals co-located on a bare/compacted soil surface (BSI). This is the primary tool for pad-level integrity monitoring.',
+        diffLabels: ['Surface Recovery', 'Active Pad Pinhole'],
+        evalscript: genEvalscript(['B02', 'B04', 'B08', 'B11', 'B12'], `
+  let bsiTop = (sample.B11 + sample.B04) - (sample.B08 + sample.B02);
+  let bsiBot = (sample.B11 + sample.B04) + (sample.B08 + sample.B02);
+  let bsi = bsiBot === 0 ? 0 : bsiTop / bsiBot;
+  
+  let ndsiSum = sample.B11 + sample.B12;
+  let ndsi = ndsiSum === 0 ? 0 : (sample.B11 - sample.B12) / ndsiSum;
+  
+  let hcaiSum = sample.B11 + sample.B04;
+  let hcai = hcaiSum === 0 ? 0 : (sample.B11 - sample.B04) / hcaiSum;
+  
+  let score = Math.max(0, bsi) * Math.max(0, ndsi - 0.03) * Math.max(0, hcai - 0.15);
+  let mapped = Math.min(1, score * 30.0);
+  
+  ${colorBlend('mapped', `[
+      [0.0, 34, 34, 34],
+      [0.3, 68, 68, 68],
+      [0.7, 0, 255, 255],
+      [1.0, 255, 255, 0]
+  ]`)}
+`),
+        fisBands: ['B02', 'B04', 'B08', 'B11', 'B12'],
+        fisLogic: `
+  let bsi = (sample.B11+sample.B04+sample.B08+sample.B02) === 0 ? 0 : ((sample.B11+sample.B04)-(sample.B08+sample.B02))/((sample.B11+sample.B04)+(sample.B08+sample.B02));
+  let ndsi = (sample.B11 + sample.B12) === 0 ? 0 : (sample.B11 - sample.B12) / (sample.B11 + sample.B12);
+  let hcai = (sample.B11 + sample.B04) === 0 ? 0 : (sample.B11 - sample.B04) / (sample.B11 + sample.B04);
+  return [Math.max(0, bsi) * Math.max(0, ndsi - 0.03) * Math.max(0, hcai - 0.15)];
+`
+    },
+    vsi: {
+        name: 'Vegetation Stress Index (VSI)',
+        sensor: 'Sentinel-2 L2A',
+        min: 'Healthy', max: 'Metal/Brine Stress',
+        gradient: 'linear-gradient(to right, #005500, #FFFF00, #FF8800, #FF0000)',
+        formula: 'NDSI * RedEdgeDelta * MSI',
+        info: 'Vegetation Stress Index — designed to detect the physiological impact of produced water before vegetation death. Uses Red-Edge blue-shifts (B07/B05) and SWIR/NIR moisture stress (B11/B8A) co-located with a salinity signature (NDSI).',
+        diffLabels: ['Stress Alleviation', 'Escalating Toxicity'],
+        evalscript: genEvalscript(['B05', 'B07', 'B11', 'B12', 'B8A'], `
+  let ndsi = (sample.B11 + sample.B12) === 0 ? 0 : (sample.B11 - sample.B12) / (sample.B11 + sample.B12);
+  let redEdgeDelta = (sample.B07 + sample.B05) === 0 ? 0 : (sample.B07 - sample.B05) / (sample.B07 + sample.B05);
+  let msi = sample.B8A === 0 ? 0 : sample.B11 / sample.B8A;
+  
+  let score = Math.max(0, ndsi) * Math.max(0, 0.4 - redEdgeDelta) * Math.max(0, msi - 1.0);
+  let mapped = Math.min(1, score * 10.0);
+  
+  ${colorBlend('mapped', `[
+      [0.0, 0, 85, 0],
+      [0.3, 255, 255, 0],
+      [0.7, 255, 136, 0],
+      [1.0, 255, 0, 0]
+  ]`)}
+`),
+        fisBands: ['B05', 'B07', 'B11', 'B12', 'B8A'],
+        fisLogic: `
+  let ndsi = (sample.B11 + sample.B12) === 0 ? 0 : (sample.B11 - sample.B12) / (sample.B11 + sample.B12);
+  let redEdgeDelta = (sample.B07 + sample.B05) === 0 ? 0 : (sample.B07 - sample.B05) / (sample.B07 + sample.B05);
+  let msi = sample.B8A === 0 ? 0 : sample.B11 / sample.B8A;
+  return [Math.max(0, ndsi) * Math.max(0, 0.4 - redEdgeDelta) * Math.max(0, msi - 1.0)];
+`
+    },
+    cma: {
+        name: 'Clay-Mineral Alteration (CMA)',
+        sensor: 'Sentinel-2 L2A',
+        min: 'Native Soil', max: 'Chemical Alteration',
+        gradient: 'linear-gradient(to right, #442200, #884400, #AA88AA, #FFFFFF)',
+        formula: 'NDSI * (B11/B12) * (B04/B02)',
+        info: 'Clay-Mineral Alteration — a forensic index targeting the chemical modification of clay lattices by produced water residues. Uses SWIR-1/SWIR-2 ratios to isolate salt-clay interactions and visible ratios for iron-oxidation signatures.',
+        diffLabels: ['Naturalization', 'Chemical Staining'],
+        evalscript: genEvalscript(['B02', 'B04', 'B11', 'B12'], `
+  let ndsi = (sample.B11 + sample.B12) === 0 ? 0 : (sample.B11 - sample.B12) / (sample.B11 + sample.B12);
+  let clayRatio = sample.B12 === 0 ? 0 : sample.B11 / sample.B12;
+  let ironIndex = sample.B02 === 0 ? 0 : sample.B04 / sample.B02;
+  
+  let score = Math.max(0, ndsi) * Math.max(0, clayRatio - 1.2) * Math.max(0, ironIndex - 1.5);
+  let mapped = Math.min(1, score * 15.0);
+  
+  ${colorBlend('mapped', `[
+      [0.0, 68, 34, 0],
+      [0.3, 136, 68, 0],
+      [0.7, 170, 136, 170],
+      [1.0, 255, 255, 255]
+  ]`)}
+`),
+        fisBands: ['B02', 'B04', 'B11', 'B12'],
+        fisLogic: `
+  let ndsi = (sample.B11 + sample.B12) === 0 ? 0 : (sample.B11 - sample.B12) / (sample.B11 + sample.B12);
+  let clayRatio = (sample.B12 === 0) ? 0 : sample.B11 / sample.B12;
+  let ironIndex = (sample.B02 === 0) ? 0 : sample.B04 / sample.B02;
+  return [Math.max(0, ndsi) * Math.max(0, clayRatio - 1.2) * Math.max(0, ironIndex - 1.5)];
+`
+    },
+    phi: {
+        name: 'Petro-Hydrocarbon Index (PHI)',
+        sensor: 'Sentinel-2 L2A',
+        min: 'Background', max: 'Hydrocarbon Rich',
+        gradient: 'linear-gradient(to right, #000000, #333333, #663300, #FFCC00)',
+        formula: 'NDSI * (B11/B12) * HCAI',
+        info: 'Petro-Hydrocarbon Index — isolates oily brine from clean runoff by highlighting the unique SWIR absorption shoulder of petroleum hydrocarbons co-located with a salinity signature.',
+        diffLabels: ['Oil Degradation', 'New Oil/Brine Event'],
+        evalscript: genEvalscript(['B04', 'B11', 'B12'], `
+  let ndsi = (sample.B11 + sample.B12) === 0 ? 0 : (sample.B11 - sample.B12) / (sample.B11 + sample.B12);
+  let shoulder = sample.B12 === 0 ? 0 : sample.B11 / sample.B12;
+  let hcai = (sample.B11 + sample.B04) === 0 ? 0 : (sample.B11 - sample.B04) / (sample.B11 + sample.B04);
+  
+  let score = Math.max(0, ndsi) * Math.max(0, shoulder - 1.0) * Math.max(0, hcai - 0.2);
+  let mapped = Math.min(1, score * 20.0);
+  
+  ${colorBlend('mapped', `[
+      [0.0, 0, 0, 0],
+      [0.3, 51, 51, 51],
+      [0.7, 102, 51, 0],
+      [1.0, 255, 204, 0]
+  ]`)}
+`),
+        fisBands: ['B04', 'B11', 'B12'],
+        fisLogic: `
+  let ndsi = (sample.B11 + sample.B12) === 0 ? 0 : (sample.B11 - sample.B12) / (sample.B11 + sample.B12);
+  let shoulder = (sample.B12 === 0) ? 0 : sample.B11 / sample.B12;
+  let hcai = (sample.B11 + sample.B04) === 0 ? 0 : (sample.B11 - sample.B04) / (sample.B11 + sample.B04);
+  return [Math.max(0, ndsi) * Math.max(0, shoulder - 1.0) * Math.max(0, hcai - 0.2)];
+`
+    },
+    hmi: {
+        name: 'Heavy Metal Interaction (HMI)',
+        sensor: 'Sentinel-2 L2A',
+        min: 'Clean', max: 'Metal-Salt PPT',
+        gradient: 'linear-gradient(to right, #001100, #004400, #00FFBB, #FFFFFF)',
+        formula: '(B03/B02) * (B11/B12)',
+        info: 'Heavy Metal Interaction — targets Barium and Strontium proxies via green-reflectance shifts (B03) and mineral salt precipitation signatures (B11/B12).',
+        diffLabels: ['Site Detoxification', 'Metal Accumulation'],
+        evalscript: genEvalscript(['B02', 'B03', 'B11', 'B12'], `
+  let greenShift = sample.B02 === 0 ? 0 : sample.B03 / sample.B02;
+  let saltPPT = sample.B12 === 0 ? 0 : sample.B11 / sample.B12;
+  
+  let score = Math.max(0, greenShift - 1.1) * Math.max(0, saltPPT - 1.2);
+  let mapped = Math.min(1, score * 10.0);
+  
+  ${colorBlend('mapped', `[
+      [0.0, 0, 17, 0],
+      [0.3, 0, 68, 0],
+      [0.7, 0, 255, 187],
+      [1.0, 255, 255, 255]
+  ]`)}
+`),
+        fisBands: ['B02', 'B03', 'B11', 'B12'],
+        fisLogic: `
+  let greenShift = (sample.B02 === 0) ? 0 : sample.B03 / sample.B02;
+  let saltPPT = (sample.B12 === 0) ? 0 : sample.B11 / sample.B12;
+  return [Math.max(0, greenShift - 1.1) * Math.max(0, saltPPT - 1.2)];
+`
+    },
+    scri: {
+        name: 'Salt Crust Roughness Index (SCRI)',
+        sensor: 'Sentinel-1 GRD',
+        min: 'Background', max: 'Salt Crust Confirmed',
+        gradient: 'linear-gradient(to right, #000000, #4b0082, #e74c3c, #f1c40f)',
+        formula: 'log10(VH) + Salt_Proxy',
+        info: 'Salt Crust Roughness Index — a visionary SAR-based tool. Leverages the characteristic backscatter changes of salt crystallization on the soil surface. This index penetrates dust and smoke, providing a mechanical verification of the chemical salinity signatures seen in optical data.',
+        diffLabels: ['Smoothing / Naturalization', 'New Salt Roughness'],
+        evalscript: `//VERSION=3
+function setup() {
+  return {
+    input: ["VV", "VH", "dataMask"],
+    output: { id: "default", bands: 4 }
+  };
+}
+function evaluatePixel(sample) {
+  if (sample.dataMask === 0) return [0,0,0,1];
+  let vh = 10 * Math.log10(sample.VH);
+  let vv = 10 * Math.log10(sample.VV);
+  let ratio = vh - vv;
+  let score = Math.max(0, (vh + 20) / 10) * Math.max(0, (ratio + 5) / 5);
+  let mapped = Math.min(1, score * 0.5);
+  return [mapped, 0, 0, 1]; // Return red-channel intensity for salt roughness
+}`,
+        fisBands: ['VV', 'VH'],
+        fisLogic: `
+  let vh = 10 * Math.log10(sample.VH);
+  let vv = 10 * Math.log10(sample.VV);
+  return [(vh + 20) / 10 * (vh - vv + 5) / 5];
 `
     },
     s1_sar: {
@@ -915,6 +1211,7 @@ const state = {
     sarFusion: false, // track the state of the SAR Overlay toggle
     opacity: 0.85,
     visualFilter: 0,
+    sensitivity: 0, // Dynamic threshold offset (-50 to 50)
     overlayGroup: null,
     leftGroup: null,
     rightGroup: null,
@@ -1158,7 +1455,8 @@ function getScriptContent(activeIndex, isDiff, isCumulative = false) {
         else if (activeIndex === 'savi') { logic = "((sample.B08 - sample.B04) / (sample.B08 + sample.B04 + 0.5)) * 1.5 + 0.2"; palette = PALETTE_VEG; }
         else if (activeIndex === 'msi') { logic = "sample.B11 / sample.B08"; palette = PALETTE_MSI; } // Corrected palette
         else if (activeIndex === 'si') { logic = "(sample.B11 - sample.B08) / (sample.B11 + sample.B08) + 0.5"; palette = PALETTE_SI; } // Corrected palette
-        else if (activeIndex === 'brine') { logic = "(sample.B11 - sample.B12) / (sample.B11 + sample.B12) + 0.1"; palette = PALETTE_BRINE; }
+        else if (activeIndex === 'ndsi') { logic = "(sample.B11 - sample.B12) / (sample.B11 + sample.B12) + 0.1"; palette = PALETTE_BRINE; }
+        else if (activeIndex === 'bsi') { logic = "((sample.B11 + sample.B04) - (sample.B08 + sample.B02)) / ((sample.B11 + sample.B04) + (sample.B08 + sample.B02))"; palette = PALETTE_BSI; }
         else if (activeIndex === 'csi') { logic = "sample.B11 / sample.B12 - 0.5"; palette = PALETTE_CSI; }
         else if (activeIndex === 'hcai') { logic = "(sample.B11 - sample.B04) / (sample.B11 + sample.B04) + 0.1"; palette = PALETTE_HCAI; }
         else if (activeIndex === 'hmri') { logic = "sample.B12 / sample.B03 - 2.0"; palette = PALETTE_HMRI; }
@@ -1172,19 +1470,18 @@ function getScriptContent(activeIndex, isDiff, isCumulative = false) {
                     let bsiBot = (sample.B11 + sample.B04) + (sample.B08 + sample.B02);
                     if (bsiBot === 0 || (bsiTop / bsiBot) <= 0) return 0;
                     
-                    let sumBrine = sample.B11 + sample.B12;
-                    if(sumBrine === 0) return 0;
-                    let brine = (sample.B11 - sample.B12) / sumBrine;
+                    let sumNdsi = sample.B11 + sample.B12;
+                    if(sumNdsi === 0) return 0;
+                    let ndsi = (sample.B11 - sample.B12) / sumNdsi;
                     
                     let sumHcai = sample.B11 + sample.B04;
                     if(sumHcai === 0) return 0;
                     let hcai = (sample.B11 - sample.B04) / sumHcai;
                     
-                    if(sample.B03 === 0) return 0;
-                    let hmri = sample.B12 / sample.B03;
+                    let hmri = (sample.B03 === 0) ? 0 : sample.B12 / sample.B03;
                     
-                    let pScore = Math.max(0, brine - 0.10) * Math.max(0, (hcai - 0.30) * 2) * Math.max(0, (hmri - 2.0) * 2);
-                    return Math.min(1, Math.pow(pScore * 100, 1.5));
+                    let pScore = Math.max(0, ndsi - 0.05) * Math.max(0, (hcai - 0.20) * 2.5) * Math.max(0, (hmri - 1.5) * 2.5);
+                    return Math.min(1, Math.pow(pScore * 60.0, 1.5));
                 })()
             `;
             palette = PALETTE_PWI;
@@ -1195,7 +1492,8 @@ function getScriptContent(activeIndex, isDiff, isCumulative = false) {
         if (activeIndex === 'ndwi') bands = ['B03', 'B11'];
         if (activeIndex === 'ndvi' || activeIndex === 'savi') bands = ['B08', 'B04'];
         if (activeIndex === 'msi' || activeIndex === 'si') bands = ['B11', 'B08'];
-        if (activeIndex === 'brine' || activeIndex === 'csi') bands = ['B11', 'B12'];
+        if (activeIndex === 'ndsi' || activeIndex === 'csi') bands = ['B11', 'B12'];
+        if (activeIndex === 'bsi') bands = ['B02', 'B04', 'B08', 'B11'];
         if (activeIndex === 'hcai') bands = ['B11', 'B04'];
         if (activeIndex === 'hmri') bands = ['B12', 'B03'];
         if (activeIndex === 'ndoi') bands = ['B02', 'B12'];
@@ -1250,7 +1548,8 @@ function evaluatePixel(samples) {
             // generates a negative delta algebra, correctly mapping the visual threshold to RED/LOSS.
             else if (activeIndex === 'msi') calc = '-(sample.B11 / sample.B08)';
             else if (activeIndex === 'si') calc = '-((sample.B11 - sample.B08)/(sample.B11 + sample.B08))';
-            else if (activeIndex === 'brine') calc = '-((sample.B11 - sample.B12)/(sample.B11 + sample.B12))';
+            else if (activeIndex === 'ndsi') calc = '-((sample.B11 - sample.B12)/(sample.B11 + sample.B12))';
+            else if (activeIndex === 'bsi') calc = '-(((sample.B11 + sample.B04) - (sample.B08 + sample.B02)) / ((sample.B11 + sample.B04) + (sample.B08 + sample.B02)))';
             else if (activeIndex === 'csi') calc = '-(sample.B11 / sample.B12)';
             else if (activeIndex === 'hcai') calc = '-((sample.B11 - sample.B04)/(sample.B11 + sample.B04))';
             else if (activeIndex === 'hmri') calc = '-(sample.B12 / sample.B03)';
@@ -1258,7 +1557,7 @@ function evaluatePixel(samples) {
             else if (activeIndex === 'crsi') calc = '-(Math.sqrt(Math.max(0, ((sample.B08*sample.B04)-(sample.B03*sample.B02))/((sample.B08*sample.B04)+(sample.B03*sample.B02)))))';
             else if (activeIndex === 'aoi') calc = '-((sample.B04/sample.B02)*(sample.B11/sample.B12))';
             else if (activeIndex === 'ehc') calc = '-(((sample.B02-sample.B12)/(sample.B02+sample.B12)) + ((sample.B11-sample.B12)/(sample.B11+sample.B12)))'; // simplistic diff proxy for color composite
-            else if (activeIndex === 'pwi') calc = '-( ((sample.B11+sample.B04)-(sample.B08+sample.B02))/((sample.B11+sample.B04)+(sample.B08+sample.B02)) > 0 ? (Math.max(0, ((sample.B11 - sample.B12)/(sample.B11 + sample.B12)) - 0.10) * Math.max(0, (((sample.B11 - sample.B04)/(sample.B11 + sample.B04)) - 0.30) * 2) * Math.max(0, ((sample.B12 / sample.B03) - 2.0) * 2)) : 0)';
+            else if (activeIndex === 'pwi') calc = '-( ((sample.B11+sample.B04)-(sample.B08+sample.B02))/((sample.B11+sample.B04)+(sample.B08+sample.B02)) > 0.05 ? (Math.max(0, ((sample.B11 - sample.B12)/(sample.B11 + sample.B12)) - 0.10) * Math.max(0, (((sample.B11 - sample.B04)/(sample.B11 + sample.B04)) - 0.30) * 2) * Math.max(0, ((sample.B12 / sample.B03) - 2.0) * 2)) : 0)';
 
 
             // Proxies for visual bands
@@ -1271,7 +1570,8 @@ function evaluatePixel(samples) {
             if (activeIndex === 'ndwi') bands = ['B03', 'B11'];
             if (activeIndex === 'ndvi' || activeIndex === 'savi') bands = ['B08', 'B04'];
             if (activeIndex === 'msi' || activeIndex === 'si') bands = ['B11', 'B08'];
-            if (activeIndex === 'brine' || activeIndex === 'csi') bands = ['B11', 'B12'];
+            if (activeIndex === 'ndsi' || activeIndex === 'csi') bands = ['B11', 'B12'];
+            if (activeIndex === 'bsi') bands = ['B02', 'B04', 'B08', 'B11'];
             if (activeIndex === 'hcai') bands = ['B11', 'B04'];
             if (activeIndex === 'hmri') bands = ['B12', 'B03'];
             if (activeIndex === 'ndoi') bands = ['B02', 'B12'];
@@ -1290,8 +1590,8 @@ function evaluatePixel(samples) {
         scriptContent = cfg.evalscript; // HPWI doesn't easily support temporal diffing due to multi-source limits in our current engine
     }
 
-    // Inject visual filter globally into the raw script string
-    const filterInject = `//VERSION=3\nconst VISUAL_FILTER = ${state.visualFilter};`;
+    // Inject visual filter and sensitivity globally into the raw script string
+    const filterInject = `//VERSION=3\nconst VISUAL_FILTER = ${state.visualFilter};\nconst DETECTION_SENSITIVITY = ${state.sensitivity / 100};`;
     scriptContent = scriptContent.trim().replace(/\/\/\s*VERSION=3/i, filterInject);
 
     return scriptContent;
@@ -1718,6 +2018,23 @@ function bindEvents() {
             vfDebounce = setTimeout(() => applyIndex(), 400);
         });
     }
+    // Detection sensitivity slider
+    const sensSlider = document.getElementById('sensitivity-slider');
+    const sensVal = document.getElementById('sensitivity-val');
+    if (sensSlider) {
+        let sensDebounce = null;
+        sensSlider.addEventListener('input', (e) => {
+            const val = parseInt(e.target.value);
+            state.sensitivity = val;
+            if (sensVal) {
+                if (val === 0) sensVal.textContent = 'Baseline';
+                else if (val > 0) sensVal.textContent = '+' + val + '%';
+                else sensVal.textContent = val + '%';
+            }
+            clearTimeout(sensDebounce);
+            sensDebounce = setTimeout(() => applyIndex(), 400);
+        });
+    }
 
     // Compare Dates
     document.getElementById('date-t1').addEventListener('change', () => { if (state.mode === 'compare') applyIndex(); });
@@ -1801,6 +2118,7 @@ function bindEvents() {
             // The scanner checks 3 primary indices: PWI, NDMI, NDWI, and Brine
             const pwiLogic = INDICES['pwi'].fisLogic;
             const fisScript = `//VERSION=3
+const DETECTION_SENSITIVITY = ${state.sensitivity / 100};
 function setup() {
   return {
     input: ["B11", "B12", "B04", "B03", "B8A", "dataMask"],
@@ -1824,11 +2142,11 @@ function evaluatePixel(sample) {
   let sum_ndwi = sample.B03 + sample.B11;
   let val_ndwi = sum_ndwi === 0 ? NaN : (sample.B03 - sample.B11) / sum_ndwi;
   
-  // 4. Brine
-  let sum_brine = sample.B11 + sample.B12;
-  let val_brine = sum_brine === 0 ? NaN : (sample.B11 - sample.B12) / sum_brine;
+  // 4. NDSI
+  let sum_ndsi = sample.B11 + sample.B12;
+  let val_ndsi = sum_ndsi === 0 ? NaN : (sample.B11 - sample.B12) / sum_ndsi;
   
-  return { default: [val_pwi, val_ndmi, val_ndwi, val_brine], dataMask: [1] };
+  return { default: [val_pwi, val_ndmi, val_ndwi, val_ndsi], dataMask: [1] };
 }`;
 
             const geojson = aoiDrawnItem.toGeoJSON();
@@ -1866,8 +2184,12 @@ function evaluatePixel(sample) {
             // Clear existing anomalies
             state.anomalousDates = [];
 
-            // Define "Danger" Thresholds
-            const THRESHOLDS = { pwi: 0.1, ndmi_spike: 0.35, brine: 0.15 };
+            // Define "Danger" Thresholds (modified by sensitivity)
+            const THRESHOLDS = {
+                pwi: 0.10 - (state.sensitivity / 100 * 0.2),
+                ndmi_spike: 0.35,
+                ndsi: 0.15 - (state.sensitivity / 100 * 0.1)
+            };
 
             if (data.data) {
                 data.data.forEach(interval => {
@@ -1877,11 +2199,11 @@ function evaluatePixel(sample) {
                         let pwi = bandsObj.B0.stats.mean;
                         let ndmi = bandsObj.B1.stats.mean;
                         let ndwi = bandsObj.B2.stats.mean;
-                        let brine = bandsObj.B3.stats.mean;
+                        let ndsi = bandsObj.B3.stats.mean;
 
                         // Rule Engine: Flag if PWI spikes OR if there's a suspicious Brine + Moisture combination
                         if ((pwi !== null && pwi > THRESHOLDS.pwi) ||
-                            (brine !== null && brine > THRESHOLDS.brine) ||
+                            (ndsi !== null && ndsi > THRESHOLDS.ndsi) ||
                             (ndmi !== null && ndmi > THRESHOLDS.ndmi_spike && ndwi !== null && ndwi < 0.1)) {
                             state.anomalousDates.push(dateStr);
                         }
@@ -1973,6 +2295,7 @@ function evaluatePixel(sample) {
                 const isSar = state.activeIndex === 's1_sar';
 
                 const fisScript = `//VERSION=3
+const DETECTION_SENSITIVITY = ${state.sensitivity / 100};
 function setup() {
   return {
     input: [${bandsStr}, "dataMask"],
@@ -1997,10 +2320,10 @@ function evaluatePixel(sample) {
   let sum_ndwi = sample.B03 + sample.B11;
   let val_ndwi = sum_ndwi === 0 ? NaN : (sample.B03 - sample.B11) / sum_ndwi + 0.3;
 
-  let sum_brine = sample.B11 + sample.B12;
-  let val_brine = sum_brine === 0 ? NaN : (sample.B11 - sample.B12) / sum_brine + 0.1;
+  let sum_ndsi = sample.B11 + sample.B12;
+  let val_ndsi = sum_ndsi === 0 ? NaN : (sample.B11 - sample.B12) / sum_ndsi + 0.1;
 
-  return { default: [val_active, val_ndmi, val_ndwi, val_brine], dataMask: [1] };
+  return { default: [val_active, val_ndmi, val_ndwi, val_ndsi], dataMask: [1] };
   `}
 }`;
 
@@ -2028,7 +2351,7 @@ function evaluatePixel(sample) {
 
                 const CHART_COLORS = {
                     ndmi: '#1C85A6', ndwi: '#1450B4', ndvi: '#146428', savi: '#A07832',
-                    msi: '#D46A24', s1_sar: '#999999', brine: '#FF0000', hcai: '#8B4513'
+                    msi: '#D46A24', s1_sar: '#999999', ndsi: '#FF00FF', bsi: '#A07832', hcai: '#8B4513'
                 };
 
                 const activeKey = state.activeIndex;
@@ -2189,7 +2512,7 @@ function evaluatePixel(sample) {
                                         active: st0.mean,
                                         ndmi: bandsObj.B1?.stats?.mean ?? NaN,
                                         ndwi: bandsObj.B2?.stats?.mean ?? NaN,
-                                        brine: bandsObj.B3?.stats?.mean ?? NaN
+                                        ndsi: bandsObj.B3?.stats?.mean ?? NaN
                                     };
                                 }
                             }
@@ -2237,7 +2560,7 @@ function evaluatePixel(sample) {
                         dataArr.push(val);
                         ndmiArr.push(isNaN(vals.ndmi) ? null : vals.ndmi);
                         ndwiArr.push(isNaN(vals.ndwi) ? null : vals.ndwi);
-                        brineArr.push(isNaN(vals.brine) ? null : vals.brine);
+                        ndsiArr.push(isNaN(vals.ndsi) ? null : vals.ndsi);
                     }
 
                     // 1.5 Secondary Smoothing (Detect anomalous sharp drops/outliers)
@@ -2450,11 +2773,11 @@ function evaluatePixel(sample) {
                                 hidden: true
                             });
                         }
-                        if (activeKey !== 'brine') {
+                        if (activeKey !== 'ndsi') {
                             chartDatasets.push({
-                                label: "Salinity Context (Brine)",
-                                data: brineArr,
-                                borderColor: CHART_COLORS.brine,
+                                label: "Salinity Context (NDSI)",
+                                data: ndsiArr,
+                                borderColor: CHART_COLORS.ndsi,
                                 backgroundColor: 'transparent',
                                 borderWidth: 1.5,
                                 borderDash: [5, 5],
@@ -2463,6 +2786,22 @@ function evaluatePixel(sample) {
                                 pointRadius: 1,
                                 spanGaps: true,
                                 order: 5,
+                                hidden: true
+                            });
+                        }
+                        if (activeKey !== 'bsi') {
+                            chartDatasets.push({
+                                label: "Bare Soil Context (BSI)",
+                                data: bsiArr,
+                                borderColor: CHART_COLORS.bsi,
+                                backgroundColor: 'transparent',
+                                borderWidth: 1.5,
+                                borderDash: [2, 2],
+                                fill: false,
+                                tension: 0.3,
+                                pointRadius: 1,
+                                spanGaps: true,
+                                order: 6,
                                 hidden: true
                             });
                         }
