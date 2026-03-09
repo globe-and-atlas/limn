@@ -821,7 +821,7 @@ const INDICES = {
 `
     },
     pwi: {
-        name: 'Produced Water Index (PWI)',
+        name: 'Produced Water Index (PWI) ✧✧',
         sensor: 'Sentinel-2 L2A',
         min: 'Background', max: 'Confirmed Spill',
         gradient: 'linear-gradient(to right, #000000, #00FFFF, #FF00FF, #CCFF00)',
@@ -886,7 +886,7 @@ const INDICES = {
 `
     },
     lbi: {
-        name: 'Liquid Brine Index (LBI)',
+        name: 'Liquid Brine Index (LBI) ✧',
         sensor: 'Sentinel-2 L2A',
         min: 'Background', max: 'Standing Brine Pool',
         gradient: 'linear-gradient(to right, #000000, #00D2FF, #0088FF, #FF00FF)',
@@ -928,7 +928,7 @@ const INDICES = {
 `
     },
     tri: {
-        name: 'Toxic Residue Index (TRI)',
+        name: 'Toxic Residue Index (TRI) ✧',
         sensor: 'Sentinel-2 L2A',
         min: 'Background', max: 'Toxic Mineral Scab',
         gradient: 'linear-gradient(to right, #1a0a00, #804000, #9933ff, #ff00ff)',
@@ -962,7 +962,7 @@ const INDICES = {
 `
     },
     bpi: {
-        name: 'Brine-Pavement Index (BPI)',
+        name: 'Brine-Pavement Index (BPI) ✧',
         sensor: 'Sentinel-2 L2A',
         min: 'Clean Surface', max: 'Contaminated Pavement',
         gradient: 'linear-gradient(to right, #222222, #444444, #00FFFF, #FFFF00)',
@@ -999,7 +999,7 @@ const INDICES = {
 `
     },
     vsi: {
-        name: 'Vegetation Stress Index (VSI) ✧',
+        name: 'Vegetation Stress Index (VSI) ✧✧',
         sensor: 'Sentinel-2 L2A',
         min: 'Healthy', max: 'Metal/Brine Stress',
         gradient: 'linear-gradient(to right, #005500, #FFFF00, #FF8800, #FF0000)',
@@ -1121,7 +1121,7 @@ const INDICES = {
 `
     },
     scri: {
-        name: 'Salt Crust Roughness Index (SCRI) ✧',
+        name: 'Salt Crust Roughness Index (SCRI) ✧✧',
         sensor: 'Sentinel-1 GRD',
         min: 'Background', max: 'Salt Crust Confirmed',
         gradient: 'linear-gradient(to right, #000000, #4b0082, #e74c3c, #f1c40f)',

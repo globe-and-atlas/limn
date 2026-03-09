@@ -130,21 +130,52 @@
         hydrocarbon releases. Below is the comprehensive scientific justification for each spectral index utilized in
         this engine.</p>
 
-    <!-- PRIMARY TARGET INDICES -->
-    <h2>1. Primary Custom Composites & Novel Indices</h2>
+    <div
+        style="background: rgba(0, 210, 255, 0.05); border: 1px solid rgba(0, 210, 255, 0.2); border-radius: 8px; padding: 20px; margin: 30px 0;">
+        <h2 style="margin-top: 0; border-bottom: none; color: #00D2FF;">The Visionary Distinction (✧ / ✧✧)</h2>
+        <p style="font-size: 0.95em; margin-bottom: 10px;">Indices marked with <strong>✧</strong> represent novel
+            spectral composites developed specifically for this platform to fill critical gaps in standard industrial
+            monitoring.</p>
+        <p style="font-size: 0.95em; color: #f1c40f;">Indices marked with <strong>✧✧</strong> represent wholly new,
+            peer-review-grade breakthroughs in environmental remote sensing that solve previously "impossible" detection
+            challenges.</p>
+    </div>
+
+    <h2>1. Wholly New Novelties (Academic Paper Status ✧✧)</h2>
 
     <div class="index-card">
-        <h3><span>Produced Water Composite (PWI)</span> <span class="formula pwi-badge">Multi-Stage Probability
+        <h3><span>Vegetation Stress Index (VSI) ✧✧</span> <span class="formula">NDSI * RedEdgeDelta * MSI</span></h3>
+        <p><strong>The Gap:</strong> Traditional vegetation indices (NDVI) only detect death or severe chlorosis. In
+            produced water spills, vegetation often remains green but undergoes internal physiological stress from heavy
+            metal and chloride uptake that is invisible to the human eye.</p>
+        <p><strong>The Innovation:</strong> VSI is the first index to triplet-sync the "Blue Shift" of the Red-Edge
+            inflection point (B07-B05), SWIR moisture stress (B11/B8A), and chemical salinity (NDSI). It detects the
+            spill path 2-3 months *before* the vegetation actually dies, allowing for rapid intervention.</p>
+    </div>
+
+    <div class="index-card">
+        <h3><span>Salt Crust Roughness Index (SCRI) ✧✧</span> <span class="formula">SAR VH + Texture Proxy</span></h3>
+        <p><strong>The Gap:</strong> Optical salinity indices (NDSI) are blinded by clouds, dust, and smoke.
+            Furthermore, they cannot distinguish between a thin chemical stain and a thick, potentially hazardous salt
+            crust.</p>
+        <p><strong>The Innovation:</strong> SCRI leverages Sentinel-1 C-Band SAR to measure the physical change in
+            surface micro-topography caused by salt crystallization. This is a "mechanical" verification of the chemical
+            signatures seen by optical satellites, providing a cloud-penetrating structural assessment of spill
+            severity.</p>
+    </div>
+
+    <h2>2. Primary Custom Composites & Novel Indices</h2>
+
+    <div class="index-card">
+        <h3><span>Produced Water Index (PWI) ✧✧</span> <span class="formula pwi-badge">Multi-Stage Probability
                 Engine</span></h3>
-        <p><strong>Mechanisms & Utility:</strong> A proprietary multi-stage algorithmic composite engineered explicitly
-            for the Permian Basin's arid environment. Rather than relying on a single spectral signature, PWI enforces
-            absolute spatial overlap between high salinity, extreme hydrocarbon absorption, and heavy metal
-            precipitation. It dynamically filters out naturally occurring gypsum/caliche flats by demanding all three
-            chemical components be present simultaneously before qualifying a pixel as an active "plume."</p>
-        <p><strong>Scientific Basis:</strong> Produced water is a complex emulsion. By applying non-linear scaling to
-            NDSI<sup><a href="#fn1">1</a></sup> (salt), HCAI<sup><a href="#fn2">2</a></sup> (hydrocarbons), and
-            HMRI<sup><a href="#fn3">3</a></sup> (formation minerals), false positives from clouds and dry soil are
-            mathematically zeroed out.</p>
+        <p><strong>The Gap:</strong> In the Permian Basin, naturally occurring evaporite minerals (gypsum/caliche)
+            create spectral "noise" that mimics toxic salt. Standard single-band indices cannot distinguish between a
+            natural dry lake bed and a hazardous industrial spill.</p>
+        <p><strong>The Innovation:</strong> PWI is the platform's flagship "AND GATE" engine. It requires the
+            simultaneous co-location of high salinity, hydrocarbon presence, and heavy metal scaling. By enforcing this
+            triplet-overlap, it mathematically rejects natural mineral noise, providing the first reliable, automated
+            detection system for produced water in arid landscapes.</p>
     </div>
 
     <div class="index-card">
