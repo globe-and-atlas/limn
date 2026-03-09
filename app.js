@@ -74,7 +74,7 @@ async function getCDSEToken() {
     }
 }
 
-const APP_VERSION = 'v36';
+const APP_VERSION = 'v37';
 
 // Globals for Report Generation
 let aoiDrawnItem = null;
@@ -955,7 +955,7 @@ const INDICES = {
         sensor: 'Sentinel-2 L2A',
         temporal: '0-3M',
         min: 'Background', max: 'Standing Brine Pool',
-        gradient: 'linear-gradient(to right, #000000, #00D2FF, #0088FF, #FF00FF)',
+        gradient: 'linear-gradient(to right, #000000, #0055ff, #00d2ff, #ffffff)',
         formula: 'NDSI * NDWI * (1 - NDVI)',
         info: 'Liquid Brine Index — captures standing pools of hazardous produced water. Requires a brine chemical signature (NDSI), a standing water proxy (NDWI), and the absence of vegetation (1-NDVI). This index is designed to filter out legacy residues and focus on active, liquid releases.',
         diffLabels: ['Receding Liquid', 'New Pooling Event'],
@@ -981,9 +981,9 @@ const INDICES = {
   
   ${colorBlend('mapped', `[
       [0.0, 0, 0, 0],
-      [0.3, 0, 210, 255],
-      [0.7, 0, 136, 255],
-      [1.0, 255, 0, 255]
+      [0.3, 0, 85, 255],
+      [0.7, 0, 210, 255],
+      [1.0, 255, 255, 255]
   ]`)}
 `),
         fisBands: ['B03', 'B04', 'B08', 'B11', 'B12'],
