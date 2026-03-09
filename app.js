@@ -74,7 +74,7 @@ async function getCDSEToken() {
     }
 }
 
-const APP_VERSION = 'v30';
+const APP_VERSION = 'v31';
 
 // Globals for Report Generation
 let aoiDrawnItem = null;
@@ -679,12 +679,13 @@ const INDICES = {
   if (sumNdoi === 0) return [0,0,0,0];
   let ndoi = Math.max(0, (sample.B02 - sample.B12) / sumNdoi);
 
-  // 2. Brine boost (additive): NDSI > 0.05 only (modified by sensitivity)
+  // 2. Brine boost (additive): NDSI > 0.06 only (hardened for v31)
   let ndsiSum = sample.B11 + sample.B12;
   let ndsi = ndsiSum === 0 ? 0 : (sample.B11 - sample.B12) / ndsiSum;
-  let brineBoost = Math.max(0, ndsi - (0.03 - DETECTION_SENSITIVITY)) * 0.8;
-
-  // Combined chemical signal: oil or confirmed brine, whichever combination is present
+  let brineThreshold = Math.max(0.04, 0.06 - (DETECTION_SENSITIVITY * 0.03));
+  let brineBoost = Math.max(0, ndsi - brineThreshold) * 0.8;
+  
+  // Combined chemical signal
   let chemSignal = Math.min(1, ndoi + brineBoost);
 
   // 3. Surface Smoothness Proxy (S2 stand-in for SAR VH dampening)
@@ -731,25 +732,26 @@ const INDICES = {
   if (sample.dataMask === 0 || sample.B02 === 0) return [0,0,0,0];
 
   // 1. Iron Oxide Gate: B04/B02 (Red/Blue)
-  // Permian red-dirt baseline: ~1.2–1.6. Iron alteration (Fe²⁺→Fe³⁺) pushes above 1.5.
+  // Baseline bare soil: ~1.2–1.6. Iron alteration (Fe²⁺→Fe³⁺) pushes above 1.6.
   let ironOxide = sample.B04 / sample.B02;
-  let ironScore = Math.max(0, (ironOxide - (1.4 - DETECTION_SENSITIVITY)) / 1.0);
+  let ironThreshold = Math.max(1.4, 1.6 - (DETECTION_SENSITIVITY * 0.3));
+  let ironScore = Math.max(0, (ironOxide - ironThreshold) / 1.0);
 
   // 2. Brine Gate: NDSI = (B11-B12)/(B11+B12)
   let ndsiSum = sample.B11 + sample.B12;
   if (ndsiSum === 0) return [0,0,0,0];
   let ndsi = (sample.B11 - sample.B12) / ndsiSum;
-  let brineScore = Math.max(0, ndsi - (0.02 - (DETECTION_SENSITIVITY * 0.1)));
+  let brineThreshold = Math.max(0.05, 0.10 - (DETECTION_SENSITIVITY * 0.08));
+  let brineScore = Math.max(0, ndsi - brineThreshold);
 
   // 3. No-Vegetation Gate
   let ndviSum = sample.B08 + sample.B04;
   let ndvi = ndviSum === 0 ? 0 : (sample.B08 - sample.B04) / ndviSum;
   let noVeg = Math.max(0, 1.0 - Math.max(0, ndvi));
 
-  // Composite: geometric mean so neither gate alone collapses the result,
-  // but both must be nonzero to produce any output.
-  let fbc = Math.sqrt(ironScore * brineScore) * noVeg;
-  let mapped = Math.min(1, fbc * 25.0);
+  // Composite: Product based with power scaling to suppress background "blobs"
+  let fbc = (ironScore * brineScore) * noVeg;
+  let mapped = Math.min(1, Math.pow(fbc, 2.0) * 150.0);
 
   ${colorBlend('mapped', `[
       [0.0,  26, 8, 0],
@@ -784,18 +786,19 @@ const INDICES = {
   if (sample.dataMask === 0 || sample.B05 === 0) return [0,0,0,0];
 
   // 1. Red Edge Iron Ratio: B06/B05
-  // Baseline bare soil: ~0.95–1.08. Ferric alteration pushes above 1.10.
   let redEdge = sample.B06 / sample.B05;
-  let ironScore = Math.max(0, (redEdge - (1.10 - DETECTION_SENSITIVITY)) / 0.45);
+  let ironThreshold = Math.max(1.08, 1.18 - (DETECTION_SENSITIVITY * 0.15));
+  let ironScore = Math.max(0, (redEdge - ironThreshold) / 0.45);
 
   // 2. Brine confirmation
   let ndsiSum = sample.B11 + sample.B12;
   if (ndsiSum === 0) return [0,0,0,0];
   let ndsi = (sample.B11 - sample.B12) / ndsiSum;
-  let brineScore = Math.max(0, ndsi - (0.05 - (DETECTION_SENSITIVITY * 0.2)));
+  let brineThreshold = Math.max(0.06, 0.12 - (DETECTION_SENSITIVITY * 0.1));
+  let brineScore = Math.max(0, ndsi - brineThreshold);
 
   let reai = ironScore * brineScore;
-  let mapped = Math.min(1, reai * 18.0);
+  let mapped = Math.min(1, Math.pow(reai, 2.0) * 100.0);
 
   ${colorBlend('mapped', `[
       [0.0,  13, 26, 46],
@@ -830,16 +833,18 @@ const INDICES = {
   let bot = (sample.B08 * sample.B04) + (sample.B03 * sample.B02);
   let crsi = (bot <= 0 || top < 0) ? 0 : Math.sqrt(top / bot);
   // Invert: healthy veg = low score, brine-stressed/dead = high score
-  let stressScore = Math.max(0, (0.55 + DETECTION_SENSITIVITY) - crsi) * (1.0 / 0.55);
+  let stressThreshold = 0.55 + (DETECTION_SENSITIVITY * 0.2);
+  let stressScore = Math.max(0, stressThreshold - crsi) * (1.0 / 0.55);
 
   // 2. Brine chemistry at same pixel
   let ndsiSum = sample.B11 + sample.B12;
   if (ndsiSum === 0) return [0,0,0,0];
   let ndsi = (sample.B11 - sample.B12) / ndsiSum;
-  let brineScore = Math.max(0, ndsi - (0.04 - (DETECTION_SENSITIVITY * 0.1)));
+  let brineThreshold = Math.max(0.05, 0.10 - (DETECTION_SENSITIVITY * 0.08));
+  let brineScore = Math.max(0, ndsi - brineThreshold);
 
   let vcbi = stressScore * brineScore;
-  let mapped = Math.min(1, vcbi * 10.0);
+  let mapped = Math.min(1, Math.pow(vcbi, 1.5) * 30.0);
 
   ${colorBlend('mapped', `[
       [0.0,  10, 32, 16],
