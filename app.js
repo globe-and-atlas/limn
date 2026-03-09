@@ -74,7 +74,7 @@ async function getCDSEToken() {
     }
 }
 
-const APP_VERSION = 'v33';
+const APP_VERSION = 'v34';
 
 // Globals for Report Generation
 let aoiDrawnItem = null;
@@ -139,13 +139,35 @@ function setup() {
         { datasource: "S1GRD", bands: ["VV", "VH"] },
         { datasource: "S2L2A", bands: ["B02", "B03", "B04", "B08", "B11", "B12"], units: "REFLECTANCE" }
     ],
-    output: { bands: 4 }
+    output: { bands: 4 },
+    mosaicking: "ORBIT"
   };
 }
-function evaluatePixel(sample) {
-    const s1 = sample.S1GRD[0];
-    const s2 = sample.S2L2A[0];
-    // Map samples back to the logical sample object for the logic snippet
+
+function evaluatePixel(samples, scenes) {
+    // 1. Find most recent valid S2 sample (Chemical Signature)
+    let s2 = null;
+    for (let i = 0; i < samples.S2L2A.length; i++) {
+        if (samples.S2L2A[i].dataMask === 1 && samples.S2L2A[i].B02 > 0) {
+            s2 = samples.S2L2A[i];
+            break;
+        }
+    }
+    if (!s2) return [0,0,0,0];
+
+    // 2. Find most recent valid S1 sample (Physical Smoothness) within the 30-day window
+    let s1 = null;
+    for (let i = 0; i < samples.S1GRD.length; i++) {
+        if (samples.S1GRD[i].VV !== 0) {
+            s1 = samples.S1GRD[i];
+            break;
+        }
+    }
+    
+    // 3. Fallback: If no S1 data, return a low-confidence/zero signal for Fusion mode
+    if (!s1) return [0.05, 0.05, 0.05, 1]; // Dark grey background for "No Radar Confirmation"
+
+    // 4. Map samples back to the logical sample object for the logic snippet
     const sampleFlat = { ...s1, ...s2 };
     ${logic.replace(/sample/g, 'sampleFlat')}
 }
