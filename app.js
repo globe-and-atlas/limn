@@ -201,6 +201,15 @@ const PALETTE_REAI = "[[0, 13, 26, 46], [0.35, 46, 92, 138], [0.65, 196, 122, 30
 const PALETTE_VCBI = "[[0, 10, 32, 16], [0.3, 26, 96, 48], [0.6, 200, 160, 0], [1, 224, 80, 16]]"; // Dark Green -> Forest -> Gold -> Orange
 const PALETTE_FBC = "[[0, 26, 8, 0], [0.3, 139, 37, 0], [0.6, 212, 88, 26], [1, 255, 179, 71]]"; // Black -> Deep Red -> Burnt Orange -> Peach
 const PALETTE_HPWI = "[[0, 44, 62, 80], [0.5, 241, 196, 15], [1, 231, 76, 60]]"; // Dark Blue -> Gold -> Red
+const PALETTE_LBI = "[[0, 0, 0, 0], [0.3, 0, 210, 255], [0.7, 0, 136, 255], [1, 255, 0, 255]]";
+const PALETTE_TRI = "[[0, 26, 10, 0], [0.3, 128, 64, 0], [0.7, 153, 51, 255], [1, 255, 0, 255]]";
+const PALETTE_BPI = "[[0, 34, 34, 34], [0.3, 68, 68, 68], [0.7, 0, 255, 255], [1, 255, 255, 0]]";
+const PALETTE_VSI = "[[0, 0, 85, 0], [0.3, 255, 255, 0], [0.7, 255, 136, 0], [1, 255, 0, 0]]";
+const PALETTE_CMA = "[[0, 68, 34, 0], [0.3, 136, 68, 0], [0.7, 170, 136, 170], [1, 255, 255, 255]]";
+const PALETTE_PHI = "[[0, 0, 0, 0], [0.3, 51, 51, 51], [0.7, 102, 51, 0], [1, 255, 204, 0]]";
+const PALETTE_HMI = "[[0, 0, 17, 0], [0.3, 0, 68, 0], [0.7, 0, 255, 187], [1, 255, 255, 255]]";
+const PALETTE_SCRI = "[[0, 0, 0, 0], [0.2, 75, 0, 130], [0.6, 231, 76, 60], [1, 241, 196, 15]]";
+const PALETTE_MSI_INV = "[[0, 212, 106, 36], [0.5, 239, 216, 122], [1, 28, 133, 166]]";
 
 // Index Configs
 const INDICES = {
@@ -990,7 +999,7 @@ const INDICES = {
 `
     },
     vsi: {
-        name: 'Vegetation Stress Index (VSI)',
+        name: 'Vegetation Stress Index (VSI) ✧',
         sensor: 'Sentinel-2 L2A',
         min: 'Healthy', max: 'Metal/Brine Stress',
         gradient: 'linear-gradient(to right, #005500, #FFFF00, #FF8800, #FF0000)',
@@ -1021,7 +1030,7 @@ const INDICES = {
 `
     },
     cma: {
-        name: 'Clay-Mineral Alteration (CMA)',
+        name: 'Clay-Mineral Alteration (CMA) ✧',
         sensor: 'Sentinel-2 L2A',
         min: 'Native Soil', max: 'Chemical Alteration',
         gradient: 'linear-gradient(to right, #442200, #884400, #AA88AA, #FFFFFF)',
@@ -1052,7 +1061,7 @@ const INDICES = {
 `
     },
     phi: {
-        name: 'Petro-Hydrocarbon Index (PHI)',
+        name: 'Petro-Hydrocarbon Index (PHI) ✧',
         sensor: 'Sentinel-2 L2A',
         min: 'Background', max: 'Hydrocarbon Rich',
         gradient: 'linear-gradient(to right, #000000, #333333, #663300, #FFCC00)',
@@ -1083,7 +1092,7 @@ const INDICES = {
 `
     },
     hmi: {
-        name: 'Heavy Metal Interaction (HMI)',
+        name: 'Heavy Metal Interaction (HMI) ✧',
         sensor: 'Sentinel-2 L2A',
         min: 'Clean', max: 'Metal-Salt PPT',
         gradient: 'linear-gradient(to right, #001100, #004400, #00FFBB, #FFFFFF)',
@@ -1112,7 +1121,7 @@ const INDICES = {
 `
     },
     scri: {
-        name: 'Salt Crust Roughness Index (SCRI)',
+        name: 'Salt Crust Roughness Index (SCRI) ✧',
         sensor: 'Sentinel-1 GRD',
         min: 'Background', max: 'Salt Crust Confirmed',
         gradient: 'linear-gradient(to right, #000000, #4b0082, #e74c3c, #f1c40f)',
@@ -1500,6 +1509,102 @@ function getScriptContent(activeIndex, isDiff, isCumulative = false) {
         if (activeIndex === 'crsi') bands = ['B02', 'B03', 'B04', 'B08'];
         if (activeIndex === 'aoi') bands = ['B02', 'B04', 'B11', 'B12'];
         if (activeIndex === 'pwi') bands = ['B02', 'B03', 'B04', 'B08', 'B11', 'B12'];
+        if (activeIndex === 'lbi') {
+            logic = `
+                (function() {
+                    let ndsi = (sample.B11 + sample.B12) === 0 ? 0 : (sample.B11 - sample.B12) / (sample.B11 + sample.B12);
+                    let ndwi = (sample.B03 + sample.B11) === 0 ? 0 : (sample.B03 - sample.B11) / (sample.B03 + sample.B11);
+                    let ndvi = (sample.B08 + sample.B04) === 0 ? 0 : (sample.B08 - sample.B04) / (sample.B08 + sample.B04);
+                    let bsi = (sample.B11+sample.B04+sample.B08+sample.B02) === 0 ? 0 : ((sample.B11+sample.B04)-(sample.B08+sample.B02))/((sample.B11+sample.B04)+(sample.B08+sample.B02));
+                    return Math.max(0, ndsi) * Math.max(0, ndwi + 0.5) * Math.max(0, 1.0 - ndvi) * Math.max(0, bsi) * 40.0;
+                })()
+            `;
+            palette = PALETTE_LBI;
+            bands = ['B03', 'B04', 'B08', 'B11', 'B12'];
+        }
+        if (activeIndex === 'tri') {
+            logic = `
+                (function() {
+                    let ndsi = (sample.B11 + sample.B12) === 0 ? 0 : (sample.B11 - sample.B12) / (sample.B11 + sample.B12);
+                    let hmri = sample.B03 === 0 ? 0 : sample.B12 / sample.B03;
+                    let aoi = (sample.B02 === 0 || sample.B12 === 0) ? 0 : (sample.B04 / sample.B02) * (sample.B11 / sample.B12);
+                    return Math.max(0, ndsi - 0.05) * Math.max(0, (hmri - 1.5)/2) * Math.max(0, (aoi - 1.5)/2) * 10;
+                })()
+            `;
+            palette = PALETTE_TRI;
+            bands = ['B02', 'B03', 'B04', 'B11', 'B12'];
+        }
+        if (activeIndex === 'bpi') {
+            logic = `
+                (function() {
+                    let bsi = (sample.B11+sample.B04+sample.B08+sample.B02) === 0 ? 0 : ((sample.B11+sample.B04)-(sample.B08+sample.B02))/((sample.B11+sample.B04)+(sample.B08+sample.B02));
+                    let ndsi = (sample.B11 + sample.B12) === 0 ? 0 : (sample.B11 - sample.B12) / (sample.B11 + sample.B12);
+                    let hcai = (sample.B11 + sample.B04) === 0 ? 0 : (sample.B11 - sample.B04) / (sample.B11 + sample.B04);
+                    return Math.max(0, bsi) * Math.max(0, ndsi - 0.03) * Math.max(0, hcai - 0.15) * 30.0;
+                })()
+            `;
+            palette = PALETTE_BPI;
+            bands = ['B02', 'B04', 'B08', 'B11', 'B12'];
+        }
+        if (activeIndex === 'vsi') {
+            logic = `
+                (function() {
+                    let ndsi = (sample.B11 + sample.B12) === 0 ? 0 : (sample.B11 - sample.B12) / (sample.B11 + sample.B12);
+                    let redEdgeDelta = (sample.B07 + sample.B05) === 0 ? 0 : (sample.B07 - sample.B05) / (sample.B07 + sample.B05);
+                    let msi = sample.B8A === 0 ? 0 : sample.B11 / sample.B8A;
+                    return Math.max(0, ndsi) * Math.max(0, 0.4 - redEdgeDelta) * Math.max(0, msi - 1.0) * 10.0;
+                })()
+            `;
+            palette = PALETTE_VSI;
+            bands = ['B05', 'B07', 'B11', 'B12', 'B8A'];
+        }
+        if (activeIndex === 'cma') {
+            logic = `
+                (function() {
+                    let ndsi = (sample.B11 + sample.B12) === 0 ? 0 : (sample.B11 - sample.B12) / (sample.B11 + sample.B12);
+                    let clayRatio = (sample.B12 === 0) ? 0 : sample.B11 / sample.B12;
+                    let ironIndex = (sample.B02 === 0) ? 0 : sample.B04 / sample.B02;
+                    return Math.max(0, ndsi) * Math.max(0, clayRatio - 1.2) * Math.max(0, ironIndex - 1.5) * 15.0;
+                })()
+            `;
+            palette = PALETTE_CMA;
+            bands = ['B02', 'B04', 'B11', 'B12'];
+        }
+        if (activeIndex === 'phi') {
+            logic = `
+                (function() {
+                    let ndsi = (sample.B11 + sample.B12) === 0 ? 0 : (sample.B11 - sample.B12) / (sample.B11 + sample.B12);
+                    let shoulder = (sample.B12 === 0) ? 0 : sample.B11 / sample.B12;
+                    let hcai = (sample.B11 + sample.B04) === 0 ? 0 : (sample.B11 - sample.B04) / (sample.B11 + sample.B04);
+                    return Math.max(0, ndsi) * Math.max(0, shoulder - 1.0) * Math.max(0, hcai - 0.2) * 20.0;
+                })()
+            `;
+            palette = PALETTE_PHI;
+            bands = ['B04', 'B11', 'B12'];
+        }
+        if (activeIndex === 'hmi') {
+            logic = `
+                (function() {
+                    let greenShift = (sample.B02 === 0) ? 0 : sample.B03 / sample.B02;
+                    let saltPPT = (sample.B12 === 0) ? 0 : sample.B11 / sample.B12;
+                    return Math.max(0, greenShift - 1.1) * Math.max(0, saltPPT - 1.2) * 10.0;
+                })()
+            `;
+            palette = PALETTE_HMI;
+            bands = ['B02', 'B03', 'B11', 'B12'];
+        }
+        if (activeIndex === 'scri') {
+            logic = `
+                (function() {
+                    let vh = 10 * Math.log10(sample.VH);
+                    let vv = 10 * Math.log10(sample.VV);
+                    let ratio = vh - vv;
+                    return Math.max(0, (vh + 20) / 10) * Math.max(0, (ratio + 5) / 5) * 0.5;
+                })()
+            `;
+            palette = PALETTE_SCRI;
+            bands = ['VV', 'VH'];
+        }
 
         // Data fusion indices like HPWI are too complex for the basic cumulative script generator
         if (activeIndex !== 'hpwi') {
@@ -1556,8 +1661,16 @@ function evaluatePixel(samples) {
             else if (activeIndex === 'ndoi') calc = '-((sample.B02 - sample.B12)/(sample.B02 + sample.B12))';
             else if (activeIndex === 'crsi') calc = '-(Math.sqrt(Math.max(0, ((sample.B08*sample.B04)-(sample.B03*sample.B02))/((sample.B08*sample.B04)+(sample.B03*sample.B02)))))';
             else if (activeIndex === 'aoi') calc = '-((sample.B04/sample.B02)*(sample.B11/sample.B12))';
-            else if (activeIndex === 'ehc') calc = '-(((sample.B02-sample.B12)/(sample.B02+sample.B12)) + ((sample.B11-sample.B12)/(sample.B11+sample.B12)))'; // simplistic diff proxy for color composite
-            else if (activeIndex === 'pwi') calc = '-( ((sample.B11+sample.B04)-(sample.B08+sample.B02))/((sample.B11+sample.B04)+(sample.B08+sample.B02)) > 0.05 ? (Math.max(0, ((sample.B11 - sample.B12)/(sample.B11 + sample.B12)) - 0.10) * Math.max(0, (((sample.B11 - sample.B04)/(sample.B11 + sample.B04)) - 0.30) * 2) * Math.max(0, ((sample.B12 / sample.B03) - 2.0) * 2)) : 0)';
+            else if (activeIndex === 'ehc') calc = '-(((sample.B02-sample.B12)/(sample.B02+sample.B12)) + ((sample.B11-sample.B12)/(sample.B11+sample.B12)))';
+            else if (activeIndex === 'pwi') calc = '-((function(){ let bsiTop=(sample.B11+sample.B04)-(sample.B08+sample.B02); let bsiBot=(sample.B11+sample.B04)+(sample.B08+sample.B02); let bsi=(bsiBot===0)?0:(bsiTop/bsiBot); if(bsi<0.01)return 0; let ndsi=(sample.B11+sample.B12===0)?0:(sample.B11-sample.B12)/(sample.B11+sample.B12); let hcai=(sample.B11+sample.B04===0)?0:(sample.B11-sample.B04)/(sample.B11+sample.B04); let hmri=(sample.B03===0)?0:sample.B12/sample.B03; return Math.max(0,ndsi-0.05)*Math.max(0,(hcai-0.20)*2.5)*Math.max(0,(hmri-1.5)*2.5); })())';
+            else if (activeIndex === 'lbi') calc = '-((function(){ let ndsi=(sample.B11+sample.B12===0)?0:(sample.B11-sample.B12)/(sample.B11+sample.B12); let ndwi=(sample.B03+sample.B11===0)?0:(sample.B03-sample.B11)/(sample.B03+sample.B11); let ndvi=(sample.B08+sample.B04===0)?0:(sample.B08-sample.B04)/(sample.B08+sample.B04); let bsi=(sample.B11+sample.B04+sample.B08+sample.B02===0)?0:((sample.B11+sample.B04)-(sample.B08+sample.B02))/((sample.B11+sample.B04)+(sample.B08+sample.B02)); return Math.max(0,ndsi)*Math.max(0,ndwi+0.5)*Math.max(0,1.0-ndvi)*Math.max(0,bsi); })())';
+            else if (activeIndex === 'tri') calc = '-((function(){ let ndsi=(sample.B11+sample.B12===0)?0:(sample.B11-sample.B12)/(sample.B11+sample.B12); let hmri=(sample.B03===0)?0:sample.B12/sample.B03; let aoi=(sample.B02===0||sample.B12===0)?0:(sample.B04/sample.B02)*(sample.B11/sample.B12); return Math.max(0,ndsi-0.05)*Math.max(0,(hmri-1.5)/2)*Math.max(0,(aoi-1.5)/2); })())';
+            else if (activeIndex === 'bpi') calc = '-((function(){ let bsi=(sample.B11+sample.B04+sample.B08+sample.B02===0)?0:((sample.B11+sample.B04)-(sample.B08+sample.B02))/((sample.B11+sample.B04)+(sample.B08+sample.B02)); let ndsi=(sample.B11+sample.B12===0)?0:(sample.B11-sample.B12)/(sample.B11+sample.B12); let hcai=(sample.B11+sample.B04===0)?0:(sample.B11-sample.B04)/(sample.B11+sample.B04); return Math.max(0,bsi)*Math.max(0,ndsi-0.03)*Math.max(0,hcai-0.15); })())';
+            else if (activeIndex === 'vsi') calc = '-((function(){ let ndsi=(sample.B11+sample.B12===0)?0:(sample.B11-sample.B12)/(sample.B11+sample.B12); let redEdgeDelta=(sample.B07+sample.B05===0)?0:(sample.B07-sample.B05)/(sample.B07+sample.B05); let msi=(sample.B8A===0)?0:sample.B11/sample.B8A; return Math.max(0,ndsi)*Math.max(0,0.4-redEdgeDelta)*Math.max(0,msi-1.0); })())';
+            else if (activeIndex === 'cma') calc = '-((function(){ let ndsi=(sample.B11+sample.B12===0)?0:(sample.B11-sample.B12)/(sample.B11+sample.B12); let clayRatio=(sample.B12===0)?0:sample.B11/sample.B12; let ironIndex=(sample.B02===0)?0:sample.B04/sample.B02; return Math.max(0,ndsi)*Math.max(0,clayRatio-1.2)*Math.max(0,ironIndex-1.5); })())';
+            else if (activeIndex === 'phi') calc = '-((function(){ let ndsi=(sample.B11+sample.B12===0)?0:(sample.B11-sample.B12)/(sample.B11+sample.B12); let shoulder=(sample.B12===0)?0:sample.B11/sample.B12; let hcai=(sample.B11+sample.B04===0)?0:(sample.B11-sample.B04)/(sample.B11+sample.B04); return Math.max(0,ndsi)*Math.max(0,shoulder-1.0)*Math.max(0,hcai-0.2); })())';
+            else if (activeIndex === 'hmi') calc = '-((function(){ let greenShift=(sample.B02===0)?0:sample.B03/sample.B02; let saltPPT=(sample.B12===0)?0:sample.B11/sample.B12; return Math.max(0,greenShift-1.1)*Math.max(0,saltPPT-1.2); })())';
+            else if (activeIndex === 'scri') calc = '-((function(){ let vh=10*Math.log10(sample.VH); let vv=10*Math.log10(sample.VV); let ratio=vh-vv; return Math.max(0,(vh+20)/10)*Math.max(0,(ratio+5)/5); })())';
 
 
             // Proxies for visual bands
@@ -1579,6 +1692,14 @@ function evaluatePixel(samples) {
             if (activeIndex === 'aoi') bands = ['B02', 'B04', 'B11', 'B12'];
             if (activeIndex === 'ehc') bands = ['B02', 'B12', 'B11'];
             if (activeIndex === 'pwi') bands = ['B02', 'B03', 'B04', 'B08', 'B11', 'B12'];
+            if (activeIndex === 'lbi') bands = ['B02', 'B03', 'B04', 'B08', 'B11', 'B12'];
+            if (activeIndex === 'tri') bands = ['B02', 'B03', 'B04', 'B11', 'B12'];
+            if (activeIndex === 'bpi') bands = ['B02', 'B04', 'B08', 'B11', 'B12'];
+            if (activeIndex === 'vsi') bands = ['B05', 'B07', 'B11', 'B12', 'B8A'];
+            if (activeIndex === 'cma') bands = ['B02', 'B04', 'B11', 'B12'];
+            if (activeIndex === 'phi') bands = ['B04', 'B11', 'B12'];
+            if (activeIndex === 'hmi') bands = ['B02', 'B03', 'B11', 'B12'];
+            if (activeIndex === 'scri') bands = ['VV', 'VH'];
             if (activeIndex === 'fc') bands = ['B08', 'B04', 'B03'];
 
             scriptContent = genDiffEvalscript(bands, calc);
