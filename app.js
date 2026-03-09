@@ -2134,20 +2134,26 @@ function bindEvents() {
         });
     });
 
-    // SAR Fusion Toggle
+    // Data Fusion & HLS Toggles
     const toggleSar = document.getElementById('toggle-sar-fusion');
     if (toggleSar) {
-        document.getElementById('toggle-sar-fusion').addEventListener('change', (e) => {
+        toggleSar.addEventListener('change', (e) => {
             state.sarFusion = e.target.checked;
             applyIndex();
         });
+    }
 
-        document.getElementById('toggle-hls-temporal').addEventListener('change', (e) => {
+    const toggleHls = document.getElementById('toggle-hls-temporal');
+    if (toggleHls) {
+        toggleHls.addEventListener('change', (e) => {
             state.hlsEnabled = e.target.checked;
             applyIndex();
         });
+    }
 
-        document.getElementById('toggle-deep-fusion').addEventListener('change', (e) => {
+    const toggleDeep = document.getElementById('toggle-deep-fusion');
+    if (toggleDeep) {
+        toggleDeep.addEventListener('change', (e) => {
             state.deepFusion = e.target.checked;
             applyIndex();
         });
