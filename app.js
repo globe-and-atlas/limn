@@ -74,7 +74,7 @@ async function getCDSEToken() {
     }
 }
 
-const APP_VERSION = 'v38';
+const APP_VERSION = 'v39';
 
 // Globals for Report Generation
 let aoiDrawnItem = null;
@@ -1216,8 +1216,9 @@ function evaluatePixel(sample) {
   let vh = 10 * Math.log10(sample.VH);
   let vv = 10 * Math.log10(sample.VV);
   let ratio = vh - vv;
-  let score = Math.max(0, (vh + 20) / 10) * Math.max(0, (ratio + 5) / 5);
-  let mapped = Math.min(1, score * 0.4);
+  // Contrast hardened: -19dB floor, 6dB ratio bias, powered scaling
+  let score = Math.max(0, (vh + 19) / 9) * Math.max(0, (ratio + 6) / 5);
+  let mapped = Math.min(1, Math.pow(score * 0.5, 2.5));
   
   ${colorBlend('mapped', `[
       [0.0, 0, 0, 0],
@@ -1230,7 +1231,8 @@ function evaluatePixel(sample) {
         fisLogic: `
   let vh = 10 * Math.log10(sample.VH);
   let vv = 10 * Math.log10(sample.VV);
-  return [Math.min(1, Math.max(0, (vh + 20) / 10) * Math.max(0, (vh - vv + 5) / 5) * 0.4)];
+  let score = Math.max(0, (vh + 19) / 9) * Math.max(0, (vh - vv + 6) / 5);
+  return [Math.min(1, Math.pow(score * 0.5, 2.5))];
 `
     },
     s1_sar: {
