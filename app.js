@@ -1225,7 +1225,7 @@ function evaluatePixel(sample) {
       [0.7, 231, 76, 60],
       [1.0, 241, 196, 15]
   ]`)}
-}`,,StartLine:1217,TargetContent:`,
+}`,
         fisBands: ['VV', 'VH'],
         fisLogic: `
   let vh = 10 * Math.log10(sample.VH);
