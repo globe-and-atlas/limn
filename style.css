@@ -1508,6 +1508,20 @@ option.opt-fusion {
     color: var(--text-dim);
 }
 
+.sensor-legend {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 4px;
+    font-size: 9px;
+    font-family: var(--font-mono);
+    color: var(--text-muted);
+}
+
+.sensor-legend span {
+    opacity: 0.8;
+}
+
 .date-picker {
     background: transparent;
     border: none;
