@@ -159,20 +159,15 @@ function evaluatePixel(samples) {
   ${colorBlend('maxVal', paletteStr)}
 }
 `;
-const genDeepFusionEvalscript = (s1Bands, s2Bands, logic) => `//VERSION=3
+const genDeepFusionEvalscript = (bands, logic) => `//VERSION=3
 function setup() {
   return {
-    input: [
-      { id: "s1", bands: [${s1Bands.map(b => `'${b}'`).join(', ')}, "dataMask"] },
-      { id: "s2", bands: [${s2Bands.map(b => `'${b}'`).join(', ')}, "dataMask"] }
-    ],
+    input: [${bands.map(b => `'${b}'`).join(', ')}, "dataMask"],
     output: { bands: 4 }
   };
 }
-function evaluatePixel(samples) {
-  let s1 = samples.s1[0];
-  let s2 = samples.s2[0];
-  if (s1.dataMask === 0 || s2.dataMask === 0) return [0, 0, 0, 0];
+function evaluatePixel(sample) {
+  if (sample.dataMask === 0) return [0, 0, 0, 0];
   ${logic}
 }
 `;
@@ -212,7 +207,7 @@ const PALETTE_BRINE = "[[0, 10, 60, 100], [0.35, 120, 100, 50], [0.6, 240, 80, 3
 const PALETTE_CSI = "[[0, 160, 120, 50], [0.5, 100, 220, 80], [1, 0, 255, 255]]"; // Brown -> Lime -> Cyan
 const PALETTE_HCAI = "[[0, 245, 222, 179], [0.5, 139, 69, 19], [1, 0, 0, 0]]"; // Wheat -> SaddleBrown -> Black
 const PALETTE_HMRI = "[[0, 230, 230, 250], [0.5, 128, 0, 128], [1, 255, 0, 255]]"; // Lavender -> Purple -> Magenta
-const PALETTE_PWI = "[[0, 20, 20, 20, 0.0], [0.02, 0, 255, 255, 1.0], [0.5, 255, 0, 255, 1.0], [1, 204, 255, 0, 1.0]]"; // Fast-ramp Transparent -> Solid Cyan -> Magenta -> Yellow
+const PALETTE_PWI = "[[0, 0, 0, 0.0], [0.1, 0, 255, 255, 1.0], [0.5, 255, 0, 255, 1.0], [1, 255, 255, 0, 1.0]]"; // Restrictive: Trans -> Cyan -> Magenta -> Yellow
 const PALETTE_BSI = "[[0, 0, 0, 0], [0.1, 68, 136, 51], [0.15, 210, 180, 60], [1, 160, 120, 50]]"; // Black -> Green -> Yellow -> Brown
 const PALETTE_REAI = "[[0, 13, 26, 46], [0.35, 46, 92, 138], [0.65, 196, 122, 30], [1, 232, 196, 74]]"; // Navy -> Blue -> Bronze -> Yellow
 const PALETTE_VCBI = "[[0, 10, 32, 16], [0.3, 26, 96, 48], [0.6, 200, 160, 0], [1, 224, 80, 16]]"; // Dark Green -> Forest -> Gold -> Orange
@@ -646,12 +641,12 @@ const INDICES = {
     },
     hpwi: {
         name: 'Hydro-Optical Spill Index (HPWI)',
-        sensor: 'Sentinel-2 L2A',
+        sensor: 'S1 SAR + S2 Optical Fusion',
         min: 'Background', max: 'Confirmed Liquid Spill',
-        gradient: 'linear-gradient(to right, #111111, #4b0082, #e74c3c, #f1c40f)',
-        formula: '(NDOI + brineBoost) × norm(smoothness)',
-        info: 'Hydro-Optical Spill Index — requires a liquid chemical signature AND a confirmed surface-smoothness proxy (B03/B11 dampening). NDOI (B02−B12) is the primary hydrocarbon gate; confirmed brine (NDSI > 0.03) provides an additive boost so brine-dominant produced water spills also register. Dry rough bare soil won\'t clear the smoothness gate. Fresh water (flat surface) won\'t carry a chemical signal.',
-        diffLabels: ['Stable', 'New Spill Detected'],
+        gradient: 'linear-gradient(to right, #000000, #00FFFF, #FF00FF, #CCFF00)',
+        formula: 'PWI (Restrictive) * S1 Radar Smoothness Confirmation',
+        info: 'The ultimate spill detection engine. Requires the triple-confirmation chemical signature (Salinity/Hydrocarbons/Metals) to be physically confirmed by Sentinel-1 Radar specular reflection (smoothness). Deep Spectral Fusion mode eliminates false positives from dry salt ponds or mineral-rich soils.',
+        diffLabels: ['Stable (No Detection)', 'Spill Anomaly Detected'],
         evalscript: genEvalscript(['B02', 'B03', 'B11', 'B12'], `
   if (sample.dataMask === 0) return [0,0,0,0];
 
@@ -842,8 +837,8 @@ const INDICES = {
         sensor: 'Sentinel-2 L2A',
         min: 'Background', max: 'Confirmed Spill',
         gradient: 'linear-gradient(to right, #000000, #00FFFF, #FF00FF, #CCFF00)',
-        formula: '(NDSI - 0.05) * (HCAI - 0.20) * (HMRI - 1.5) [Aggressive Plume Recovery]',
-        info: 'Produced Water Index — optimized for maximum plume sensitivity. Multiplies Brine (NDSI > 0.05), Hydrocarbons (HCAI > 0.20), and Heavy Metals (HMRI > 1.5). Square-root scaling (120x boost) aggressively highlights mid-to-low concentration plumes in rangelands.',
+        formula: '(NDSI - 0.10) * (HCAI - 0.30) * (HMRI - 2.0) [Pure Specification]',
+        info: 'Isolate and identify highly concentrated oilfield brine spills using a restrictive triple-confirmation composite. Requires simultaneous elevation of Salinity (NDSI), Hydrocarbons (HCAI), and Heavy Metals (HMRI). Cubic scaling eliminates noise for high-fidelity detection.',
         diffLabels: ['Stable (No Detection)', 'Spill Anomaly Detected'],
         evalscript: genEvalscript(['B02', 'B03', 'B04', 'B08', 'B11', 'B12'], `
   // 1. Bare Soil Index (BSI) -- URBAN / WATER / VEG MASK
@@ -869,15 +864,15 @@ const INDICES = {
   let hmri = sample.B12 / sample.B03;
   
   // Permian-calibrated thresholds (stable fixed offsets):
-  let brineScore = Math.max(0, brine - 0.05);
-  let hcaiScore = Math.max(0, (hcai - 0.20) * 2.5);
-  let hmriScore = Math.max(0, (hmri - 1.5) * 2.5);
+  // Restrictive Specification (Pure)
+  let brineScore = Math.max(0, brine - 0.10);
+  let hcaiScore = Math.max(0, (hcai - 0.30) * 2.0);
+  let hmriScore = Math.max(0, (hmri - 2.0) * 2.0);
   
   let pwi = brineScore * hcaiScore * hmriScore;
   
-  // Yesterday's aggressive reset (March 8th stable version)
-  // 120x multiplier with square-root scaling for maximum plume visibility.
-  let mapped = Math.min(1, Math.sqrt(pwi * 120.0));
+  // Non-linear cubic scaling for high-stakes noise squelching
+  let mapped = Math.min(1.0, Math.pow(pwi * 20.0, 3));
   ${colorBlend('mapped', PALETTE_PWI)}
 `),
         fisBands: ['B02', 'B03', 'B04', 'B08', 'B11', 'B12'],
@@ -897,10 +892,10 @@ const INDICES = {
   if(sample.B03 === 0) return [0];
   let hmri = sample.B12 / sample.B03;
   
-  let pwi = Math.max(0, ndsi - 0.05) * 
-            Math.max(0, (hcai - 0.20) * 2.5) * 
-            Math.max(0, (hmri - 1.5) * 2.5);
-  return [Math.pow(pwi * 60.0, 1.5)];
+  let pwi = Math.max(0, ndsi - 0.10) * 
+            Math.max(0, (hcai - 0.30) * 2.0) * 
+            Math.max(0, (hmri - 2.0) * 2.0);
+  return [Math.min(1.0, Math.pow(pwi * 20.0, 3))];
 `
     },
     lbi: {
@@ -1571,48 +1566,54 @@ function getScriptContent(activeIndex, isDiff, isCumulative = false) {
         }
         if (activeIndex === 'hpwi') {
             if (state.deepFusion) {
-                // HPWI 2.0: Deep Spectral Fusion (S1 VH/VV + S2 B02/B11/B12)
+                // HPWI 2.0: Deep Spectral Fusion (S1 VH/VV + S2 Optical) — Aligned with PWI Spec
                 let fusionLogic = `
-                // 1. Sentinel-2 Chemical Signal (Oil/Brine)
-                let ndoi = (s2.B02 + s2.B12) === 0 ? 0 : Math.max(0, (s2.B02 - s2.B12) / (s2.B02 + s2.B12));
-                let ndsi = (s2.B11 + s2.B12) === 0 ? 0 : (s2.B11 - s2.B12) / (s2.B11 + s2.B12);
-                let brineBoost = Math.max(0, ndsi - (0.03 - DETECTION_SENSITIVITY)) * 0.8;
-                let chemSignal = Math.min(1, ndoi + brineBoost);
+                // 1. Sentinel-2 Chemical Signal (Salinity/Hydrocarbons/Metals)
+                let sumNdsi = (sample.B11 + sample.B12);
+                let ndsi = sumNdsi === 0 ? 0 : (sample.B11 - sample.B12) / sumNdsi;
+                let sumHcai = (sample.B11 + sample.B04);
+                let hcai = sumHcai === 0 ? 0 : (sample.B11 - sample.B04) / sumHcai;
+                let hmri = (sample.B03 === 0) ? 0 : (sample.B12 / sample.B03);
+                
+                let brineScore = Math.max(0, ndsi - 0.10);
+                let hydrocarbonScore = Math.max(0, (hcai - 0.30) * 2.0);
+                let metalScore = Math.max(0, (hmri - 2.0) * 2.0);
+                let chemPWI = brineScore * hydrocarbonScore * metalScore;
 
                 // 2. Sentinel-1 Physical Signal (Radar Smoothness)
                 // Smooth liquid surfaces cause VH/VV specular reflection (low backscatter)
-                let vh_db = 10 * Math.log10(s1.VH);
-                let vv_db = 10 * Math.log10(s1.VV);
-                let roughness = Math.max(0, Math.min(1, (vh_db + 25) / 15)); // 0 = very smooth/wetted, 1 = rough/dry
-                let smoothness = 1.0 - roughness; // 1 = liquid confirmation
+                let vh_db = 10 * Math.log10(Math.max(0.0001, sample.VH));
+                let smoothness = Math.max(0, Math.min(1, (-vh_db - 15) / 10)); // 1 = very smooth/liquid
 
                 // 3. Fusion Logic: Chemical Signature MUST be confirmed by Physical Smoothness
-                let score = chemSignal * smoothness;
-                let mapped = Math.min(1, score * 8.0);
+                let combinedScore = chemPWI * smoothness;
+                let mapped = Math.min(1.0, Math.pow(combinedScore * 20.0, 3));
                 
-                ${colorBlend('mapped', `[
-                    [0.0, 17, 17, 17],
-                    [0.2, 75, 0, 130],
-                    [0.6, 231, 76, 60],
-                    [1.0, 241, 196, 15]
-                ]`)}
+                ${colorBlend('mapped', PALETTE_PWI)}
             `;
-                return genDeepFusionEvalscript(['VV', 'VH'], ['B02', 'B03', 'B11', 'B12'], fusionLogic);
+                return genDeepFusionEvalscript(['VV', 'VH', 'B02', 'B03', 'B04', 'B11', 'B12'], fusionLogic);
             } else {
-                // Standard HPWI (Optical Proxy)
+                // Standard HPWI (Optical Proxy) - Also aligned with new restricted spec
                 logic = `
                 (function() {
-                    let ndoi = (sample.B02 + sample.B12) === 0 ? 0 : Math.max(0, (sample.B02 - sample.B12) / (sample.B02 + sample.B12));
                     let ndsi = (sample.B11 + sample.B12) === 0 ? 0 : (sample.B11 - sample.B12) / (sample.B11 + sample.B12);
-                    let brineBoost = Math.max(0, ndsi - 0.03) * 0.8;
-                    let chemSignal = Math.min(1, ndoi + brineBoost);
+                    let hcai = (sample.B11 + sample.B04) === 0 ? 0 : (sample.B11 - sample.B04) / (sample.B11 + sample.B04);
+                    let hmri = (sample.B03 === 0) ? 0 : (sample.B12 / sample.B03);
+                    
+                    let brineScore = Math.max(0, ndsi - 0.10);
+                    let hydrocarbonScore = Math.max(0, (hcai - 0.30) * 2.0);
+                    let metalScore = Math.max(0, (hmri - 2.0) * 2.0);
+                    let chemPWI = brineScore * hydrocarbonScore * metalScore;
+
                     let sumSmooth = sample.B03 + sample.B11;
                     let normSmooth = Math.max(0, Math.min(1, ((sample.B03 - sample.B11)/sumSmooth + 0.3) / 0.6));
-                    return chemSignal * normSmooth * 6.0;
+                    
+                    let combined = chemPWI * normSmooth;
+                    return Math.min(1.0, Math.pow(combined * 20.0, 3));
                 })()
             `;
-                palette = PALETTE_HPWI;
-                bands = ['B02', 'B03', 'B11', 'B12'];
+                palette = PALETTE_PWI;
+                bands = ['B02', 'B03', 'B04', 'B11', 'B12'];
             }
         }
         if (activeIndex === 'vsi') {
@@ -1795,14 +1796,17 @@ function getWMSLayer(timeStr, isDiff, overrideIndex = null) {
     let wmsLayerParam = 'AGRICULTURE';
     if (activeIdx === 's1_sar') wmsLayerParam = 'SENTINEL1-GRD';
     if (state.hlsEnabled && activeIdx !== 's1_sar' && activeIdx !== 'hpwi') {
-        // Updated for CDSE: LANDSAT-OT-L1C is the standard OGC identifier for Landsat 8
-        wmsLayerParam = SH_WMS_URL.includes('copernicus.eu') ? 'LANDSAT-OT-L1C' : 'NASA-HLS';
+        // CDSE standard layer names for Landsat collections
+        wmsLayerParam = SH_WMS_URL.includes('copernicus.eu') ? 'SENTINEL2-L2A,LANDSAT-8-L2A' : 'NASA-HLS';
     }
 
     // Handle Deep Fusion Multi-Source Request
     if (state.deepFusion && activeIdx === 'hpwi') {
-        wmsLayerParam = 'SENTINEL1-GRD,AGRICULTURE'; // Multi-source WMS request
+        // CDSE multi-source WMS requires explicit collection identifiers
+        wmsLayerParam = 'SENTINEL1-GRD,SENTINEL2-L2A';
     }
+
+    console.log(`[WMS] Requesting Index: ${activeIdx} | Layers: ${wmsLayerParam} | DeepFusion: ${state.deepFusion} | HLS: ${state.hlsEnabled}`);
 
     // Auto-expand time window for Fusion to ensure intersection
     let queryTime = timeStr;
