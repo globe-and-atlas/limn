@@ -92,6 +92,65 @@
             color: #fff !important;
         }
 
+        .temporal-badge {
+            display: inline-block;
+            font-size: 0.75em;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'JetBrains Mono', monospace;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #94A3B8;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+
+        .temporal-live {
+            color: #00FFCC;
+            border-color: rgba(0, 255, 204, 0.3);
+            background: rgba(0, 255, 204, 0.05);
+        }
+
+        .temporal-0-3m {
+            color: #00D2FF;
+            border-color: rgba(0, 210, 255, 0.3);
+            background: rgba(0, 210, 255, 0.05);
+        }
+
+        .temporal-3-12m {
+            color: #FFAA00;
+            border-color: rgba(255, 170, 0, 0.3);
+            background: rgba(255, 170, 0, 0.05);
+        }
+
+        .temporal-6mplus {
+            color: #FF00FF;
+            border-color: rgba(255, 0, 255, 0.3);
+            background: rgba(255, 0, 255, 0.05);
+        }
+
+        .temporal-6-24m {
+            color: #FF00FF;
+            border-color: rgba(255, 0, 255, 0.3);
+            background: rgba(255, 0, 255, 0.05);
+        }
+
+        .temporal-12mplus {
+            color: #FF4444;
+            border-color: rgba(255, 68, 68, 0.3);
+            background: rgba(255, 68, 68, 0.05);
+        }
+
+        .temporal-stable {
+            color: #888;
+        }
+
+        .temporal-persistent {
+            color: #44FF88;
+            border-color: rgba(68, 255, 136, 0.3);
+            background: rgba(68, 255, 136, 0.05);
+        }
+
         p {
             color: rgba(255, 255, 255, 0.85);
             margin-bottom: 16px;
@@ -147,17 +206,38 @@
         <p style="font-size: 0.95em; margin-bottom: 10px;"><strong>NASA HLS Temporal Booster:</strong> Toggles the data
             source to the NASA Harmonized Landsat Sentinel-2 collection (fallback to Landsat-OT on CDSE). This unlocks
             <strong>1-day temporal resolution</strong> in the date-picker, allowing you to bridge the standard 5-day
-            Sentinel-2 gap with Landsat 8/9 captures.</p>
+            Sentinel-2 gap with Landsat 8/9 captures.
+        </p>
         <p style="font-size: 0.95em; margin-bottom: 0;"><strong>Deep Spectral Fusion:</strong> A multi-source engine
             that cross-verifies restrictive chemical signatures (PWI) against physical surface smoothness (S1 SAR
             Backscatter). This mode is the gold-standard for eliminating false positives from dry salt ponds or
             mineral-rich soils.</p>
     </div>
 
+    <div
+        style="background: rgba(0, 210, 255, 0.05); border: 1px solid rgba(0, 210, 255, 0.2); border-radius: 8px; padding: 20px; margin: 30px 0;">
+        <h2 style="margin-top: 0; border-bottom: none; color: #00D2FF;">Temporal Relevance Guide</h2>
+        <p style="font-size: 0.95em; margin-bottom: 10px;">Spectral signatures evolve as produced water interacts with
+            the environment. Use the badges below to select the right tool for the age of the spill:</p>
+        <div style="display: flex; flex-wrap: wrap; gap: 10px; font-size: 0.8em;">
+            <span class="temporal-badge temporal-live" style="margin:0">Live / 0-1M</span> - Detects active wetting and
+            dynamic moisture.
+            <span class="temporal-badge temporal-0-3m" style="margin:0">0-3M</span> - Optimal window for liquid chemical
+            signatures.
+            <span class="temporal-badge temporal-3-12m" style="margin:0">3-12M</span> - Detects iron oxidation and early
+            salt crusting.
+            <span class="temporal-badge temporal-6mplus" style="margin:0">6M+</span> - Forensic detection of legacy
+            residues and mineral scabs.
+            <span class="temporal-badge temporal-persistent" style="margin:0">Persistent</span> - Detects long-term
+            soil/geological structural changes.
+        </div>
+    </div>
+
     <h2>1. Wholly New Novelties (Academic Paper Status ✧✧)</h2>
 
     <div class="index-card">
-        <h3><span>Vegetation Stress Index (VSI) ✧✧</span> <span class="formula">NDSI * RedEdgeDelta * MSI</span></h3>
+        <h3><span>Vegetation Stress Index (VSI) ✧✧</span> <span class="temporal-badge temporal-3-24m">3-24M</span> <span
+                class="formula">NDSI * RedEdgeDelta * MSI</span></h3>
         <p><strong>The Gap:</strong> Traditional vegetation indices (NDVI) only detect death or severe chlorosis. In
             produced water spills, vegetation often remains green but undergoes internal physiological stress from heavy
             metal and chloride uptake that is invisible to the human eye.</p>
@@ -167,7 +247,9 @@
     </div>
 
     <div class="index-card">
-        <h3><span>Salt Crust Roughness Index (SCRI) ✧✧</span> <span class="formula">SAR VH + Texture Proxy</span></h3>
+        <h3><span>Salt Crust Roughness Index (SCRI) ✧✧</span> <span class="temporal-badge temporal-3mplus">3M+</span>
+            <span class="formula">SAR VH + Texture Proxy</span>
+        </h3>
         <p><strong>The Gap:</strong> Optical salinity indices (NDSI) are blinded by clouds, dust, and smoke.
             Furthermore, they cannot distinguish between a thin chemical stain and a thick, potentially hazardous salt
             crust.</p>
@@ -180,7 +262,8 @@
     <h2>2. Primary Custom Composites & Novel Indices</h2>
 
     <div class="index-card">
-        <h3><span>Produced Water Index (PWI) ✧✧</span> <span class="formula pwi-badge">Restrictive Triple-Gate
+        <h3><span>Produced Water Index (PWI) ✧✧</span> <span class="temporal-badge temporal-0-3m">0-3M</span> <span
+                class="formula pwi-badge">Restrictive Triple-Gate
                 Engine</span></h3>
         <p><strong>The Gap:</strong> Permian Basin "desert noise" from bright caliche sands often mimics salt crusts.
             Standard indices cannot distinguish natural minerals from hazardous industrial spills.</p>
@@ -193,7 +276,8 @@
     </div>
 
     <div class="index-card">
-        <h3><span>Hydro-Optical Spill Index (HPWI)</span> <span class="formula fusion-badge">PWI * S1 Smoothness (Fusion
+        <h3><span>Hydro-Optical Spill Index (HPWI)</span> <span class="temporal-badge temporal-0-3m">0-3M</span> <span
+                class="formula fusion-badge">PWI * S1 Smoothness (Fusion
                 Mode)</span></h3>
         <p><strong>Mechanisms &amp; Utility:</strong> The platform's ultimate detection engine. In standard mode, it
             uses an optical smoothness proxy (B03/B11). In <strong>Deep Spectral Fusion</strong> mode, it cross-verifies
@@ -205,7 +289,8 @@
     </div>
 
     <div class="index-card">
-        <h3><span>Evaporite Halo Composite (EHC)</span> <span class="formula">RGB [NDOI, BSI, NDSI]</span></h3>
+        <h3><span>Evaporite Halo Composite (EHC)</span> <span class="temporal-badge temporal-0-3m">0-3M</span> <span
+                class="formula">RGB [NDOI, BSI, NDSI]</span></h3>
         <p><strong>Mechanisms & Utility:</strong> A custom RGB false-color proxy designed to visually isolate the
             spatial morphology of a high-pressure blowout. Produced water spills evaporate concentrically, leaving a
             dark, oily hydrocarbon core, a crystallized salt boundary, and a surrounding mud imprint.</p>
@@ -215,7 +300,8 @@
     </div>
 
     <div class="index-card">
-        <h3><span>Anoxic Oxidation Index (AOI)</span> <span class="formula">(B04 / B02) * (B11 / B12)</span></h3>
+        <h3><span>Anoxic Oxidation Index (AOI)</span> <span class="temporal-badge temporal-0-6m">0-6M</span> <span
+                class="formula">(B04 / B02) * (B11 / B12)</span></h3>
         <p><strong>Mechanisms & Utility:</strong> Deep formation water is severely oxygen-starved and saturated with
             dissolved iron and sulfides. When violently brought to the surface during a frac hit or spill, these
             minerals rapidly oxidize, forming a dark "rust scab." AOI isolates the combination of iron oxidation
@@ -223,8 +309,10 @@
     </div>
 
     <div class="index-card">
-        <h3><span>Ferrugination-Brine Composite (FBC)</span> <span class="formula fusion-badge">(B04/B02) × NDSI ×
-                (1−NDVI)</span></h3>
+        <h3><span>Ferrugination-Brine Composite (FBC)</span> <span class="temporal-badge temporal-3-12m">3-12M</span>
+            <span class="formula fusion-badge">(B04/B02) × NDSI ×
+                (1−NDVI)</span>
+        </h3>
         <p><strong>Mechanisms &amp; Utility:</strong> Deep Permian produced water is rich in ferrous iron (Fe²⁺). When
             surfaced and exposed to oxygen, it oxidizes to ferric iron (Fe³⁺), forming a rust-brown staining with a
             measurably elevated Red/Blue ratio (B04/B02). FBC enforces three independent physical gates simultaneously:
@@ -312,7 +400,8 @@
     </div>
 
     <div class="index-card">
-        <h3><span>Red Edge Alteration Index (REAI)</span> <span class="formula fusion-badge">(B06 / B05) × NDSI</span>
+        <h3><span>Red Edge Alteration Index (REAI)</span> <span class="temporal-badge temporal-3-12m">3-12M</span> <span
+                class="formula fusion-badge">(B06 / B05) × NDSI</span>
         </h3>
         <p><strong>Mechanisms &amp; Utility:</strong> Exploits Sentinel-2's dedicated Red Edge bands (B05=705nm,
             B06=740nm) — unused by any other index in this suite. Over bare or disturbed soil, a B06/B05 ratio
@@ -326,7 +415,8 @@
     </div>
 
     <div class="index-card">
-        <h3><span>Vegetation-Confirmed Brine Index (VCBI)</span> <span class="formula fusion-badge">max(0, −CRSI) ×
+        <h3><span>Vegetation-Confirmed Brine Index (VCBI)</span> <span
+                class="temporal-badge temporal-6-24m">6-24M</span> <span class="formula fusion-badge">max(0, −CRSI) ×
                 NDSI</span></h3>
         <p><strong>Mechanisms &amp; Utility:</strong> Targets the off-pad migration front — the leading edge of a spill
             where produced water is actively killing surrounding brush and rangeland <em>before</em> a strong
@@ -346,7 +436,8 @@
     <h2>2. Core Chemical Detectors</h2>
 
     <div class="index-card">
-        <h3><span>Brine / Salt Water (NDSI)</span> <span class="formula">(B11 - B12) / (B11 + B12)</span></h3>
+        <h3><span>Brine / Salt Water (NDSI)</span> <span class="temporal-badge temporal-0-12m">0-12M</span> <span
+                class="formula">(B11 - B12) / (B11 + B12)</span></h3>
         <p><strong>Mechanisms & Utility:</strong> Optimized to detect intense absorption in the furthest SWIR band (B12)
             against standard SWIR (B11). Pure water absorbs deeply in both, but hypersaline brine drastically alters the
             reflectance geometry of wetted soil.</p>
@@ -356,7 +447,8 @@
     </div>
 
     <div class="index-card">
-        <h3><span>Oil Slicks (NDOI)</span> <span class="formula">(B02 - B12) / (B02 + B12)</span></h3>
+        <h3><span>Oil Slicks (NDOI)</span> <span class="temporal-badge temporal-0-3m">0-3M</span> <span
+                class="formula">(B02 - B12) / (B02 + B12)</span></h3>
         <p><strong>Mechanisms & Utility:</strong> The Normalized Difference Oil Index perfectly contrasts the naturally
             high reflectance of the Blue band (B02) against the extreme absorptive properties of liquid hydrocarbons in
             the SWIR2 band (B12).</p>
@@ -367,7 +459,8 @@
     </div>
 
     <div class="index-card">
-        <h3><span>Heavy Metals (HMRI)</span> <span class="formula">B12 / B03</span></h3>
+        <h3><span>Heavy Metals (HMRI)</span> <span class="temporal-badge temporal-12mplus">12M+</span> <span
+                class="formula">B12 / B03</span></h3>
         <p><strong>Mechanisms & Utility:</strong> Tracks the ratio of SWIR to Green wavelength reflectance. Extensively
             contaminated soil, laced with precipitated Barium, Strontium, and heavy metal scaling from produced water,
             pushes this ratio exceptionally high.</p>
@@ -377,7 +470,8 @@
     </div>
 
     <div class="index-card">
-        <h3><span>Hydrocarbons (HCAI)</span> <span class="formula">(B11 - B04) / (B11 + B04)</span></h3>
+        <h3><span>Hydrocarbons (HCAI)</span> <span class="temporal-badge temporal-0-3m">0-3M</span> <span
+                class="formula">(B11 - B04) / (B11 + B04)</span></h3>
         <p><strong>Mechanisms & Utility:</strong> The Hydrocarbon Absorption Index measures the disparity between
             standard SWIR reflectance and visible Red light absorption. Oil-contaminated earth absorbs red light at a
             substantially higher rate than natural iron-rich Permian soils.</p>
@@ -387,7 +481,8 @@
     </div>
 
     <div class="index-card">
-        <h3><span>Salt Stress / Mortality (CRSI)</span> <span class="formula">sqrt((B8*B4 - B3*B2) / (B8*B4 +
+        <h3><span>Salt Stress / Mortality (CRSI)</span> <span class="temporal-badge temporal-3-12m">3-12M</span> <span
+                class="formula">sqrt((B8*B4 - B3*B2) / (B8*B4 +
                 B3*B2))</span></h3>
         <p><strong>Mechanisms & Utility:</strong> The Canopy Response Salinity Index. Unlike NDSI which looks for bare
             salt crusts, CRSI detects the <em>physiological stress</em> and osmotic shock inflicted by brine upon sparse
@@ -402,21 +497,24 @@
     <h2>3. Standard Environmental Monitors</h2>
 
     <div class="index-card">
-        <h3><span>Contaminated Soil / Clay Ratio (CSI)</span> <span class="formula">B11 / B12</span></h3>
+        <h3><span>Contaminated Soil / Clay Ratio (CSI)</span> <span
+                class="temporal-badge temporal-persistent">Persistent</span> <span class="formula">B11 / B12</span></h3>
         <p><strong>Utility:</strong> Highly sensitive to clay minerals and soil disturbance. Useful for tracking pad
             construction, road grading, and identifying areas where protective topsoils have been stripped by fluid
             erosion.</p>
     </div>
 
     <div class="index-card">
-        <h3><span>Moisture Stress Index (MSI)</span> <span class="formula">B11 / B08</span></h3>
+        <h3><span>Moisture Stress Index (MSI)</span> <span class="temporal-badge temporal-live">Live</span> <span
+                class="formula">B11 / B08</span></h3>
         <p><strong>Utility:</strong> Effectively tracks drought stress. The SWIR band (B11) is absorbed by water, while
             the NIR band (B08) reflects healthy cell structure. As water depletes, B11 skyrockets relative to
             B08.<sup><a href="#fn7">7</a></sup></p>
     </div>
 
     <div class="index-card">
-        <h3><span>Normalized Difference Moisture Index (NDMI)</span> <span class="formula">(B8A - B11) / (B8A +
+        <h3><span>Normalized Difference Moisture Index (NDMI)</span> <span
+                class="temporal-badge temporal-live">Live</span> <span class="formula">(B8A - B11) / (B8A +
                 B11)</span></h3>
         <p><strong>Utility:</strong> Calculates overall liquid water content in vegetation canopies. Useful for
             observing general site wetness and tracking the flow paths of both fresh and contaminated surface
@@ -424,7 +522,9 @@
     </div>
 
     <div class="index-card">
-        <h3><span>Vegetation Health (NDVI & SAVI)</span> <span class="formula">NDVI / Soil Adjusted Veg Index</span>
+        <h3><span>Vegetation Health (NDVI & SAVI)</span> <span
+                class="temporal-badge temporal-persistent">Persistent</span> <span class="formula">NDVI / Soil Adjusted
+                Veg Index</span>
         </h3>
         <p><strong>Utility:</strong> NDVI is the industry absolute standard for measuring photosynthetic activity. SAVI
             applies a mathematical constant to correct for the high background reflectance of bare soil in arid
@@ -432,35 +532,40 @@
     </div>
 
     <div class="index-card">
-        <h3><span>Wetness / Ponding (NDWI)</span> <span class="formula">(B03 - B11) / (B03 + B11)</span></h3>
+        <h3><span>Wetness / Ponding (NDWI)</span> <span class="temporal-badge temporal-live">Live</span> <span
+                class="formula">(B03 - B11) / (B03 + B11)</span></h3>
         <p><strong>Utility:</strong> Specifically isolates free-standing water bodies. Imperative for ensuring
             containment ponds are accurately mapped and determining if fresh rainwater is skewing anomalous chemical
             alerts.<sup><a href="#fn10">10</a></sup></p>
     </div>
 
     <div class="index-card">
-        <h3><span>Salinity Index (SI)</span> <span class="formula">(B11 - B08) / (B11 + B08)</span></h3>
+        <h3><span>Salinity Index (SI)</span> <span class="temporal-badge temporal-6mplus">6M+</span> <span
+                class="formula">(B11 - B08) / (B11 + B08)</span></h3>
         <p><strong>Utility:</strong> Tracks surface salt crusts (crystallized evaporites) on bare earth rather than
             mapping liquid brine. Extremely useful for verifying long-term historical damage scars from past blowouts.
         </p>
     </div>
 
     <div class="index-card">
-        <h3><span>SAR Physics (Sentinel-1)</span> <span class="formula">VV/VH Backscatter</span></h3>
+        <h3><span>SAR Physics (Sentinel-1)</span> <span class="temporal-badge temporal-persistent">Persistent</span>
+            <span class="formula">VV/VH Backscatter</span></h3>
         <p><strong>Utility:</strong> Raw radar backscatter from Sentinel-1's C-band instrument. Bright areas equal rough
             terrain; dark areas represent smooth or wetted surfaces (capillary wave dampening). Radar effortlessly
             penetrates clouds and darkness for 24/7 intelligence acquisition.</p>
     </div>
 
     <div class="index-card">
-        <h3><span>False Color (NIR)</span> <span class="formula">RGB [B08, B04, B03]</span></h3>
+        <h3><span>False Color (NIR)</span> <span class="temporal-badge temporal-persistent">Persistent</span> <span
+                class="formula">RGB [B08, B04, B03]</span></h3>
         <p><strong>Utility:</strong> Standard remote sensing composite replacing the Red channel with Near-Infrared.
             Vegetation glows bright red, making it exceptionally easy to visually isolate dead zones around active well
             pads.</p>
     </div>
 
     <div class="index-card">
-        <h3><span>True Color (TC)</span> <span class="formula">RGB [B04, B03, B02]</span></h3>
+        <h3><span>True Color (TC)</span> <span class="temporal-badge temporal-persistent">Persistent</span> <span
+                class="formula">RGB [B04, B03, B02]</span></h3>
         <p><strong>Utility:</strong> The standard optical spectrum as seen by the human eye. Used predominantly as a
             baseline truth layer before analyzing invisible or non-optical index wavelengths.</p>
     </div>

@@ -74,7 +74,7 @@ async function getCDSEToken() {
     }
 }
 
-const APP_VERSION = 'v23';
+const APP_VERSION = 'v29';
 
 // Globals for Report Generation
 let aoiDrawnItem = null;
@@ -131,10 +131,27 @@ function evaluatePixel(samples) {
 }
 `;
 
-/**
- * Multi-Temporal Evalscript for Cumulative MAX detection
- * Spans a date range and finds the maximum pixel value observed.
- */
+// Deep Fusion Evalscript wrapper (Multi-Source S1+S2)
+const genDeepFusionEvalscript = (bands, logic) => `//VERSION=3
+function setup() {
+  return {
+    input: [
+        { datasource: "S1GRD", bands: ["VV", "VH"] },
+        { datasource: "S2L2A", bands: ["B02", "B03", "B04", "B08", "B11", "B12"], units: "REFLECTANCE" }
+    ],
+    output: { bands: 4 }
+  };
+}
+function evaluatePixel(sample) {
+    const s1 = sample.S1GRD[0];
+    const s2 = sample.S2L2A[0];
+    // Map samples back to the logical sample object for the logic snippet
+    const sampleFlat = { ...s1, ...s2 };
+    ${logic.replace(/sample/g, 'sampleFlat')}
+}
+`;
+
+// Multi-Temporal Evalscript for Cumulative MAX detection
 const genCumulativeEvalscript = (bands, logic, paletteStr) => `//VERSION=3
 function setup() {
   return {
@@ -159,23 +176,12 @@ function evaluatePixel(samples) {
   ${colorBlend('maxVal', paletteStr)}
 }
 `;
-const genDeepFusionEvalscript = (bands, logic) => `//VERSION=3
-function setup() {
-  return {
-    input: [${bands.map(b => `'${b}'`).join(', ')}, "dataMask"],
-    output: { bands: 4 }
-  };
-}
-function evaluatePixel(sample) {
-  if (sample.dataMask === 0) return [0, 0, 0, 0];
-  ${logic}
-}
-`;
 
 // Advanced continuous color blending logic for evalscripts
 function colorBlend(valExpr, stopsStr) {
     return `
   let v = ${valExpr};
+  if (isNaN(v)) return [0,0,0,0];
   if (typeof VISUAL_FILTER !== 'undefined' && v < VISUAL_FILTER) return [0,0,0,0];
   const stops = ${stopsStr};
   let i = 0;
@@ -228,6 +234,7 @@ const INDICES = {
     tc: {
         name: 'True Color',
         sensor: 'Sentinel-2 L2A',
+        temporal: 'Stable',
         min: '0.0', max: '0.3',
         gradient: 'linear-gradient(to right, #000, #fff)',
         formula: 'RGB',
@@ -248,6 +255,7 @@ const INDICES = {
     fc: {
         name: 'False Color (NIR)',
         sensor: 'Sentinel-2 L2A',
+        temporal: 'Stable',
         min: '0.0', max: '0.3',
         gradient: 'linear-gradient(to right, #000, #fff)',
         formula: 'RGB (B08,B04,B03)',
@@ -268,6 +276,7 @@ const INDICES = {
     ndmi: {
         name: 'Moisture Index (NDMI)',
         sensor: 'Sentinel-2 L2A',
+        temporal: 'Live',
         min: 'High Stress', max: 'High Moisture',
         gradient: 'linear-gradient(to right, #D46A24, #EFD87A, #1C85A6)',
         formula: '(B8A - B11) / (B8A + B11)',
@@ -289,6 +298,7 @@ const INDICES = {
     ndwi: {
         name: 'Wetness Index (NDWI)',
         sensor: 'Sentinel-2 L2A',
+        temporal: 'Live',
         min: 'Dry Surface', max: 'Saturated',
         gradient: 'linear-gradient(to right, #824614, #D7AA3C, #1450B4)',
         formula: '(B03 - B11) / (B03 + B11)',
@@ -310,6 +320,7 @@ const INDICES = {
     ndvi: {
         name: 'Vegetation Index (NDVI)',
         sensor: 'Sentinel-2 L2A',
+        temporal: 'Persistent',
         min: 'Barren', max: 'Lush Vegetation',
         gradient: 'linear-gradient(to right, #A07832, #D2B43C, #146428)',
         formula: '(B08 - B04) / (B08 + B04)',
@@ -331,6 +342,7 @@ const INDICES = {
     savi: {
         name: 'Arid Vegetation (SAVI)',
         sensor: 'Sentinel-2 L2A',
+        temporal: 'Persistent',
         min: 'Barren Soil', max: 'Dense Brush',
         gradient: 'linear-gradient(to right, #A07832, #D2B43C, #146428)',
         formula: '((B08 - B04) / (B08 + B04 + 0.5)) * 1.5',
@@ -352,6 +364,7 @@ const INDICES = {
     msi: {
         name: 'Moisture Stress Index (MSI)',
         sensor: 'Sentinel-2 L2A',
+        temporal: 'Live',
         min: 'High Content', max: 'Severe Stress',
         gradient: 'linear-gradient(to right, #1C85A6, #EFD87A, #D46A24)',
         formula: 'B11 / B08',
@@ -374,6 +387,7 @@ const INDICES = {
     si: {
         name: 'Salinity Index (SI)',
         sensor: 'Sentinel-2 L2A',
+        temporal: '0-12M',
         min: 'Low Salt', max: 'High Salt',
         gradient: 'linear-gradient(to right, #243340, #EFD87A, #F0501E)',
         formula: '(B11 - B08) / (B11 + B08)',
@@ -398,6 +412,7 @@ const INDICES = {
     bsi: {
         name: 'Bare Soil Index (BSI)',
         sensor: 'Sentinel-2 L2A',
+        temporal: 'Persistent',
         min: 'Veg / Water', max: 'Bare Soil / Disturbance',
         gradient: 'linear-gradient(to right, #000000, #448833, #D2B43C, #A07832)',
         formula: '((B11+B04)-(B08+B02)) / ((B11+B04)+(B08+B02))',
@@ -422,6 +437,7 @@ const INDICES = {
     ndsi: {
         name: 'Saline Content (NDSI) (Brine)',
         sensor: 'Sentinel-2 L2A',
+        temporal: 'Persistent',
         min: 'Dry / Fresh', max: 'High Brine',
         gradient: 'linear-gradient(to right, #000000, #00FFFF, #FF00FF, #CCFF00)',
         formula: '(B11 - B12) / (B11 + B12)',
@@ -443,6 +459,7 @@ const INDICES = {
     csi: {
         name: 'Contaminated Soil (Clay Ratio)',
         sensor: 'Sentinel-2 L2A',
+        temporal: 'Persistent',
         min: 'Healthy Soil', max: 'Contaminated',
         gradient: 'linear-gradient(to right, #A07832, #64DC50, #00FFFF)',
         formula: 'B11 / B12',
@@ -463,6 +480,7 @@ const INDICES = {
     hcai: {
         name: 'Hydrocarbons (HCAI)',
         sensor: 'Sentinel-2 L2A',
+        temporal: '0-6M',
         min: 'Background', max: 'High Contamination',
         gradient: 'linear-gradient(to right, #F5DEB3, #8B4513, #000000)',
         formula: '(B11 - B04) / (B11 + B04)',
@@ -485,6 +503,7 @@ const INDICES = {
     hmri: {
         name: 'Heavy Metals (HMRI)',
         sensor: 'Sentinel-2 L2A',
+        temporal: '12M+',
         min: 'Background', max: 'High Toxicity',
         gradient: 'linear-gradient(to right, #E6E6FA, #800080, #FF00FF)',
         formula: 'B12 / B03',
@@ -505,6 +524,7 @@ const INDICES = {
     ndoi: {
         name: 'Oil Slicks (NDOI)',
         sensor: 'Sentinel-2 L2A',
+        temporal: '0-3M',
         min: 'Background', max: 'Hydrocarbons',
         gradient: 'linear-gradient(to right, #2c3e50, #7f8c8d, #f1c40f, #e74c3c)',
         formula: '(B02 - B12) / (B02 + B12)',
@@ -534,6 +554,7 @@ const INDICES = {
     crsi: {
         name: 'Salt Stress (CRSI)',
         sensor: 'Sentinel-2 L2A',
+        temporal: '6-24M',
         min: 'Healthy Veg', max: 'Salt Shock',
         gradient: 'linear-gradient(to right, #27ae60, #f1c40f, #e67e22, #c0392b)',
         formula: 'sqrt((B08*B04 - B03*B02) / (B08*B04 + B03*B02))',
@@ -568,6 +589,7 @@ const INDICES = {
     aoi: {
         name: 'Anoxic Oxidation (AOI)',
         sensor: 'Sentinel-2 L2A',
+        temporal: '0-6M',
         min: 'Background', max: 'Oxidized Minerals',
         gradient: 'linear-gradient(to right, #2c3e50, #8e44ad, #c0392b)',
         formula: '(B04 / B02) * (B11 / B12)',
@@ -600,6 +622,7 @@ const INDICES = {
     ehc: {
         name: 'Evaporite Halo (Visual)',
         sensor: 'Sentinel-2 L2A',
+        temporal: '0-3M',
         min: 'False Color RGB', max: '',
         gradient: 'linear-gradient(to right, #ff0000, #00ff00, #0000ff)',
         formula: 'R=NDOI, G=BSI, B=NDSI',
@@ -642,6 +665,7 @@ const INDICES = {
     hpwi: {
         name: 'Hydro-Optical Spill Index (HPWI)',
         sensor: 'S1 SAR + S2 Optical Fusion',
+        temporal: '0-3M',
         min: 'Background', max: 'Confirmed Liquid Spill',
         gradient: 'linear-gradient(to right, #000000, #00FFFF, #FF00FF, #CCFF00)',
         formula: 'PWI (Restrictive) * S1 Radar Smoothness Confirmation',
@@ -697,6 +721,7 @@ const INDICES = {
     fbc: {
         name: 'Ferrugination-Brine Composite (FBC)',
         sensor: 'Sentinel-2 L2A',
+        temporal: '3-12M',
         min: 'Background', max: 'Iron+Brine Alteration',
         gradient: 'linear-gradient(to right, #1a0800, #8B2500, #D4581A, #FFB347)',
         formula: 'sqrt(ironScore × brineScore) × (1 − NDVI)',
@@ -749,6 +774,7 @@ const INDICES = {
     reai: {
         name: 'Red Edge Alteration Index (REAI)',
         sensor: 'Sentinel-2 L2A',
+        temporal: '3-12M',
         min: 'Background', max: 'Ferric Mineral + Brine',
         gradient: 'linear-gradient(to right, #0d1a2e, #2e5c8a, #c47a1e, #e8c44a)',
         formula: '(B06 / B05) × NDSI',
@@ -790,6 +816,7 @@ const INDICES = {
     vcbi: {
         name: 'Vegetation-Confirmed Brine Index (VCBI)',
         sensor: 'Sentinel-2 L2A',
+        temporal: '6-24M',
         min: 'No Stress', max: 'Brine-Kill Zone',
         gradient: 'linear-gradient(to right, #0a2010, #1a6030, #c8a000, #e05010)',
         formula: 'max(0, −CRSI) × NDSI',
@@ -835,6 +862,7 @@ const INDICES = {
     pwi: {
         name: 'Produced Water Index (PWI) ✧✧',
         sensor: 'Sentinel-2 L2A',
+        temporal: '0-3M',
         min: 'Background', max: 'Confirmed Spill',
         gradient: 'linear-gradient(to right, #000000, #00FFFF, #FF00FF, #CCFF00)',
         formula: '(NDSI - 0.05) * (HCAI - 0.20) * (HMRI - 1.5) [Balanced Recovery]',
@@ -847,7 +875,7 @@ const INDICES = {
   if (bsiBot === 0) return [0,0,0,0];
   let bsi = bsiTop / bsiBot;
   
-  if (bsi <= 0.01) return [0,0,0,0];
+  if (bsi <= -0.1) return [0,0,0,0];
 
   // 2. Brine (NDSI)
   let sumBrine = sample.B11 + sample.B12;
@@ -863,22 +891,22 @@ const INDICES = {
   if(sample.B03 === 0) return [0,0,0,0];
   let hmri = sample.B12 / sample.B03;
   
-  // Balanced Calibration (March 8th Stable Offsets)
-  let brineScore = Math.max(0, brine - 0.05);
-  let hcaiScore = Math.max(0, (hcai - 0.20) * 2.5);
-  let hmriScore = Math.max(0, (hmri - 1.5) * 2.5);
+  // True Classic Calibration (March 4th Restrictive)
+  let brineScore = Math.max(0, brine - 0.10);
+  let hcaiScore = Math.max(0, (hcai - 0.30) * 2);
+  let hmriScore = Math.max(0, (hmri - 2.0) * 2);
   
   let pwi = brineScore * hcaiScore * hmriScore;
   
-  // Square-root scaling (120x boost) for high-visibility plume "tails"
-  let mapped = Math.min(1.0, Math.sqrt(pwi * 120.0));
+  // Cubic scaling: aggressively suppresses background noise
+  let mapped = Math.min(1.0, Math.pow(pwi * 20.0, 3.0));
   ${colorBlend('mapped', PALETTE_PWI)}
 `),
         fisBands: ['B02', 'B03', 'B04', 'B08', 'B11', 'B12'],
         fisLogic: `
   let bsiTop = (sample.B11 + sample.B04) - (sample.B08 + sample.B02);
   let bsiBot = (sample.B11 + sample.B04) + (sample.B08 + sample.B02);
-  if (bsiBot === 0 || (bsiTop / bsiBot) <= 0.01) return [0];
+  if (bsiBot === 0 || (bsiTop / bsiBot) <= -0.1) return [0];
 
   let sumNdsi = sample.B11 + sample.B12;
   if(sumNdsi === 0) return [0];
@@ -891,15 +919,14 @@ const INDICES = {
   if(sample.B03 === 0) return [0];
   let hmri = sample.B12 / sample.B03;
   
-  let pwi = Math.max(0, ndsi - 0.05) * 
-            Math.max(0, (hcai - 0.20) * 2.5) * 
-            Math.max(0, (hmri - 1.5) * 2.5);
-  return [Math.min(1.0, Math.sqrt(pwi * 120.0))];
+  let pwi = Math.max(0, brine - 0.10) * Math.max(0, (hcai - 0.30) * 2) * Math.max(0, (hmri - 2.0) * 2);
+  return [Math.min(1.0, Math.pow(pwi * 20.0, 3.0))];
 `
     },
     lbi: {
         name: 'Liquid Brine Index (LBI) ✧',
         sensor: 'Sentinel-2 L2A',
+        temporal: '0-3M',
         min: 'Background', max: 'Standing Brine Pool',
         gradient: 'linear-gradient(to right, #000000, #00D2FF, #0088FF, #FF00FF)',
         formula: 'NDSI * NDWI * (1 - NDVI)',
@@ -919,7 +946,7 @@ const INDICES = {
   let bsiBot = (sample.B11 + sample.B04) + (sample.B08 + sample.B02);
   let bsi = bsiBot === 0 ? 0 : bsiTop / bsiBot;
   
-  if (bsi <= 0.05) return [0,0,0,0]; // Stricter road/urban mask
+  if (bsi <= -0.1) return [0,0,0,0]; // Loosened road mask for spill centers
   
   // Liquid gate shifted by +0.5 to catch "Wet Soil" signature in rangelands, plus BSI mask
   let score = Math.max(0, ndsi) * Math.max(0, ndwi + 0.5) * Math.max(0, 1.0 - ndvi) * Math.max(0, bsi);
@@ -944,6 +971,7 @@ const INDICES = {
     tri: {
         name: 'Toxic Residue Index (TRI) ✧',
         sensor: 'Sentinel-2 L2A',
+        temporal: '6M+',
         min: 'Background', max: 'Toxic Mineral Scab',
         gradient: 'linear-gradient(to right, #1a0a00, #804000, #9933ff, #ff00ff)',
         formula: 'NDSI * HMRI * AOI',
@@ -978,6 +1006,7 @@ const INDICES = {
     bpi: {
         name: 'Brine-Pavement Index (BPI) ✧',
         sensor: 'Sentinel-2 L2A',
+        temporal: 'Live',
         min: 'Clean Surface', max: 'Contaminated Pavement',
         gradient: 'linear-gradient(to right, #222222, #444444, #00FFFF, #FFFF00)',
         formula: 'NDSI * HCAI * BSI',
@@ -987,7 +1016,7 @@ const INDICES = {
   let bsiTop = (sample.B11 + sample.B04) - (sample.B08 + sample.B02);
   let bsiBot = (sample.B11 + sample.B04) + (sample.B08 + sample.B02);
   let bsi = bsiBot === 0 ? 0 : bsiTop / bsiBot;
-  if (bsi <= 0.05) return [0,0,0,0]; // Much stricter mask for roads/urban
+  if (bsi <= -0.05) return [0,0,0,0]; // Loosened for pad-level spills
   
   let ndsiSum = sample.B11 + sample.B12;
   let ndsi = ndsiSum === 0 ? 0 : (sample.B11 - sample.B12) / ndsiSum;
@@ -1016,6 +1045,7 @@ const INDICES = {
     vsi: {
         name: 'Vegetation Stress Index (VSI) ✧✧',
         sensor: 'Sentinel-2 L2A',
+        temporal: '3-24M',
         min: 'Healthy', max: 'Metal/Brine Stress',
         gradient: 'linear-gradient(to right, #005500, #FFFF00, #FF8800, #FF0000)',
         formula: 'NDSI * RedEdgeDelta * MSI',
@@ -1047,6 +1077,7 @@ const INDICES = {
     cma: {
         name: 'Clay-Mineral Alteration (CMA) ✧',
         sensor: 'Sentinel-2 L2A',
+        temporal: 'Persistent',
         min: 'Native Soil', max: 'Chemical Alteration',
         gradient: 'linear-gradient(to right, #442200, #884400, #AA88AA, #FFFFFF)',
         formula: 'NDSI * (B11/B12) * (B04/B02)',
@@ -1078,6 +1109,7 @@ const INDICES = {
     phi: {
         name: 'Petro-Hydrocarbon Index (PHI) ✧',
         sensor: 'Sentinel-2 L2A',
+        temporal: '0-6M',
         min: 'Background', max: 'Hydrocarbon Rich',
         gradient: 'linear-gradient(to right, #000000, #333333, #663300, #FFCC00)',
         formula: 'NDSI * (B11/B12) * HCAI',
@@ -1109,6 +1141,7 @@ const INDICES = {
     hmi: {
         name: 'Heavy Metal Interaction (HMI) ✧',
         sensor: 'Sentinel-2 L2A',
+        temporal: '12M+',
         min: 'Clean', max: 'Metal-Salt PPT',
         gradient: 'linear-gradient(to right, #001100, #004400, #00FFBB, #FFFFFF)',
         formula: '(B03/B02) * (B11/B12)',
@@ -1138,6 +1171,7 @@ const INDICES = {
     scri: {
         name: 'Salt Crust Roughness Index (SCRI) ✧✧',
         sensor: 'Sentinel-1 GRD',
+        temporal: '3-12M',
         min: 'Background', max: 'Salt Crust Confirmed',
         gradient: 'linear-gradient(to right, #000000, #4b0082, #e74c3c, #f1c40f)',
         formula: 'log10(VH) + Salt_Proxy',
@@ -1306,6 +1340,9 @@ document.addEventListener('DOMContentLoaded', () => {
     initMap();
     bindEvents();
 
+    // Probe Acquisitions for the initial location
+    probeAcquisitions();
+
     // Remove loading overlay
     setTimeout(() => {
         document.getElementById('loading').style.opacity = '0';
@@ -1466,7 +1503,9 @@ function createGifPlayer(frames, imgEl, downloadBtn, width = 400, height = 330) 
 }
 
 function getScriptContent(activeIndex, isDiff, isCumulative = false) {
+    if (activeIndex === 'none') return '';
     const cfg = INDICES[activeIndex];
+    if (!cfg) return '';
     let scriptContent = cfg.evalscript;
 
     if (isCumulative) {
@@ -1574,9 +1613,9 @@ function getScriptContent(activeIndex, isDiff, isCumulative = false) {
                 let hcai = sumHcai === 0 ? 0 : (sample.B11 - sample.B04) / sumHcai;
                 let hmri = (sample.B03 === 0) ? 0 : (sample.B12 / sample.B03);
                 
-                let brineScore = Math.max(0, ndsi - 0.05);
-                let hydrocarbonScore = Math.max(0, (hcai - 0.20) * 2.5);
-                let metalScore = Math.max(0, (hmri - 1.5) * 2.5);
+                let brineScore = Math.max(0, ndsi - 0.10);
+                let hydrocarbonScore = Math.max(0, (hcai - 0.30) * 2);
+                let metalScore = Math.max(0, (hmri - 2.0) * 2);
                 let chemPWI = brineScore * hydrocarbonScore * metalScore;
 
                 // 2. Sentinel-1 Physical Signal (Radar Smoothness)
@@ -1586,7 +1625,7 @@ function getScriptContent(activeIndex, isDiff, isCumulative = false) {
 
                 // 3. Fusion Logic: Chemical Signature MUST be confirmed by Physical Smoothness
                 let combinedScore = chemPWI * smoothness;
-                let mapped = Math.min(1.0, Math.sqrt(combinedScore * 120.0));
+                let mapped = Math.min(1.0, Math.pow(combinedScore * 20.0, 3.0));
                 
                 ${colorBlend('mapped', PALETTE_PWI)}
             `;
@@ -1599,16 +1638,16 @@ function getScriptContent(activeIndex, isDiff, isCumulative = false) {
                     let hcai = (sample.B11 + sample.B04) === 0 ? 0 : (sample.B11 - sample.B04) / (sample.B11 + sample.B04);
                     let hmri = (sample.B03 === 0) ? 0 : (sample.B12 / sample.B03);
                     
-                    let brineScore = Math.max(0, ndsi - 0.05);
-                    let hydrocarbonScore = Math.max(0, (hcai - 0.20) * 2.5);
-                    let metalScore = Math.max(0, (hmri - 1.5) * 2.5);
+                    let brineScore = Math.max(0, ndsi - 0.10);
+                    let hydrocarbonScore = Math.max(0, (hcai - 0.30) * 2);
+                    let metalScore = Math.max(0, (hmri - 2.0) * 2);
                     let chemPWI = brineScore * hydrocarbonScore * metalScore;
 
                     let sumSmooth = sample.B03 + sample.B11;
                     let normSmooth = Math.max(0, Math.min(1, ((sample.B03 - sample.B11)/sumSmooth + 0.3) / 0.6));
                     
                     let combined = chemPWI * normSmooth;
-                    return Math.min(1.0, Math.sqrt(combined * 120.0));
+                    return Math.min(1.0, Math.pow(combined * 20.0, 3.0));
                 })()
             `;
                 palette = PALETTE_PWI;
@@ -1793,7 +1832,8 @@ function getWMSLayer(timeStr, isDiff, overrideIndex = null) {
     let scriptContent = getScriptContent(activeIdx, isDiff, isCumulative);
 
     let wmsLayerParam = 'AGRICULTURE';
-    if (activeIdx === 's1_sar') wmsLayerParam = 'SENTINEL1-GRD';
+    const cfg = INDICES[activeIdx];
+    if (activeIdx === 's1_sar' || (cfg && cfg.sensor === 'Sentinel-1 GRD')) wmsLayerParam = 'SENTINEL1-GRD';
     if (state.hlsEnabled && activeIdx !== 's1_sar' && activeIdx !== 'hpwi') {
         // CDSE standard layer names for Landsat collections
         wmsLayerParam = SH_WMS_URL.includes('copernicus.eu') ? 'SENTINEL2-L2A,LANDSAT-8-L2A' : 'NASA-HLS';
@@ -1943,6 +1983,15 @@ function updateUI() {
     document.getElementById('legend-max').innerText = cfg.max;
     document.getElementById('formula-display').innerText = cfg.formula;
 
+    // Update Scientific Info Inset
+    const infoContent = document.getElementById('scientific-info-content');
+    if (infoContent) {
+        infoContent.innerHTML = `
+            <div style="margin-bottom:8px;"><strong style="color:var(--accent-cyan);font-size:11px;">FORMULA:</strong> <code style="font-family:'JetBrains Mono';font-size:10px;background:rgba(0,0,0,0.3);padding:2px 4px;border-radius:3px;">${cfg.formula}</code></div>
+            <div><strong style="color:var(--accent-cyan);font-size:11px;">SCIENTIFIC BASIS:</strong> ${cfg.info}</div>
+        `;
+    }
+
     const diffPos = document.getElementById('diff-label-pos');
     const diffNeg = document.getElementById('diff-label-neg');
     if (diffPos && diffNeg) {
@@ -2037,8 +2086,30 @@ function bindEvents() {
         });
     }
 
-    // Index Buttons
+    // Index Buttons & Temporal Badges
     document.querySelectorAll('.index-btn').forEach(btn => {
+        // Create top container for Name + Badge
+        const shortSpan = btn.querySelector('.index-short');
+        if (shortSpan) {
+            const topContainer = document.createElement('div');
+            topContainer.className = 'index-btn-top';
+            shortSpan.parentNode.insertBefore(topContainer, shortSpan);
+            topContainer.appendChild(shortSpan);
+
+            // Inject Temporal Relevance Badge into the top container
+            const idxKey = btn.dataset.index;
+            const cfg = INDICES[idxKey];
+            if (cfg && cfg.temporal) {
+                const badge = document.createElement('span');
+                badge.className = `temporal-badge temporal-${cfg.temporal.toLowerCase().replace(/ /g, '-').replace(/\//g, '-').replace(/\+/g, 'plus')}`;
+                badge.textContent = cfg.temporal;
+                topContainer.appendChild(badge);
+
+                // Add identifying class to the button itself for more complex styling if needed
+                btn.classList.add(`rel-${cfg.temporal.toLowerCase().replace(/ /g, '-').replace(/\//g, '-').replace(/\+/g, 'plus')}`);
+            }
+        }
+
         btn.addEventListener('click', (e) => {
             document.querySelectorAll('.index-btn').forEach(b => b.classList.remove('active'));
             let target = e.currentTarget;
@@ -2063,6 +2134,9 @@ function bindEvents() {
 
             state.map.flyTo([loc.lat, loc.lng], loc.zoom, { duration: 1.5 });
             document.getElementById('loc-search-input').value = '';
+
+            // Re-probe acquisitions for the new view
+            setTimeout(() => probeAcquisitions(), 1600);
         });
     });
 
@@ -3840,3 +3914,89 @@ async function initRrcSpillOverlay() {
     console.log(`[RRC Overlay] Rendered ${spillMarkers.length} spill incidents.`);
 }
 
+
+/**
+ * SENSOR PROBE: Queries the CDSE Catalog for historical acquisitions at current center.
+ * Identifies which days have Sentinel-2, Landsat-8, or both to color-code the dropdown.
+ */
+async function probeAcquisitions() {
+    if (!state.map) return;
+    try {
+        const center = state.map.getCenter();
+        const token = await getCDSEToken();
+        const bbox = [center.lng - 0.05, center.lat - 0.05, center.lng + 0.05, center.lat + 0.05];
+
+        // Search back the last 12 months for density
+        const latest = new Date();
+        const past = new Date();
+        past.setMonth(past.getMonth() - 12);
+
+        const collections = ["sentinel-2-l2a", "landsat-ot-l1-l2"];
+        const sensorMap = {}; // dateStr -> Set of sensors
+
+        for (const colId of collections) {
+            const payload = {
+                collections: [colId],
+                datetime: `${past.toISOString().split('.')[0]}Z/${latest.toISOString().split('.')[0]}Z`,
+                bbox: bbox,
+                limit: 100
+            };
+
+            try {
+                const resp = await fetch('https://sh.dataspace.copernicus.eu/api/v1/catalog/1.0.0/search', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!resp.ok) {
+                    const errBody = await resp.text();
+                    console.warn(`[Probe] Catalog Failed for ${colId} (${resp.status}):`, errBody);
+                    continue;
+                }
+
+                const data = await resp.json();
+                if (data && data.features) {
+                    data.features.forEach(f => {
+                        const dateStr = f.properties.datetime.split('T')[0];
+                        if (!sensorMap[dateStr]) sensorMap[dateStr] = new Set();
+                        if (colId.includes('sentinel-2')) sensorMap[dateStr].add('S2');
+                        if (colId.includes('landsat')) sensorMap[dateStr].add('L8');
+                    });
+                }
+            } catch (innerError) {
+                console.warn(`[Probe] Error fetching ${colId}:`, innerError);
+            }
+        }
+
+        // Update the Dropdown Options
+        document.querySelectorAll('#date-single option, #date-t1 option, #date-t2 option').forEach(opt => {
+            let val = opt.value;
+            if (opt.parentElement.id === 'date-single') {
+                val = ALL_DATES[parseInt(opt.value)].value;
+            }
+
+            const sensors = sensorMap[val];
+            // Clear previous symbols to avoid duplicates on multiple probes
+            opt.textContent = opt.textContent.replace(/[ ✧△✦]/g, '');
+
+            if (sensors) {
+                if (sensors.has('S2') && sensors.has('L8')) {
+                    opt.className = 'opt-fusion';
+                    opt.textContent += ' ✦';
+                } else if (sensors.has('S2')) {
+                    opt.className = 'opt-s2';
+                    opt.textContent += ' ✧';
+                } else if (sensors.has('L8')) {
+                    opt.className = 'opt-l8';
+                    opt.textContent += ' △';
+                }
+            } else {
+                opt.className = '';
+            }
+        });
+
+    } catch (e) {
+        console.warn("Probe failed:", e);
+    }
+}
