@@ -74,7 +74,7 @@ async function getCDSEToken() {
     }
 }
 
-const APP_VERSION = 'v34';
+const APP_VERSION = 'v35';
 
 // Globals for Report Generation
 let aoiDrawnItem = null;
@@ -756,14 +756,14 @@ const INDICES = {
   // 1. Iron Oxide Gate: B04/B02 (Red/Blue)
   // Baseline bare soil: ~1.2–1.6. Iron alteration (Fe²⁺→Fe³⁺) pushes above 1.6.
   let ironOxide = sample.B04 / sample.B02;
-  let ironThreshold = Math.max(1.4, 1.6 - (DETECTION_SENSITIVITY * 0.3));
+  let ironThreshold = Math.max(1.3, 1.4 - (DETECTION_SENSITIVITY * 0.3));
   let ironScore = Math.max(0, (ironOxide - ironThreshold) / 1.0);
 
   // 2. Brine Gate: NDSI = (B11-B12)/(B11+B12)
   let ndsiSum = sample.B11 + sample.B12;
   if (ndsiSum === 0) return [0,0,0,0];
   let ndsi = (sample.B11 - sample.B12) / ndsiSum;
-  let brineThreshold = Math.max(0.05, 0.10 - (DETECTION_SENSITIVITY * 0.08));
+  let brineThreshold = Math.max(0.02, 0.04 - (DETECTION_SENSITIVITY * 0.08));
   let brineScore = Math.max(0, ndsi - brineThreshold);
 
   // 3. No-Vegetation Gate
@@ -773,7 +773,7 @@ const INDICES = {
 
   // Composite: Product based with power scaling to suppress background "blobs"
   let fbc = (ironScore * brineScore) * noVeg;
-  let mapped = Math.min(1, Math.pow(fbc, 2.0) * 150.0);
+  let mapped = Math.min(1, Math.pow(fbc, 1.4) * 150.0);
 
   ${colorBlend('mapped', `[
       [0.0,  26, 8, 0],
@@ -2032,10 +2032,15 @@ function updateUI() {
     // Update Scientific Info Inset
     const infoContent = document.getElementById('scientific-info-content');
     if (infoContent) {
-        infoContent.innerHTML = `
-            <div style="margin-bottom:8px;"><strong style="color:var(--accent-cyan);font-size:11px;">FORMULA:</strong> <code style="font-family:'JetBrains Mono';font-size:10px;background:rgba(0,0,0,0.3);padding:2px 4px;border-radius:3px;">${cfg.formula}</code></div>
-            <div><strong style="color:var(--accent-cyan);font-size:11px;">SCIENTIFIC BASIS:</strong> ${cfg.info}</div>
-        `;
+        let infoHtml = `<strong>${cfg.name}</strong><br>${cfg.info}`;
+        if (cfg.formula) infoHtml += `<div style="margin-top:8px;font-family:'JetBrains Mono',monospace;color:var(--accent-cyan);opacity:0.8;font-size:9px;">${cfg.formula}</div>`;
+
+        // Add Sensor Icon Legend (v35)
+        infoHtml += `<div style="margin-top:10px;padding-top:8px;border-top:1px solid rgba(255,255,255,0.1);font-size:9px;color:var(--text-dim);letter-spacing:0.02em;">
+        [S] Sentinel-2 &nbsp; [L] Landsat-8 &nbsp; [F] Fusion
+    </div>`;
+
+        document.getElementById('scientific-info-content').innerHTML = infoHtml;
     }
 
     const diffPos = document.getElementById('diff-label-pos');
@@ -4024,18 +4029,18 @@ async function probeAcquisitions() {
 
             const sensors = sensorMap[val];
             // Clear previous symbols to avoid duplicates on multiple probes
-            opt.textContent = opt.textContent.replace(/[ ✧△✦]/g, '');
+            opt.textContent = opt.textContent.replace(/[ \[\]SLF✧△✦]/g, '');
 
             if (sensors) {
                 if (sensors.has('S2') && sensors.has('L8')) {
                     opt.className = 'opt-fusion';
-                    opt.textContent += ' ✦';
+                    opt.textContent += ' [F]';
                 } else if (sensors.has('S2')) {
                     opt.className = 'opt-s2';
-                    opt.textContent += ' ✧';
+                    opt.textContent += ' [S]';
                 } else if (sensors.has('L8')) {
                     opt.className = 'opt-l8';
-                    opt.textContent += ' △';
+                    opt.textContent += ' [L]';
                 }
             } else {
                 opt.className = '';
