@@ -837,8 +837,8 @@ const INDICES = {
         sensor: 'Sentinel-2 L2A',
         min: 'Background', max: 'Confirmed Spill',
         gradient: 'linear-gradient(to right, #000000, #00FFFF, #FF00FF, #CCFF00)',
-        formula: '(NDSI - 0.10) * (HCAI - 0.30) * (HMRI - 2.0) [Pure Specification]',
-        info: 'Isolate and identify highly concentrated oilfield brine spills using a restrictive triple-confirmation composite. Requires simultaneous elevation of Salinity (NDSI), Hydrocarbons (HCAI), and Heavy Metals (HMRI). Cubic scaling eliminates noise for high-fidelity detection.',
+        formula: '(NDSI - 0.05) * (HCAI - 0.20) * (HMRI - 1.5) [Balanced Recovery]',
+        info: 'Produced Water Index — optimized for high-fidelity plume detection. Requires simultaneous elevation of Salinity (NDSI), Hydrocarbons (HCAI), and Heavy Metals (HMRI). Square-root scaling (120x boost) preserves plume continuity and faint anomaly detection.',
         diffLabels: ['Stable (No Detection)', 'Spill Anomaly Detected'],
         evalscript: genEvalscript(['B02', 'B03', 'B04', 'B08', 'B11', 'B12'], `
   // 1. Bare Soil Index (BSI) -- URBAN / WATER / VEG MASK
@@ -863,16 +863,15 @@ const INDICES = {
   if(sample.B03 === 0) return [0,0,0,0];
   let hmri = sample.B12 / sample.B03;
   
-  // Permian-calibrated thresholds (stable fixed offsets):
-  // Restrictive Specification (Pure)
-  let brineScore = Math.max(0, brine - 0.10);
-  let hcaiScore = Math.max(0, (hcai - 0.30) * 2.0);
-  let hmriScore = Math.max(0, (hmri - 2.0) * 2.0);
+  // Balanced Calibration (March 8th Stable Offsets)
+  let brineScore = Math.max(0, brine - 0.05);
+  let hcaiScore = Math.max(0, (hcai - 0.20) * 2.5);
+  let hmriScore = Math.max(0, (hmri - 1.5) * 2.5);
   
   let pwi = brineScore * hcaiScore * hmriScore;
   
-  // Non-linear cubic scaling for high-stakes noise squelching
-  let mapped = Math.min(1.0, Math.pow(pwi * 20.0, 3));
+  // Square-root scaling (120x boost) for high-visibility plume "tails"
+  let mapped = Math.min(1.0, Math.sqrt(pwi * 120.0));
   ${colorBlend('mapped', PALETTE_PWI)}
 `),
         fisBands: ['B02', 'B03', 'B04', 'B08', 'B11', 'B12'],
@@ -892,10 +891,10 @@ const INDICES = {
   if(sample.B03 === 0) return [0];
   let hmri = sample.B12 / sample.B03;
   
-  let pwi = Math.max(0, ndsi - 0.10) * 
-            Math.max(0, (hcai - 0.30) * 2.0) * 
-            Math.max(0, (hmri - 2.0) * 2.0);
-  return [Math.min(1.0, Math.pow(pwi * 20.0, 3))];
+  let pwi = Math.max(0, ndsi - 0.05) * 
+            Math.max(0, (hcai - 0.20) * 2.5) * 
+            Math.max(0, (hmri - 1.5) * 2.5);
+  return [Math.min(1.0, Math.sqrt(pwi * 120.0))];
 `
     },
     lbi: {
@@ -1566,7 +1565,7 @@ function getScriptContent(activeIndex, isDiff, isCumulative = false) {
         }
         if (activeIndex === 'hpwi') {
             if (state.deepFusion) {
-                // HPWI 2.0: Deep Spectral Fusion (S1 VH/VV + S2 Optical) — Aligned with PWI Spec
+                // HPWI 2.0: Deep Spectral Fusion (S1 VH/VV + S2 Optical) — Aligned with Balanced Spec
                 let fusionLogic = `
                 // 1. Sentinel-2 Chemical Signal (Salinity/Hydrocarbons/Metals)
                 let sumNdsi = (sample.B11 + sample.B12);
@@ -1575,9 +1574,9 @@ function getScriptContent(activeIndex, isDiff, isCumulative = false) {
                 let hcai = sumHcai === 0 ? 0 : (sample.B11 - sample.B04) / sumHcai;
                 let hmri = (sample.B03 === 0) ? 0 : (sample.B12 / sample.B03);
                 
-                let brineScore = Math.max(0, ndsi - 0.10);
-                let hydrocarbonScore = Math.max(0, (hcai - 0.30) * 2.0);
-                let metalScore = Math.max(0, (hmri - 2.0) * 2.0);
+                let brineScore = Math.max(0, ndsi - 0.05);
+                let hydrocarbonScore = Math.max(0, (hcai - 0.20) * 2.5);
+                let metalScore = Math.max(0, (hmri - 1.5) * 2.5);
                 let chemPWI = brineScore * hydrocarbonScore * metalScore;
 
                 // 2. Sentinel-1 Physical Signal (Radar Smoothness)
@@ -1587,29 +1586,29 @@ function getScriptContent(activeIndex, isDiff, isCumulative = false) {
 
                 // 3. Fusion Logic: Chemical Signature MUST be confirmed by Physical Smoothness
                 let combinedScore = chemPWI * smoothness;
-                let mapped = Math.min(1.0, Math.pow(combinedScore * 20.0, 3));
+                let mapped = Math.min(1.0, Math.sqrt(combinedScore * 120.0));
                 
                 ${colorBlend('mapped', PALETTE_PWI)}
             `;
                 return genDeepFusionEvalscript(['VV', 'VH', 'B02', 'B03', 'B04', 'B11', 'B12'], fusionLogic);
             } else {
-                // Standard HPWI (Optical Proxy) - Also aligned with new restricted spec
+                // Standard HPWI (Optical Proxy) - Aligned with Balanced Spec
                 logic = `
                 (function() {
                     let ndsi = (sample.B11 + sample.B12) === 0 ? 0 : (sample.B11 - sample.B12) / (sample.B11 + sample.B12);
                     let hcai = (sample.B11 + sample.B04) === 0 ? 0 : (sample.B11 - sample.B04) / (sample.B11 + sample.B04);
                     let hmri = (sample.B03 === 0) ? 0 : (sample.B12 / sample.B03);
                     
-                    let brineScore = Math.max(0, ndsi - 0.10);
-                    let hydrocarbonScore = Math.max(0, (hcai - 0.30) * 2.0);
-                    let metalScore = Math.max(0, (hmri - 2.0) * 2.0);
+                    let brineScore = Math.max(0, ndsi - 0.05);
+                    let hydrocarbonScore = Math.max(0, (hcai - 0.20) * 2.5);
+                    let metalScore = Math.max(0, (hmri - 1.5) * 2.5);
                     let chemPWI = brineScore * hydrocarbonScore * metalScore;
 
                     let sumSmooth = sample.B03 + sample.B11;
                     let normSmooth = Math.max(0, Math.min(1, ((sample.B03 - sample.B11)/sumSmooth + 0.3) / 0.6));
                     
                     let combined = chemPWI * normSmooth;
-                    return Math.min(1.0, Math.pow(combined * 20.0, 3));
+                    return Math.min(1.0, Math.sqrt(combined * 120.0));
                 })()
             `;
                 palette = PALETTE_PWI;
