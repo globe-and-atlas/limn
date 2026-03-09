@@ -163,8 +163,8 @@ const genDeepFusionEvalscript = (s1Bands, s2Bands, logic) => `//VERSION=3
 function setup() {
   return {
     input: [
-      { datasource: "s1", bands: [${s1Bands.map(b => `'${b}'`).join(', ')}, "dataMask"] },
-      { datasource: "s2", bands: [${s2Bands.map(b => `'${b}'`).join(', ')}, "dataMask"] }
+      { id: "s1", bands: [${s1Bands.map(b => `'${b}'`).join(', ')}, "dataMask"] },
+      { id: "s2", bands: [${s2Bands.map(b => `'${b}'`).join(', ')}, "dataMask"] }
     ],
     output: { bands: 4 }
   };
@@ -875,8 +875,9 @@ const INDICES = {
   
   let pwi = brineScore * hcaiScore * hmriScore;
   
-  // Balanced scaling: 60x multiplier with 1.5 power for stable, visible plumes.
-  let mapped = Math.min(1, Math.pow(pwi * 60.0, 1.5));
+  // Yesterday's aggressive reset (March 8th stable version)
+  // 120x multiplier with square-root scaling for maximum plume visibility.
+  let mapped = Math.min(1, Math.sqrt(pwi * 120.0));
   ${colorBlend('mapped', PALETTE_PWI)}
 `),
         fisBands: ['B02', 'B03', 'B04', 'B08', 'B11', 'B12'],
@@ -910,7 +911,7 @@ const INDICES = {
         formula: 'NDSI * NDWI * (1 - NDVI)',
         info: 'Liquid Brine Index — captures standing pools of hazardous produced water. Requires a brine chemical signature (NDSI), a standing water proxy (NDWI), and the absence of vegetation (1-NDVI). This index is designed to filter out legacy residues and focus on active, liquid releases.',
         diffLabels: ['Receding Liquid', 'New Pooling Event'],
-        evalscript: genEvalscript(['B03', 'B04', 'B08', 'B11', 'B12'], `
+        evalscript: genEvalscript(['B02', 'B03', 'B04', 'B08', 'B11', 'B12'], `
   let ndsiSum = sample.B11 + sample.B12;
   let ndsi = ndsiSum === 0 ? 0 : (sample.B11 - sample.B12) / ndsiSum;
   
@@ -924,9 +925,11 @@ const INDICES = {
   let bsiBot = (sample.B11 + sample.B04) + (sample.B08 + sample.B02);
   let bsi = bsiBot === 0 ? 0 : bsiTop / bsiBot;
   
+  if (bsi <= 0.05) return [0,0,0,0]; // Stricter road/urban mask
+  
   // Liquid gate shifted by +0.5 to catch "Wet Soil" signature in rangelands, plus BSI mask
   let score = Math.max(0, ndsi) * Math.max(0, ndwi + 0.5) * Math.max(0, 1.0 - ndvi) * Math.max(0, bsi);
-  let mapped = Math.min(1, score * 40.0);
+  let mapped = Math.min(1, score * 15.0);
   
   ${colorBlend('mapped', `[
       [0.0, 0, 0, 0],
@@ -990,6 +993,7 @@ const INDICES = {
   let bsiTop = (sample.B11 + sample.B04) - (sample.B08 + sample.B02);
   let bsiBot = (sample.B11 + sample.B04) + (sample.B08 + sample.B02);
   let bsi = bsiBot === 0 ? 0 : bsiTop / bsiBot;
+  if (bsi <= 0.05) return [0,0,0,0]; // Much stricter mask for roads/urban
   
   let ndsiSum = sample.B11 + sample.B12;
   let ndsi = ndsiSum === 0 ? 0 : (sample.B11 - sample.B12) / ndsiSum;
@@ -1791,7 +1795,8 @@ function getWMSLayer(timeStr, isDiff, overrideIndex = null) {
     let wmsLayerParam = 'AGRICULTURE';
     if (activeIdx === 's1_sar') wmsLayerParam = 'SENTINEL1-GRD';
     if (state.hlsEnabled && activeIdx !== 's1_sar' && activeIdx !== 'hpwi') {
-        wmsLayerParam = 'NASA-HLS'; // Switch to NASA HLS collection for boosted frequency
+        // Fallback for CDSE endpoint which lacks native NASA-HLS
+        wmsLayerParam = SH_WMS_URL.includes('copernicus.eu') ? 'LANDSAT-8-L1C' : 'NASA-HLS';
     }
 
     // Handle Deep Fusion Multi-Source Request
