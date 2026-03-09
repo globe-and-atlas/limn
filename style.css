@@ -1960,3 +1960,20 @@ input[type=range]::-webkit-slider-runnable-track {
     border: 1px solid rgba(0, 255, 255, 0.2);
     z-index: 5;
 }
+
+.fusion-active-warning {
+    border-color: #f1c40f !important;
+    box-shadow: 0 0 10px rgba(241, 196, 15, 0.2);
+}
+
+.fusion-status-indicator {
+    font-size: 9px;
+    font-weight: bold;
+    color: #f1c40f;
+    margin-top: 4px;
+    display: none;
+}
+
+.fusion-active .fusion-status-indicator {
+    display: block;
+}

@@ -74,7 +74,7 @@ async function getCDSEToken() {
     }
 }
 
-const APP_VERSION = 'v32';
+const APP_VERSION = 'v33';
 
 // Globals for Report Generation
 let aoiDrawnItem = null;
@@ -1859,6 +1859,25 @@ function getWMSLayer(timeStr, isDiff, overrideIndex = null) {
         let pastObj = new Date(dateObj);
         pastObj.setDate(pastObj.getDate() - 30);
         queryTime = pastObj.toISOString().split('T')[0] + '/' + timeStr;
+    }
+
+    // Deep Fusion UI Feedback (v33)
+    const deepBox = document.getElementById('toggle-deep-fusion')?.parentElement;
+    if (deepBox) {
+        if (state.deepFusion && activeIdx !== 'hpwi') {
+            deepBox.classList.add('fusion-active-warning');
+            if (!document.getElementById('fusion-note')) {
+                const note = document.createElement('div');
+                note.id = 'fusion-note';
+                note.className = 'fusion-status-indicator';
+                note.textContent = '⚠ Inactive for current index';
+                deepBox.appendChild(note);
+            }
+            deepBox.classList.add('fusion-active');
+        } else {
+            deepBox.classList.remove('fusion-active-warning', 'fusion-active');
+            document.getElementById('fusion-note')?.remove();
+        }
     }
 
     return L.tileLayer.wms(SH_WMS_URL, {
