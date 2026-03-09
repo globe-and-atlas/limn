@@ -381,19 +381,55 @@
                     <div class="tooltip-wrapper right-align" style="display: flex; align-items: center; gap: 8px;">
                         <label for="toggle-sar-fusion"
                             style="font-size: 11px; font-weight: 600; color: var(--text-color); margin: 0; cursor: pointer;">Enable
-                            SAR Fusion Matrix</label>
+                            Visual SAR Overlay</label>
                         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)"
                             stroke-width="2" style="cursor: help;">
                             <circle cx="12" cy="12" r="10"></circle>
                             <path d="M12 16v-4"></path>
                             <path d="M12 8h.01"></path>
                         </svg>
-                        <span class="tooltip-text" style="width: 250px;">Overlays Sentinel-1 C-Band synthetic aperture
-                            radar
-                            geometry to provide cloud-penetrating structural texture and highlight surface topographic
-                            anomalies.</span>
+                        <span class="tooltip-text" style="width: 250px;">Overlays Sentinel-1 radar backscatter as a
+                            transparent layer over optical data.</span>
                     </div>
                     <input type="checkbox" id="toggle-sar-fusion" style="cursor: pointer; width: 16px; height: 16px;">
+                </div>
+
+                <div
+                    style="display: flex; align-items: center; justify-content: space-between; padding: 10px; background: rgba(0,210,255,0.05); border: 1px solid rgba(0,210,255,0.2); border-radius: 6px; margin-bottom: 8px;">
+                    <div class="tooltip-wrapper right-align" style="display: flex; align-items: center; gap: 8px;">
+                        <label for="toggle-hls-temporal"
+                            style="font-size: 11px; font-weight: 600; color: #00D2FF; margin: 0; cursor: pointer;">NASA
+                            HLS Temporal Booster</label>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#00D2FF" stroke-width="2"
+                            style="cursor: help;">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <path d="M12 16v-4"></path>
+                            <path d="M12 8h.01"></path>
+                        </svg>
+                        <span class="tooltip-text" style="width: 250px;">Integrates NASA Harmonized Landsat Sentinel-2
+                            data to increase revisit frequency to ~2.5 days. Closes the gap between pure Sentinel-2
+                            passes.</span>
+                    </div>
+                    <input type="checkbox" id="toggle-hls-temporal" style="cursor: pointer; width: 16px; height: 16px;">
+                </div>
+
+                <div
+                    style="display: flex; align-items: center; justify-content: space-between; padding: 10px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); border-radius: 6px;">
+                    <div class="tooltip-wrapper right-align" style="display: flex; align-items: center; gap: 8px;">
+                        <label for="toggle-deep-fusion"
+                            style="font-size: 11px; font-weight: 600; color: var(--text-color); margin: 0; cursor: pointer;">Enable
+                            Deep Spectral Fusion</label>
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)"
+                            stroke-width="2" style="cursor: help;">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <path d="M12 16v-4"></path>
+                            <path d="M12 8h.01"></path>
+                        </svg>
+                        <span class="tooltip-text" style="width: 250px;">Combines S1 Radar and S2 Optical data into a
+                            single mathematical engine. Requires both physical (roughness) and chemical (SWIR)
+                            confirmation to flag a spill.</span>
+                    </div>
+                    <input type="checkbox" id="toggle-deep-fusion" style="cursor: pointer; width: 16px; height: 16px;">
                 </div>
             </section>
 

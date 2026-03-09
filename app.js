@@ -159,6 +159,23 @@ function evaluatePixel(samples) {
   ${colorBlend('maxVal', paletteStr)}
 }
 `;
+const genDeepFusionEvalscript = (s1Bands, s2Bands, logic) => `//VERSION=3
+function setup() {
+  return {
+    input: [
+      { datasource: "s1", bands: [${s1Bands.map(b => `'${b}'`).join(', ')}, "dataMask"] },
+      { datasource: "s2", bands: [${s2Bands.map(b => `'${b}'`).join(', ')}, "dataMask"] }
+    ],
+    output: { bands: 4 }
+  };
+}
+function evaluatePixel(samples) {
+  let s1 = samples.s1[0];
+  let s2 = samples.s2[0];
+  if (s1.dataMask === 0 || s2.dataMask === 0) return [0, 0, 0, 0];
+  ${logic}
+}
+`;
 
 // Advanced continuous color blending logic for evalscripts
 function colorBlend(valExpr, stopsStr) {
@@ -1218,6 +1235,8 @@ const state = {
     mode: 'single', // 'single' or 'compare'
     monthIndex: Math.max(0, ALL_DATES.length - 1),
     sarFusion: false, // track the state of the SAR Overlay toggle
+    hlsEnabled: false, // NASA HLS temporal booster
+    deepFusion: false, // True S1+S2 spectral fusion
     opacity: 0.85,
     visualFilter: 0,
     sensitivity: 0, // Dynamic threshold offset (-50 to 50)
@@ -1546,6 +1565,52 @@ function getScriptContent(activeIndex, isDiff, isCumulative = false) {
             palette = PALETTE_BPI;
             bands = ['B02', 'B04', 'B08', 'B11', 'B12'];
         }
+        if (activeIndex === 'hpwi') {
+            if (state.deepFusion) {
+                // HPWI 2.0: Deep Spectral Fusion (S1 VH/VV + S2 B02/B11/B12)
+                let fusionLogic = `
+                // 1. Sentinel-2 Chemical Signal (Oil/Brine)
+                let ndoi = (s2.B02 + s2.B12) === 0 ? 0 : Math.max(0, (s2.B02 - s2.B12) / (s2.B02 + s2.B12));
+                let ndsi = (s2.B11 + s2.B12) === 0 ? 0 : (s2.B11 - s2.B12) / (s2.B11 + s2.B12);
+                let brineBoost = Math.max(0, ndsi - (0.03 - DETECTION_SENSITIVITY)) * 0.8;
+                let chemSignal = Math.min(1, ndoi + brineBoost);
+
+                // 2. Sentinel-1 Physical Signal (Radar Smoothness)
+                // Smooth liquid surfaces cause VH/VV specular reflection (low backscatter)
+                let vh_db = 10 * Math.log10(s1.VH);
+                let vv_db = 10 * Math.log10(s1.VV);
+                let roughness = Math.max(0, Math.min(1, (vh_db + 25) / 15)); // 0 = very smooth/wetted, 1 = rough/dry
+                let smoothness = 1.0 - roughness; // 1 = liquid confirmation
+
+                // 3. Fusion Logic: Chemical Signature MUST be confirmed by Physical Smoothness
+                let score = chemSignal * smoothness;
+                let mapped = Math.min(1, score * 8.0);
+                
+                ${colorBlend('mapped', `[
+                    [0.0, 17, 17, 17],
+                    [0.2, 75, 0, 130],
+                    [0.6, 231, 76, 60],
+                    [1.0, 241, 196, 15]
+                ]`)}
+            `;
+                return genDeepFusionEvalscript(['VV', 'VH'], ['B02', 'B03', 'B11', 'B12'], fusionLogic);
+            } else {
+                // Standard HPWI (Optical Proxy)
+                logic = `
+                (function() {
+                    let ndoi = (sample.B02 + sample.B12) === 0 ? 0 : Math.max(0, (sample.B02 - sample.B12) / (sample.B02 + sample.B12));
+                    let ndsi = (sample.B11 + sample.B12) === 0 ? 0 : (sample.B11 - sample.B12) / (sample.B11 + sample.B12);
+                    let brineBoost = Math.max(0, ndsi - 0.03) * 0.8;
+                    let chemSignal = Math.min(1, ndoi + brineBoost);
+                    let sumSmooth = sample.B03 + sample.B11;
+                    let normSmooth = Math.max(0, Math.min(1, ((sample.B03 - sample.B11)/sumSmooth + 0.3) / 0.6));
+                    return chemSignal * normSmooth * 6.0;
+                })()
+            `;
+                palette = PALETTE_HPWI;
+                bands = ['B02', 'B03', 'B11', 'B12'];
+            }
+        }
         if (activeIndex === 'vsi') {
             logic = `
                 (function() {
@@ -1725,10 +1790,18 @@ function getWMSLayer(timeStr, isDiff, overrideIndex = null) {
 
     let wmsLayerParam = 'AGRICULTURE';
     if (activeIdx === 's1_sar') wmsLayerParam = 'SENTINEL1-GRD';
+    if (state.hlsEnabled && activeIdx !== 's1_sar' && activeIdx !== 'hpwi') {
+        wmsLayerParam = 'NASA-HLS'; // Switch to NASA HLS collection for boosted frequency
+    }
+
+    // Handle Deep Fusion Multi-Source Request
+    if (state.deepFusion && activeIdx === 'hpwi') {
+        wmsLayerParam = 'SENTINEL1-GRD,AGRICULTURE'; // Multi-source WMS request
+    }
 
     // Auto-expand time window for Fusion to ensure intersection
     let queryTime = timeStr;
-    if (activeIdx === 'hpwi' && !timeStr.includes('/')) {
+    if ((activeIdx === 'hpwi' || state.deepFusion) && !timeStr.includes('/')) {
         let dateObj = new Date(timeStr);
         let pastObj = new Date(dateObj);
         pastObj.setDate(pastObj.getDate() - 30);
@@ -2064,8 +2137,18 @@ function bindEvents() {
     // SAR Fusion Toggle
     const toggleSar = document.getElementById('toggle-sar-fusion');
     if (toggleSar) {
-        toggleSar.addEventListener('change', (e) => {
+        document.getElementById('toggle-sar-fusion').addEventListener('change', (e) => {
             state.sarFusion = e.target.checked;
+            applyIndex();
+        });
+
+        document.getElementById('toggle-hls-temporal').addEventListener('change', (e) => {
+            state.hlsEnabled = e.target.checked;
+            applyIndex();
+        });
+
+        document.getElementById('toggle-deep-fusion').addEventListener('change', (e) => {
+            state.deepFusion = e.target.checked;
             applyIndex();
         });
     }
