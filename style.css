@@ -1944,3 +1944,19 @@ input[type=range]::-webkit-slider-runnable-track {
 .index-btn[data-index="vcbi"].active::before {
     opacity: 0.8;
 }
+.radar-tag {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    font-size: 8px;
+    font-weight: 800;
+    color: #00FFFF;
+    background: rgba(0, 255, 255, 0.1);
+    padding: 1px 4px;
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    pointer-events: none;
+    border: 1px solid rgba(0, 255, 255, 0.2);
+    z-index: 5;
+}
