@@ -685,6 +685,17 @@ button {
     box-shadow: inset 0 0 20px rgba(0, 210, 255, 0.05);
 }
 
+.tag-container {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 4px;
+    z-index: 10;
+}
+
 .temporal-badge {
     font-size: 7px;
     padding: 1px 4px;
@@ -1944,10 +1955,8 @@ input[type=range]::-webkit-slider-runnable-track {
 .index-btn[data-index="vcbi"].active::before {
     opacity: 0.8;
 }
+
 .radar-tag {
-    position: absolute;
-    top: 4px;
-    right: 4px;
     font-size: 8px;
     font-weight: 800;
     color: #00FFFF;
@@ -1958,7 +1967,6 @@ input[type=range]::-webkit-slider-runnable-track {
     letter-spacing: 0.5px;
     pointer-events: none;
     border: 1px solid rgba(0, 255, 255, 0.2);
-    z-index: 5;
 }
 
 .fusion-active-warning {
