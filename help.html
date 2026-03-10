@@ -233,6 +233,26 @@
         </div>
     </div>
 
+    <div
+        style="background: rgba(231, 76, 60, 0.05); border: 1px solid rgba(231, 76, 60, 0.2); border-radius: 8px; padding: 20px; margin: 30px 0;">
+        <h2 style="margin-top: 0; border-bottom: none; color: #e74c3c;">Permian Environmental Optimization (V40+)</h2>
+        <p style="font-size: 0.95em; margin-bottom: 10px;">The Permian Basin presents unique spectral challenges: high
+            background reflectance from caliche soils, bright gypsum beds, and extremely low humidity. The following
+            adjustments are hard-coded into the primary detection suites to suppress these natural "Project 0" false
+            positives:</p>
+        <ul style="font-size: 0.9em; color: var(--text-main); line-height: 1.4;">
+            <li><strong>The "Liquid Gate" (+0.5 NDWI):</strong> Arid rangelands have a baseline NDWI near -0.6. We apply
+                a +0.5 offset to lift "damp soil" signatures into the positive detection range without firing on
+                bone-dry
+                caliche.</li>
+            <li><strong>BSI Mask Relaxation (-0.3):</strong> Standard soil masks (BSI) reject water bodies (negative
+                BSI). Because severe hypersaline spills and standing oil appear spectrally "smooth" like water, we
+                lowered the mask to -0.3 to prevent high-severity detections from being clipped.</li>
+            <li><strong>SWIR Triple-Lock Offsets:</strong> PWI enforces offsets for Salinity (0.10) and Hydrocarbons
+                (0.30) to reject natural mineralized dust common in West Texas.</li>
+        </ul>
+    </div>
+
     <h2>1. Wholly New Novelties (Academic Paper Status ✧✧)</h2>
 
     <div class="index-card">

@@ -74,7 +74,7 @@ async function getCDSEToken() {
     }
 }
 
-const APP_VERSION = 'v45';
+const APP_VERSION = 'v46';
 
 // Globals for Report Generation
 let aoiDrawnItem = null;
