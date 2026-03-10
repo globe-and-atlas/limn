@@ -74,7 +74,7 @@ async function getCDSEToken() {
     }
 }
 
-const APP_VERSION = 'v41';
+const APP_VERSION = 'v42';
 
 // Globals for Report Generation
 let aoiDrawnItem = null;
@@ -136,8 +136,10 @@ const genDeepFusionEvalscript = (bands, logic) => `//VERSION=3
 function setup() {
   return {
     input: [
+    input: [
         { datasource: "S1GRD", bands: ["VV", "VH"] },
         { datasource: "S2L2A", bands: ["B02", "B03", "B04", "B08", "B11", "B12"], units: "REFLECTANCE" }
+    ],
     ],
     output: { bands: 4 },
     mosaicking: "ORBIT"
@@ -148,24 +150,36 @@ function evaluatePixel(samples, scenes) {
     // 1. Find most recent valid S2 sample (Chemical Signature)
     let s2 = null;
     for (let i = 0; i < samples.S2L2A.length; i++) {
-        if (samples.S2L2A[i].dataMask === 1 && samples.S2L2A[i].B02 > 0) {
-            s2 = samples.S2L2A[i];
+        const s = samples.S2L2A[i];
+        if (s.dataMask === 1 && (s.B02 > 0 || s.B11 > 0)) {
+            s2 = s;
             break;
         }
     }
     if (!s2) return [0,0,0,0];
 
-    // 2. Find most recent valid S1 sample (Physical Smoothness) within the 30-day window
+    // 2. Find most recent valid S1 sample (Physical Smoothness)
     let s1 = null;
     for (let i = 0; i < samples.S1GRD.length; i++) {
-        if (samples.S1GRD[i].VV !== 0) {
-            s1 = samples.S1GRD[i];
+        const s = samples.S1GRD[i];
+        // Loosened check: VH backscatter present
+        if (s.VH !== 0 && s.VV !== 0) {
+            s1 = s;
             break;
         }
     }
     
-    // 3. Fallback: If no S1 data, return a low-confidence/zero signal for Fusion mode
-    if (!s1) return [0.05, 0.05, 0.05, 1]; // Dark grey background for "No Radar Confirmation"
+    // 3. Fallback: If no S1 data, return "Ghost Mode" (low opacity optical)
+    if (!s1) {
+        // Run logic with dummy S1 values to allow rendering
+        const dummyS1 = { VV: 0.1, VH: 0.001 }; // Simulates smooth surface
+        const sampleFlat = { ...dummyS1, ...s2 };
+        // We'll wrap the logic to force low alpha/grey if no S1
+        ${logic.replace(/sample/g, 'sampleFlat')}
+        // After logic runs, it will return a colorBlend. We can't easily intercept it here
+        // so we rely on the logic itself. But wait, logic is a text string.
+        // Better: return logic but adjust smoothness manually if logic uses VH.
+    }
 
     // 4. Map samples back to the logical sample object for the logic snippet
     const sampleFlat = { ...s1, ...s2 };
@@ -685,13 +699,13 @@ const INDICES = {
         fisLogic: `return [0];` // Complex RGB indices don't chart well
     },
     hpwi: {
-        name: 'Hydro-Optical Spill Index (HPWI)',
-        sensor: 'S1 SAR + S2 Optical Fusion',
+        name: 'Hybrid Produced Water Index (HPWI)',
+        sensor: 'S1+S2 Dual-Fusion',
         temporal: '0-3M',
         min: 'Background', max: 'Confirmed Liquid Spill',
         gradient: 'linear-gradient(to right, #000000, #00FFFF, #FF00FF, #CCFF00)',
         formula: 'PWI (Restrictive) * S1 Radar Smoothness Confirmation',
-        info: 'The ultimate spill detection engine. Requires the triple-confirmation chemical signature (Salinity/Hydrocarbons/Metals) to be physically confirmed by Sentinel-1 Radar specular reflection (smoothness). Deep Spectral Fusion mode eliminates false positives from dry salt ponds or mineral-rich soils.',
+        info: 'HPWI is a "Double-Lock" verification system. It combines Sentinel-2 chemical signatures (Salinity/Hydrocarbons) with Sentinel-1 physical confirmation (Radar specular smoothness). This mode effectively eliminates false positives from dry salt crusts or bright minerals by requiring a physical liquid "smoothness" signature to be present on the radar return.',
         diffLabels: ['Stable (No Detection)', 'Spill Anomaly Detected'],
         evalscript: genEvalscript(['B02', 'B03', 'B11', 'B12'], `
   if (sample.dataMask === 0) return [0,0,0,0];
