@@ -103,7 +103,7 @@
                 </svg>
                 <div>
                     <h1>SENTINEL EXPLORER <span id="app-version-badge"
-                            style="font-size: 0.5em; font-weight: 500; font-family: 'JetBrains Mono', monospace; color: var(--text-muted); vertical-align: middle; background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px;">v39</span>
+                            style="font-size: 0.5em; font-weight: 500; font-family: 'JetBrains Mono', monospace; color: var(--text-muted); vertical-align: middle; background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px;">v40</span>
                     </h1>
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <h2>Well-Pad Environmental Analysis</h2>
@@ -147,6 +147,11 @@
                 <div class="index-grid">
                     <!-- Primary Target Indices — ordered by PW detection effectiveness -->
                     <!-- Primary Detection Tools -->
+                    <button class="index-btn" data-index="hpwi">
+                        <span class="index-short" style="color: #f1c40f;">HPWI</span>
+                        <span class="index-full" style="font-weight: 600;">Hydro-Optical Fusion</span>
+                        <span class="radar-tag">📡 Radar</span>
+                    </button>
                     <button class="index-btn" data-index="pwi">
                         <span class="index-short"
                             style="font-weight: bold; color: #00D2FF; text-shadow: 0 0 5px rgba(0, 210, 255, 0.5);">PWI</span>
@@ -160,11 +165,6 @@
                         <span class="index-short" style="color: #FFB347;">FBC</span>
                         <span class="index-full" style="font-weight: 600;">Iron-Brine Composite</span>
                     </button>
-                    <button class="index-btn" data-index="hpwi">
-                        <span class="index-short" style="color: #f1c40f;">HPWI</span>
-                        <span class="index-full" style="font-weight: 600;">Hydro-Optical Fusion</span>
-                        <span class="radar-tag">📡 Radar</span>
-                    </button>
                 </div>
             </div>
 
@@ -174,6 +174,10 @@
                     <button class="index-btn" data-index="vsi">
                         <span class="index-short" style="color: #FFD700;">VSI</span>
                         <span class="index-full" style="font-weight: 600;">Veg Stress Index</span>
+                    </button>
+                    <button class="index-btn" data-index="scri">
+                        <span class="index-short" style="color: #FF4500;">SCRI</span>
+                        <span class="index-full" style="font-weight: 600;">Salt Crust Roughness</span>
                     </button>
                     <button class="index-btn" data-index="tri">
                         <span class="index-short" style="color: #9933ff;">TRI</span>
@@ -195,10 +199,6 @@
                         <span class="index-short" style="color: #00FFBB;">HMI</span>
                         <span class="index-full" style="font-weight: 600;">Heavy Metal Interaction</span>
                     </button>
-                    <button class="index-btn" data-index="scri">
-                        <span class="index-short" style="color: #FF4500;">SCRI</span>
-                        <span class="index-full" style="font-weight: 600;">Salt Crust Roughness</span>
-                    </button>
                 </div>
             </div>
 
@@ -209,6 +209,10 @@
                         <span class="index-short" style="color: #00FFFF;">NDSI</span>
                         <span class="index-full" style="font-weight: 600;">Saline Content (Brine)</span>
                     </button>
+                    <button class="index-btn" data-index="vcbi">
+                        <span class="index-short" style="color: #c8a000;">VCBI</span>
+                        <span class="index-full" style="font-weight: 600;">Veg-Confirmed Brine</span>
+                    </button>
                     <button class="index-btn" data-index="bsi">
                         <span class="index-short" style="color: #A07832;">BSI</span>
                         <span class="index-full" style="font-weight: 600;">Bare Soil Index</span>
@@ -216,10 +220,6 @@
                     <button class="index-btn" data-index="reai">
                         <span class="index-short" style="color: #e8c44a;">REAI</span>
                         <span class="index-full" style="font-weight: 600;">Red Edge Alteration</span>
-                    </button>
-                    <button class="index-btn" data-index="vcbi">
-                        <span class="index-short" style="color: #c8a000;">VCBI</span>
-                        <span class="index-full" style="font-weight: 600;">Veg-Confirmed Brine</span>
                     </button>
                     <button class="index-btn" data-index="aoi">
                         <span class="index-short" style="color: #c0392b;">AOI</span>
@@ -244,21 +244,14 @@
                 <h3>Standard Environmental Indices</h3>
                 <div class="index-grid">
                     <!-- Secondary / Standard Indices (Alphabetical) -->
-                    <button class="index-btn" data-index="hcai">
-                        <span class="index-short">HCAI</span>
-                        <span class="index-full">Hydrocarbons</span>
+                    <button class="index-btn" data-index="s1_sar">
+                        <span class="index-short">SAR</span>
+                        <span class="index-full">S1 VV/VH Radar</span>
+                        <span class="radar-tag">📡 Radar</span>
                     </button>
-                    <button class="index-btn" data-index="hmri">
-                        <span class="index-short">HMRI</span>
-                        <span class="index-full">Heavy Metals</span>
-                    </button>
-                    <button class="index-btn" data-index="ndoi">
-                        <span class="index-short">NDOI</span>
-                        <span class="index-full">Oil Slicks</span>
-                    </button>
-                    <button class="index-btn" data-index="csi">
-                        <span class="index-short">CSI</span>
-                        <span class="index-full">Contaminated Soil</span>
+                    <button class="index-btn" data-index="si">
+                        <span class="index-short">SI</span>
+                        <span class="index-full">Salinity / Crust</span>
                     </button>
                     <button class="index-btn" data-index="ndvi">
                         <span class="index-short">NDVI</span>
@@ -276,18 +269,25 @@
                         <span class="index-short">MSI</span>
                         <span class="index-full">Drought / Canopy</span>
                     </button>
-                    <button class="index-btn" data-index="s1_sar">
-                        <span class="index-short">SAR</span>
-                        <span class="index-full">S1 VV/VH Radar</span>
-                        <span class="radar-tag">📡 Radar</span>
+                    <button class="index-btn" data-index="hcai">
+                        <span class="index-short">HCAI</span>
+                        <span class="index-full">Hydrocarbons</span>
+                    </button>
+                    <button class="index-btn" data-index="hmri">
+                        <span class="index-short">HMRI</span>
+                        <span class="index-full">Heavy Metals</span>
+                    </button>
+                    <button class="index-btn" data-index="ndoi">
+                        <span class="index-short">NDOI</span>
+                        <span class="index-full">Oil Slicks</span>
+                    </button>
+                    <button class="index-btn" data-index="csi">
+                        <span class="index-short">CSI</span>
+                        <span class="index-full">Contaminated Soil</span>
                     </button>
                     <button class="index-btn" data-index="savi">
                         <span class="index-short">SAVI</span>
                         <span class="index-full">Arid Vegetation</span>
-                    </button>
-                    <button class="index-btn" data-index="si">
-                        <span class="index-short">SI</span>
-                        <span class="index-full">Salinity / Crust</span>
                     </button>
                     <button class="index-btn" data-index="tc">
                         <span class="index-short">TC</span>
