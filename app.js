@@ -74,7 +74,7 @@ async function getCDSEToken() {
     }
 }
 
-const APP_VERSION = 'v42';
+const APP_VERSION = 'v43';
 
 // Globals for Report Generation
 let aoiDrawnItem = null;
@@ -2902,6 +2902,8 @@ function evaluatePixel(sample) {
                     let dataArr = [];
                     let ndmiArr = [];
                     let ndwiArr = [];
+                    let ndsiArr = [];
+                    let bsiArr = [];
                     let brineArr = [];
 
                     for (let i = 0; i < sortedDates.length; i++) {
@@ -4011,7 +4013,7 @@ async function probeAcquisitions() {
         const past = new Date();
         past.setMonth(past.getMonth() - 12);
 
-        const collections = ["sentinel-2-l2a", "landsat-ot-l1-l2"];
+        const collections = ["sentinel-2-l2a", "landsat-8-l1l2"];
         const sensorMap = {}; // dateStr -> Set of sensors
 
         for (const colId of collections) {
