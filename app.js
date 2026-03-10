@@ -74,7 +74,7 @@ async function getCDSEToken() {
     }
 }
 
-const APP_VERSION = 'v43';
+const APP_VERSION = 'v44';
 
 // Globals for Report Generation
 let aoiDrawnItem = null;
@@ -4054,13 +4054,20 @@ async function probeAcquisitions() {
         // Update the Dropdown Options
         document.querySelectorAll('#date-single option, #date-t1 option, #date-t2 option').forEach(opt => {
             let val = opt.value;
-            if (opt.parentElement.id === 'date-single') {
-                val = ALL_DATES[parseInt(opt.value)].value;
-            }
+            const idxKey = opt.parentElement.id === 'date-single' ? parseInt(opt.value) : ALL_DATES.findIndex(d => d.value === opt.value);
+            const originalLabel = ALL_DATES[idxKey] ? (opt.parentElement.id === 'date-single' ? ALL_DATES[idxKey].displayStr : ALL_DATES[idxKey].label) : opt.value;
 
             const sensors = sensorMap[val];
-            // Clear previous symbols to avoid duplicates on multiple probes
-            opt.textContent = opt.textContent.replace(/[ \[\]SLF✧△✦]/g, '');
+            // Restore original label and clear class
+            opt.textContent = originalLabel;
+            opt.className = '';
+
+            // Re-apply anomaly marker if needed (prevents probe from stripping it)
+            if (state.anomalousDates && state.anomalousDates.includes(val)) {
+                opt.textContent = '⚠️ ' + opt.textContent;
+                opt.style.color = '#FF8F00';
+                opt.style.fontWeight = 'bold';
+            }
 
             if (sensors) {
                 if (sensors.has('S2') && sensors.has('L8')) {
