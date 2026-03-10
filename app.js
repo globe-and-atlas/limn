@@ -74,7 +74,7 @@ async function getCDSEToken() {
     }
 }
 
-const APP_VERSION = 'v44';
+const APP_VERSION = 'v45';
 
 // Globals for Report Generation
 let aoiDrawnItem = null;
@@ -916,7 +916,7 @@ const INDICES = {
   if (bsiBot === 0) return [0,0,0,0];
   let bsi = bsiTop / bsiBot;
   
-  if (bsi <= -0.1) return [0,0,0,0];
+  if (bsi <= -0.3) return [0,0,0,0];
 
   // 2. Brine (NDSI)
   let sumBrine = sample.B11 + sample.B12;
@@ -987,7 +987,7 @@ const INDICES = {
   let bsiBot = (sample.B11 + sample.B04) + (sample.B08 + sample.B02);
   let bsi = bsiBot === 0 ? 0 : bsiTop / bsiBot;
   
-  if (bsi <= -0.1) return [0,0,0,0]; // Loosened road mask for spill centers
+  if (bsi <= -0.3) return [0,0,0,0]; // Loosened road mask for spill centers
   
   // Liquid gate shifted by +0.5 to catch "Wet Soil" signature in rangelands, plus BSI mask
   let score = Math.max(0, ndsi) * Math.max(0, ndwi + 0.5) * Math.max(0, 1.0 - ndvi) * Math.max(0, bsi);
