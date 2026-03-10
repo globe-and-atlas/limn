@@ -2162,7 +2162,14 @@ function bindEvents() {
                 const badge = document.createElement('span');
                 badge.className = `temporal-badge temporal-${cfg.temporal.toLowerCase().replace(/ /g, '-').replace(/\//g, '-').replace(/\+/g, 'plus')}`;
                 badge.textContent = cfg.temporal;
-                topContainer.appendChild(badge);
+
+                // If a tag-container exists (e.g. for Radar), use it. Otherwise use topContainer.
+                const tagCont = btn.querySelector('.tag-container');
+                if (tagCont) {
+                    tagCont.appendChild(badge);
+                } else {
+                    topContainer.appendChild(badge);
+                }
 
                 // Add identifying class to the button itself for more complex styling if needed
                 btn.classList.add(`rel-${cfg.temporal.toLowerCase().replace(/ /g, '-').replace(/\//g, '-').replace(/\+/g, 'plus')}`);
