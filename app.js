@@ -74,13 +74,33 @@ async function getCDSEToken() {
     }
 }
 
-const APP_VERSION = 'v47';
+const APP_VERSION = 'v48';
 
 // Globals for Report Generation
 let aoiDrawnItem = null;
 let reportChartInst = null;
 let reportMapInst = null;
 let reportDiffMapInst = null;
+const CALIBRATION_PRESETS = {
+    permian: {
+        name: "Permian Basin (Arid)",
+        bsiMask: -0.3,
+        bsiOffset: 0.3,
+        ndwiOffset: 0.5,
+        pwiSalinityOffset: 0.10,
+        pwiHydrocarbonOffset: 0.30,
+        pwiHmriOffset: 2.0
+    },
+    standard: {
+        name: "Standard (Temperate/Wet)",
+        bsiMask: -0.1,
+        bsiOffset: 0.0,
+        ndwiOffset: 0.0,
+        pwiSalinityOffset: 0.05,
+        pwiHydrocarbonOffset: 0.15,
+        pwiHmriOffset: 1.5
+    }
+};
 
 // Evalscript wrapper utility
 const genEvalscript = (bands, logic) => `//VERSION=3
@@ -916,7 +936,7 @@ const INDICES = {
   if (bsiBot === 0) return [0,0,0,0];
   let bsi = bsiTop / bsiBot;
   
-  if (bsi <= -0.3) return [0,0,0,0];
+  if (bsi <= __BSI_MASK__) return [0,0,0,0];
 
   // 2. Brine (NDSI)
   let sumBrine = sample.B11 + sample.B12;
@@ -933,9 +953,9 @@ const INDICES = {
   let hmri = sample.B12 / sample.B03;
   
   // True Classic Calibration (March 4th Restrictive)
-  let brineScore = Math.max(0, brine - 0.10);
-  let hcaiScore = Math.max(0, (hcai - 0.30) * 2);
-  let hmriScore = Math.max(0, (hmri - 2.0) * 2);
+  let brineScore = Math.max(0, brine - __PWI_SALINITY_OFFSET__);
+  let hcaiScore = Math.max(0, (hcai - __PWI_HC_OFFSET__) * 2);
+  let hmriScore = Math.max(0, (hmri - __PWI_HMRI_OFFSET__) * 2);
   
   let pwi = brineScore * hcaiScore * hmriScore;
   
@@ -947,7 +967,7 @@ const INDICES = {
         fisLogic: `
   let bsiTop = (sample.B11 + sample.B04) - (sample.B08 + sample.B02);
   let bsiBot = (sample.B11 + sample.B04) + (sample.B08 + sample.B02);
-  if (bsiBot === 0 || (bsiTop / bsiBot) <= -0.1) return [0];
+  if (bsiBot === 0 || (bsiTop / bsiBot) <= __BSI_MASK__) return [0];
 
   let sumNdsi = sample.B11 + sample.B12;
   if(sumNdsi === 0) return [0];
@@ -960,7 +980,7 @@ const INDICES = {
   if(sample.B03 === 0) return [0];
   let hmri = sample.B12 / sample.B03;
   
-  let pwi = Math.max(0, brine - 0.10) * Math.max(0, (hcai - 0.30) * 2) * Math.max(0, (hmri - 2.0) * 2);
+  let pwi = Math.max(0, brine - __PWI_SALINITY_OFFSET__) * Math.max(0, (hcai - __PWI_HC_OFFSET__) * 2) * Math.max(0, (hmri - __PWI_HMRI_OFFSET__) * 2);
   return [Math.min(1.0, Math.pow(pwi * 20.0, 3.0))];
 `
     },
@@ -987,10 +1007,10 @@ const INDICES = {
   let bsiBot = (sample.B11 + sample.B04) + (sample.B08 + sample.B02);
   let bsi = bsiBot === 0 ? 0 : bsiTop / bsiBot;
   
-  if (bsi <= -0.3) return [0,0,0,0]; // Loosened road mask for spill centers
+  if (bsi <= __BSI_MASK__) return [0,0,0,0]; // Loosened road mask for spill centers
   
   // Liquid gate shifted by +0.5 to catch "Wet Soil" signature in rangelands, plus BSI mask
-  let score = Math.max(0, ndsi) * Math.max(0, ndwi + 0.5) * Math.max(0, 1.0 - ndvi) * Math.max(0, bsi + 0.3);
+  let score = Math.max(0, ndsi) * Math.max(0, ndwi + __NDWI_OFFSET__) * Math.max(0, 1.0 - ndvi) * Math.max(0, bsi + __BSI_OFFSET__);
   let mapped = Math.min(1, score * 15.0);
   
   ${colorBlend('mapped', `[
@@ -1006,7 +1026,7 @@ const INDICES = {
   let ndwi = (sample.B03 + sample.B11) === 0 ? 0 : (sample.B03 - sample.B11) / (sample.B03 + sample.B11);
   let ndvi = (sample.B08 + sample.B04) === 0 ? 0 : (sample.B08 - sample.B04) / (sample.B08 + sample.B04);
   let bsi = (sample.B11+sample.B04+sample.B08+sample.B02) === 0 ? 0 : ((sample.B11+sample.B04)-(sample.B08+sample.B02))/((sample.B11+sample.B04)+(sample.B08+sample.B02));
-  return [Math.max(0, ndsi) * Math.max(0, ndwi + 0.5) * Math.max(0, 1.0 - ndvi) * Math.max(0, bsi + 0.3)];
+  return [Math.max(0, ndsi) * Math.max(0, ndwi + __NDWI_OFFSET__) * Math.max(0, 1.0 - ndvi) * Math.max(0, bsi + __BSI_OFFSET__)];
 `
     },
     tri: {
@@ -1057,7 +1077,7 @@ const INDICES = {
   let bsiTop = (sample.B11 + sample.B04) - (sample.B08 + sample.B02);
   let bsiBot = (sample.B11 + sample.B04) + (sample.B08 + sample.B02);
   let bsi = bsiBot === 0 ? 0 : bsiTop / bsiBot;
-  if (bsi <= -0.3) return [0,0,0,0]; // Loosened for pad-level spills
+  if (bsi <= __BSI_MASK__) return [0,0,0,0]; // Loosened for pad-level spills
   
   let ndsiSum = sample.B11 + sample.B12;
   let ndsi = ndsiSum === 0 ? 0 : (sample.B11 - sample.B12) / ndsiSum;
@@ -1065,7 +1085,7 @@ const INDICES = {
   let hcaiSum = sample.B11 + sample.B04;
   let hcai = hcaiSum === 0 ? 0 : (sample.B11 - sample.B04) / hcaiSum;
   
-  let score = Math.max(0, bsi + 0.3) * Math.max(0, ndsi - 0.03) * Math.max(0, hcai - 0.15);
+  let score = Math.max(0, bsi + __BSI_OFFSET__) * Math.max(0, ndsi - 0.03) * Math.max(0, hcai - 0.15);
   let mapped = Math.min(1, score * 30.0);
   
   ${colorBlend('mapped', `[
@@ -1080,7 +1100,7 @@ const INDICES = {
   let bsi = (sample.B11+sample.B04+sample.B08+sample.B02) === 0 ? 0 : ((sample.B11+sample.B04)-(sample.B08+sample.B02))/((sample.B11+sample.B04)+(sample.B08+sample.B02));
   let ndsi = (sample.B11 + sample.B12) === 0 ? 0 : (sample.B11 - sample.B12) / (sample.B11 + sample.B12);
   let hcai = (sample.B11 + sample.B04) === 0 ? 0 : (sample.B11 - sample.B04) / (sample.B11 + sample.B04);
-  return [Math.max(0, bsi + 0.3) * Math.max(0, ndsi - 0.03) * Math.max(0, hcai - 0.15)];
+  return [Math.max(0, bsi + __BSI_OFFSET__) * Math.max(0, ndsi - 0.03) * Math.max(0, hcai - 0.15)];
 `
     },
     vsi: {
@@ -1313,6 +1333,7 @@ const state = {
     baseLayerInst: null,
     activeLoc: 'dixon',
     activeIndex: 'ndmi',
+    activeBasin: 'permian',
     mode: 'single', // 'single' or 'compare'
     monthIndex: Math.max(0, ALL_DATES.length - 1),
     sarFusion: false, // track the state of the SAR Overlay toggle
@@ -1556,6 +1577,16 @@ function getScriptContent(activeIndex, isDiff, isCumulative = false) {
     const cfg = INDICES[activeIndex];
     if (!cfg) return '';
     let scriptContent = cfg.evalscript;
+
+    // Apply Dynamic Calibration Placeholders
+    const cal = CALIBRATION_PRESETS[state.activeBasin || 'permian'];
+    scriptContent = scriptContent
+        .replace(/__BSI_MASK__/g, cal.bsiMask)
+        .replace(/__BSI_OFFSET__/g, cal.bsiOffset)
+        .replace(/__NDWI_OFFSET__/g, cal.ndwiOffset)
+        .replace(/__PWI_SALINITY_OFFSET__/g, cal.pwiSalinityOffset)
+        .replace(/__PWI_HC_OFFSET__/g, cal.pwiHydrocarbonOffset)
+        .replace(/__PWI_HMRI_OFFSET__/g, cal.pwiHmriOffset);
 
     if (isCumulative) {
         // Build the cumulative max-composite logic
@@ -2405,6 +2436,16 @@ function bindEvents() {
             }
             clearTimeout(sensDebounce);
             sensDebounce = setTimeout(() => applyIndex(), 400);
+        });
+    }
+
+    // Basin Calibration Toggle
+    const basinSelect = document.getElementById('basin-select');
+    if (basinSelect) {
+        basinSelect.addEventListener('change', (e) => {
+            state.activeBasin = e.target.value;
+            console.log(`[Basin] Context switched to: ${state.activeBasin}`);
+            applyIndex();
         });
     }
 
