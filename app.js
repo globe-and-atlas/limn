@@ -74,7 +74,7 @@ async function getCDSEToken() {
     }
 }
 
-const APP_VERSION = 'v46';
+const APP_VERSION = 'v47';
 
 // Globals for Report Generation
 let aoiDrawnItem = null;
@@ -990,7 +990,7 @@ const INDICES = {
   if (bsi <= -0.3) return [0,0,0,0]; // Loosened road mask for spill centers
   
   // Liquid gate shifted by +0.5 to catch "Wet Soil" signature in rangelands, plus BSI mask
-  let score = Math.max(0, ndsi) * Math.max(0, ndwi + 0.5) * Math.max(0, 1.0 - ndvi) * Math.max(0, bsi);
+  let score = Math.max(0, ndsi) * Math.max(0, ndwi + 0.5) * Math.max(0, 1.0 - ndvi) * Math.max(0, bsi + 0.3);
   let mapped = Math.min(1, score * 15.0);
   
   ${colorBlend('mapped', `[
@@ -1006,7 +1006,7 @@ const INDICES = {
   let ndwi = (sample.B03 + sample.B11) === 0 ? 0 : (sample.B03 - sample.B11) / (sample.B03 + sample.B11);
   let ndvi = (sample.B08 + sample.B04) === 0 ? 0 : (sample.B08 - sample.B04) / (sample.B08 + sample.B04);
   let bsi = (sample.B11+sample.B04+sample.B08+sample.B02) === 0 ? 0 : ((sample.B11+sample.B04)-(sample.B08+sample.B02))/((sample.B11+sample.B04)+(sample.B08+sample.B02));
-  return [Math.max(0, ndsi) * Math.max(0, ndwi + 0.5) * Math.max(0, 1.0 - ndvi) * Math.max(0, bsi)];
+  return [Math.max(0, ndsi) * Math.max(0, ndwi + 0.5) * Math.max(0, 1.0 - ndvi) * Math.max(0, bsi + 0.3)];
 `
     },
     tri: {
@@ -1057,7 +1057,7 @@ const INDICES = {
   let bsiTop = (sample.B11 + sample.B04) - (sample.B08 + sample.B02);
   let bsiBot = (sample.B11 + sample.B04) + (sample.B08 + sample.B02);
   let bsi = bsiBot === 0 ? 0 : bsiTop / bsiBot;
-  if (bsi <= -0.05) return [0,0,0,0]; // Loosened for pad-level spills
+  if (bsi <= -0.3) return [0,0,0,0]; // Loosened for pad-level spills
   
   let ndsiSum = sample.B11 + sample.B12;
   let ndsi = ndsiSum === 0 ? 0 : (sample.B11 - sample.B12) / ndsiSum;
@@ -1065,7 +1065,7 @@ const INDICES = {
   let hcaiSum = sample.B11 + sample.B04;
   let hcai = hcaiSum === 0 ? 0 : (sample.B11 - sample.B04) / hcaiSum;
   
-  let score = Math.max(0, bsi) * Math.max(0, ndsi - 0.03) * Math.max(0, hcai - 0.15);
+  let score = Math.max(0, bsi + 0.3) * Math.max(0, ndsi - 0.03) * Math.max(0, hcai - 0.15);
   let mapped = Math.min(1, score * 30.0);
   
   ${colorBlend('mapped', `[
@@ -1080,7 +1080,7 @@ const INDICES = {
   let bsi = (sample.B11+sample.B04+sample.B08+sample.B02) === 0 ? 0 : ((sample.B11+sample.B04)-(sample.B08+sample.B02))/((sample.B11+sample.B04)+(sample.B08+sample.B02));
   let ndsi = (sample.B11 + sample.B12) === 0 ? 0 : (sample.B11 - sample.B12) / (sample.B11 + sample.B12);
   let hcai = (sample.B11 + sample.B04) === 0 ? 0 : (sample.B11 - sample.B04) / (sample.B11 + sample.B04);
-  return [Math.max(0, bsi) * Math.max(0, ndsi - 0.03) * Math.max(0, hcai - 0.15)];
+  return [Math.max(0, bsi + 0.3) * Math.max(0, ndsi - 0.03) * Math.max(0, hcai - 0.15)];
 `
     },
     vsi: {
