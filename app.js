@@ -76,6 +76,33 @@ async function getCDSEToken() {
 
 const APP_VERSION = 'v48';
 
+// ── Toast Notification System ──────────────────────
+function showToast(message, type = 'info') {
+    let container = document.getElementById('toast-container');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toast-container';
+        document.body.appendChild(container);
+    }
+
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.innerHTML = `
+        <span class="toast-icon">${type === 'success' ? '✓' : type === 'warning' ? '⚠' : 'ℹ'}</span>
+        <span class="toast-msg">${message}</span>
+    `;
+    container.appendChild(toast);
+
+    // Trigger entrance animation
+    requestAnimationFrame(() => toast.classList.add('toast-visible'));
+
+    // Auto-dismiss after 5s
+    setTimeout(() => {
+        toast.classList.remove('toast-visible');
+        toast.addEventListener('transitionend', () => toast.remove());
+    }, 5000);
+}
+
 // Globals for Report Generation
 let aoiDrawnItem = null;
 let reportChartInst = null;
@@ -158,10 +185,8 @@ const genDeepFusionEvalscript = (bands, logic) => `//VERSION=3
 function setup() {
   return {
     input: [
-    input: [
         { datasource: "S1GRD", bands: ["VV", "VH"] },
         { datasource: "S2L2A", bands: ["B02", "B03", "B04", "B08", "B11", "B12"], units: "REFLECTANCE" }
-    ],
     ],
     output: { bands: 4 },
     mosaicking: "ORBIT"
@@ -1360,36 +1385,38 @@ document.addEventListener('DOMContentLoaded', () => {
     const t1Sel = document.getElementById('date-t1');
     const t2Sel = document.getElementById('date-t2');
     if (t1Sel && t2Sel) {
-        ALL_DATES.forEach((d, i) => {
+        // Populate timeline dropdown — limit to recent 365 days for performance
+        const selSingle = document.getElementById('date-single');
+        selSingle.innerHTML = '';
+        const recentStart = Math.max(0, ALL_DATES.length - 365);
+        for (let i = recentStart; i < ALL_DATES.length; i++) {
+            let opt = document.createElement('option');
+            opt.value = i;
+            opt.text = ALL_DATES[i].displayStr;
+            selSingle.appendChild(opt);
+        }
+
+        // Populate compare dropdowns with same limited range
+        t1Sel.innerHTML = '';
+        t2Sel.innerHTML = '';
+        for (let i = recentStart; i < ALL_DATES.length; i++) {
             let opt1 = document.createElement('option');
-            opt1.value = d.value;
-            opt1.textContent = d.label;
+            opt1.value = ALL_DATES[i].value;
+            opt1.textContent = ALL_DATES[i].label;
             t1Sel.appendChild(opt1);
 
             let opt2 = document.createElement('option');
-            opt2.value = d.value;
-            opt2.textContent = d.label;
+            opt2.value = ALL_DATES[i].value;
+            opt2.textContent = ALL_DATES[i].label;
             t2Sel.appendChild(opt2);
-        });
+        }
 
         // Defaults: T1 = ~1 year ago, T2 = latest
-        t1Sel.selectedIndex = Math.max(0, ALL_DATES.length - 13);
-        t2Sel.selectedIndex = Math.max(0, ALL_DATES.length - 1);
-
-        // Populate timeline dropdown
-        const selSingle = document.getElementById('date-single');
-        selSingle.innerHTML = '';
-        ALL_DATES.forEach((d, i) => {
-            let opt = document.createElement('option');
-            opt.value = i;
-            opt.text = d.displayStr;
-            selSingle.appendChild(opt);
-        });
+        t1Sel.selectedIndex = Math.max(0, t1Sel.options.length - 13);
+        t2Sel.selectedIndex = Math.max(0, t2Sel.options.length - 1);
 
         state.monthIndex = ALL_DATES.length - 1;
         selSingle.value = state.monthIndex;
-
-
     }
 
 
@@ -1462,7 +1489,7 @@ const CHART_COLORS = {
     phi: '#FF00FF', hmi: '#444444'
 };
 
-function getHighlightScript(indexKey, hexColor, chartValue) {
+function getHighlightScript(indexKey, hexColor, chartValue, includeContext = false) {
     const cfg = INDICES[indexKey];
     if (!cfg || !cfg.fisLogic) return '';
     
@@ -1476,16 +1503,15 @@ function getHighlightScript(indexKey, hexColor, chartValue) {
         .replace(/__PWI_HC_OFFSET__/g, cal.pwiHydrocarbonOffset)
         .replace(/__PWI_HMRI_OFFSET__/g, cal.pwiHmriOffset);
 
-    const bandsList = cfg.fisBands || ['B04', 'B03', 'B02'];
+    // If context is requested, we need B04, B03, B02 for True Color background
+    const bandsList = [...new Set([...(cfg.fisBands || []), 'B04', 'B03', 'B02'])];
     
     // Use dynamic chart value as the highlight threshold if available
     let rawThreshold = HIGHLIGHT_THRESHOLDS[indexKey] || 0.20;
     if (chartValue !== undefined && chartValue !== null && !isNaN(chartValue)) {
-        // Clamp the chart value so it never demands more intensity than the standard rule engine.
         rawThreshold = Math.min(parseFloat(chartValue), rawThreshold);
     }
     
-    // Apply a 10% softening buffer to ensure visual coverage
     const threshold = (rawThreshold * 0.90).toFixed(5);
     
     // Convert hex to float RGB
@@ -1511,27 +1537,114 @@ function evaluatePixel(sample) {
   let result = calculate(sample);
   let val = Array.isArray(result) ? result[0] : result;
   
-  // Highlight pixels exceeding index-specific threshold (inclusive)
-  if (val >= ${threshold}) return [${r.toFixed(3)}, ${g.toFixed(3)}, ${b.toFixed(3)}, 1.0]; 
-  return [0, 0, 0, 0];
+  if (${!includeContext}) {
+     // OFFSCREEN PEAK DETECTION MODE
+     // Encode the continuous value (mapped to 0..1) into 24-bit truecolor RGB
+     // so the JS canvas can resolve ties among 16.7 million levels.
+     let norm = (val + 1.0) / 4.0;
+     let v = Math.max(0.0, Math.min(1.0, norm));
+     let v24 = Math.floor(v * 16777215); // 2^24 - 1
+     
+     let cR = Math.floor(v24 / 65536) / 255.0;
+     let cG = Math.floor((v24 % 65536) / 256) / 255.0;
+     let cB = (v24 % 256) / 255.0;
+     
+     return [cR, cG, cB, 1.0];
+  } else {
+     // THUMBNAIL VISUAL MODE
+     // Blend highlights over True Color background at 60% opacity
+     let factor = 2.5;
+     let tR = sample.B04 * factor;
+     let tG = sample.B03 * factor;
+     let tB = sample.B02 * factor;
+
+     if (val >= ${threshold}) {
+         return [
+             (tR * 0.4) + (${r.toFixed(3)} * 0.6),
+             (tG * 0.4) + (${g.toFixed(3)} * 0.6),
+             (tB * 0.4) + (${b.toFixed(3)} * 0.6),
+             1.0
+         ]; 
+     } else {
+         return [tR, tG, tB, 1.0];
+     }
+  }
 }`;
 }
 
 let hoverHighlightDebounce = null;
     let lastHoverKey = '';
     const hotspotCache = {}; // key → [{lat, lng, intensity}]
+    const peakCache = {}; // key → {lat, lng, intensity}
+
+function detectPeakAnomaly(imgUrl, bounds) {
+    return new Promise((resolve) => {
+        const img = new Image();
+        img.crossOrigin = "Anonymous";
+        img.onload = () => {
+            const canvas = document.createElement('canvas');
+            canvas.width = img.width || 512; 
+            canvas.height = img.height || 512;
+            const ctx = canvas.getContext('2d');
+            ctx.imageSmoothingEnabled = false;
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+            
+            let maxVal = -1;
+            let peakPos = null;
+            
+            // Scan Alpha channel for binary anomaly mask, OR R-channel for gradient
+            for (let i = 0; i < data.length; i += 4) {
+                const r = data[i];
+                const g = data[i+1];
+                const b = data[i+2];
+                const a = data[i+3];
+                
+                if (a > 10) { 
+                    const x = (i / 4) % canvas.width;
+                    const y = Math.floor((i / 4) / canvas.width);
+                    
+                    // Skip the bottom 15% to avoid the Sentinel Hub WMS watermark
+                    if (y > canvas.height * 0.85) continue;
+                    
+                    const intensity = (r << 16) | (g << 8) | b;
+                    if (intensity > maxVal) {
+                        maxVal = intensity;
+                        peakPos = { x, y };
+                    }
+                }
+            }
+            
+            if (peakPos) {
+                const sw = bounds.getSouthWest();
+                const ne = bounds.getNorthEast();
+                const lat = ne.lat - (peakPos.y / canvas.height) * (ne.lat - sw.lat);
+                const lng = sw.lng + (peakPos.x / canvas.width) * (ne.lng - sw.lng);
+                
+                const norm = maxVal / 16777215;
+                const origVal = (norm * 4.0) - 1.0;
+                
+                resolve({ lat, lng, value: origVal });
+            } else {
+                resolve(null);
+            }
+        };
+        img.onerror = () => resolve(null);
+        img.src = imgUrl;
+    });
+}
 
     function showHoverHighlight(date, indexKey, chartValue) {
         const hoverKey = `${date}_${indexKey}`;
         if (hoverKey === lastHoverKey) return;
         lastHoverKey = hoverKey;
+        const currentReqDate = Date.now();
+        state.currentHoverRequest = currentReqDate;
 
         if (hoverHighlightDebounce) clearTimeout(hoverHighlightDebounce);
-        hoverHighlightDebounce = setTimeout(() => {
-            // Clear previous overlays
-            hideHoverHighlight(true); // keepKey=true
+        hoverHighlightDebounce = setTimeout(async () => {
+            hideHoverHighlight(true); // cleanup previous
 
-            // Get AOI bounds
             let bounds = state.map.getBounds();
             if (state.drawnItems && state.drawnItems.getLayers().length > 0) {
                 bounds = state.drawnItems.getBounds();
@@ -1541,24 +1654,71 @@ let hoverHighlightDebounce = null;
             const imgUrl = buildHighlightUrl(date, indexKey, bounds, hexColor, chartValue);
             if (!imgUrl) return;
 
-            // Direct raster image overlay
-            state.hoverHighlightLayer = L.imageOverlay(imgUrl, bounds, {
-                opacity: 0.85,
-                interactive: false,
-                zIndex: 400,
-                className: 'hover-highlight-transition'
-            }).addTo(state.map);
+        // 1. Full raster highlight (subtle) - REMOVED AT USER REQUEST
+            // (Only the point marker will be shown now)
+
+            // 2. Peak Detection & Target Marker
+            const peak = peakCache[hoverKey] || await detectPeakAnomaly(imgUrl, bounds);
+            
+            // If the user has hovered over something else while we were processing, abort.
+            if (state.currentHoverRequest !== currentReqDate) return;
+            
+            if (peak) {
+                peakCache[hoverKey] = peak;
+                const markerColor = hexColor === '#FFFFFF' ? '#FF00FF' : hexColor;
+                
+                // Double check cleanup right before adding new marker
+                if (state.hoverMarker) {
+                    state.map.removeLayer(state.hoverMarker);
+                }
+                
+                state.hoverMarker = L.circleMarker([peak.lat, peak.lng], {
+                    radius: 8,
+                    color: '#fff',
+                    weight: 2,
+                    fillColor: markerColor,
+                    fillOpacity: 0.9,
+                    className: 'pulse-marker'
+                }).addTo(state.map);
+
+                state.hoverMarker.bindTooltip(`
+                    <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px;">
+                        <strong style="color: ${markerColor}; text-shadow: 0 0 4px rgba(0,0,0,0.8);">${indexKey.toUpperCase()} PEAK</strong><br/>
+                        DATE: ${date}<br/>
+                        LAT: ${peak.lat.toFixed(5)}<br/>
+                        LNG: ${peak.lng.toFixed(5)}<br/>
+                        MEAN AOI VAL: ${parseFloat(chartValue).toFixed(4)}
+                    </div>
+                `, { permanent: true, direction: 'top', offset: [0, -10] });
+            }
 
             // Record into cache
             hotspotCache[hoverKey] = imgUrl;
-            
-        }, 100);
+        }, 120);
     }
 
     // renderHotspotMarkers and extractHotspots completely removed in favor of native L.imageOverlay
 
-    function buildHighlightUrl(date, indexKey, bounds, hexColor, chartValue) {
-        const script = getHighlightScript(indexKey, hexColor, chartValue);
+    // Helper to generate WKT from user drawn polygon to restrict peak detection
+    function getDrawnWKT() {
+        if (!state.drawnItems || state.drawnItems.getLayers().length === 0) return null;
+        try {
+            const geojson = state.drawnItems.toGeoJSON();
+            if (geojson.features.length > 0 && geojson.features[0].geometry) {
+                const geom = geojson.features[0].geometry;
+                if (geom.type === 'Polygon') {
+                    const rings = geom.coordinates.map(ring => {
+                        return '(' + ring.map(c => `${c[0]} ${c[1]}`).join(', ') + ')';
+                    });
+                    return `POLYGON(${rings.join(', ')})`;
+                }
+            }
+        } catch (e) { console.error(e); }
+        return null;
+    }
+
+    function buildHighlightUrl(date, indexKey, bounds, hexColor, chartValue, includeContext = false) {
+        const script = getHighlightScript(indexKey, hexColor, chartValue, includeContext);
         if (!script) return null;
 
         const dStart = new Date(date);
@@ -1566,6 +1726,10 @@ let hoverHighlightDebounce = null;
         const dEnd = new Date(date);
         dEnd.setUTCDate(dEnd.getUTCDate() + 7);
         const timeParam = `${dStart.toISOString().split('T')[0]}/${dEnd.toISOString().split('T')[0]}`;
+
+        let wktParam = '';
+        const wkt = getDrawnWKT();
+        if (wkt) wktParam = `&geometry=${encodeURIComponent(wkt)}`;
 
         let wmsLayerParam = 'AGRICULTURE';
         const cfg = INDICES[indexKey];
@@ -1579,10 +1743,66 @@ let hoverHighlightDebounce = null;
         return `${SH_WMS_URL}?service=WMS&request=GetMap&version=1.3.0` +
             `&layers=${wmsLayerParam}&format=image/png&transparent=true` +
             `&width=512&height=512&crs=CRS:84&bbox=${bboxStr}` +
-            `&time=${timeParam}&maxcc=100&evalscript=${encodeURIComponent(b64)}`;
+            `&time=${timeParam}&maxcc=100&showlogo=false${wktParam}&evalscript=${encodeURIComponent(b64)}`;
     }
 
     // Pre-fetch hotspot positions for top anomaly dates after scan completes
+
+    async function renderScanThumbnails(dates, bounds) {
+        const gallery = document.getElementById('scan-thumbnail-gallery');
+        const strip = document.getElementById('thumbnail-strip');
+        if (!gallery || !strip) return;
+
+        gallery.style.display = 'block';
+        strip.innerHTML = '';
+
+        // Only show top 8 anomalies to avoid clutter
+        const topDates = dates.slice(0, 8);
+
+        // Use the currently selected index, or default to pwi if none
+        const renderIndex = (state.activeIndex && state.activeIndex !== 'none') ? state.activeIndex : 'pwi';
+        const renderColor = CHART_COLORS[renderIndex] || '#FF00FF';
+
+        topDates.forEach(date => {
+            const item = document.createElement('div');
+            item.className = 'thumbnail-item';
+            
+            // Build a small WMS URL for the thumbnail using the selected index, including context
+            const url = buildHighlightUrl(date, renderIndex, bounds, renderColor, undefined, true);
+            
+            item.innerHTML = `
+                <div class="thumbnail-badge" style="color: ${renderColor}">${renderIndex.toUpperCase()} ANOMALY</div>
+                <div class="thumbnail-img-wrapper">
+                    <img src="${url}" class="thumbnail-img" alt="${date}" loading="lazy">
+                </div>
+                <div class="thumbnail-date">${date}</div>
+            `;
+            
+            item.addEventListener('click', () => {
+                // Find matching index in ALL_DATES (objects, not strings)
+                const idx = ALL_DATES.findIndex(d => d.value === date);
+                if (idx !== -1) {
+                    state.monthIndex = idx;
+                    const dateDropdown = document.getElementById('date-single');
+                    if (dateDropdown) dateDropdown.value = idx;
+                    
+                    // Switch to single mode if not already
+                    if (state.mode !== 'single') {
+                        const mSing = document.getElementById('mode-single');
+                        if (mSing) mSing.click();
+                    } else {
+                        applyIndex();
+                    }
+                    
+                    // Center map on the anomaly
+                    state.map.flyTo(bounds.getCenter(), 15);
+                }
+            });
+            
+            strip.appendChild(item);
+        });
+    }
+
     function prefetchHighlights(dates, indexKey, bounds) {
         if (!dates || dates.length === 0) return;
         const top = dates.slice(0, 10);
@@ -1606,6 +1826,10 @@ function hideHoverHighlight(keepKey) {
     if (state.hoverHighlightLayer) {
         state.map.removeLayer(state.hoverHighlightLayer);
         state.hoverHighlightLayer = null;
+    }
+    if (state.hoverMarker) {
+        state.map.removeLayer(state.hoverMarker);
+        state.hoverMarker = null;
     }
 }
 
@@ -2096,7 +2320,18 @@ function applyIndex(isScrubbing = false) {
     }
 
     updateUI();
-    if (!isScrubbing) updateGifInset();
+    if (!isScrubbing) {
+        updateGifInset();
+        
+        // Refresh thumbnail gallery if anomalies exist
+        if (state.anomalousDates && state.anomalousDates.length > 0) {
+            let thumbBounds = state.map.getBounds();
+            if (state.drawnItems && state.drawnItems.getLayers().length > 0) {
+                thumbBounds = state.drawnItems.getBounds();
+            }
+            renderScanThumbnails(state.anomalousDates, thumbBounds);
+        }
+    }
 }
 
 async function updateGifInset() {
@@ -2245,6 +2480,27 @@ function updateUI() {
 
 // ── EVENT BINDINGS ─────────────────────────────────
 function bindEvents() {
+
+    // Sidebar Tabs
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const tabPanes = document.querySelectorAll('.tab-pane');
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const target = e.currentTarget.dataset.tab;
+            tabBtns.forEach(b => b.classList.remove('active'));
+            tabPanes.forEach(p => {
+                p.classList.remove('active', 'tab-animating');
+            });
+            e.currentTarget.classList.add('active');
+            const pane = document.getElementById(`tab-${target}`);
+            if (pane) {
+                pane.classList.add('active', 'tab-animating');
+                pane.addEventListener('animationend', () => {
+                    pane.classList.remove('tab-animating');
+                }, { once: true });
+            }
+        });
+    });
 
     // Mode Switcher
     const mSing = document.getElementById('mode-single');
@@ -2790,10 +3046,18 @@ function evaluatePixel(sample) {
             // Render Sidebar Trend Charts
             updateTrendCharts(timelineLabels, timelineData);
 
+            // Render Thumbnails for top anomalies
             if (state.anomalousDates.length > 0) {
-                alert(`Scan Complete: Identified ${state.anomalousDates.length} hazardous dates in the past year. Highlighting calendar.`);
+                renderScanThumbnails(state.anomalousDates, aoiDrawnItem.getBounds());
             } else {
-                alert("Scan Complete: No major anomalies detected above threshold.");
+                const gallery = document.getElementById('scan-thumbnail-gallery');
+                if (gallery) gallery.style.display = 'none';
+            }
+
+            if (state.anomalousDates.length > 0) {
+                showToast(`Scan Complete: ${state.anomalousDates.length} hazardous dates identified`, 'warning');
+            } else {
+                showToast('Scan Complete: No major anomalies detected', 'success');
             }
 
             // Re-render UI to show highlights
@@ -2943,11 +3207,14 @@ function evaluatePixel(sample) {
     function highlightAnomalies() {
         if (!state.anomalousDates || state.anomalousDates.length === 0) return;
 
+        // Use a Set for O(1) lookups instead of Array.includes() on each option
+        const anomalySet = new Set(state.anomalousDates);
+
         ['date-single', 'date-t1', 'date-t2'].forEach(selectId => {
             const selectEl = document.getElementById(selectId);
             if (selectEl) {
                 Array.from(selectEl.options).forEach(opt => {
-                    if (state.anomalousDates.includes(opt.value)) {
+                    if (anomalySet.has(opt.value)) {
                         if (!opt.text.includes('⚠️')) {
                             opt.text = '⚠️ ' + opt.text;
                             opt.style.color = '#FF8F00';
