@@ -428,6 +428,86 @@ button {
     overflow-x: hidden;
 }
 
+/* Special Bottom Chart Panel (Wide) */
+.bottom-chart-panel {
+    position: absolute;
+    left: calc(380px + 24px + 24px);
+    /* Sidebar width + margin + spacing */
+    right: 24px;
+    bottom: 24px;
+    height: 480px;
+    background: rgba(10, 11, 20, 0.85);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    padding: 16px 20px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+    transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+    border-top: 1px solid rgba(0, 210, 255, 0.2);
+}
+
+.chart-panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.chart-panel-header h3 {
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 13px;
+    letter-spacing: 0.1em;
+    color: var(--accent-orange);
+    margin: 0;
+}
+
+.chart-panel-controls {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.chart-instruction {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.4);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.close-panel-btn {
+    background: none;
+    border: none;
+    color: rgba(255, 255, 255, 0.5);
+    font-size: 22px;
+    cursor: pointer;
+    line-height: 1;
+    padding: 0 4px;
+    transition: color 0.2s;
+}
+
+.close-panel-btn:hover {
+    color: #fff;
+}
+
+.bottom-chart-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    position: relative;
+    min-height: 0;
+}
+
+.chart-wrapper {
+    flex: 1;
+    min-height: 0;
+    position: relative;
+}
+
 /* Map Controls (Top Right) */
 .map-controls-tr {
     position: absolute;
@@ -468,26 +548,19 @@ button {
 
 
 /* Legend */
-.legend-panel {
-    position: absolute;
-    bottom: 30px;
-    right: 24px;
-    z-index: 1000;
-    width: 300px;
-    padding: 16px;
-    border-radius: 12px;
-}
 
 .legend-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 12px;
+    margin-bottom: 6px;
 }
 
 .legend-header h3 {
-    font-size: 13px;
+    font-size: 11px;
+    font-weight: 600;
     color: #fff;
+    margin: 0;
 }
 
 .sensor-tag {
@@ -515,15 +588,18 @@ button {
 }
 
 .formula-display {
-    margin-top: 12px;
-    padding-top: 12px;
+    margin-top: 8px;
+    padding-top: 8px;
     border-top: 1px solid rgba(255, 255, 255, 0.05);
     font-family: var(--font-mono);
-    font-size: 11px;
+    font-size: 9px;
     text-align: center;
     color: var(--accent-blue);
-    letter-spacing: 0.05em;
+    letter-spacing: 0.02em;
+    opacity: 0.8;
 }
+
+
 
 /* ── Sidebar Controls ───────────────────────────────────── */
 .control-group {
@@ -1439,34 +1515,6 @@ option.opt-fusion {
     box-shadow: 0 0 8px var(--accent-blue);
 }
 
-.legend-panel {
-    position: absolute;
-    bottom: 30px;
-    right: 15px;
-    width: 280px;
-    background: rgba(10, 11, 20, 0.95);
-    border: 1px solid rgba(0, 210, 255, 0.3);
-    border-radius: 8px;
-    padding: 15px;
-    color: var(--text-color);
-    z-index: 1000;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
-    backdrop-filter: blur(10px);
-}
-
-#scientific-info-inset {
-    background: rgba(0, 0, 0, 0.3);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 6px;
-    padding: 10px;
-    margin-top: 10px;
-    display: block;
-}
-
-#formula-display {
-    display: none;
-    /* Hidden in favor of the inset display */
-}
 
 .tick-mark .tick-tooltip {
     position: absolute;

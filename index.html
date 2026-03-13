@@ -24,6 +24,11 @@
     <!-- Leaflet -->
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Leaflet Shim for old Plugins -->
+    <script>
+        L.Mixin = L.Mixin || {};
+        L.Mixin.Events = L.Mixin.Events || L.Evented.prototype;
+    </script>
     <!-- Leaflet Side-By-Side -->
     <script src="https://cdn.jsdelivr.net/gh/digidem/leaflet-side-by-side@2.0.0/leaflet-side-by-side.min.js"></script>
 
@@ -58,463 +63,472 @@
         <main class="map-container">
             <div id="map"></div>
 
-            <!-- Map Overlay Controls (Top Right) -->
-    </div> <!-- End of map-controls-tr -->
-    </main> <!-- End of map-container -->
-
-
-
-    <!-- Legend Overlay (Bottom Right) -->
-    <div class="legend-panel glass-panel">
-        <div class="legend-header">
-            <h3 id="active-index-name">Moisture Index (NDMI)</h3>
-            <span class="sensor-tag" id="sensor-tag-display">Sentinel-2 L2A</span>
-        </div>
-        <div id="scientific-info-inset"
-            style="background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 4px; padding: 10px; margin: 10px 0; font-size: 11px; line-height: 1.5; font-family: 'Space Grotesk', sans-serif;">
-            <div id="scientific-info-content">
-                <!-- Populated by updateUI() -->
+            <!-- Bottom Trend Chart Panel (Wide) -->
+            <div id="bottom-chart-panel" class="bottom-chart-panel" style="display: none;">
+                <div class="chart-panel-header">
+                    <h3>STATISTICAL TREND (AOI)</h3>
+                    <div class="chart-panel-controls">
+                        <span class="chart-instruction">Click data points to switch map vintage</span>
+                        <button class="close-panel-btn"
+                            onclick="document.getElementById('bottom-chart-panel').style.display='none'">×</button>
+                    </div>
+                </div>
+                <div class="bottom-chart-container">
+                    <div class="chart-wrapper">
+                        <div style="font-size: 10px; color: var(--accent-blue); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.05em;">Primary PW Detection</div>
+                        <canvas id="primaryTrendChart"></canvas>
+                    </div>
+                    <div class="chart-wrapper">
+                        <div style="font-size: 10px; color: var(--accent-orange); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.05em;">Secondary Effective / Forensic</div>
+                        <canvas id="secondaryTrendChart"></canvas>
+                    </div>
+                </div>
             </div>
-        </div>
-        <div class="legend-gradient" id="legend-gradient"></div>
-        <div class="legend-labels">
-            <span id="legend-min">High Stress</span>
-            <span id="legend-max">High Moisture</span>
-        </div>
-        <div id="formula-display" class="formula-display" style="display:none;">(B08 - B11) / (B08 + B11)</div>
-        <div class="visual-filter-container" id="visual-filter-container">
-            <label for="visual-filter-slider" class="filter-label">
-                Mask Below: <span id="visual-filter-val">Off</span>
-            </label>
-            <input type="range" id="visual-filter-slider" min="0" max="100" step="1" value="0">
-        </div>
-    </div>
 
-    <!-- Left Sidebar Panel -->
-    <aside class="sidebar glass-panel left-panel">
 
-        <!-- Header Title Overlay -->
-        <header class="app-header">
-            <div class="brand">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="12" cy="12" r="10" stroke="#00D2FF" stroke-width="2" opacity="0.8" />
-                    <path d="M12 6V18M6 12H18" stroke="#00D2FF" stroke-width="2" stroke-linecap="round" />
-                    <circle cx="12" cy="12" r="3" fill="#00D2FF" />
-                </svg>
-                <div>
-                    <h1>SENTINEL EXPLORER <span id="app-version-badge"
-                            style="font-size: 0.5em; font-weight: 500; font-family: 'JetBrains Mono', monospace; color: var(--text-muted); vertical-align: middle; background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px;">v48</span>
-                    </h1>
-                    <div style="display: flex; justify-content: space-between; align-items: center;">
-                        <h2>Well-Pad Environmental Analysis</h2>
-                        <a href="help.html" target="_blank" class="tool-btn"
-                            style="text-decoration: none; padding: 4px 10px; font-size: 10px; margin: 0; display: inline-flex; align-items: center; gap: 4px; background: rgba(0, 210, 255, 0.1); border-color: rgba(0, 210, 255, 0.3); color: #00D2FF;">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                stroke-width="2">
+            <!-- Map Overlay Controls (Top Right) -->
+            <div class="map-controls-tr">
+                <button class="layer-toggle active" data-layer="imagery">Imagery</button>
+                <button class="layer-toggle" data-layer="topo">Topo</button>
+                <button class="layer-toggle" data-layer="dark">Dark</button>
+                <button class="layer-toggle" data-layer="osm">OSM</button>
+            </div>
+        </main> <!-- End of map-container -->
+
+
+
+
+        <!-- Left Sidebar Panel -->
+        <aside class="sidebar glass-panel left-panel">
+
+            <!-- Header Title Overlay -->
+            <header class="app-header">
+                <div class="brand">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="12" cy="12" r="10" stroke="#00D2FF" stroke-width="2" opacity="0.8" />
+                        <path d="M12 6V18M6 12H18" stroke="#00D2FF" stroke-width="2" stroke-linecap="round" />
+                        <circle cx="12" cy="12" r="3" fill="#00D2FF" />
+                    </svg>
+                    <div>
+                        <h1>SENTINEL EXPLORER <span id="app-version-badge"
+                                style="font-size: 0.5em; font-weight: 500; font-family: 'JetBrains Mono', monospace; color: var(--text-muted); vertical-align: middle; background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px;">v48</span>
+                        </h1>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <h2>Well-Pad Environmental Analysis</h2>
+                            <a href="help.html" target="_blank" class="tool-btn"
+                                style="text-decoration: none; padding: 4px 10px; font-size: 10px; margin: 0; display: inline-flex; align-items: center; gap: 4px; background: rgba(0, 210, 255, 0.1); border-color: rgba(0, 210, 255, 0.3); color: #00D2FF;">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                    stroke-width="2">
+                                    <circle cx="12" cy="12" r="10"></circle>
+                                    <path d="M12 16v-4"></path>
+                                    <path d="M12 8h.01"></path>
+                                </svg>
+                                SCIENCE DOCS
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </header>
+
+            <section class="control-group">
+                <h3>Analysis Location</h3>
+                <div class="search-box" style="display: flex; gap: 8px; margin-bottom: 12px;">
+                    <input type="text" id="loc-search-input" placeholder="lat, lng OR place name..."
+                        style="flex: 1; padding: 6px 10px; border-radius: 4px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.3); color: var(--text-color); font-family: 'JetBrains Mono', monospace; font-size: 12px;">
+                    <button id="btn-search-loc" class="tool-btn"
+                        style="padding: 6px 12px; margin: 0; min-width: 60px;">GO</button>
+                </div>
+                <div class="location-picker">
+                    <button class="loc-btn active" data-loc="dixon">Hugh Dixon No.1-9</button>
+                    <button class="loc-btn" data-loc="rocker">Rocker B "B" 1</button>
+                    <button class="loc-btn" data-loc="sweatt">John W Sweatt 1</button>
+                </div>
+                <div class="coord-display">
+                    <span class="coord-label">LAT:</span> <span id="disp-lat">31.8933°</span>
+                    <span class="coord-label" style="margin-left: 10px;">LNG:</span> <span
+                        id="disp-lng">-101.8640°</span>
+                </div>
+            </section>
+
+            <section class="control-group">
+                <div class="index-suite-container suite-primary">
+                    <h3>Spill Detection Suite</h3>
+                    <div class="index-grid">
+                        <!-- Primary Target Indices — ordered by PW detection effectiveness -->
+                        <!-- Primary Detection Tools -->
+                        <button class="index-btn" data-index="hpwi">
+                            <div class="tag-container">
+                                <span class="radar-tag">📡 Radar</span>
+                            </div>
+                            <span class="index-short" style="color: #f1c40f;">HPWI</span>
+                            <span class="index-full" style="font-weight: 600;">Hydro-Optical Fusion</span>
+                        </button>
+                        <button class="index-btn" data-index="pwi">
+                            <span class="index-short"
+                                style="font-weight: bold; color: #00D2FF; text-shadow: 0 0 5px rgba(0, 210, 255, 0.5);">PWI</span>
+                            <span class="index-full">Produced Water Composite</span>
+                        </button>
+                        <button class="index-btn" data-index="lbi">
+                            <span class="index-short" style="color: #00D2FF;">LBI</span>
+                            <span class="index-full" style="font-weight: 600;">Liquid Brine Index</span>
+                        </button>
+                        <button class="index-btn" data-index="fbc">
+                            <span class="index-short" style="color: #FFB347;">FBC</span>
+                            <span class="index-full" style="font-weight: 600;">Iron-Brine Composite</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="index-suite-container suite-diagnostic">
+                    <h3>Diagnostic & Forensic</h3>
+                    <div class="index-grid">
+                        <button class="index-btn" data-index="vsi">
+                            <span class="index-short" style="color: #FFD700;">VSI</span>
+                            <span class="index-full" style="font-weight: 600;">Veg Stress Index</span>
+                        </button>
+                        <button class="index-btn" data-index="scri">
+                            <span class="index-short" style="color: #FF4500;">SCRI</span>
+                            <span class="index-full" style="font-weight: 600;">Salt Crust Roughness</span>
+                        </button>
+                        <button class="index-btn" data-index="tri">
+                            <span class="index-short" style="color: #9933ff;">TRI</span>
+                            <span class="index-full" style="font-weight: 600;">Toxic Residue Index</span>
+                        </button>
+                        <button class="index-btn" data-index="bpi">
+                            <span class="index-short" style="color: #00FFFF;">BPI</span>
+                            <span class="index-full" style="font-weight: 600;">Brine-Pavement Index</span>
+                        </button>
+                        <button class="index-btn" data-index="phi">
+                            <span class="index-short" style="color: #FFCC00;">PHI</span>
+                            <span class="index-full" style="font-weight: 600;">Petro-Hydrocarbon Index</span>
+                        </button>
+                        <button class="index-btn" data-index="cma">
+                            <span class="index-short" style="color: #AA88AA;">CMA</span>
+                            <span class="index-full" style="font-weight: 600;">Clay-Mineral Alteration</span>
+                        </button>
+                        <button class="index-btn" data-index="hmi">
+                            <span class="index-short" style="color: #00FFBB;">HMI</span>
+                            <span class="index-full" style="font-weight: 600;">Heavy Metal Interaction</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="index-suite-container suite-spectral">
+                    <h3>Spectral Components</h3>
+                    <div class="index-grid">
+                        <button class="index-btn" data-index="ndsi">
+                            <span class="index-short" style="color: #00FFFF;">NDSI</span>
+                            <span class="index-full" style="font-weight: 600;">Saline Content (Brine)</span>
+                        </button>
+                        <button class="index-btn" data-index="vcbi">
+                            <span class="index-short" style="color: #c8a000;">VCBI</span>
+                            <span class="index-full" style="font-weight: 600;">Veg-Confirmed Brine</span>
+                        </button>
+                        <button class="index-btn" data-index="bsi">
+                            <span class="index-short" style="color: #A07832;">BSI</span>
+                            <span class="index-full" style="font-weight: 600;">Bare Soil Index</span>
+                        </button>
+                        <button class="index-btn" data-index="reai">
+                            <span class="index-short" style="color: #e8c44a;">REAI</span>
+                            <span class="index-full" style="font-weight: 600;">Red Edge Alteration</span>
+                        </button>
+                        <button class="index-btn" data-index="aoi">
+                            <span class="index-short" style="color: #c0392b;">AOI</span>
+                            <span class="index-full">Anoxic Oxidation</span>
+                        </button>
+                        <button class="index-btn" data-index="crsi">
+                            <span class="index-short">CRSI</span>
+                            <span class="index-full">Salt Stress / Mortality</span>
+                        </button>
+                        <button class="index-btn" data-index="ehc">
+                            <span class="index-short"
+                                style="background: linear-gradient(to right, #e74c3c, #2ecc71, #3498db); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">EHC</span>
+                            <span class="index-full">Evaporite Halo</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Divider -->
+                <div style="height: 1px; background: rgba(255,255,255,0.1); margin: 24px 0 16px 0;"></div>
+
+                <div class="index-suite-container suite-standard">
+                    <h3>Standard Environmental Indices</h3>
+                    <div class="index-grid">
+                        <!-- Secondary / Standard Indices (Alphabetical) -->
+                        <button class="index-btn" data-index="s1_sar">
+                            <div class="tag-container">
+                                <span class="radar-tag">📡 Radar</span>
+                            </div>
+                            <span class="index-short">SAR</span>
+                            <span class="index-full">S1 VV/VH Radar</span>
+                        </button>
+                        <button class="index-btn" data-index="si">
+                            <span class="index-short">SI</span>
+                            <span class="index-full">Salinity / Crust</span>
+                        </button>
+                        <button class="index-btn" data-index="ndvi">
+                            <span class="index-short">NDVI</span>
+                            <span class="index-full">Vegetation Health</span>
+                        </button>
+                        <button class="index-btn" data-index="ndmi">
+                            <span class="index-short">NDMI</span>
+                            <span class="index-full">Moisture Stress</span>
+                        </button>
+                        <button class="index-btn" data-index="ndwi">
+                            <span class="index-short">NDWI</span>
+                            <span class="index-full">Wetness / Ponding</span>
+                        </button>
+                        <button class="index-btn" data-index="msi">
+                            <span class="index-short">MSI</span>
+                            <span class="index-full">Drought / Canopy</span>
+                        </button>
+                        <button class="index-btn" data-index="hcai">
+                            <span class="index-short">HCAI</span>
+                            <span class="index-full">Hydrocarbons</span>
+                        </button>
+                        <button class="index-btn" data-index="hmri">
+                            <span class="index-short">HMRI</span>
+                            <span class="index-full">Heavy Metals</span>
+                        </button>
+                        <button class="index-btn" data-index="ndoi">
+                            <span class="index-short">NDOI</span>
+                            <span class="index-full">Oil Slicks</span>
+                        </button>
+                        <button class="index-btn" data-index="csi">
+                            <span class="index-short">CSI</span>
+                            <span class="index-full">Contaminated Soil</span>
+                        </button>
+                        <button class="index-btn" data-index="savi">
+                            <span class="index-short">SAVI</span>
+                            <span class="index-full">Arid Vegetation</span>
+                        </button>
+                        <button class="index-btn" data-index="tc">
+                            <span class="index-short">TC</span>
+                            <span class="index-full">True Color</span>
+                        </button>
+                        <button class="index-btn" data-index="none">
+                            <span class="index-short">OFF</span>
+                            <span class="index-full">Hide Satellite</span>
+                        </button>
+                    </div>
+                </div>
+                <section class="control-group">
+                    <h3>Detection Sensitivity</h3>
+                    <div class="visual-filter-container"
+                        style="background: rgba(255,143,0,0.05); border: 1px solid rgba(255,143,0,0.1); border-radius: 8px; padding: 12px;">
+                        <div
+                            style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <label for="sensitivity-slider"
+                                style="font-size: 11px; font-weight: 600; color: var(--accent-orange); margin: 0;">
+                                Threshold Offset
+                            </label>
+                            <span id="sensitivity-val"
+                                style="font-family: var(--font-mono); font-size: 11px; color: var(--accent-orange);">Baseline</span>
+                        </div>
+                        <input type="range" id="sensitivity-slider" min="-50" max="50" step="1" value="0"
+                            style="width: 100%; accent-color: var(--accent-orange); cursor: pointer;">
+                        <div
+                            style="display: flex; justify-content: space-between; font-size: 9px; color: var(--text-dim); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.05em;">
+                            <span>Restrictive</span>
+                            <span>Aggressive</span>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="control-group">
+                    <h3>Basin Calibration</h3>
+                    <div class="basin-picker-container"
+                        style="background: rgba(0,210,255,0.05); border: 1px solid rgba(0,210,255,0.1); border-radius: 8px; padding: 12px;">
+                        <label for="basin-select"
+                            style="display: block; font-size: 11px; font-weight: 600; color: var(--accent-blue); margin-bottom: 8px; text-transform: uppercase;">
+                            Environmental Context
+                        </label>
+                        <select id="basin-select"
+                            style="width: 100%; padding: 6px; border-radius: 4px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.3); color: var(--text-color); font-family: 'JetBrains Mono', monospace; font-size: 12px; outline: none; cursor: pointer;">
+                            <option value="permian">Permian Basin (Arid)</option>
+                            <option value="standard">Standard (Temperate/Wet)</option>
+                        </select>
+                        <div style="font-size: 9px; color: var(--text-dim); margin-top: 8px; line-height: 1.3;">
+                            Adjusts BSI masks and spectral offsets for regional soil conditions.
+                        </div>
+                    </div>
+                </section>
+
+                <section class="control-group" id="temporal-controls">
+                    <h3>Temporal Window</h3>
+
+                    <div class="compare-toggle-box" style="margin-bottom: 16px;">
+                        <label
+                            style="display: block; font-size: 10px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; margin-bottom: 8px;">Analysis
+                            Mode</label>
+                        <div class="toggle-switch mode-toggle mode-switcher" style="margin-bottom: 0;">
+                            <button id="mode-single" class="mode-btn active" style="flex: 1;">Single Date</button>
+                            <button id="mode-compare" class="mode-btn" style="flex: 1;">Compare (Δ)</button>
+                        </div>
+                    </div>
+
+                    <!-- Single Mode Date Selector -->
+                    <div id="single-time-container">
+                        <div class="date-input-group">
+                            <label>Observation Date</label>
+                            <select id="date-single" class="date-picker date-dropdown"></select>
+                        </div>
+                        <div class="sensor-legend">
+                            <span>✧ S2</span> <span>△ L8</span> <span>✦ Fusion</span>
+                        </div>
+                    </div>
+
+                    <!-- Compare Mode Dates -->
+                    <div id="compare-dates-container" style="display: none;">
+                        <div class="date-input-group">
+                            <label>T1 (Before)</label>
+                            <select id="date-t1" class="date-picker date-dropdown"></select>
+                        </div>
+                        <div class="date-input-group mt-2">
+                            <label>T2 (After)</label>
+                            <select id="date-t2" class="date-picker date-dropdown"></select>
+                        </div>
+                        <div class="sensor-legend">
+                            <span>✧ S2</span> <span>△ L8</span> <span>✦ Fusion</span>
+                        </div>
+
+                        <div class="compare-toggle-box" style="margin-top: 16px;">
+                            <label
+                                style="display: block; font-size: 10px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; margin-bottom: 8px;">Compare
+                                Layout</label>
+                            <div class="toggle-switch mode-toggle" id="compare-type-toggle">
+                                <button id="btn-swipe" class="active"
+                                    data-tooltip="Standard side-by-side comparison with a vertical slider.">Swipe</button>
+                                <button id="btn-diff"
+                                    data-tooltip="Renders a heatmap showing the mathematical difference (After - Before). Red = Loss/Decrease, Blue = Gain/Increase.">Diff
+                                    (∆)</button>
+                                <button id="btn-cumulative"
+                                    data-tooltip="Aggregates ALL scenes within the date range and displays the maximum detection value found at each pixel. Ideal for tracking spill footprints over time.">Cumulative</button>
+                            </div>
+                            <div id="diff-legend" style="margin-top: 12px; display: none;">
+                                <div
+                                    style="display: flex; justify-content: space-between; font-size: 10px; color: var(--text-muted); margin-bottom: 4px;">
+                                    <span id="diff-label-neg">Decrease / Loss</span>
+                                    <span>No Change</span>
+                                    <span id="diff-label-pos">Increase / Gain</span>
+                                </div>
+                                <div
+                                    style="height: 6px; border-radius: 3px; background: linear-gradient(to right, #FF3333, #333333, #33AAFF); width: 100%;">
+                                </div>
+                            </div>
+                        </div>
+                </section>
+
+                <section class="control-group">
+                    <h3>Advanced Data Fusion</h3>
+                    <div
+                        style="display: flex; align-items: center; justify-content: space-between; padding: 10px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); border-radius: 6px; margin-bottom: 8px;">
+                        <div class="tooltip-wrapper right-align" style="display: flex; align-items: center; gap: 8px;">
+                            <label for="toggle-sar-fusion"
+                                style="font-size: 11px; font-weight: 600; color: var(--text-color); margin: 0; cursor: pointer;">Enable
+                                Visual SAR Overlay</label>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)"
+                                stroke-width="2" style="cursor: help;">
                                 <circle cx="12" cy="12" r="10"></circle>
                                 <path d="M12 16v-4"></path>
                                 <path d="M12 8h.01"></path>
                             </svg>
-                            SCIENCE DOCS
-                        </a>
+                            <span class="tooltip-text" style="width: 250px;">Overlays Sentinel-1 radar backscatter as a
+                                transparent layer over optical data.</span>
+                        </div>
+                        <input type="checkbox" id="toggle-sar-fusion"
+                            style="cursor: pointer; width: 16px; height: 16px;">
                     </div>
-                </div>
-            </div>
-        </header>
 
-        <section class="control-group">
-            <h3>Analysis Location</h3>
-            <div class="search-box" style="display: flex; gap: 8px; margin-bottom: 12px;">
-                <input type="text" id="loc-search-input" placeholder="lat, lng OR place name..."
-                    style="flex: 1; padding: 6px 10px; border-radius: 4px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.3); color: var(--text-color); font-family: 'JetBrains Mono', monospace; font-size: 12px;">
-                <button id="btn-search-loc" class="tool-btn"
-                    style="padding: 6px 12px; margin: 0; min-width: 60px;">GO</button>
-            </div>
-            <div class="location-picker">
-                <button class="loc-btn active" data-loc="dixon">Hugh Dixon No.1-9</button>
-                <button class="loc-btn" data-loc="rocker">Rocker B "B" 1</button>
-                <button class="loc-btn" data-loc="sweatt">John W Sweatt 1</button>
-            </div>
-            <div class="coord-display">
-                <span class="coord-label">LAT:</span> <span id="disp-lat">31.8933°</span>
-                <span class="coord-label" style="margin-left: 10px;">LNG:</span> <span id="disp-lng">-101.8640°</span>
-            </div>
-        </section>
-
-        <section class="control-group">
-            <div class="index-suite-container suite-primary">
-                <h3>Spill Detection Suite</h3>
-                <div class="index-grid">
-                    <!-- Primary Target Indices — ordered by PW detection effectiveness -->
-                    <!-- Primary Detection Tools -->
-                    <button class="index-btn" data-index="hpwi">
-                        <div class="tag-container">
-                            <span class="radar-tag">📡 Radar</span>
-                        </div>
-                        <span class="index-short" style="color: #f1c40f;">HPWI</span>
-                        <span class="index-full" style="font-weight: 600;">Hydro-Optical Fusion</span>
-                    </button>
-                    <button class="index-btn" data-index="pwi">
-                        <span class="index-short"
-                            style="font-weight: bold; color: #00D2FF; text-shadow: 0 0 5px rgba(0, 210, 255, 0.5);">PWI</span>
-                        <span class="index-full">Produced Water Composite</span>
-                    </button>
-                    <button class="index-btn" data-index="lbi">
-                        <span class="index-short" style="color: #00D2FF;">LBI</span>
-                        <span class="index-full" style="font-weight: 600;">Liquid Brine Index</span>
-                    </button>
-                    <button class="index-btn" data-index="fbc">
-                        <span class="index-short" style="color: #FFB347;">FBC</span>
-                        <span class="index-full" style="font-weight: 600;">Iron-Brine Composite</span>
-                    </button>
-                </div>
-            </div>
-
-            <div class="index-suite-container suite-diagnostic">
-                <h3>Diagnostic & Forensic</h3>
-                <div class="index-grid">
-                    <button class="index-btn" data-index="vsi">
-                        <span class="index-short" style="color: #FFD700;">VSI</span>
-                        <span class="index-full" style="font-weight: 600;">Veg Stress Index</span>
-                    </button>
-                    <button class="index-btn" data-index="scri">
-                        <span class="index-short" style="color: #FF4500;">SCRI</span>
-                        <span class="index-full" style="font-weight: 600;">Salt Crust Roughness</span>
-                    </button>
-                    <button class="index-btn" data-index="tri">
-                        <span class="index-short" style="color: #9933ff;">TRI</span>
-                        <span class="index-full" style="font-weight: 600;">Toxic Residue Index</span>
-                    </button>
-                    <button class="index-btn" data-index="bpi">
-                        <span class="index-short" style="color: #00FFFF;">BPI</span>
-                        <span class="index-full" style="font-weight: 600;">Brine-Pavement Index</span>
-                    </button>
-                    <button class="index-btn" data-index="phi">
-                        <span class="index-short" style="color: #FFCC00;">PHI</span>
-                        <span class="index-full" style="font-weight: 600;">Petro-Hydrocarbon Index</span>
-                    </button>
-                    <button class="index-btn" data-index="cma">
-                        <span class="index-short" style="color: #AA88AA;">CMA</span>
-                        <span class="index-full" style="font-weight: 600;">Clay-Mineral Alteration</span>
-                    </button>
-                    <button class="index-btn" data-index="hmi">
-                        <span class="index-short" style="color: #00FFBB;">HMI</span>
-                        <span class="index-full" style="font-weight: 600;">Heavy Metal Interaction</span>
-                    </button>
-                </div>
-            </div>
-
-            <div class="index-suite-container suite-spectral">
-                <h3>Spectral Components</h3>
-                <div class="index-grid">
-                    <button class="index-btn" data-index="ndsi">
-                        <span class="index-short" style="color: #00FFFF;">NDSI</span>
-                        <span class="index-full" style="font-weight: 600;">Saline Content (Brine)</span>
-                    </button>
-                    <button class="index-btn" data-index="vcbi">
-                        <span class="index-short" style="color: #c8a000;">VCBI</span>
-                        <span class="index-full" style="font-weight: 600;">Veg-Confirmed Brine</span>
-                    </button>
-                    <button class="index-btn" data-index="bsi">
-                        <span class="index-short" style="color: #A07832;">BSI</span>
-                        <span class="index-full" style="font-weight: 600;">Bare Soil Index</span>
-                    </button>
-                    <button class="index-btn" data-index="reai">
-                        <span class="index-short" style="color: #e8c44a;">REAI</span>
-                        <span class="index-full" style="font-weight: 600;">Red Edge Alteration</span>
-                    </button>
-                    <button class="index-btn" data-index="aoi">
-                        <span class="index-short" style="color: #c0392b;">AOI</span>
-                        <span class="index-full">Anoxic Oxidation</span>
-                    </button>
-                    <button class="index-btn" data-index="crsi">
-                        <span class="index-short">CRSI</span>
-                        <span class="index-full">Salt Stress / Mortality</span>
-                    </button>
-                    <button class="index-btn" data-index="ehc">
-                        <span class="index-short"
-                            style="background: linear-gradient(to right, #e74c3c, #2ecc71, #3498db); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">EHC</span>
-                        <span class="index-full">Evaporite Halo</span>
-                    </button>
-                </div>
-            </div>
-
-            <!-- Divider -->
-            <div style="height: 1px; background: rgba(255,255,255,0.1); margin: 24px 0 16px 0;"></div>
-
-            <div class="index-suite-container suite-standard">
-                <h3>Standard Environmental Indices</h3>
-                <div class="index-grid">
-                    <!-- Secondary / Standard Indices (Alphabetical) -->
-                    <button class="index-btn" data-index="s1_sar">
-                        <div class="tag-container">
-                            <span class="radar-tag">📡 Radar</span>
-                        </div>
-                        <span class="index-short">SAR</span>
-                        <span class="index-full">S1 VV/VH Radar</span>
-                    </button>
-                    <button class="index-btn" data-index="si">
-                        <span class="index-short">SI</span>
-                        <span class="index-full">Salinity / Crust</span>
-                    </button>
-                    <button class="index-btn" data-index="ndvi">
-                        <span class="index-short">NDVI</span>
-                        <span class="index-full">Vegetation Health</span>
-                    </button>
-                    <button class="index-btn" data-index="ndmi">
-                        <span class="index-short">NDMI</span>
-                        <span class="index-full">Moisture Stress</span>
-                    </button>
-                    <button class="index-btn" data-index="ndwi">
-                        <span class="index-short">NDWI</span>
-                        <span class="index-full">Wetness / Ponding</span>
-                    </button>
-                    <button class="index-btn" data-index="msi">
-                        <span class="index-short">MSI</span>
-                        <span class="index-full">Drought / Canopy</span>
-                    </button>
-                    <button class="index-btn" data-index="hcai">
-                        <span class="index-short">HCAI</span>
-                        <span class="index-full">Hydrocarbons</span>
-                    </button>
-                    <button class="index-btn" data-index="hmri">
-                        <span class="index-short">HMRI</span>
-                        <span class="index-full">Heavy Metals</span>
-                    </button>
-                    <button class="index-btn" data-index="ndoi">
-                        <span class="index-short">NDOI</span>
-                        <span class="index-full">Oil Slicks</span>
-                    </button>
-                    <button class="index-btn" data-index="csi">
-                        <span class="index-short">CSI</span>
-                        <span class="index-full">Contaminated Soil</span>
-                    </button>
-                    <button class="index-btn" data-index="savi">
-                        <span class="index-short">SAVI</span>
-                        <span class="index-full">Arid Vegetation</span>
-                    </button>
-                    <button class="index-btn" data-index="tc">
-                        <span class="index-short">TC</span>
-                        <span class="index-full">True Color</span>
-                    </button>
-                    <button class="index-btn" data-index="none">
-                        <span class="index-short">OFF</span>
-                        <span class="index-full">Hide Satellite</span>
-                    </button>
-                </div>
-            </div>
-            <section class="control-group">
-                <h3>Detection Sensitivity</h3>
-                <div class="visual-filter-container"
-                    style="background: rgba(255,143,0,0.05); border: 1px solid rgba(255,143,0,0.1); border-radius: 8px; padding: 12px;">
                     <div
-                        style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                        <label for="sensitivity-slider"
-                            style="font-size: 11px; font-weight: 600; color: var(--accent-orange); margin: 0;">
-                            Threshold Offset
-                        </label>
-                        <span id="sensitivity-val"
-                            style="font-family: var(--font-mono); font-size: 11px; color: var(--accent-orange);">Baseline</span>
+                        style="display: flex; align-items: center; justify-content: space-between; padding: 10px; background: rgba(0,210,255,0.05); border: 1px solid rgba(0,210,255,0.2); border-radius: 6px; margin-bottom: 8px;">
+                        <div class="tooltip-wrapper right-align" style="display: flex; align-items: center; gap: 8px;">
+                            <label for="toggle-hls-temporal"
+                                style="font-size: 11px; font-weight: 600; color: #00D2FF; margin: 0; cursor: pointer;">NASA
+                                HLS Temporal Booster</label>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#00D2FF"
+                                stroke-width="2" style="cursor: help;">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <path d="M12 16v-4"></path>
+                                <path d="M12 8h.01"></path>
+                            </svg>
+                            <span class="tooltip-text" style="width: 250px;">Integrates NASA Harmonized Landsat
+                                Sentinel-2
+                                data to increase revisit frequency to ~2.5 days. Closes the gap between pure Sentinel-2
+                                passes.</span>
+                        </div>
+                        <input type="checkbox" id="toggle-hls-temporal"
+                            style="cursor: pointer; width: 16px; height: 16px;">
                     </div>
-                    <input type="range" id="sensitivity-slider" min="-50" max="50" step="1" value="0"
-                        style="width: 100%; accent-color: var(--accent-orange); cursor: pointer;">
+
                     <div
-                        style="display: flex; justify-content: space-between; font-size: 9px; color: var(--text-dim); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.05em;">
-                        <span>Restrictive</span>
-                        <span>Aggressive</span>
-                    </div>
-                </div>
-            </section>
-
-            <section class="control-group">
-                <h3>Basin Calibration</h3>
-                <div class="basin-picker-container"
-                    style="background: rgba(0,210,255,0.05); border: 1px solid rgba(0,210,255,0.1); border-radius: 8px; padding: 12px;">
-                    <label for="basin-select"
-                        style="display: block; font-size: 11px; font-weight: 600; color: var(--accent-blue); margin-bottom: 8px; text-transform: uppercase;">
-                        Environmental Context
-                    </label>
-                    <select id="basin-select"
-                        style="width: 100%; padding: 6px; border-radius: 4px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.3); color: var(--text-color); font-family: 'JetBrains Mono', monospace; font-size: 12px; outline: none; cursor: pointer;">
-                        <option value="permian">Permian Basin (Arid)</option>
-                        <option value="standard">Standard (Temperate/Wet)</option>
-                    </select>
-                    <div style="font-size: 9px; color: var(--text-dim); margin-top: 8px; line-height: 1.3;">
-                        Adjusts BSI masks and spectral offsets for regional soil conditions.
-                    </div>
-                </div>
-            </section>
-
-            <section class="control-group" id="temporal-controls">
-                <h3>Temporal Window</h3>
-
-                <div class="compare-toggle-box" style="margin-bottom: 16px;">
-                    <label
-                        style="display: block; font-size: 10px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; margin-bottom: 8px;">Analysis
-                        Mode</label>
-                    <div class="toggle-switch mode-toggle mode-switcher" style="margin-bottom: 0;">
-                        <button id="mode-single" class="mode-btn active" style="flex: 1;">Single Date</button>
-                        <button id="mode-compare" class="mode-btn" style="flex: 1;">Compare (Δ)</button>
-                    </div>
-                </div>
-
-                <!-- Single Mode Date Selector -->
-                <div id="single-time-container">
-                    <div class="date-input-group">
-                        <label>Observation Date</label>
-                        <select id="date-single" class="date-picker date-dropdown"></select>
-                    </div>
-                    <div class="sensor-legend">
-                        <span>✧ S2</span> <span>△ L8</span> <span>✦ Fusion</span>
-                    </div>
-                </div>
-
-                <!-- Compare Mode Dates -->
-                <div id="compare-dates-container" style="display: none;">
-                    <div class="date-input-group">
-                        <label>T1 (Before)</label>
-                        <select id="date-t1" class="date-picker date-dropdown"></select>
-                    </div>
-                    <div class="date-input-group mt-2">
-                        <label>T2 (After)</label>
-                        <select id="date-t2" class="date-picker date-dropdown"></select>
-                    </div>
-                    <div class="sensor-legend">
-                        <span>✧ S2</span> <span>△ L8</span> <span>✦ Fusion</span>
-                    </div>
-
-                    <div class="compare-toggle-box" style="margin-top: 16px;">
-                        <label
-                            style="display: block; font-size: 10px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; margin-bottom: 8px;">Compare
-                            Layout</label>
-                        <div class="toggle-switch mode-toggle" id="compare-type-toggle">
-                            <button id="btn-swipe" class="active"
-                                data-tooltip="Standard side-by-side comparison with a vertical slider.">Swipe</button>
-                            <button id="btn-diff"
-                                data-tooltip="Renders a heatmap showing the mathematical difference (After - Before). Red = Loss/Decrease, Blue = Gain/Increase.">Diff
-                                (∆)</button>
-                            <button id="btn-cumulative"
-                                data-tooltip="Aggregates ALL scenes within the date range and displays the maximum detection value found at each pixel. Ideal for tracking spill footprints over time.">Cumulative</button>
+                        style="display: flex; align-items: center; justify-content: space-between; padding: 10px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); border-radius: 6px;">
+                        <div class="tooltip-wrapper right-align" style="display: flex; align-items: center; gap: 8px;">
+                            <label for="toggle-deep-fusion"
+                                style="font-size: 11px; font-weight: 600; color: var(--text-color); margin: 0; cursor: pointer;">Enable
+                                Deep Fusion (HPWI 2.0)</label>
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)"
+                                stroke-width="2" style="cursor: help;">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <path d="M12 16v-4"></path>
+                                <path d="M12 8h.01"></path>
+                            </svg>
+                            <span class="tooltip-text" style="width: 250px;">Exclusive high-precision engine for HPWI.
+                                Requires BOTH physical radar smoothness (S1) and chemical signatures (S2) to trigger.
+                                High
+                                false-positive rejection.</span>
                         </div>
-                        <div id="diff-legend" style="margin-top: 12px; display: none;">
-                            <div
-                                style="display: flex; justify-content: space-between; font-size: 10px; color: var(--text-muted); margin-bottom: 4px;">
-                                <span id="diff-label-neg">Decrease / Loss</span>
-                                <span>No Change</span>
-                                <span id="diff-label-pos">Increase / Gain</span>
-                            </div>
-                            <div
-                                style="height: 6px; border-radius: 3px; background: linear-gradient(to right, #FF3333, #333333, #33AAFF); width: 100%;">
-                            </div>
+                        <input type="checkbox" id="toggle-deep-fusion"
+                            style="cursor: pointer; width: 16px; height: 16px;">
+                    </div>
+                </section>
+
+                <section class="control-group" id="overlay-controls">
+                    <h3>Ground Truth Overlays</h3>
+                    <div class="overlay-toggle-row" id="overlay-rrc-row">
+                        <div style="display: flex; align-items: flex-start; gap: 10px;">
+                            <label class="overlay-toggle-label" for="toggle-rrc-spills">
+                                <span class="overlay-dot" style="background: #FF6B35;"></span>
+                                <span>
+                                    <strong>RRC Spill Incidents</strong>
+                                    <span class="overlay-sub">TX Railroad Commission — Permian Basin</span>
+                                </span>
+                            </label>
+                            <input type="checkbox" id="toggle-rrc-spills" class="overlay-checkbox"
+                                style="margin-top: 3px; cursor: pointer; min-width: 16px; height: 16px; accent-color: #FF6B35;">
                         </div>
+                        <div id="rrc-spill-count" class="overlay-badge" style="display:none;"></div>
                     </div>
-            </section>
+                </section>
 
-            <section class="control-group">
-                <h3>Advanced Data Fusion</h3>
-                <div
-                    style="display: flex; align-items: center; justify-content: space-between; padding: 10px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); border-radius: 6px; margin-bottom: 8px;">
-                    <div class="tooltip-wrapper right-align" style="display: flex; align-items: center; gap: 8px;">
-                        <label for="toggle-sar-fusion"
-                            style="font-size: 11px; font-weight: 600; color: var(--text-color); margin: 0; cursor: pointer;">Enable
-                            Visual SAR Overlay</label>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)"
-                            stroke-width="2" style="cursor: help;">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <path d="M12 16v-4"></path>
-                            <path d="M12 8h.01"></path>
-                        </svg>
-                        <span class="tooltip-text" style="width: 250px;">Overlays Sentinel-1 radar backscatter as a
-                            transparent layer over optical data.</span>
+                <section class="control-group op-control">
+                    <h3>Index Opacity</h3>
+                    <div class="slider-wrapper">
+                        <div class="slider-track-bg"></div>
+                        <div class="slider-track-fill" id="opacity-slider-fill" style="width: 85%;"></div>
+                        <input type="range" class="slider custom-slider" id="opacity-slider" min="0" max="100"
+                            value="85">
                     </div>
-                    <input type="checkbox" id="toggle-sar-fusion" style="cursor: pointer; width: 16px; height: 16px;">
-                </div>
+                </section>
 
-                <div
-                    style="display: flex; align-items: center; justify-content: space-between; padding: 10px; background: rgba(0,210,255,0.05); border: 1px solid rgba(0,210,255,0.2); border-radius: 6px; margin-bottom: 8px;">
-                    <div class="tooltip-wrapper right-align" style="display: flex; align-items: center; gap: 8px;">
-                        <label for="toggle-hls-temporal"
-                            style="font-size: 11px; font-weight: 600; color: #00D2FF; margin: 0; cursor: pointer;">NASA
-                            HLS Temporal Booster</label>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#00D2FF" stroke-width="2"
-                            style="cursor: help;">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <path d="M12 16v-4"></path>
-                            <path d="M12 8h.01"></path>
-                        </svg>
-                        <span class="tooltip-text" style="width: 250px;">Integrates NASA Harmonized Landsat
-                            Sentinel-2
-                            data to increase revisit frequency to ~2.5 days. Closes the gap between pure Sentinel-2
-                            passes.</span>
+                <section class="control-group">
+                    <h3>Diagnostic Tools</h3>
+                    <div style="display: flex; gap: 8px;">
+                        <button id="btn-draw-aoi" class="tool-btn" style="flex: 1;">Draw Rectangle</button>
+                        <button id="btn-draw-poly" class="tool-btn" style="flex: 1;">Draw Polygon</button>
                     </div>
-                    <input type="checkbox" id="toggle-hls-temporal" style="cursor: pointer; width: 16px; height: 16px;">
-                </div>
-
-                <div
-                    style="display: flex; align-items: center; justify-content: space-between; padding: 10px; background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); border-radius: 6px;">
-                    <div class="tooltip-wrapper right-align" style="display: flex; align-items: center; gap: 8px;">
-                        <label for="toggle-deep-fusion"
-                            style="font-size: 11px; font-weight: 600; color: var(--text-color); margin: 0; cursor: pointer;">Enable
-                            Deep Fusion (HPWI 2.0)</label>
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)"
-                            stroke-width="2" style="cursor: help;">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <path d="M12 16v-4"></path>
-                            <path d="M12 8h.01"></path>
-                        </svg>
-                        <span class="tooltip-text" style="width: 250px;">Exclusive high-precision engine for HPWI.
-                            Requires BOTH physical radar smoothness (S1) and chemical signatures (S2) to trigger. High
-                            false-positive rejection.</span>
-                    </div>
-                    <input type="checkbox" id="toggle-deep-fusion" style="cursor: pointer; width: 16px; height: 16px;">
-                </div>
-            </section>
-
-            <section class="control-group" id="overlay-controls">
-                <h3>Ground Truth Overlays</h3>
-                <div class="overlay-toggle-row" id="overlay-rrc-row">
-                    <div style="display: flex; align-items: flex-start; gap: 10px;">
-                        <label class="overlay-toggle-label" for="toggle-rrc-spills">
-                            <span class="overlay-dot" style="background: #FF6B35;"></span>
-                            <span>
-                                <strong>RRC Spill Incidents</strong>
-                                <span class="overlay-sub">TX Railroad Commission — Permian Basin</span>
-                            </span>
-                        </label>
-                        <input type="checkbox" id="toggle-rrc-spills" class="overlay-checkbox"
-                            style="margin-top: 3px; cursor: pointer; min-width: 16px; height: 16px; accent-color: #FF6B35;">
-                    </div>
-                    <div id="rrc-spill-count" class="overlay-badge" style="display:none;"></div>
-                </div>
-            </section>
-
-            <section class="control-group op-control">
-                <h3>Index Opacity</h3>
-                <div class="slider-wrapper">
-                    <div class="slider-track-bg"></div>
-                    <div class="slider-track-fill" id="opacity-slider-fill" style="width: 85%;"></div>
-                    <input type="range" class="slider custom-slider" id="opacity-slider" min="0" max="100" value="85">
-                </div>
-            </section>
-
-            <section class="control-group">
-                <h3>Diagnostic Tools</h3>
-                <div style="display: flex; gap: 8px;">
-                    <button id="btn-draw-aoi" class="tool-btn" style="flex: 1;">Draw Rectangle</button>
-                    <button id="btn-draw-poly" class="tool-btn" style="flex: 1;">Draw Polygon</button>
-                </div>
-                <button id="btn-scan-aoi" class="tool-btn mt-2"
-                    style="width: 100%; border-color: var(--accent-orange); color: var(--accent-orange);">
-                    Scan AOI for Anomalies (1YR)
-                </button>
-                <button id="btn-generate-report" class="tool-btn mt-2" disabled style="width: 100%;">Generate
-                    Selected
-                    Report</button>
-            </section>
+                    <button id="btn-scan-aoi" class="tool-btn mt-2"
+                        style="width: 100%; border-color: var(--accent-orange); color: var(--accent-orange);">
+                        Scan AOI for Anomalies (1YR)
+                    </button>
+                    <button id="btn-generate-report" class="tool-btn mt-2" disabled style="width: 100%;">Generate
+                        Selected
+                        Report</button>
+                </section>
 
 
 
-    </aside>
+        </aside>
 
 
 
