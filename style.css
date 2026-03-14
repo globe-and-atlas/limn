@@ -2381,3 +2381,440 @@ input[type=range]::-webkit-slider-runnable-track {
     border-radius: 4px;
     padding: 8px;
 }
+
+
+/* ==========================================================================
+   Accessibility Utilities
+   ========================================================================== */
+.sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+}
+
+
+/* ==========================================================================
+   Inline-Style Replacement Classes
+   ========================================================================== */
+
+/* Version badge inside the h1 header */
+.version-badge {
+    font-size: 0.5em;
+    font-weight: 500;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--text-muted);
+    vertical-align: middle;
+    background: rgba(255,255,255,0.05);
+    padding: 2px 6px;
+    border-radius: 4px;
+}
+
+/* Subtitle row with space-between flex */
+.subtitle-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+/* Science docs link button */
+.help-link {
+    text-decoration: none;
+    padding: 4px 10px;
+    font-size: 10px;
+    margin: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(0, 210, 255, 0.1);
+    border-color: rgba(0, 210, 255, 0.3);
+    color: #00D2FF;
+}
+
+/* Search box layout */
+.search-box {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+/* Search input styling */
+.search-input {
+    flex: 1;
+    padding: 6px 10px;
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+    background: rgba(0,0,0,0.3);
+    color: var(--text-color);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+}
+
+/* Search GO button */
+.search-btn {
+    padding: 6px 12px;
+    margin: 0;
+    min-width: 60px;
+}
+
+/* Chart section label (top of chart columns) */
+.chart-section-label {
+    font-size: 10px;
+    color: var(--accent-blue);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+.chart-section-label--secondary {
+    font-size: 10px;
+    color: var(--accent-orange);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Index short label colors (via CSS custom property) */
+.index-short[data-color] { color: attr(data-color); }
+.idx-hpwi .index-short { color: #f1c40f; }
+.idx-pwi .index-short { color: #00D2FF; font-weight: bold; text-shadow: 0 0 5px rgba(0, 210, 255, 0.5); }
+.idx-lbi .index-short { color: #00D2FF; }
+.idx-fbc .index-short { color: #FFB347; }
+.idx-vsi .index-short { color: #FFD700; }
+.idx-scri .index-short { color: #FF4500; }
+.idx-tri .index-short { color: #9933ff; }
+.idx-bpi .index-short { color: #00FFFF; }
+.idx-phi .index-short { color: #FFCC00; }
+.idx-cma .index-short { color: #AA88AA; }
+.idx-hmi .index-short { color: #00FFBB; }
+.idx-ndsi .index-short { color: #00FFFF; }
+.idx-vcbi .index-short { color: #c8a000; }
+.idx-bsi .index-short { color: #A07832; }
+.idx-reai .index-short { color: #e8c44a; }
+.idx-aoi .index-short { color: #c0392b; }
+.idx-none .index-short { color: #888; }
+.idx-ehc .index-short {
+    background: linear-gradient(to right, #e74c3c, #2ecc71, #3498db);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* Bold index full name */
+.index-full-bold { font-weight: 600; }
+
+/* "OFF" button */
+.index-btn--off { opacity: 0.6; }
+
+/* Section divider */
+.section-divider {
+    height: 1px;
+    background: rgba(255,255,255,0.1);
+    margin: 24px 0 16px 0;
+}
+
+/* Settings label */
+.settings-label {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--accent-blue);
+    margin-bottom: 8px;
+    text-transform: uppercase;
+}
+
+/* Settings description text */
+.settings-desc {
+    font-size: 9px;
+    color: var(--text-dim);
+    margin-top: 8px;
+    line-height: 1.3;
+}
+
+/* Settings select dropdown */
+.settings-select {
+    width: 100%;
+    padding: 6px;
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+    background: rgba(0,0,0,0.3);
+    color: var(--text-color);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    outline: none;
+    cursor: pointer;
+}
+
+/* Compare toggle label */
+.compare-label {
+    display: block;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+}
+
+/* Sensitivity header row */
+.sensitivity-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+.sensitivity-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--accent-orange);
+    margin: 0;
+}
+.sensitivity-val {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--accent-orange);
+}
+
+/* Sensitivity slider */
+.sensitivity-slider {
+    width: 100%;
+    accent-color: var(--accent-orange);
+    cursor: pointer;
+}
+
+/* Sensitivity tick labels */
+.sensitivity-ticks {
+    display: flex;
+    justify-content: space-between;
+    font-size: 9px;
+    color: var(--text-dim);
+    margin-top: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Overlay toggle layout */
+.overlay-flex {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+/* Overlay dot color */
+.overlay-dot--orange { background: #FF6B35; }
+
+/* Overlay checkbox */
+.overlay-checkbox-styled {
+    margin-top: 3px;
+    cursor: pointer;
+    min-width: 16px;
+    height: 16px;
+    accent-color: #FF6B35;
+}
+
+/* Tool button flex row */
+.tool-btn-row {
+    display: flex;
+    gap: 8px;
+}
+.tool-btn--flex { flex: 1; }
+
+/* Scan AOI button orange */
+.tool-btn--scan {
+    width: 100%;
+    border-color: var(--accent-orange);
+    color: var(--accent-orange);
+}
+
+/* Report modal map containers */
+.report-map-full { display: none; }
+.report-side-maps {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+    height: 250px;
+    display: none;
+}
+.report-map-half {
+    flex: 1;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+.report-diff-map {
+    width: 100%;
+    height: 350px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+/* Report flex header rows */
+.report-flex-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.report-flex-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.report-h3-inline { margin: 0; }
+.report-h3-orange { color: var(--accent-orange); }
+
+/* Report panel box */
+.report-panel-box {
+    margin-top: 15px;
+    padding: 15px;
+    background: rgba(0,0,0,0.3);
+    border-radius: 6px;
+    border: 1px solid rgba(255,255,255,0.05);
+    display: none;
+}
+
+/* Report panel titles */
+.report-panel-title {
+    margin: 0 0 10px 0;
+    font-size: 13px;
+    text-transform: uppercase;
+}
+.report-panel-title--orange { color: var(--accent-orange); }
+.report-panel-title--blue { color: var(--accent-blue); }
+
+/* Report panel title with icon */
+.report-panel-title--flex {
+    margin: 0 0 10px 0;
+    color: var(--accent-orange);
+    font-size: 13px;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* Metric events text */
+.metric-events-text {
+    font-size: 13px;
+    color: var(--text-color);
+    line-height: 1.6;
+}
+
+/* Metadata grid */
+.metadata-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+/* Anomaly screenshots grid */
+.anomaly-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+/* GIF section */
+.gif-section {
+    display: none;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255, 255, 255, 0.05);
+}
+.gif-section-title {
+    font-size: 12px;
+    color: var(--accent-blue);
+    margin: 0 0 12px 0;
+    text-transform: uppercase;
+}
+.gif-loader {
+    color: var(--accent-blue);
+    font-size: 12px;
+    padding: 20px;
+    text-align: center;
+    font-family: var(--font-mono);
+}
+.gif-box {
+    text-align: center;
+    margin-bottom: 15px;
+    background: rgba(0, 0, 0, 0.2);
+    border-radius: 6px;
+    padding: 16px;
+    display: none;
+}
+.gif-box--index { border: 1px solid rgba(255, 140, 0, 0.15); }
+.gif-box--diff  { border: 1px solid rgba(255, 255, 255, 0.05); }
+.gif-box-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+}
+.gif-box-title {
+    margin: 0;
+    font-size: 13px;
+}
+.gif-box-title--index { color: #FF8F00; }
+.gif-box-title--diff  { color: #aaa; }
+.gif-result { max-width: 100%; border-radius: 6px; }
+.gif-actions { margin-top: 10px; }
+.gif-download-btn {
+    text-decoration: none;
+    display: inline-block;
+    cursor: pointer;
+    font-size: 11px;
+}
+
+/* Trendline toggle row */
+.trendline-toggle-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.trendline-label {
+    font-size: 13px;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-family: 'Space Grotesk', sans-serif;
+}
+
+/* Tooltip text inside report */
+.tooltip-text--report {
+    width: 280px;
+    font-weight: 400;
+    font-size: 11px;
+    text-transform: none;
+    color: #fff;
+}
+
+/* Tooltip help icon */
+.tooltip-icon {
+    cursor: help;
+    opacity: 0.7;
+}
+
+/* Mode buttons */
+.mode-btn--flex { flex: 1; }
+
+/* LNG coord spacing */
+.coord-label--lng { margin-left: 10px; }
+
+.w-full { width: 100%; }
+.display-flex-inline { display: inline-flex; }
+.text-muted { color: var(--text-muted); }

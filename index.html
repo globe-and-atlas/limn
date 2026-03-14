@@ -60,7 +60,7 @@
     <!-- App Container -->
     <div class="app-container">
         <!-- Map Area -->
-        <main class="map-container">
+        <main class="map-container" role="main">
             <div id="map"></div>
 
             <!-- Bottom Trend Chart Panel (Wide) -->
@@ -69,17 +69,17 @@
                     <h3>STATISTICAL TREND (AOI)</h3>
                     <div class="chart-panel-controls">
                         <span class="chart-instruction">Click data points to switch map vintage</span>
-                        <button class="close-panel-btn"
+                        <button class="close-panel-btn" aria-label="Close chart panel"
                             onclick="document.getElementById('bottom-chart-panel').style.display='none'">×</button>
                     </div>
                 </div>
                 <div class="bottom-chart-container">
                     <div class="chart-wrapper">
-                        <div style="font-size: 10px; color: var(--accent-blue); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.05em;">Primary PW Detection</div>
+                        <div class="chart-section-label">Primary PW Detection</div>
                         <canvas id="primaryTrendChart"></canvas>
                     </div>
                     <div class="chart-wrapper">
-                        <div style="font-size: 10px; color: var(--accent-orange); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.05em;">Secondary Effective / Forensic</div>
+                        <div class="chart-section-label--secondary">Secondary Effective / Forensic</div>
                         <canvas id="secondaryTrendChart"></canvas>
                     </div>
                     <!-- New Thumbnail Gallery for Scan Results -->
@@ -92,7 +92,7 @@
 
 
             <!-- Map Overlay Controls (Top Right) -->
-            <div class="map-controls-tr">
+            <div class="map-controls-tr" role="group" aria-label="Base map layer">
                 <button class="layer-toggle active" data-layer="imagery">Imagery</button>
                 <button class="layer-toggle" data-layer="topo">Topo</button>
                 <button class="layer-toggle" data-layer="dark">Dark</button>
@@ -104,7 +104,7 @@
 
 
         <!-- Left Sidebar Panel -->
-        <aside class="sidebar glass-panel left-panel">
+        <aside class="sidebar glass-panel left-panel" role="complementary" aria-label="Analysis Controls">
 
             <!-- Header Title Overlay -->
             <header class="app-header">
@@ -115,13 +115,11 @@
                         <circle cx="12" cy="12" r="3" fill="#00D2FF" />
                     </svg>
                     <div>
-                        <h1>SENTINEL EXPLORER <span id="app-version-badge"
-                                style="font-size: 0.5em; font-weight: 500; font-family: 'JetBrains Mono', monospace; color: var(--text-muted); vertical-align: middle; background: rgba(255,255,255,0.05); padding: 2px 6px; border-radius: 4px;">v48</span>
+                        <h1>SENTINEL EXPLORER <span id="app-version-badge" class="version-badge">v48</span>
                         </h1>
-                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div class="subtitle-row">
                             <h2>Well-Pad Environmental Analysis</h2>
-                            <a href="help.html" target="_blank" class="tool-btn"
-                                style="text-decoration: none; padding: 4px 10px; font-size: 10px; margin: 0; display: inline-flex; align-items: center; gap: 4px; background: rgba(0, 210, 255, 0.1); border-color: rgba(0, 210, 255, 0.3); color: #00D2FF;">
+                            <a href="help.html" target="_blank" class="tool-btn help-link" aria-label="Open science documentation">
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                     stroke-width="2">
                                     <circle cx="12" cy="12" r="10"></circle>
@@ -136,20 +134,19 @@
             </header>
             <section class="control-group">
                 <h3>Analysis Location</h3>
-                <div class="search-box" style="display: flex; gap: 8px; margin-bottom: 12px;">
-                    <input type="text" id="loc-search-input" placeholder="lat, lng OR place name..."
-                        style="flex: 1; padding: 6px 10px; border-radius: 4px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.3); color: var(--text-color); font-family: 'JetBrains Mono', monospace; font-size: 12px;">
-                    <button id="btn-search-loc" class="tool-btn"
-                        style="padding: 6px 12px; margin: 0; min-width: 60px;">GO</button>
+                <div class="search-box">
+                    <label for="loc-search-input" class="sr-only">Location search</label>
+                    <input type="text" id="loc-search-input" class="search-input" placeholder="lat, lng OR place name...">
+                    <button id="btn-search-loc" class="tool-btn search-btn">GO</button>
                 </div>
-                <div class="location-picker">
+                <div class="location-picker" role="group" aria-label="Preset locations">
                     <button class="loc-btn active" data-loc="dixon">Hugh Dixon No.1-9</button>
                     <button class="loc-btn" data-loc="rocker">Rocker B "B" 1</button>
                     <button class="loc-btn" data-loc="sweatt">John W Sweatt 1</button>
                 </div>
                 <div class="coord-display">
                     <span class="coord-label">LAT:</span> <span id="disp-lat">31.8933°</span>
-                    <span class="coord-label" style="margin-left: 10px;">LNG:</span> <span
+                    <span class="coord-label coord-label--lng">LNG:</span> <span
                         id="disp-lng">-101.8640°</span>
                 </div>
             </section>
@@ -167,110 +164,108 @@
                 <div id="tab-detection" class="tab-pane active">
                     <div class="index-suite-container suite-primary">
                         <h3>Spill Detection Suite</h3>
-                        <div class="index-grid">
+                        <div class="index-grid" role="group" aria-label="Spill detection indices">
                             <!-- Primary Target Indices — ordered by PW detection effectiveness -->
                             <!-- Primary Detection Tools -->
-                            <button class="index-btn" data-index="hpwi">
+                            <button class="index-btn idx-hpwi" data-index="hpwi">
                                 <div class="tag-container">
                                     <span class="radar-tag">📡 Radar</span>
                                 </div>
-                                <span class="index-short" style="color: #f1c40f;">HPWI</span>
-                                <span class="index-full" style="font-weight: 600;">Hydro-Optical Fusion</span>
+                                <span class="index-short">HPWI</span>
+                                <span class="index-full index-full-bold">Hydro-Optical Fusion</span>
                             </button>
-                            <button class="index-btn" data-index="pwi">
-                                <span class="index-short"
-                                    style="font-weight: bold; color: #00D2FF; text-shadow: 0 0 5px rgba(0, 210, 255, 0.5);">PWI</span>
+                            <button class="index-btn idx-pwi" data-index="pwi">
+                                <span class="index-short">PWI</span>
                                 <span class="index-full">Produced Water Composite</span>
                             </button>
-                            <button class="index-btn" data-index="lbi">
-                                <span class="index-short" style="color: #00D2FF;">LBI</span>
-                                <span class="index-full" style="font-weight: 600;">Liquid Brine Index</span>
+                            <button class="index-btn idx-lbi" data-index="lbi">
+                                <span class="index-short">LBI</span>
+                                <span class="index-full index-full-bold">Liquid Brine Index</span>
                             </button>
-                            <button class="index-btn" data-index="fbc">
-                                <span class="index-short" style="color: #FFB347;">FBC</span>
-                                <span class="index-full" style="font-weight: 600;">Iron-Brine Composite</span>
+                            <button class="index-btn idx-fbc" data-index="fbc">
+                                <span class="index-short">FBC</span>
+                                <span class="index-full index-full-bold">Iron-Brine Composite</span>
                             </button>
                         </div>
                     </div>
 
                     <div class="index-suite-container suite-diagnostic">
                         <h3>Diagnostic & Forensic</h3>
-                        <div class="index-grid">
-                            <button class="index-btn" data-index="vsi">
-                                <span class="index-short" style="color: #FFD700;">VSI</span>
-                                <span class="index-full" style="font-weight: 600;">Veg Stress Index</span>
+                        <div class="index-grid" role="group" aria-label="Diagnostic indices">
+                            <button class="index-btn idx-vsi" data-index="vsi">
+                                <span class="index-short">VSI</span>
+                                <span class="index-full index-full-bold">Veg Stress Index</span>
                             </button>
-                            <button class="index-btn" data-index="scri">
-                                <span class="index-short" style="color: #FF4500;">SCRI</span>
-                                <span class="index-full" style="font-weight: 600;">Salt Crust Roughness</span>
+                            <button class="index-btn idx-scri" data-index="scri">
+                                <span class="index-short">SCRI</span>
+                                <span class="index-full index-full-bold">Salt Crust Roughness</span>
                             </button>
-                            <button class="index-btn" data-index="tri">
-                                <span class="index-short" style="color: #9933ff;">TRI</span>
-                                <span class="index-full" style="font-weight: 600;">Toxic Residue Index</span>
+                            <button class="index-btn idx-tri" data-index="tri">
+                                <span class="index-short">TRI</span>
+                                <span class="index-full index-full-bold">Toxic Residue Index</span>
                             </button>
-                            <button class="index-btn" data-index="bpi">
-                                <span class="index-short" style="color: #00FFFF;">BPI</span>
-                                <span class="index-full" style="font-weight: 600;">Brine-Pavement Index</span>
+                            <button class="index-btn idx-bpi" data-index="bpi">
+                                <span class="index-short">BPI</span>
+                                <span class="index-full index-full-bold">Brine-Pavement Index</span>
                             </button>
-                            <button class="index-btn" data-index="phi">
-                                <span class="index-short" style="color: #FFCC00;">PHI</span>
-                                <span class="index-full" style="font-weight: 600;">Petro-Hydrocarbon Index</span>
+                            <button class="index-btn idx-phi" data-index="phi">
+                                <span class="index-short">PHI</span>
+                                <span class="index-full index-full-bold">Petro-Hydrocarbon Index</span>
                             </button>
-                            <button class="index-btn" data-index="cma">
-                                <span class="index-short" style="color: #AA88AA;">CMA</span>
-                                <span class="index-full" style="font-weight: 600;">Clay-Mineral Alteration</span>
+                            <button class="index-btn idx-cma" data-index="cma">
+                                <span class="index-short">CMA</span>
+                                <span class="index-full index-full-bold">Clay-Mineral Alteration</span>
                             </button>
-                            <button class="index-btn" data-index="hmi">
-                                <span class="index-short" style="color: #00FFBB;">HMI</span>
-                                <span class="index-full" style="font-weight: 600;">Heavy Metal Interaction</span>
+                            <button class="index-btn idx-hmi" data-index="hmi">
+                                <span class="index-short">HMI</span>
+                                <span class="index-full index-full-bold">Heavy Metal Interaction</span>
                             </button>
                         </div>
                     </div>
 
                     <div class="index-suite-container suite-spectral">
                         <h3>Spectral Components</h3>
-                        <div class="index-grid">
-                            <button class="index-btn" data-index="ndsi">
-                                <span class="index-short" style="color: #00FFFF;">NDSI</span>
-                                <span class="index-full" style="font-weight: 600;">Saline Content (Brine)</span>
+                        <div class="index-grid" role="group" aria-label="Spectral component indices">
+                            <button class="index-btn idx-ndsi" data-index="ndsi">
+                                <span class="index-short">NDSI</span>
+                                <span class="index-full index-full-bold">Saline Content (Brine)</span>
                             </button>
-                            <button class="index-btn" data-index="vcbi">
-                                <span class="index-short" style="color: #c8a000;">VCBI</span>
-                                <span class="index-full" style="font-weight: 600;">Veg-Confirmed Brine</span>
+                            <button class="index-btn idx-vcbi" data-index="vcbi">
+                                <span class="index-short">VCBI</span>
+                                <span class="index-full index-full-bold">Veg-Confirmed Brine</span>
                             </button>
-                            <button class="index-btn" data-index="bsi">
-                                <span class="index-short" style="color: #A07832;">BSI</span>
-                                <span class="index-full" style="font-weight: 600;">Bare Soil Index</span>
+                            <button class="index-btn idx-bsi" data-index="bsi">
+                                <span class="index-short">BSI</span>
+                                <span class="index-full index-full-bold">Bare Soil Index</span>
                             </button>
-                            <button class="index-btn" data-index="reai">
-                                <span class="index-short" style="color: #e8c44a;">REAI</span>
-                                <span class="index-full" style="font-weight: 600;">Red Edge Alteration</span>
+                            <button class="index-btn idx-reai" data-index="reai">
+                                <span class="index-short">REAI</span>
+                                <span class="index-full index-full-bold">Red Edge Alteration</span>
                             </button>
-                            <button class="index-btn" data-index="aoi">
-                                <span class="index-short" style="color: #c0392b;">AOI</span>
+                            <button class="index-btn idx-aoi" data-index="aoi">
+                                <span class="index-short">AOI</span>
                                 <span class="index-full">Anoxic Oxidation</span>
                             </button>
                             <button class="index-btn" data-index="crsi">
                                 <span class="index-short">CRSI</span>
                                 <span class="index-full">Salt Stress / Mortality</span>
                             </button>
-                            <button class="index-btn" data-index="ehc">
-                                <span class="index-short"
-                                    style="background: linear-gradient(to right, #e74c3c, #2ecc71, #3498db); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;">EHC</span>
+                            <button class="index-btn idx-ehc" data-index="ehc">
+                                <span class="index-short">EHC</span>
                                 <span class="index-full">Evaporite Halo</span>
                             </button>
                         </div>
                     </div>
 
                     <!-- Divider -->
-                    <div style="height: 1px; background: rgba(255,255,255,0.1); margin: 24px 0 16px 0;"></div>
+                    <div class="section-divider"></div>
 
                     <div class="index-suite-container suite-standard">
                         <h3>Standard Indices</h3>
-                        <div class="index-grid">
+                        <div class="index-grid" role="group" aria-label="Standard indices">
                             <!-- OFF / Hide Satellite Layer -->
-                            <button class="index-btn" data-index="none" style="opacity: 0.6;">
-                                <span class="index-short" style="color: #888;">OFF</span>
+                            <button class="index-btn index-btn--off idx-none" data-index="none">
+                                <span class="index-short">OFF</span>
                                 <span class="index-full">Hide Satellite</span>
                             </button>
                             <!-- Secondary / Standard Indices (Alphabetical) -->
@@ -334,22 +329,21 @@
                     <section class="control-group" id="temporal-controls">
                         <h3>Temporal Window</h3>
 
-                        <div class="compare-toggle-box" style="margin-bottom: 16px;">
-                            <label
-                                style="display: block; font-size: 10px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; margin-bottom: 8px;">Analysis
+                        <div class="compare-toggle-box">
+                            <label class="compare-label">Analysis
                                 Mode</label>
-                            <div class="toggle-switch mode-toggle mode-switcher" style="margin-bottom: 0;">
-                                <button id="mode-single" class="mode-btn active" style="flex: 1;">Single Date</button>
-                                <button id="mode-compare" class="mode-btn" style="flex: 1;">Compare (Δ)</button>
+                            <div class="toggle-switch mode-toggle mode-switcher">
+                                <button id="mode-single" class="mode-btn mode-btn--flex active">Single Date</button>
+                                <button id="mode-compare" class="mode-btn mode-btn--flex">Compare (Δ)</button>
                             </div>
                         </div>
 
                         <!-- Single Mode Date Selector -->
                         <div id="single-time-container">
                             <div class="date-input-group">
-                                <label>Observation Date</label>
-                                <select id="date-single" class="date-picker date-dropdown"></select>
-                            </div>
+                            <label for="date-single" class="sr-only">Select Analysis Date</label>
+                            <select id="date-single" class="date-picker date-dropdown-main"></select>
+                        </div>
                         </div>
 
                         <!-- Compare Mode Dates -->
@@ -363,9 +357,8 @@
                                 <select id="date-t2" class="date-picker date-dropdown"></select>
                             </div>
 
-                            <div class="compare-toggle-box" style="margin-top: 16px;">
-                                <label
-                                    style="display: block; font-size: 10px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; margin-bottom: 8px;">Compare
+                            <div class="compare-toggle-box">
+                                <label class="compare-label">Compare
                                     Layout</label>
                                 <div class="toggle-switch mode-toggle" id="compare-type-toggle">
                                     <button id="btn-swipe" class="active"
@@ -404,31 +397,29 @@
                     <section class="control-group" id="overlay-controls">
                         <h3>Ground Truth Overlays</h3>
                         <div class="overlay-toggle-row" id="overlay-rrc-row">
-                            <div style="display: flex; align-items: flex-start; gap: 10px;">
+                            <div class="overlay-flex">
                                 <label class="overlay-toggle-label" for="toggle-rrc-spills">
-                                    <span class="overlay-dot" style="background: #FF6B35;"></span>
+                                    <span class="overlay-dot overlay-dot--orange"></span>
                                     <span>
                                         <strong>RRC Spill Incidents</strong>
                                         <span class="overlay-sub">TX Railroad Commission — Permian Basin</span>
                                     </span>
                                 </label>
-                                <input type="checkbox" id="toggle-rrc-spills" class="overlay-checkbox"
-                                    style="margin-top: 3px; cursor: pointer; min-width: 16px; height: 16px; accent-color: #FF6B35;">
+                                <input type="checkbox" id="toggle-rrc-spills" class="overlay-checkbox overlay-checkbox-styled">
                             </div>
                         </div>
                     </section>
 
                     <section class="control-group">
                         <h3>Diagnostic Tools</h3>
-                        <div style="display: flex; gap: 8px;">
-                            <button id="btn-draw-aoi" class="tool-btn" style="flex: 1;">Draw Rectangle</button>
-                            <button id="btn-draw-poly" class="tool-btn" style="flex: 1;">Draw Polygon</button>
+                        <div class="tool-btn-row">
+                            <button id="btn-draw-aoi" class="tool-btn tool-btn--flex">Draw Rectangle</button>
+                            <button id="btn-draw-poly" class="tool-btn tool-btn--flex">Draw Polygon</button>
                         </div>
-                        <button id="btn-scan-aoi" class="tool-btn mt-2"
-                            style="width: 100%; border-color: var(--accent-orange); color: var(--accent-orange);">
+                        <button id="btn-scan-aoi" class="tool-btn tool-btn--scan mt-2">
                             Scan AOI for Anomalies (1YR)
                         </button>
-                        <button id="btn-generate-report" class="tool-btn mt-2" disabled style="width: 100%;">Generate
+                        <button id="btn-generate-report" class="tool-btn w-full mt-2" disabled>Generate
                             Selected
                             Report</button>
                     </section>
@@ -439,16 +430,14 @@
                     <section class="control-group">
                         <h3>Basin Calibration</h3>
                         <div class="settings-box">
-                            <label for="basin-select"
-                                style="display: block; font-size: 11px; font-weight: 600; color: var(--accent-blue); margin-bottom: 8px; text-transform: uppercase;">
+                            <label for="basin-select" class="settings-label">
                                 Environmental Context
                             </label>
-                            <select id="basin-select"
-                                style="width: 100%; padding: 6px; border-radius: 4px; border: 1px solid var(--border-color); background: rgba(0,0,0,0.3); color: var(--text-color); font-family: 'JetBrains Mono', monospace; font-size: 12px; outline: none; cursor: pointer;">
+                            <select id="basin-select" class="settings-select">
                                 <option value="permian">Permian Basin (Arid)</option>
                                 <option value="standard">Standard (Temperate/Wet)</option>
                             </select>
-                            <div style="font-size: 9px; color: var(--text-dim); margin-top: 8px; line-height: 1.3;">
+                            <div class="settings-desc">
                                 Adjusts BSI masks and spectral offsets for regional soil conditions.
                             </div>
                         </div>
@@ -458,7 +447,8 @@
                         <h3>Index Opacity</h3>
                         <div class="slider-wrapper">
                             <div class="slider-track-bg"></div>
-                            <div class="slider-track-fill" id="opacity-slider-fill" style="width: 85%;"></div>
+                            <div class="slider-track-fill" id="opacity-slider-fill"></div>
+                            <label for="opacity-slider" class="sr-only">Index Transparency</label>
                             <input type="range" class="slider custom-slider" id="opacity-slider" min="0" max="100"
                                 value="85">
                         </div>
@@ -467,19 +457,14 @@
                     <section class="control-group">
                         <h3>Detection Sensitivity</h3>
                         <div class="settings-box">
-                            <div
-                                style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                                <label for="sensitivity-slider"
-                                    style="font-size: 11px; font-weight: 600; color: var(--accent-orange); margin: 0;">
+                            <div class="sensitivity-header">
+                                <label for="sensitivity-slider" class="sensitivity-label">
                                     Threshold Offset
                                 </label>
-                                <span id="sensitivity-val"
-                                    style="font-family: var(--font-mono); font-size: 11px; color: var(--accent-orange);">Baseline</span>
+                                <span id="sensitivity-val" class="sensitivity-val">Baseline</span>
                             </div>
-                            <input type="range" id="sensitivity-slider" min="-50" max="50" step="1" value="0"
-                                style="width: 100%; accent-color: var(--accent-orange); cursor: pointer;">
-                            <div
-                                style="display: flex; justify-content: space-between; font-size: 9px; color: var(--text-dim); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.05em;">
+                            <input type="range" id="sensitivity-slider" class="sensitivity-slider" min="-50" max="50" step="1" value="0">
+                            <div class="sensitivity-ticks">
                                 <span>Restrictive</span>
                                 <span>Aggressive</span>
                             </div>
@@ -497,7 +482,7 @@
     </div>
 
     <!-- Report Modal -->
-    <div id="report-modal" class="report-overlay" style="display: none;">
+    <div id="report-modal" class="report-overlay" role="dialog" aria-label="Environmental Analysis Report" style="display: none;">
         <div class="report-container">
             <header class="report-header">
                 <h2>ENVIRONMENTAL ANALYSIS REPORT</h2>
@@ -505,7 +490,7 @@
                     <p><strong>Generated:</strong> <span id="report-date-run"></span></p>
                     <p><strong>AOI Bounds:</strong> <span id="report-aoi-bounds"></span></p>
                 </div>
-                <button id="btn-close-report" class="close-report-btn">✖</button>
+                <button id="btn-close-report" class="close-report-btn" aria-label="Close report">✖</button>
             </header>
 
             <div class="report-body">
@@ -519,36 +504,30 @@
 
                 <div class="report-map-container" id="report-map-wrapper">
                     <h3 id="report-map-label">Area of Interest (AOI)</h3>
-                    <div id="report-map" style="display: none;"></div>
-                    <div id="side-by-side-maps"
-                        style="display: flex; gap: 8px; width: 100%; height: 250px; display: none;">
-                        <div id="report-map-t1"
-                            style="flex: 1; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.05);"></div>
-                        <div id="report-map-t2"
-                            style="flex: 1; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.05);"></div>
+                    <div id="report-map" class="report-map-full"></div>
+                    <div id="side-by-side-maps" class="report-side-maps">
+                        <div id="report-map-t1" class="report-map-half"></div>
+                        <div id="report-map-t2" class="report-map-half"></div>
                     </div>
                 </div>
 
                 <div class="report-map-container" id="report-map-diff-container" style="display:none;">
-                    <h3 style="color:var(--accent-orange);">Change Detection Map (Δ T1 → T2)</h3>
-                    <div id="report-map-diff"
-                        style="width: 100%; height: 350px; border-radius: 6px; border: 1px solid rgba(255, 255, 255, 0.05);">
+                    <h3 class="report-h3-orange">Change Detection Map (Δ T1 → T2)</h3>
+                    <div id="report-map-diff" class="report-diff-map">
                     </div>
                 </div>
 
                 <div class="report-chart">
-                    <div
-                        style="display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;">
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <h3 style="margin: 0;">Statistical Trend</h3>
+                    <div class="report-flex-header">
+                        <div class="report-flex-row">
+                            <h3 class="report-h3-inline">Statistical Trend</h3>
                             <span class="chart-info-badge"
                                 data-tooltip="Each data point is the mean index value computed from all cloud-free satellite pixels that fall within your drawn AOI bounding box. No pixels outside the box are included. Statistics are sampled every 5 days via the Copernicus CDSE Analytics API.">ⓘ
                                 What is this?</span>
                         </div>
-                        <div class="trendline-toggle" style="display: flex; align-items: center; gap: 6px;">
+                        <div class="trendline-toggle-row">
                             <input type="checkbox" id="toggle-trendline" checked>
-                            <label for="toggle-trendline"
-                                style="font-size: 13px; color: var(--text-muted); cursor: pointer; font-family: 'Space Grotesk', sans-serif;">Smoothed
+                            <label for="toggle-trendline" class="trendline-label">Smoothed
                                 Trend</label>
                         </div>
                     </div>
@@ -556,20 +535,17 @@
                         <canvas id="reportChart"></canvas>
                     </div>
 
-                    <div class="report-metrics" id="report-metrics-panel"
-                        style="margin-top: 15px; padding: 15px; background: rgba(0,0,0,0.3); border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); display: none;">
-                        <h4
-                            style="margin: 0 0 10px 0; color: var(--accent-orange); font-size: 13px; text-transform: uppercase; display: flex; align-items: center; gap: 6px;">
+                    <div class="report-metrics report-panel-box" id="report-metrics-panel">
+                        <h4 class="report-panel-title--flex">
                             Detected Anomalous Events
-                            <div class="tooltip-wrapper" style="display: inline-flex;">
+                            <div class="tooltip-wrapper display-flex-inline">
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2" style="cursor: help; opacity: 0.7;">
+                                    stroke-width="2" class="tooltip-icon">
                                     <circle cx="12" cy="12" r="10"></circle>
                                     <path d="M12 16v-4"></path>
                                     <path d="M12 8h.01"></path>
                                 </svg>
-                                <span class="tooltip-text"
-                                    style="width: 280px; font-weight: 400; font-size: 11px; text-transform: none; color: #fff;">
+                                <span class="tooltip-text tooltip-text--report">
                                     <strong>Event Detection Logic:</strong> A new event begins when index values surge
                                     &gt;400% above the 6-month trailing baseline average. An event is considered "ended"
                                     (recovery) when values drop below 150% of the baseline for three consecutive
@@ -577,75 +553,61 @@
                                 </span>
                             </div>
                         </h4>
-                        <div id="metric-leak-events"
-                            style="font-size: 13px; color: var(--text-color); line-height: 1.6;">
-                            <span style="color: var(--text-muted);">Analyzing time series for hazards...</span>
+                        <div id="metric-leak-events" class="metric-events-text">
+                            <span class="text-muted">Analyzing time series for hazards...</span>
                         </div>
                     </div>
 
-                    <div class="report-metrics" id="report-metadata-panel"
-                        style="margin-top: 15px; padding: 15px; background: rgba(0,0,0,0.3); border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); display: none;">
-                        <h4
-                            style="margin: 0 0 10px 0; color: var(--accent-blue); font-size: 13px; text-transform: uppercase;">
+                    <div class="report-metrics report-panel-box" id="report-metadata-panel">
+                        <h4 class="report-panel-title report-panel-title--blue">
                             Scene Metadata & Weather Conditions</h4>
-                        <div id="metadata-content"
-                            style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 12px; color: var(--text-muted);">
+                        <div id="metadata-content" class="metadata-grid">
                             <!-- Populated via JS -->
                         </div>
                     </div>
 
-                    <div class="report-metrics" id="report-scanned-anomalies-panel"
-                        style="margin-top: 15px; padding: 15px; background: rgba(0,0,0,0.3); border-radius: 6px; border: 1px solid rgba(255,255,255,0.05); display: none;">
-                        <h4
-                            style="margin: 0 0 10px 0; color: var(--accent-orange); font-size: 13px; text-transform: uppercase;">
+                    <div class="report-metrics report-panel-box" id="report-scanned-anomalies-panel">
+                        <h4 class="report-panel-title report-panel-title--orange">
                             1-Year Scan: Hazardous Events (PWI Index)</h4>
-                        <div id="scanned-anomalies-list"
-                            style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; font-size: 12px; color: var(--text-muted);">
+                        <div id="scanned-anomalies-list" class="anomaly-grid">
                             <!-- Populated via JS with Screenshots -->
                         </div>
                     </div>
                 </div>
 
-                <div class="report-gif" id="report-gif-section"
-                    style="display: none; padding-top: 16px; border-top: 1px solid rgba(255, 255, 255, 0.05);">
-                    <h3
-                        style="font-size: 12px; color: var(--accent-blue); margin: 0 0 12px 0; text-transform: uppercase;">
+                <div class="report-gif gif-section" id="report-gif-section">
+                    <h3 class="gif-section-title">
                         Change Over Time (GIF Animation)</h3>
 
-                    <div id="gif-loader-text"
-                        style="color: var(--accent-blue); font-size: 12px; padding: 20px; text-align: center; font-family: var(--font-mono);">
+                    <div id="gif-loader-text" class="gif-loader">
                         Generating web-map animation frames...</div>
 
 
 
-                    <div class="gif-container" id="gif-container-index"
-                        style="text-align: center; margin-bottom: 15px; background: rgba(0, 0, 0, 0.2); border-radius: 6px; padding: 16px; border: 1px solid rgba(255, 140, 0, 0.15); display: none;">
-                        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
-                            <h4 id="gif-index-title" style="margin:0;font-size:13px;color:#FF8F00;">Index Gradient</h4>
+                    <div class="gif-box gif-box--index" id="gif-container-index">
+                        <div class="gif-box-header">
+                            <h4 id="gif-index-title" class="gif-box-title gif-box-title--index">Index Gradient</h4>
                             <span class="chart-info-badge"
                                 data-tooltip="Shows the active spectral index rendered frame-by-frame. Each frame is a single-date rendering of the index (Salinity, NDMI, etc.) so you can watch how the colour gradient itself evolves from T1 to T2.">ⓘ
                                 What is this?</span>
                         </div>
-                        <img id="report-gif-result-index" style="max-width: 100%; border-radius: 6px;" />
-                        <div style="margin-top: 10px;">
-                            <a id="btn-download-gif-index" class="print-btn tool-btn"
-                                style="text-decoration: none; display: inline-block; cursor: pointer; font-size: 11px;"
+                        <img id="report-gif-result-index" class="gif-result" alt="Index GIF animation" />
+                        <div class="gif-actions">
+                            <a id="btn-download-gif-index" class="print-btn tool-btn gif-download-btn"
                                 download="sentinel-explorer-index.gif">Download Index GIF</a>
                         </div>
                     </div>
 
-                    <div class="gif-container" id="gif-container-diff"
-                        style="text-align: center; margin-bottom: 15px; background: rgba(0, 0, 0, 0.2); border-radius: 6px; padding: 16px; border: 1px solid rgba(255, 255, 255, 0.05); display: none;">
-                        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
-                            <h4 style="margin:0;font-size:13px;color:#aaa;">Difference Heatmap</h4>
+                    <div class="gif-box gif-box--diff" id="gif-container-diff">
+                        <div class="gif-box-header">
+                            <h4 class="gif-box-title gif-box-title--diff">Difference Heatmap</h4>
                             <span class="chart-info-badge"
                                 data-tooltip="Capture-to-capture delta: each frame shows the spectral change between the immediately preceding capture and the current one — NOT versus the T1 baseline. Blue = increase, Red = decrease relative to the prior frame.">ⓘ
                                 What is this?</span>
                         </div>
-                        <img id="report-gif-result-diff" style="max-width: 100%; border-radius: 6px;" />
-                        <div style="margin-top: 10px;">
-                            <a id="btn-download-gif-diff" class="print-btn tool-btn"
-                                style="text-decoration: none; display: inline-block; cursor: pointer; font-size: 11px;"
+                        <img id="report-gif-result-diff" class="gif-result" alt="Difference heatmap GIF" />
+                        <div class="gif-actions">
+                            <a id="btn-download-gif-diff" class="print-btn tool-btn gif-download-btn"
                                 download="sentinel-explorer-heatmap.gif">Download Heatmap</a>
                         </div>
                     </div>
@@ -659,7 +621,10 @@
         </div>
     </div>
 
-    <script src="app.js?v=28"></script>
+    <script src="indices.js"></script>
+    <script src="charts.js"></script>
+    <script src="report.js"></script>
+    <script src="app.js?v=29"></script>
     <script>
         // JS-powered tooltip for .chart-info-badge
         // Uses body-level element to avoid modal overflow-y clipping
