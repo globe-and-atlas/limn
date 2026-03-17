@@ -8,7 +8,7 @@ let hoverHighlightDebounce = null;
     const hotspotCache = {}; // key → [{lat, lng, intensity}]
     const peakCache = {}; // key → {lat, lng, intensity}
 
-function detectPeakAnomaly(imgUrl, bounds) {
+export function detectPeakAnomaly(imgUrl, bounds) {
     return new Promise((resolve) => {
         const img = new Image();
         img.crossOrigin = "Anonymous";
@@ -65,7 +65,7 @@ function detectPeakAnomaly(imgUrl, bounds) {
     });
 }
 
-    function showHoverHighlight(date, indexKey, chartValue) {
+    export function showHoverHighlight(date, indexKey, chartValue) {
         const hoverKey = `${date}_${indexKey}`;
         if (hoverKey === lastHoverKey) return;
         lastHoverKey = hoverKey;
@@ -131,7 +131,7 @@ function detectPeakAnomaly(imgUrl, bounds) {
     // renderHotspotMarkers and extractHotspots completely removed in favor of native L.imageOverlay
 
     // Helper to generate WKT from user drawn polygon to restrict peak detection
-    function getDrawnWKT() {
+    export function getDrawnWKT() {
         if (!state.drawnItems || state.drawnItems.getLayers().length === 0) return null;
         try {
             const geojson = state.drawnItems.toGeoJSON();
@@ -148,8 +148,8 @@ function detectPeakAnomaly(imgUrl, bounds) {
         return null;
     }
 
-    function buildHighlightUrl(date, indexKey, bounds, hexColor, chartValue, includeContext = false) {
-        const script = getHighlightScript(indexKey, hexColor, chartValue, includeContext);
+    export function buildHighlightUrl(date, indexKey, bounds, hexColor, chartValue, includeContext = false) {
+        const script = getHighlightScript(indexKey, hexColor, chartValue, includeContext, state.activeBasin);
         if (!script) return null;
 
         const dStart = new Date(date);
@@ -179,7 +179,7 @@ function detectPeakAnomaly(imgUrl, bounds) {
 
     // Pre-fetch hotspot positions for top anomaly dates after scan completes
 
-    async function renderScanThumbnails(dates, bounds) {
+    export async function renderScanThumbnails(dates, bounds) {
         const gallery = document.getElementById('scan-thumbnail-gallery');
         const strip = document.getElementById('thumbnail-strip');
         if (!gallery || !strip) return;
@@ -234,7 +234,7 @@ function detectPeakAnomaly(imgUrl, bounds) {
         });
     }
 
-    function prefetchHighlights(dates, indexKey, bounds) {
+    export function prefetchHighlights(dates, indexKey, bounds) {
         if (!dates || dates.length === 0) return;
         const top = dates.slice(0, 10);
         const hexColor = CHART_COLORS[indexKey] || '#FF00AA';
@@ -251,7 +251,7 @@ function detectPeakAnomaly(imgUrl, bounds) {
         });
     }
 
-function hideHoverHighlight(keepKey) {
+export function hideHoverHighlight(keepKey) {
     if (!keepKey) lastHoverKey = '';
     if (hoverHighlightDebounce) clearTimeout(hoverHighlightDebounce);
     if (state.hoverHighlightLayer) {

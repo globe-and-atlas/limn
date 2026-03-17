@@ -3,7 +3,7 @@
    Extracted from app.js for modularity
    ========================================================================== */
 
-const CALIBRATION_PRESETS = {
+export const CALIBRATION_PRESETS = {
     permian: {
         name: "Permian Basin (Arid)",
         bsiMask: -0.3,
@@ -25,7 +25,7 @@ const CALIBRATION_PRESETS = {
 };
 
 // Evalscript wrapper utility
-const genEvalscript = (bands, logic) => `//VERSION=3
+export const genEvalscript = (bands, logic) => `//VERSION=3
 function setup() {
   return {
     input: [${bands.map(b => `'${b}'`).join(', ')}, "dataMask"],
@@ -39,7 +39,7 @@ function evaluatePixel(sample) {
 `;
 
 // Multi-Temporal Evalscript wrapper for differences
-const genDiffEvalscript = (bands, calcLogic) => `//VERSION=3
+export const genDiffEvalscript = (bands, calcLogic) => `//VERSION=3
 function setup() {
   return {
     input: [${bands.map(b => `'${b}'`).join(', ')}, "dataMask"],
@@ -74,7 +74,7 @@ function evaluatePixel(samples) {
 `;
 
 // Deep Fusion Evalscript wrapper (Multi-Source S1+S2)
-const genDeepFusionEvalscript = (bands, logic) => `//VERSION=3
+export const genDeepFusionEvalscript = (bands, logic) => `//VERSION=3
 function setup() {
   return {
     input: [
@@ -128,7 +128,7 @@ function evaluatePixel(samples, scenes) {
 `;
 
 // Multi-Temporal Evalscript for Cumulative MAX detection
-const genCumulativeEvalscript = (bands, logic, paletteStr) => `//VERSION=3
+export const genCumulativeEvalscript = (bands, logic, paletteStr) => `//VERSION=3
 function setup() {
   return {
     input: [${bands.map(b => `'${b}'`).join(', ')}, "dataMask"],
@@ -154,7 +154,7 @@ function evaluatePixel(samples) {
 `;
 
 // Advanced continuous color blending logic for evalscripts
-function colorBlend(valExpr, stopsStr) {
+export function colorBlend(valExpr, stopsStr) {
     return `
   let v = ${valExpr};
   if (isNaN(v)) return [0,0,0,0];
@@ -180,32 +180,33 @@ function colorBlend(valExpr, stopsStr) {
 }
 
 // Palette Definitions
-const PALETTE_NDMI = "[[0, 212, 106, 36], [0.35, 239, 216, 122], [0.6, 28, 133, 166], [1, 10, 60, 100]]";
-const PALETTE_NDWI = "[[0, 130, 70, 20], [0.35, 215, 170, 60], [0.6, 80, 150, 200], [1, 20, 80, 180]]";
-const PALETTE_SI = "[[0, 36, 51, 64], [0.15, 180, 130, 40], [0.3, 220, 140, 50], [1, 240, 80, 30]]";
-const PALETTE_VEG = "[[0, 160, 120, 50], [0.3, 210, 180, 60], [0.6, 90, 160, 60], [1, 20, 100, 40]]"; // Brown -> Yellow -> Dark Green
-const PALETTE_MSI = "[[0, 28, 133, 166], [0.5, 239, 216, 122], [1, 212, 106, 36]]"; // Blue -> Yellow -> Orange (Inverse of NDMI)
-const PALETTE_BRINE = "[[0, 10, 60, 100], [0.35, 120, 100, 50], [0.6, 240, 80, 30], [1, 230, 20, 20]]"; // Blue -> Brown -> Orange -> Red
-const PALETTE_CSI = "[[0, 160, 120, 50], [0.5, 100, 220, 80], [1, 0, 255, 255]]"; // Brown -> Lime -> Cyan
-const PALETTE_HCAI = "[[0, 245, 222, 179], [0.5, 139, 69, 19], [1, 0, 0, 0]]"; // Wheat -> SaddleBrown -> Black
-const PALETTE_HMRI = "[[0, 230, 230, 250], [0.5, 128, 0, 128], [1, 255, 0, 255]]"; // Lavender -> Purple -> Magenta
-const PALETTE_PWI = "[[0, 0, 0, 0.0], [0.1, 0, 255, 255, 1.0], [0.5, 255, 0, 255, 1.0], [1, 255, 255, 0, 1.0]]"; // Restrictive: Trans -> Cyan -> Magenta -> Yellow
-const PALETTE_BSI = "[[0, 0, 0, 0], [0.1, 68, 136, 51], [0.15, 210, 180, 60], [1, 160, 120, 50]]"; // Black -> Green -> Yellow -> Brown
-const PALETTE_REAI = "[[0, 13, 26, 46], [0.35, 46, 92, 138], [0.65, 196, 122, 30], [1, 232, 196, 74]]"; // Navy -> Blue -> Bronze -> Yellow
-const PALETTE_VCBI = "[[0, 10, 32, 16], [0.3, 26, 96, 48], [0.6, 200, 160, 0], [1, 224, 80, 16]]"; // Dark Green -> Forest -> Gold -> Orange
-const PALETTE_FBC = "[[0, 26, 8, 0], [0.3, 139, 37, 0], [0.6, 212, 88, 26], [1, 255, 179, 71]]"; // Black -> Deep Red -> Burnt Orange -> Peach
-const PALETTE_HPWI = "[[0, 44, 62, 80], [0.5, 241, 196, 15], [1, 231, 76, 60]]"; // Dark Blue -> Gold -> Red
-const PALETTE_LBI = "[[0, 0, 0, 0], [0.3, 0, 210, 255], [0.7, 0, 136, 255], [1, 255, 0, 255]]";
-const PALETTE_TRI = "[[0, 26, 10, 0], [0.3, 128, 64, 0], [0.7, 153, 51, 255], [1, 255, 0, 255]]";
-const PALETTE_BPI = "[[0, 34, 34, 34], [0.3, 68, 68, 68], [0.7, 0, 255, 255], [1, 255, 255, 0]]";
-const PALETTE_VSI = "[[0, 0, 85, 0], [0.3, 255, 255, 0], [0.7, 255, 136, 0], [1, 255, 0, 0]]";
-const PALETTE_CMA = "[[0, 68, 34, 0], [0.3, 136, 68, 0], [0.7, 170, 136, 170], [1, 255, 255, 255]]";
-const PALETTE_PHI = "[[0, 0, 0, 0], [0.3, 51, 51, 51], [0.7, 102, 51, 0], [1, 255, 204, 0]]";
-const PALETTE_HMI = "[[0, 0, 17, 0], [0.3, 0, 68, 0], [0.7, 0, 255, 187], [1, 255, 255, 255]]";
-const PALETTE_SCRI = "[[0, 0, 0, 0], [0.2, 75, 0, 130], [0.6, 231, 76, 60], [1, 241, 196, 15]]";
-const PALETTE_MSI_INV = "[[0, 212, 106, 36], [0.5, 239, 216, 122], [1, 28, 133, 166]]";
+// Palette Definitions
+export const PALETTE_NDMI = "[[0, 212, 106, 36], [0.35, 239, 216, 122], [0.6, 28, 133, 166], [1, 10, 60, 100]]";
+export const PALETTE_NDWI = "[[0, 130, 70, 20], [0.35, 215, 170, 60], [0.6, 80, 150, 200], [1, 20, 80, 180]]";
+export const PALETTE_SI = "[[0, 36, 51, 64], [0.15, 180, 130, 40], [0.3, 220, 140, 50], [1, 240, 80, 30]]";
+export const PALETTE_VEG = "[[0, 160, 120, 50], [0.3, 210, 180, 60], [0.6, 90, 160, 60], [1, 20, 100, 40]]"; // Brown -> Yellow -> Dark Green
+export const PALETTE_MSI = "[[0, 28, 133, 166], [0.5, 239, 216, 122], [1, 212, 106, 36]]"; // Blue -> Yellow -> Orange (Inverse of NDMI)
+export const PALETTE_BRINE = "[[0, 10, 60, 100], [0.35, 120, 100, 50], [0.6, 240, 80, 30], [1, 230, 20, 20]]"; // Blue -> Brown -> Orange -> Red
+export const PALETTE_CSI = "[[0, 160, 120, 50], [0.5, 100, 220, 80], [1, 0, 255, 255]]"; // Brown -> Lime -> Cyan
+export const PALETTE_HCAI = "[[0, 245, 222, 179], [0.5, 139, 69, 19], [1, 0, 0, 0]]"; // Wheat -> SaddleBrown -> Black
+export const PALETTE_HMRI = "[[0, 230, 230, 250], [0.5, 128, 0, 128], [1, 255, 0, 255]]"; // Lavender -> Purple -> Magenta
+export const PALETTE_PWI = "[[0, 0, 0, 0.0], [0.1, 0, 255, 255, 1.0], [0.5, 255, 0, 255, 1.0], [1, 255, 255, 0, 1.0]]"; // Restrictive: Trans -> Cyan -> Magenta -> Yellow
+export const PALETTE_BSI = "[[0, 0, 0, 0], [0.1, 68, 136, 51], [0.15, 210, 180, 60], [1, 160, 120, 50]]"; // Black -> Green -> Yellow -> Brown
+export const PALETTE_REAI = "[[0, 13, 26, 46], [0.35, 46, 92, 138], [0.65, 196, 122, 30], [1, 232, 196, 74]]"; // Navy -> Blue -> Bronze -> Yellow
+export const PALETTE_VCBI = "[[0, 10, 32, 16], [0.3, 26, 96, 48], [0.6, 200, 160, 0], [1, 224, 80, 16]]"; // Dark Green -> Forest -> Gold -> Orange
+export const PALETTE_FBC = "[[0, 26, 8, 0], [0.3, 139, 37, 0], [0.6, 212, 88, 26], [1, 255, 179, 71]]"; // Black -> Deep Red -> Burnt Orange -> Peach
+export const PALETTE_HPWI = "[[0, 44, 62, 80], [0.5, 241, 196, 15], [1, 231, 76, 60]]"; // Dark Blue -> Gold -> Red
+export const PALETTE_LBI = "[[0, 0, 0, 0], [0.3, 0, 210, 255], [0.7, 0, 136, 255], [1, 255, 0, 255]]";
+export const PALETTE_TRI = "[[0, 26, 10, 0], [0.3, 128, 64, 0], [0.7, 153, 51, 255], [1, 255, 0, 255]]";
+export const PALETTE_BPI = "[[0, 34, 34, 34], [0.3, 68, 68, 68], [0.7, 0, 255, 255], [1, 255, 255, 0]]";
+export const PALETTE_VSI = "[[0, 0, 85, 0], [0.3, 255, 255, 0], [0.7, 255, 136, 0], [1, 255, 0, 0]]";
+export const PALETTE_CMA = "[[0, 68, 34, 0], [0.3, 136, 68, 0], [0.7, 170, 136, 170], [1, 255, 255, 255]]";
+export const PALETTE_PHI = "[[0, 0, 0, 0], [0.3, 51, 51, 51], [0.7, 102, 51, 0], [1, 255, 204, 0]]";
+export const PALETTE_HMI = "[[0, 0, 17, 0], [0.3, 0, 68, 0], [0.7, 0, 255, 187], [1, 255, 255, 255]]";
+export const PALETTE_SCRI = "[[0, 0, 0, 0], [0.2, 75, 0, 130], [0.6, 231, 76, 60], [1, 241, 196, 15]]";
+export const PALETTE_MSI_INV = "[[0, 212, 106, 36], [0.5, 239, 216, 122], [1, 28, 133, 166]]";
 
-const INDICES = {
+export const INDICES = {
     tc: {
         name: 'True Color',
         sensor: 'Sentinel-2 L2A',
@@ -1256,12 +1257,12 @@ const CHART_COLORS = {
     phi: '#FF00FF', hmi: '#444444'
 };
 
-function getHighlightScript(indexKey, hexColor, chartValue, includeContext = false) {
+function getHighlightScript(indexKey, hexColor, chartValue, includeContext = false, activeBasin = 'permian') {
     const cfg = INDICES[indexKey];
     if (!cfg || !cfg.fisLogic) return '';
     
     // Apply Dynamic Calibration Placeholders to the logic
-    const cal = CALIBRATION_PRESETS[state.activeBasin || 'permian'];
+    const cal = CALIBRATION_PRESETS[activeBasin || 'permian'];
     let logic = cfg.fisLogic
         .replace(/__BSI_MASK__/g, cal.bsiMask)
         .replace(/__BSI_OFFSET__/g, cal.bsiOffset)

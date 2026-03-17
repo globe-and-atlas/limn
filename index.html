@@ -15,10 +15,8 @@
             document.body.appendChild(errDiv);
         };
     </script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
-        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Space+Grotesk:wght@300;400;500;600;700&display=swap"
+        href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600;700&display=swap"
         rel="stylesheet">
 
     <!-- Leaflet -->
@@ -43,7 +41,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gifshot/0.3.2/gifshot.min.js"></script>
 
     <!-- Application Config -->
-    <script src="config.js"></script>
+    <script src="app-config.js"></script>
 
     <!-- Custom Styles -->
     <link rel="stylesheet" href="style.css?v=2">
@@ -62,6 +60,10 @@
         <!-- Map Area -->
         <main class="map-container" role="main">
             <div id="map"></div>
+            <!-- Subtle Map Loading Bar -->
+            <div id="map-loader" class="map-loader">
+                <div class="map-loader-bar"></div>
+            </div>
 
             <!-- Bottom Trend Chart Panel (Wide) -->
             <div id="bottom-chart-panel" class="bottom-chart-panel" style="display: none;">
@@ -92,11 +94,11 @@
 
 
             <!-- Map Overlay Controls (Top Right) -->
-            <div class="map-controls-tr" role="group" aria-label="Base map layer">
-                <button class="layer-toggle active" data-layer="imagery">Imagery</button>
-                <button class="layer-toggle" data-layer="topo">Topo</button>
-                <button class="layer-toggle" data-layer="dark">Dark</button>
-                <button class="layer-toggle" data-layer="osm">OSM</button>
+            <div class="map-controls-tr" role="group" aria-label="Base map layer selection">
+                <button class="layer-toggle active" data-layer="imagery" aria-pressed="true">Imagery</button>
+                <button class="layer-toggle" data-layer="topo" aria-pressed="false">Topo</button>
+                <button class="layer-toggle" data-layer="dark" aria-pressed="false">Dark</button>
+                <button class="layer-toggle" data-layer="osm" aria-pressed="false">OSM</button>
             </div>
         </main> <!-- End of map-container -->
 
@@ -136,8 +138,8 @@
                 <h3>Analysis Location</h3>
                 <div class="search-box">
                     <label for="loc-search-input" class="sr-only">Location search</label>
-                    <input type="text" id="loc-search-input" class="search-input" placeholder="lat, lng OR place name...">
-                    <button id="btn-search-loc" class="tool-btn search-btn">GO</button>
+                    <input type="text" id="loc-search-input" class="search-input" placeholder="lat, lng OR place name..." aria-label="Search for location">
+                    <button id="btn-search-loc" class="tool-btn search-btn" aria-label="Search location">GO</button>
                 </div>
                 <div class="location-picker" role="group" aria-label="Preset locations">
                     <button class="loc-btn active" data-loc="dixon">Hugh Dixon No.1-9</button>
@@ -167,22 +169,22 @@
                         <div class="index-grid" role="group" aria-label="Spill detection indices">
                             <!-- Primary Target Indices — ordered by PW detection effectiveness -->
                             <!-- Primary Detection Tools -->
-                            <button class="index-btn idx-hpwi" data-index="hpwi">
+                            <button class="index-btn idx-hpwi" data-index="hpwi" data-tooltip="Sentinel-1 Radar + Sentinel-2 Optical fusion. Ideal for overcoming cloud cover and identifying persistent liquid bodies.">
                                 <div class="tag-container">
                                     <span class="radar-tag">📡 Radar</span>
                                 </div>
                                 <span class="index-short">HPWI</span>
                                 <span class="index-full index-full-bold">Hydro-Optical Fusion</span>
                             </button>
-                            <button class="index-btn idx-pwi" data-index="pwi">
+                            <button class="index-btn idx-pwi" data-index="pwi" data-tooltip="Produced Water Index. Specifically tuned to the spectral signature of brine and oil-field liquids.">
                                 <span class="index-short">PWI</span>
                                 <span class="index-full">Produced Water Composite</span>
                             </button>
-                            <button class="index-btn idx-lbi" data-index="lbi">
+                            <button class="index-btn idx-lbi" data-index="lbi" data-tooltip="Liquid Brine Index. High sensitivity to salinity-induced spectral changes in desert environments.">
                                 <span class="index-short">LBI</span>
                                 <span class="index-full index-full-bold">Liquid Brine Index</span>
                             </button>
-                            <button class="index-btn idx-fbc" data-index="fbc">
+                            <button class="index-btn idx-fbc" data-index="fbc" data-tooltip="Forensic Brine Composite. Uses SWIR bands to detect residual salts after liquid evaporation.">
                                 <span class="index-short">FBC</span>
                                 <span class="index-full index-full-bold">Iron-Brine Composite</span>
                             </button>
@@ -341,19 +343,19 @@
                         <!-- Single Mode Date Selector -->
                         <div id="single-time-container">
                             <div class="date-input-group">
-                            <label for="date-single" class="sr-only">Select Analysis Date</label>
-                            <select id="date-single" class="date-picker date-dropdown-main"></select>
-                        </div>
+                                <label for="date-single" class="date-input-label">Analysis Date</label>
+                                <select id="date-single" class="date-picker date-dropdown-main"></select>
+                            </div>
                         </div>
 
                         <!-- Compare Mode Dates -->
                         <div id="compare-dates-container" style="display: none;">
                             <div class="date-input-group">
-                                <label>T1 (Before)</label>
+                                <label for="date-t1">T1 (Before)</label>
                                 <select id="date-t1" class="date-picker date-dropdown"></select>
                             </div>
                             <div class="date-input-group mt-2">
-                                <label>T2 (After)</label>
+                                <label for="date-t2">T2 (After)</label>
                                 <select id="date-t2" class="date-picker date-dropdown"></select>
                             </div>
 
@@ -450,7 +452,7 @@
                             <div class="slider-track-fill" id="opacity-slider-fill"></div>
                             <label for="opacity-slider" class="sr-only">Index Transparency</label>
                             <input type="range" class="slider custom-slider" id="opacity-slider" min="0" max="100"
-                                value="85">
+                                value="85" aria-label="Index opacity slider">
                         </div>
                     </section>
 
@@ -463,7 +465,7 @@
                                 </label>
                                 <span id="sensitivity-val" class="sensitivity-val">Baseline</span>
                             </div>
-                            <input type="range" id="sensitivity-slider" class="sensitivity-slider" min="-50" max="50" step="1" value="0">
+                            <input type="range" id="sensitivity-slider" class="sensitivity-slider" min="-50" max="50" step="1" value="0" aria-label="Detection sensitivity slider">
                             <div class="sensitivity-ticks">
                                 <span>Restrictive</span>
                                 <span>Aggressive</span>
@@ -490,7 +492,7 @@
                     <p><strong>Generated:</strong> <span id="report-date-run"></span></p>
                     <p><strong>AOI Bounds:</strong> <span id="report-aoi-bounds"></span></p>
                 </div>
-                <button id="btn-close-report" class="close-report-btn" aria-label="Close report">✖</button>
+                <button id="btn-close-report" class="close-report-btn" aria-label="Close report modal">✖</button>
             </header>
 
             <div class="report-body">
@@ -621,51 +623,67 @@
         </div>
     </div>
 
-    <script src="indices.js"></script>
-    <script src="charts.js"></script>
-    <script src="report.js"></script>
-    <script src="app.js?v=29"></script>
+    <script type="module" src="indices.js"></script>
+    <script type="module" src="charts.js"></script>
+    <script type="module" src="report.js"></script>
+    <script type="module" src="app.js?v=29"></script>
     <script>
         // JS-powered tooltip for .chart-info-badge
         // Uses body-level element to avoid modal overflow-y clipping
         (function () {
-            let tip = null;
             document.addEventListener('mouseenter', function (e) {
                 if (!e.target || typeof e.target.closest !== 'function') return;
-                const badge = e.target.closest('.chart-info-badge');
-                if (!badge) return;
-                const text = badge.dataset.tooltip;
+                const el = e.target.closest('[data-tooltip]');
+                if (!el) return;
+                
+                const text = el.dataset.tooltip;
                 if (!text) return;
-                tip = document.createElement('div');
+                
+                // Cleanup existing Tip if any (prevents overlapping)
+                const existingTip = document.getElementById('js-tooltip');
+                if (existingTip) existingTip.remove();
+                
+                const tip = document.createElement('div');
                 tip.id = 'js-tooltip';
-                tip.textContent = text;
+                tip.innerHTML = text; // Allow HTML for bold/styling
                 tip.style.cssText = [
                     'position:fixed', 'z-index:99999', 'max-width:280px',
                     'background:rgba(10,11,20,0.97)', 'color:rgba(255,255,255,0.88)',
                     'border:1px solid rgba(0,210,255,0.35)', 'border-radius:8px',
                     'padding:10px 14px', 'font-size:11px', 'line-height:1.65',
-                    'font-family:"Space Grotesk",sans-serif', 'pointer-events:none',
+                    'font-family:var(--font-ui)', 'pointer-events:none',
                     'box-shadow:0 8px 24px rgba(0,0,0,0.6)',
-                    'transition:opacity 0.15s ease', 'opacity:0'
+                    'transition:opacity 0.1s ease', 'opacity:0'
                 ].join(';');
                 document.body.appendChild(tip);
-                const rect = badge.getBoundingClientRect();
+                
+                const rect = el.getBoundingClientRect();
                 const tipW = 280;
                 let left = rect.left + rect.width / 2 - tipW / 2;
                 left = Math.max(8, Math.min(left, window.innerWidth - tipW - 8));
                 tip.style.left = left + 'px';
-                tip.style.top = (rect.top - tip.offsetHeight - 12) + 'px';
-                // Recalculate after render (offsetHeight is available now)
+                
+                // Position above by default
+                let top = rect.top - tip.offsetHeight - 12;
+                if (top < 10) { // If too close to top, show below
+                    top = rect.bottom + 12;
+                }
+                tip.style.top = top + 'px';
+                
                 requestAnimationFrame(() => {
-                    tip.style.top = (rect.top - tip.offsetHeight - 12) + 'px';
+                    // Re-calculate top in case offsetHeight changed
+                    const freshTop = rect.top - tip.offsetHeight - 12;
+                    tip.style.top = (freshTop < 10 ? rect.bottom + 12 : freshTop) + 'px';
                     tip.style.opacity = '1';
                 });
             }, true);
+
             document.addEventListener('mouseleave', function (e) {
-                if (!e.target || typeof e.target.closest !== 'function') return;
-                const badge = e.target.closest('.chart-info-badge');
-                if (!badge || !tip) return;
-                tip.remove(); tip = null;
+                const el = e.target && e.target.closest && e.target.closest('[data-tooltip]');
+                if (el) {
+                    const tip = document.getElementById('js-tooltip');
+                    if (tip) tip.remove();
+                }
             }, true);
         })();
     </script>

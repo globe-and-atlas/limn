@@ -1,6 +1,64 @@
 /* ==========================================================================
-   Sentinel Explorer - Core Logic
+   Sentinel Explorer - Core Logic (ES Module Entry Point)
    ========================================================================== */
+
+import { getCDSEToken } from './auth.js';
+import { 
+    INDICES, 
+    CALIBRATION_PRESETS, 
+    genEvalscript, 
+    genDiffEvalscript, 
+    genDeepFusionEvalscript, 
+    genCumulativeEvalscript,
+    colorBlend,
+    PALETTE_NDMI,
+    PALETTE_NDWI,
+    PALETTE_VEG,
+    PALETTE_MSI,
+    PALETTE_BRINE,
+    PALETTE_CSI,
+    PALETTE_HCAI,
+    PALETTE_HMRI,
+    PALETTE_PWI,
+    PALETTE_BSI,
+    PALETTE_REAI,
+    PALETTE_VCBI,
+    PALETTE_FBC,
+    PALETTE_HPWI,
+    PALETTE_LBI,
+    PALETTE_TRI,
+    PALETTE_BPI,
+    PALETTE_VSI,
+    PALETTE_CMA,
+    PALETTE_PHI,
+    PALETTE_HMI,
+    PALETTE_SCRI,
+    PALETTE_MSI_INV
+} from './indices.js';
+import {
+    detectPeakAnomaly,
+    showHoverHighlight,
+    getDrawnWKT,
+    buildHighlightUrl,
+    renderScanThumbnails,
+    prefetchHighlights,
+    hideHoverHighlight
+} from './charts.js';
+import {
+    probeAcquisitions,
+    openReportModal,
+    closeReportModal
+} from './report.js';
+import {
+    initLeafletMap,
+    applyIndex as applyIndexDelegate,
+    updateGifInset as updateGifInsetDelegate
+} from './map.js';
+import {
+    showToast as showToastDelegate,
+    switchTab,
+    updateUI as updateUIDelegate
+} from './ui.js';
 
 const AOI_LOCATIONS = {
     dixon: { lat: 31.893285, lng: -101.864031, zoom: 15 },
@@ -9,7 +67,7 @@ const AOI_LOCATIONS = {
 };
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-const START_YEAR = 2016;
+const START_YEAR = 2020;
 const ALL_DATES = [];
 const today = new Date(); // Reverted to testing current live data
 let iterDate = new Date(Date.UTC(START_YEAR, 0, 1));
@@ -35,73 +93,36 @@ while (iterDate <= today) {
 
 
 // Copernicus Sentinel Hub configuration
+// Copernicus Sentinel Hub configuration
 const SH_WMS_URL = 'https://sh.dataspace.copernicus.eu/ogc/wms/959ea2c5-5892-4b36-82b3-76e6bdb93c8a';
 const SH_STAT_API_URL = 'https://sh.dataspace.copernicus.eu/api/v1/statistics';
 
-let cachedAccessToken = null;
-let tokenExpiry = null;
-
-async function getCDSEToken() {
-    if (cachedAccessToken && tokenExpiry && Date.now() < tokenExpiry) {
-        return cachedAccessToken;
-    }
-    // The Copernicus Keycloak server blocks direct frontend CORS requests.
-    // We route the authentication handshake securely through a standard CORS proxy to bridge the divide.
-    const authUrl = 'https://corsproxy.io/?' + encodeURIComponent('https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token');
-
-    try {
-        const resp = await fetch(authUrl, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: new URLSearchParams({
-                client_id: CONFIG.CDSE_CLIENT_ID,
-                client_secret: CONFIG.CDSE_CLIENT_SECRET,
-                grant_type: 'client_credentials'
-            })
-        });
-        if (!resp.ok) {
-            const errText = await resp.text();
-            throw new Error(`Copernicus OAuth failed (HTTP ${resp.status}): ${errText.substring(0, 100)}`);
-        }
-        const data = await resp.json();
-        cachedAccessToken = data.access_token;
-        tokenExpiry = Date.now() + ((data.expires_in - 60) * 1000);
-        return cachedAccessToken;
-    } catch (e) {
-        console.error("Auth Error:", e);
-        cachedAccessToken = null;
-        throw e;
-    }
-}
-
 const APP_VERSION = 'v48';
 
-// ── Toast Notification System ──────────────────────
+const config = {
+    SH_WMS_URL,
+    SH_STAT_API_URL,
+    ALL_DATES,
+    INDICES,
+    START_YEAR
+};
+
+// Modular Delegations
+function applyIndex(isScrubbing = false) {
+    applyIndexDelegate(state, config, isScrubbing);
+    updateUI();
+}
+
+function updateUI() {
+    updateUIDelegate(state, INDICES);
+}
+
+function updateGifInset() {
+    updateGifInsetDelegate(state, config);
+}
+
 function showToast(message, type = 'info') {
-    let container = document.getElementById('toast-container');
-    if (!container) {
-        container = document.createElement('div');
-        container.id = 'toast-container';
-        container.setAttribute('aria-live', 'polite');
-        document.body.appendChild(container);
-    }
-
-    const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
-    toast.innerHTML = `
-        <span class="toast-icon">${type === 'success' ? '✓' : type === 'warning' ? '⚠' : 'ℹ'}</span>
-        <span class="toast-msg">${message}</span>
-    `;
-    container.appendChild(toast);
-
-    // Trigger entrance animation
-    requestAnimationFrame(() => toast.classList.add('toast-visible'));
-
-    // Auto-dismiss after 5s
-    setTimeout(() => {
-        toast.classList.remove('toast-visible');
-        toast.addEventListener('transitionend', () => toast.remove());
-    }, 5000);
+    showToastDelegate(message, type);
 }
 
 // Globals for Report Generation
@@ -146,70 +167,104 @@ const state = {
     anomalousDates: [], // Array of 'YYYY-MM-DD' strings flagged by the scanner
     rrcSpillLayer: null, // Leaflet layer group for RRC spill markers
     rrcSpillData: null,   // Cached GeoJSON after first fetch
-    hoverHighlightLayer: null // Temporary overlay for chart-hover highlighting
+    hoverHighlightLayer: null, // Temporary overlay for chart-hover highlighting
+    hoverMarker: null
 };
+
+// Expose core objects to global window scope for modular accessibility
+window.state = state;
+window.ALL_DATES = ALL_DATES;
+window.MONTHS = MONTHS;
+window.CONFIG = window.CONFIG || {}; 
 
 // ── INIT ───────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
     const vBadge = document.getElementById('app-version-badge');
     if (vBadge) vBadge.textContent = APP_VERSION;
 
-    // Inject Tooltips (Scientific Context) to Index Buttons
-    document.querySelectorAll('.index-btn').forEach(btn => {
-        const idx = btn.getAttribute('data-index');
-        if (INDICES[idx] && INDICES[idx].info) {
-            btn.classList.add('tooltip-wrapper'); // Ensure wrapper class is applied
-            const tooltip = document.createElement('div');
-            tooltip.className = 'tooltip-text';
-            tooltip.innerHTML = `<strong>${INDICES[idx].name}</strong><br><br>${INDICES[idx].info}`;
-            btn.appendChild(tooltip);
+    // Helper to populate a select element with grouped dates
+    function populateGroupedDates(selectEl, dates, isValueIndex = false) {
+        if (!selectEl) return;
+        selectEl.innerHTML = '';
+        
+        let currentYear = null;
+        let currentMonth = null;
+        let currentMonthGroup = null;
+
+        // Newest dates at the top
+        const sorted = [...dates].reverse();
+
+        for (const dateObj of sorted) {
+            const dateValue = dateObj.value; // e.g. "2026-03-17"
+            const dateText = dateObj.displayStr || dateObj.label || dateValue;
+            
+            const parts = dateValue.split('-');
+            const yr = parts[0];
+            const monIdx = parseInt(parts[1], 10) - 1;
+            const mon = MONTHS[monIdx] || '???';
+
+            if (mon !== currentMonth || yr !== currentYear) {
+                currentYear = yr;
+                currentMonth = mon;
+                currentMonthGroup = document.createElement('optgroup');
+                currentMonthGroup.label = `${mon} ${yr}`;
+                selectEl.appendChild(currentMonthGroup);
+            }
+
+            const opt = document.createElement('option');
+            if (isValueIndex) {
+                // Find index in the ORIGINAL (ascending) dates array
+                const idx = dates.indexOf(dateObj);
+                opt.value = idx.toString();
+            } else {
+                opt.value = dateValue;
+            }
+            opt.textContent = dateText;
+            currentMonthGroup.appendChild(opt);
         }
-    });
-
-    // Populate Compare Mode DOM dropdowns
-    const t1Sel = document.getElementById('date-t1');
-    const t2Sel = document.getElementById('date-t2');
-    if (t1Sel && t2Sel) {
-        // Populate timeline dropdown — limit to recent 365 days for performance
-        const selSingle = document.getElementById('date-single');
-        selSingle.innerHTML = '';
-        const recentStart = Math.max(0, ALL_DATES.length - 365);
-        for (let i = recentStart; i < ALL_DATES.length; i++) {
-            let opt = document.createElement('option');
-            opt.value = i;
-            opt.text = ALL_DATES[i].displayStr;
-            selSingle.appendChild(opt);
-        }
-
-        // Populate compare dropdowns with same limited range
-        t1Sel.innerHTML = '';
-        t2Sel.innerHTML = '';
-        for (let i = recentStart; i < ALL_DATES.length; i++) {
-            let opt1 = document.createElement('option');
-            opt1.value = ALL_DATES[i].value;
-            opt1.textContent = ALL_DATES[i].label;
-            t1Sel.appendChild(opt1);
-
-            let opt2 = document.createElement('option');
-            opt2.value = ALL_DATES[i].value;
-            opt2.textContent = ALL_DATES[i].label;
-            t2Sel.appendChild(opt2);
-        }
-
-        // Defaults: T1 = ~1 year ago, T2 = latest
-        t1Sel.selectedIndex = Math.max(0, t1Sel.options.length - 13);
-        t2Sel.selectedIndex = Math.max(0, t2Sel.options.length - 1);
-
-        state.monthIndex = ALL_DATES.length - 1;
-        selSingle.value = state.monthIndex;
     }
 
+    const selSingle = document.getElementById('date-single');
+    const t1Sel = document.getElementById('date-t1');
+    const t2Sel = document.getElementById('date-t2');
 
-    initMap();
+    // Populate all selectors found in the DOM
+    if (selSingle) populateGroupedDates(selSingle, ALL_DATES, true);
+    if (t1Sel) populateGroupedDates(t1Sel, ALL_DATES, false);
+    if (t2Sel) populateGroupedDates(t2Sel, ALL_DATES, false);
+
+    // Initial Defaults
+    state.monthIndex = ALL_DATES.length - 1; // Newest entry in chronological array
+    if (selSingle) selSingle.value = state.monthIndex.toString();
+    
+    // In newest-first mode, index 0 is most recent
+    if (t1Sel) t1Sel.selectedIndex = 0; 
+    if (t2Sel) t2Sel.selectedIndex = Math.min(10, t2Sel.options.length - 1); // Select a date ~10 steps prior
+
+
+    state.map = initLeafletMap('map', AOI_LOCATIONS[state.activeLoc]);
+    
+    // Bind Map Events for Loading & Errors
+    const mapLoader = document.getElementById('map-loader');
+    state.map.on('tileloadstart', () => {
+        if (mapLoader) mapLoader.classList.add('active');
+    });
+    state.map.on('tileloadfinish', () => {
+        if (mapLoader) mapLoader.classList.remove('active');
+    });
+    state.map.on('tileerror', (e) => {
+        if (mapLoader) mapLoader.classList.remove('active');
+        showToast(`Sentinel Hub Error: Failed to load ${e.layer} tiles.`, 'error');
+    });
+
+    // Initialize Base Layer
+    state.baseLayerInst = L.tileLayer(BASE_LAYERS.imagery, { maxZoom: 18 }).addTo(state.map);
+    state.baseLayerInst.bringToBack();
+
     bindEvents();
 
-
-    // Probe Acquisitions for the initial location
+    // Initial Data Load
+    applyIndex();
     probeAcquisitions();
 
     // Remove loading overlay
@@ -219,22 +274,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }, 1200);
 });
 
-function initMap() {
-    const startLoc = AOI_LOCATIONS[state.activeLoc];
-    state.map = L.map('map', {
-        center: [startLoc.lat, startLoc.lng],
-        zoom: startLoc.zoom,
-        zoomControl: false,
-        attributionControl: true
-    });
-
-    L.control.zoom({ position: 'bottomleft' }).addTo(state.map);
-
-    // Add base layer
-    state.baseLayerInst = L.tileLayer(BASE_LAYERS.imagery, { maxZoom: 18 }).addTo(state.map);
-
-    applyIndex();
-}
+// initMap logic moved to map.js
 
 /**
  * GENERATES A NEON HIGHLIGHT EVALSCRIPT
@@ -243,671 +283,14 @@ function initMap() {
 
 // NOTE: getHighlightScript, chart hover highlight, peak detection → see indices.js / charts.js
 
-function getScriptContent(activeIndex, isDiff, isCumulative = false) {
-    if (activeIndex === 'none') return '';
-    const cfg = INDICES[activeIndex];
-    if (!cfg) return '';
-    let scriptContent = cfg.evalscript;
-
-    // Apply Dynamic Calibration Placeholders
-    const cal = CALIBRATION_PRESETS[state.activeBasin || 'permian'];
-    scriptContent = scriptContent
-        .replace(/__BSI_MASK__/g, cal.bsiMask)
-        .replace(/__BSI_OFFSET__/g, cal.bsiOffset)
-        .replace(/__NDWI_OFFSET__/g, cal.ndwiOffset)
-        .replace(/__PWI_SALINITY_OFFSET__/g, cal.pwiSalinityOffset)
-        .replace(/__PWI_HC_OFFSET__/g, cal.pwiHydrocarbonOffset)
-        .replace(/__PWI_HMRI_OFFSET__/g, cal.pwiHmriOffset);
-
-    if (isCumulative) {
-        // Build the cumulative max-composite logic
-        let logic = "";
-        let palette = "[[0,0,0,0], [1,255,255,255]]"; // fallback
-
-        // Note: we must strip the surrounding colorBlend and return [val] from the logic
-        if (activeIndex === 'ndmi') { logic = "(sample.B8A - sample.B11) / (sample.B8A + sample.B11) + 0.3"; palette = PALETTE_NDMI; }
-        else if (activeIndex === 'ndwi') { logic = "(sample.B03 - sample.B11) / (sample.B03 + sample.B11) + 0.3"; palette = PALETTE_NDWI; }
-        else if (activeIndex === 'ndvi') { logic = "(sample.B08 - sample.B04) / (sample.B08 + sample.B04)"; palette = PALETTE_VEG; }
-        else if (activeIndex === 'savi') { logic = "((sample.B08 - sample.B04) / (sample.B08 + sample.B04 + 0.5)) * 1.5 + 0.2"; palette = PALETTE_VEG; }
-        else if (activeIndex === 'msi') { logic = "sample.B11 / sample.B08"; palette = PALETTE_MSI; } // Corrected palette
-        else if (activeIndex === 'si') { logic = "(sample.B11 - sample.B08) / (sample.B11 + sample.B08) + 0.5"; palette = PALETTE_SI; } // Corrected palette
-        else if (activeIndex === 'ndsi') { logic = "(sample.B11 - sample.B12) / (sample.B11 + sample.B12) + 0.1"; palette = PALETTE_BRINE; }
-        else if (activeIndex === 'bsi') { logic = "((sample.B11 + sample.B04) - (sample.B08 + sample.B02)) / ((sample.B11 + sample.B04) + (sample.B08 + sample.B02))"; palette = PALETTE_BSI; }
-        else if (activeIndex === 'csi') { logic = "sample.B11 / sample.B12 - 0.5"; palette = PALETTE_CSI; }
-        else if (activeIndex === 'hcai') { logic = "(sample.B11 - sample.B04) / (sample.B11 + sample.B04) + 0.1"; palette = PALETTE_HCAI; }
-        else if (activeIndex === 'hmri') { logic = "sample.B12 / sample.B03 - 2.0"; palette = PALETTE_HMRI; }
-        else if (activeIndex === 'ndoi') { logic = "(sample.B02 - sample.B12) / (sample.B02 + sample.B12)"; palette = "[ [0.0, 43, 62, 80], [0.3, 127, 140, 141], [0.7, 241, 196, 15], [1.0, 231, 76, 60] ]"; }
-        else if (activeIndex === 'crsi') { logic = "1.0 - Math.min(1, Math.max(0, Math.sqrt(Math.max(0, ((sample.B08*sample.B04)-(sample.B03*sample.B02))/((sample.B08*sample.B04)+(sample.B03*sample.B02))))))"; palette = "[ [0.0, 39, 174, 96], [0.4, 241, 196, 15], [0.7, 230, 126, 34], [1.0, 192, 57, 43] ]"; }
-        else if (activeIndex === 'aoi') { logic = "Math.max(0, (((sample.B04/sample.B02)*(sample.B11/sample.B12)) - 2.0) / 2.0)"; palette = "[ [0.0, 44, 62, 80], [0.4, 142, 68, 173], [0.8, 192, 57, 43], [1.0, 255, 0, 0] ]"; }
-        else if (activeIndex === 'pwi') {
-            logic = `
-                (function() {
-                    let bsiTop = (sample.B11 + sample.B04) - (sample.B08 + sample.B02);
-                    let bsiBot = (sample.B11 + sample.B04) + (sample.B08 + sample.B02);
-                    if (bsiBot === 0 || (bsiTop / bsiBot) <= 0) return 0;
-                    
-                    let sumNdsi = sample.B11 + sample.B12;
-                    if(sumNdsi === 0) return 0;
-                    let ndsi = (sample.B11 - sample.B12) / sumNdsi;
-                    
-                    let sumHcai = sample.B11 + sample.B04;
-                    if(sumHcai === 0) return 0;
-                    let hcai = (sample.B11 - sample.B04) / sumHcai;
-                    
-                    let hmri = (sample.B03 === 0) ? 0 : sample.B12 / sample.B03;
-                    
-                    let pScore = Math.max(0, ndsi - 0.05) * Math.max(0, (hcai - 0.20) * 2.5) * Math.max(0, (hmri - 1.5) * 2.5);
-                    return Math.min(1, Math.pow(pScore * 60.0, 1.5));
-                })()
-            `;
-            palette = PALETTE_PWI;
-        }
-
-        let bands = ['B04', 'B03', 'B02'];
-        if (activeIndex === 'ndmi') bands = ['B8A', 'B11'];
-        if (activeIndex === 'ndwi') bands = ['B03', 'B11'];
-        if (activeIndex === 'ndvi' || activeIndex === 'savi') bands = ['B08', 'B04'];
-        if (activeIndex === 'msi' || activeIndex === 'si') bands = ['B11', 'B08'];
-        if (activeIndex === 'ndsi' || activeIndex === 'csi') bands = ['B11', 'B12'];
-        if (activeIndex === 'bsi') bands = ['B02', 'B04', 'B08', 'B11'];
-        if (activeIndex === 'hcai') bands = ['B11', 'B04'];
-        if (activeIndex === 'hmri') bands = ['B12', 'B03'];
-        if (activeIndex === 'ndoi') bands = ['B02', 'B12'];
-        if (activeIndex === 'crsi') bands = ['B02', 'B03', 'B04', 'B08'];
-        if (activeIndex === 'aoi') bands = ['B02', 'B04', 'B11', 'B12'];
-        if (activeIndex === 'pwi') bands = ['B02', 'B03', 'B04', 'B08', 'B11', 'B12'];
-        if (activeIndex === 'lbi') {
-            logic = `
-                (function() {
-                    let ndsi = (sample.B11 + sample.B12) === 0 ? 0 : (sample.B11 - sample.B12) / (sample.B11 + sample.B12);
-                    let ndwi = (sample.B03 + sample.B11) === 0 ? 0 : (sample.B03 - sample.B11) / (sample.B03 + sample.B11);
-                    let ndvi = (sample.B08 + sample.B04) === 0 ? 0 : (sample.B08 - sample.B04) / (sample.B08 + sample.B04);
-                    let bsi = (sample.B11+sample.B04+sample.B08+sample.B02) === 0 ? 0 : ((sample.B11+sample.B04)-(sample.B08+sample.B02))/((sample.B11+sample.B04)+(sample.B08+sample.B02));
-                    return Math.max(0, ndsi) * Math.max(0, ndwi + 0.5) * Math.max(0, 1.0 - ndvi) * Math.max(0, bsi) * 40.0;
-                })()
-            `;
-            palette = PALETTE_LBI;
-            bands = ['B03', 'B04', 'B08', 'B11', 'B12'];
-        }
-        if (activeIndex === 'tri') {
-            logic = `
-                (function() {
-                    let ndsi = (sample.B11 + sample.B12) === 0 ? 0 : (sample.B11 - sample.B12) / (sample.B11 + sample.B12);
-                    let hmri = sample.B03 === 0 ? 0 : sample.B12 / sample.B03;
-                    let aoi = (sample.B02 === 0 || sample.B12 === 0) ? 0 : (sample.B04 / sample.B02) * (sample.B11 / sample.B12);
-                    return Math.max(0, ndsi - 0.05) * Math.max(0, (hmri - 1.5)/2) * Math.max(0, (aoi - 1.5)/2) * 10;
-                })()
-            `;
-            palette = PALETTE_TRI;
-            bands = ['B02', 'B03', 'B04', 'B11', 'B12'];
-        }
-        if (activeIndex === 'bpi') {
-            logic = `
-                (function() {
-                    let bsi = (sample.B11+sample.B04+sample.B08+sample.B02) === 0 ? 0 : ((sample.B11+sample.B04)-(sample.B08+sample.B02))/((sample.B11+sample.B04)+(sample.B08+sample.B02));
-                    let ndsi = (sample.B11 + sample.B12) === 0 ? 0 : (sample.B11 - sample.B12) / (sample.B11 + sample.B12);
-                    let hcai = (sample.B11 + sample.B04) === 0 ? 0 : (sample.B11 - sample.B04) / (sample.B11 + sample.B04);
-                    return Math.max(0, bsi) * Math.max(0, ndsi - 0.03) * Math.max(0, hcai - 0.15) * 30.0;
-                })()
-            `;
-            palette = PALETTE_BPI;
-            bands = ['B02', 'B04', 'B08', 'B11', 'B12'];
-        }
-        if (activeIndex === 'hpwi') {
-            if (state.deepFusion) {
-                // HPWI 2.0: Deep Spectral Fusion (S1 VH/VV + S2 Optical) — Aligned with Balanced Spec
-                let fusionLogic = `
-                // 1. Sentinel-2 Chemical Signal (Salinity/Hydrocarbons/Metals)
-                let sumNdsi = (sample.B11 + sample.B12);
-                let ndsi = sumNdsi === 0 ? 0 : (sample.B11 - sample.B12) / sumNdsi;
-                let sumHcai = (sample.B11 + sample.B04);
-                let hcai = sumHcai === 0 ? 0 : (sample.B11 - sample.B04) / sumHcai;
-                let hmri = (sample.B03 === 0) ? 0 : (sample.B12 / sample.B03);
-                
-                let brineScore = Math.max(0, ndsi - 0.10);
-                let hydrocarbonScore = Math.max(0, (hcai - 0.30) * 2);
-                let metalScore = Math.max(0, (hmri - 2.0) * 2);
-                let chemPWI = brineScore * hydrocarbonScore * metalScore;
-
-                // 2. Sentinel-1 Physical Signal (Radar Smoothness)
-                // Smooth liquid surfaces cause VH/VV specular reflection (low backscatter)
-                let vh_db = 10 * Math.log10(Math.max(0.0001, sample.VH));
-                let smoothness = Math.max(0, Math.min(1, (-vh_db - 15) / 10)); // 1 = very smooth/liquid
-
-                // 3. Fusion Logic: Chemical Signature MUST be confirmed by Physical Smoothness
-                let combinedScore = chemPWI * smoothness;
-                let mapped = Math.min(1.0, Math.pow(combinedScore * 20.0, 3.0));
-                
-                ${colorBlend('mapped', PALETTE_PWI)}
-            `;
-                return genDeepFusionEvalscript(['VV', 'VH', 'B02', 'B03', 'B04', 'B11', 'B12'], fusionLogic);
-            } else {
-                // Standard HPWI (Optical Proxy) - Aligned with Balanced Spec
-                logic = `
-                (function() {
-                    let ndsi = (sample.B11 + sample.B12) === 0 ? 0 : (sample.B11 - sample.B12) / (sample.B11 + sample.B12);
-                    let hcai = (sample.B11 + sample.B04) === 0 ? 0 : (sample.B11 - sample.B04) / (sample.B11 + sample.B04);
-                    let hmri = (sample.B03 === 0) ? 0 : (sample.B12 / sample.B03);
-                    
-                    let brineScore = Math.max(0, ndsi - 0.10);
-                    let hydrocarbonScore = Math.max(0, (hcai - 0.30) * 2);
-                    let metalScore = Math.max(0, (hmri - 2.0) * 2);
-                    let chemPWI = brineScore * hydrocarbonScore * metalScore;
-
-                    let sumSmooth = sample.B03 + sample.B11;
-                    let normSmooth = Math.max(0, Math.min(1, ((sample.B03 - sample.B11)/sumSmooth + 0.3) / 0.6));
-                    
-                    let combined = chemPWI * normSmooth;
-                    return Math.min(1.0, Math.pow(combined * 20.0, 3.0));
-                })()
-            `;
-                palette = PALETTE_PWI;
-                bands = ['B02', 'B03', 'B04', 'B11', 'B12'];
-            }
-        }
-        if (activeIndex === 'vsi') {
-            logic = `
-                (function() {
-                    let ndsi = (sample.B11 + sample.B12) === 0 ? 0 : (sample.B11 - sample.B12) / (sample.B11 + sample.B12);
-                    let redEdgeDelta = (sample.B07 + sample.B05) === 0 ? 0 : (sample.B07 - sample.B05) / (sample.B07 + sample.B05);
-                    let msi = sample.B8A === 0 ? 0 : sample.B11 / sample.B8A;
-                    return Math.max(0, ndsi) * Math.max(0, 0.4 - redEdgeDelta) * Math.max(0, msi - 1.0) * 10.0;
-                })()
-            `;
-            palette = PALETTE_VSI;
-            bands = ['B05', 'B07', 'B11', 'B12', 'B8A'];
-        }
-        if (activeIndex === 'cma') {
-            logic = `
-                (function() {
-                    let ndsi = (sample.B11 + sample.B12) === 0 ? 0 : (sample.B11 - sample.B12) / (sample.B11 + sample.B12);
-                    let clayRatio = (sample.B12 === 0) ? 0 : sample.B11 / sample.B12;
-                    let ironIndex = (sample.B02 === 0) ? 0 : sample.B04 / sample.B02;
-                    return Math.max(0, ndsi) * Math.max(0, clayRatio - 1.2) * Math.max(0, ironIndex - 1.5) * 15.0;
-                })()
-            `;
-            palette = PALETTE_CMA;
-            bands = ['B02', 'B04', 'B11', 'B12'];
-        }
-        if (activeIndex === 'phi') {
-            logic = `
-                (function() {
-                    let ndsi = (sample.B11 + sample.B12) === 0 ? 0 : (sample.B11 - sample.B12) / (sample.B11 + sample.B12);
-                    let shoulder = (sample.B12 === 0) ? 0 : sample.B11 / sample.B12;
-                    let hcai = (sample.B11 + sample.B04) === 0 ? 0 : (sample.B11 - sample.B04) / (sample.B11 + sample.B04);
-                    return Math.max(0, ndsi) * Math.max(0, shoulder - 1.0) * Math.max(0, hcai - 0.2) * 20.0;
-                })()
-            `;
-            palette = PALETTE_PHI;
-            bands = ['B04', 'B11', 'B12'];
-        }
-        if (activeIndex === 'hmi') {
-            logic = `
-                (function() {
-                    let greenShift = (sample.B02 === 0) ? 0 : sample.B03 / sample.B02;
-                    let saltPPT = (sample.B12 === 0) ? 0 : sample.B11 / sample.B12;
-                    return Math.max(0, greenShift - 1.1) * Math.max(0, saltPPT - 1.2) * 10.0;
-                })()
-            `;
-            palette = PALETTE_HMI;
-            bands = ['B02', 'B03', 'B11', 'B12'];
-        }
-        if (activeIndex === 'scri') {
-            logic = `
-                (function() {
-                    let vh = 10 * Math.log10(sample.VH);
-                    let vv = 10 * Math.log10(sample.VV);
-                    let ratio = vh - vv;
-                    return Math.max(0, (vh + 20) / 10) * Math.max(0, (ratio + 5) / 5) * 0.5;
-                })()
-            `;
-            palette = PALETTE_SCRI;
-            bands = ['VV', 'VH'];
-        }
-
-        // Data fusion indices like HPWI are too complex for the basic cumulative script generator
-        if (activeIndex !== 'hpwi') {
-            if (activeIndex === 'msi') palette = PALETTE_MSI_INV;
-            scriptContent = genCumulativeEvalscript(bands, logic, palette);
-        }
-    } else {
-        if (cfg.diffscript) {
-            scriptContent = cfg.diffscript;
-        } else if (activeIndex === 's1_sar') {
-            // SAR Difference Evalscript
-            scriptContent = `//VERSION=3
-function setup() {
-  return {
-    input: ["VV", "dataMask"],
-    output: { bands: 4 },
-    mosaicking: "ORBIT"
-  };
-}
-function evaluatePixel(samples) {
-  if (samples.length < 2) return [0, 0, 0, 0.1];
-  let s1 = samples[samples.length - 1]; // oldest
-  let s2 = samples[0]; // newest
-  if (s1.dataMask === 0 || s2.dataMask === 0) return [0, 0, 0, 0];
-  
-  let val1 = Math.log10(s1.VV);
-  let val2 = Math.log10(s2.VV);
-  let diff = val2 - val1;
-  
-  if (diff < -0.2) return [1.0, 0.2, 0.2, 0.8]; // Decrease
-  if (diff > 0.2) return [0.2, 0.6, 1.0, 0.8]; // Increase
-  return [0.2, 0.2, 0.2, 0.3]; // Stable
-}
-`;
-        } else if (isDiff) {
-            let calc = '0';
-
-            // Healthy / Wet / Vegetation Indices (Increase = Blue/Green/Good, Decrease = Red/Loss)
-            if (activeIndex === 'ndvi') calc = '(sample.B08 - sample.B04)/(sample.B08 + sample.B04)';
-            else if (activeIndex === 'ndmi') calc = '(sample.B8A - sample.B11)/(sample.B8A + sample.B11)';
-            else if (activeIndex === 'ndwi') calc = '(sample.B03 - sample.B11)/(sample.B03 + sample.B11)';
-            else if (activeIndex === 'savi') calc = '(((sample.B08 - sample.B04)/(sample.B08 + sample.B04 + 0.5)) * 1.5)';
-
-            // Hazard / Arid / Contamination Indices 
-            // We intrinsically NEGATE the calculations here. By doing so, an INCREASE in contamination/stress
-            // generates a negative delta algebra, correctly mapping the visual threshold to RED/LOSS.
-            else if (activeIndex === 'msi') calc = '-(sample.B11 / sample.B08)';
-            else if (activeIndex === 'si') calc = '-((sample.B11 - sample.B08)/(sample.B11 + sample.B08))';
-            else if (activeIndex === 'ndsi') calc = '-((sample.B11 - sample.B12)/(sample.B11 + sample.B12))';
-            else if (activeIndex === 'bsi') calc = '-(((sample.B11 + sample.B04) - (sample.B08 + sample.B02)) / ((sample.B11 + sample.B04) + (sample.B08 + sample.B02)))';
-            else if (activeIndex === 'csi') calc = '-(sample.B11 / sample.B12)';
-            else if (activeIndex === 'hcai') calc = '-((sample.B11 - sample.B04)/(sample.B11 + sample.B04))';
-            else if (activeIndex === 'hmri') calc = '-(sample.B12 / sample.B03)';
-            else if (activeIndex === 'ndoi') calc = '-((sample.B02 - sample.B12)/(sample.B02 + sample.B12))';
-            else if (activeIndex === 'crsi') calc = '-(Math.sqrt(Math.max(0, ((sample.B08*sample.B04)-(sample.B03*sample.B02))/((sample.B08*sample.B04)+(sample.B03*sample.B02)))))';
-            else if (activeIndex === 'aoi') calc = '-((sample.B04/sample.B02)*(sample.B11/sample.B12))';
-            else if (activeIndex === 'ehc') calc = '-(((sample.B02-sample.B12)/(sample.B02+sample.B12)) + ((sample.B11-sample.B12)/(sample.B11+sample.B12)))';
-            else if (activeIndex === 'pwi') calc = '-((function(){ let bsiTop=(sample.B11+sample.B04)-(sample.B08+sample.B02); let bsiBot=(sample.B11+sample.B04)+(sample.B08+sample.B02); let bsi=(bsiBot===0)?0:(bsiTop/bsiBot); if(bsi<0.01)return 0; let ndsi=(sample.B11+sample.B12===0)?0:(sample.B11-sample.B12)/(sample.B11+sample.B12); let hcai=(sample.B11+sample.B04===0)?0:(sample.B11-sample.B04)/(sample.B11+sample.B04); let hmri=(sample.B03===0)?0:sample.B12/sample.B03; return Math.max(0,ndsi-0.05)*Math.max(0,(hcai-0.20)*2.5)*Math.max(0,(hmri-1.5)*2.5); })())';
-            else if (activeIndex === 'lbi') calc = '-((function(){ let ndsi=(sample.B11+sample.B12===0)?0:(sample.B11-sample.B12)/(sample.B11+sample.B12); let ndwi=(sample.B03+sample.B11===0)?0:(sample.B03-sample.B11)/(sample.B03+sample.B11); let ndvi=(sample.B08+sample.B04===0)?0:(sample.B08-sample.B04)/(sample.B08+sample.B04); let bsi=(sample.B11+sample.B04+sample.B08+sample.B02===0)?0:((sample.B11+sample.B04)-(sample.B08+sample.B02))/((sample.B11+sample.B04)+(sample.B08+sample.B02)); return Math.max(0,ndsi)*Math.max(0,ndwi+0.5)*Math.max(0,1.0-ndvi)*Math.max(0,bsi); })())';
-            else if (activeIndex === 'tri') calc = '-((function(){ let ndsi=(sample.B11+sample.B12===0)?0:(sample.B11-sample.B12)/(sample.B11+sample.B12); let hmri=(sample.B03===0)?0:sample.B12/sample.B03; let aoi=(sample.B02===0||sample.B12===0)?0:(sample.B04/sample.B02)*(sample.B11/sample.B12); return Math.max(0,ndsi-0.05)*Math.max(0,(hmri-1.5)/2)*Math.max(0,(aoi-1.5)/2); })())';
-            else if (activeIndex === 'bpi') calc = '-((function(){ let bsi=(sample.B11+sample.B04+sample.B08+sample.B02===0)?0:((sample.B11+sample.B04)-(sample.B08+sample.B02))/((sample.B11+sample.B04)+(sample.B08+sample.B02)); let ndsi=(sample.B11+sample.B12===0)?0:(sample.B11-sample.B12)/(sample.B11+sample.B12); let hcai=(sample.B11+sample.B04===0)?0:(sample.B11-sample.B04)/(sample.B11+sample.B04); return Math.max(0,bsi)*Math.max(0,ndsi-0.03)*Math.max(0,hcai-0.15); })())';
-            else if (activeIndex === 'vsi') calc = '-((function(){ let ndsi=(sample.B11+sample.B12===0)?0:(sample.B11-sample.B12)/(sample.B11+sample.B12); let redEdgeDelta=(sample.B07+sample.B05===0)?0:(sample.B07-sample.B05)/(sample.B07+sample.B05); let msi=(sample.B8A===0)?0:sample.B11/sample.B8A; return Math.max(0,ndsi)*Math.max(0,0.4-redEdgeDelta)*Math.max(0,msi-1.0); })())';
-            else if (activeIndex === 'cma') calc = '-((function(){ let ndsi=(sample.B11+sample.B12===0)?0:(sample.B11-sample.B12)/(sample.B11+sample.B12); let clayRatio=(sample.B12===0)?0:sample.B11/sample.B12; let ironIndex=(sample.B02===0)?0:sample.B04/sample.B02; return Math.max(0,ndsi)*Math.max(0,clayRatio-1.2)*Math.max(0,ironIndex-1.5); })())';
-            else if (activeIndex === 'phi') calc = '-((function(){ let ndsi=(sample.B11+sample.B12===0)?0:(sample.B11-sample.B12)/(sample.B11+sample.B12); let shoulder=(sample.B12===0)?0:sample.B11/sample.B12; let hcai=(sample.B11+sample.B04===0)?0:(sample.B11-sample.B04)/(sample.B11+sample.B04); return Math.max(0,ndsi)*Math.max(0,shoulder-1.0)*Math.max(0,hcai-0.2); })())';
-            else if (activeIndex === 'hmi') calc = '-((function(){ let greenShift=(sample.B02===0)?0:sample.B03/sample.B02; let saltPPT=(sample.B12===0)?0:sample.B11/sample.B12; return Math.max(0,greenShift-1.1)*Math.max(0,saltPPT-1.2); })())';
-            else if (activeIndex === 'scri') calc = '-((function(){ let vh=10*Math.log10(sample.VH); let vv=10*Math.log10(sample.VV); let ratio=vh-vv; return Math.max(0,(vh+20)/10)*Math.max(0,(ratio+5)/5); })())';
-
-
-            // Proxies for visual bands
-            else if (activeIndex === 'tc') calc = '(sample.B04*2)'; // simplistic proxy for True Color change
-            else if (activeIndex === 'fc') calc = '(sample.B08*2)'; // simplistic proxy for False Color change
-
-            // Define physical spectral sampling arrays
-            let bands = ['B04', 'B03', 'B02'];
-            if (activeIndex === 'ndmi') bands = ['B8A', 'B11'];
-            if (activeIndex === 'ndwi') bands = ['B03', 'B11'];
-            if (activeIndex === 'ndvi' || activeIndex === 'savi') bands = ['B08', 'B04'];
-            if (activeIndex === 'msi' || activeIndex === 'si') bands = ['B11', 'B08'];
-            if (activeIndex === 'ndsi' || activeIndex === 'csi') bands = ['B11', 'B12'];
-            if (activeIndex === 'bsi') bands = ['B02', 'B04', 'B08', 'B11'];
-            if (activeIndex === 'hcai') bands = ['B11', 'B04'];
-            if (activeIndex === 'hmri') bands = ['B12', 'B03'];
-            if (activeIndex === 'ndoi') bands = ['B02', 'B12'];
-            if (activeIndex === 'crsi') bands = ['B02', 'B03', 'B04', 'B08'];
-            if (activeIndex === 'aoi') bands = ['B02', 'B04', 'B11', 'B12'];
-            if (activeIndex === 'ehc') bands = ['B02', 'B12', 'B11'];
-            if (activeIndex === 'pwi') bands = ['B02', 'B03', 'B04', 'B08', 'B11', 'B12'];
-            if (activeIndex === 'lbi') bands = ['B02', 'B03', 'B04', 'B08', 'B11', 'B12'];
-            if (activeIndex === 'tri') bands = ['B02', 'B03', 'B04', 'B11', 'B12'];
-            if (activeIndex === 'bpi') bands = ['B02', 'B04', 'B08', 'B11', 'B12'];
-            if (activeIndex === 'vsi') bands = ['B05', 'B07', 'B11', 'B12', 'B8A'];
-            if (activeIndex === 'cma') bands = ['B02', 'B04', 'B11', 'B12'];
-            if (activeIndex === 'phi') bands = ['B04', 'B11', 'B12'];
-            if (activeIndex === 'hmi') bands = ['B02', 'B03', 'B11', 'B12'];
-            if (activeIndex === 'scri') bands = ['VV', 'VH'];
-            if (activeIndex === 'fc') bands = ['B08', 'B04', 'B03'];
-
-            scriptContent = genDiffEvalscript(bands, calc);
-        }
-    }
-
-    // Fallback for Data Fusion in Diff/Cumulative Modes (not supported by simple array builders)
-    if (activeIndex === 'hpwi' && isDiff) {
-        scriptContent = cfg.evalscript; // HPWI doesn't easily support temporal diffing due to multi-source limits in our current engine
-    }
-
-    // Inject visual filter and sensitivity globally into the raw script string
-    const filterInject = `//VERSION=3\nconst VISUAL_FILTER = ${state.visualFilter};\nconst DETECTION_SENSITIVITY = ${state.sensitivity / 100};`;
-    scriptContent = scriptContent.trim().replace(/\/\/\s*VERSION=3/i, filterInject);
-
-    return scriptContent;
-}
-
-function getWMSLayer(timeStr, isDiff, overrideIndex = null) {
-    const activeIdx = overrideIndex || state.activeIndex;
-    const isCumulative = (state.mode === 'compare' && state.compareType === 'cumulative' && !overrideIndex);
-    let scriptContent = getScriptContent(activeIdx, isDiff, isCumulative);
-
-    let wmsLayerParam = 'AGRICULTURE';
-    const cfg = INDICES[activeIdx];
-    if (activeIdx === 's1_sar' || (cfg && cfg.sensor === 'Sentinel-1 GRD')) wmsLayerParam = 'SENTINEL1-GRD';
-    if (state.hlsEnabled && activeIdx !== 's1_sar' && activeIdx !== 'hpwi') {
-        // CDSE standard layer names for Landsat collections
-        wmsLayerParam = SH_WMS_URL.includes('copernicus.eu') ? 'SENTINEL2-L2A,LANDSAT-8-L2A' : 'NASA-HLS';
-    }
-
-    // Handle Deep Fusion Multi-Source Request
-    if (state.deepFusion && activeIdx === 'hpwi') {
-        // CDSE multi-source WMS requires explicit collection identifiers
-        wmsLayerParam = 'SENTINEL1-GRD,SENTINEL2-L2A';
-    }
-
-    console.log(`[WMS] Requesting Index: ${activeIdx} | Layers: ${wmsLayerParam} | DeepFusion: ${state.deepFusion} | HLS: ${state.hlsEnabled}`);
-
-    // Auto-expand time window for Fusion to ensure intersection
-    let queryTime = timeStr;
-    if ((activeIdx === 'hpwi' || state.deepFusion) && !timeStr.includes('/')) {
-        let dateObj = new Date(timeStr);
-        let pastObj = new Date(dateObj);
-        pastObj.setDate(pastObj.getDate() - 30);
-        queryTime = pastObj.toISOString().split('T')[0] + '/' + timeStr;
-    }
-
-    // Deep Fusion UI Feedback (v33)
-    const deepBox = document.getElementById('toggle-deep-fusion')?.parentElement;
-    if (deepBox) {
-        if (state.deepFusion && activeIdx !== 'hpwi') {
-            deepBox.classList.add('fusion-active-warning');
-            if (!document.getElementById('fusion-note')) {
-                const note = document.createElement('div');
-                note.id = 'fusion-note';
-                note.className = 'fusion-status-indicator';
-                note.textContent = '⚠ Inactive for current index';
-                deepBox.appendChild(note);
-            }
-            deepBox.classList.add('fusion-active');
-        } else {
-            deepBox.classList.remove('fusion-active-warning', 'fusion-active');
-            document.getElementById('fusion-note')?.remove();
-        }
-    }
-
-    return L.tileLayer.wms(SH_WMS_URL, {
-        layers: wmsLayerParam,
-        format: 'image/png',
-        transparent: true,
-        version: '1.3.0',
-        time: queryTime,
-        maxcc: 20,
-        showlogo: false,
-        evalscript: btoa(unescape(encodeURIComponent(scriptContent))),
-        opacity: overrideIndex ? 0.5 : state.opacity,
-        attribution: 'Copernicus Sentinel Hub',
-        tileSize: 256,
-        minZoom: 10,
-        zIndex: overrideIndex ? 20 : 10
-    });
-}
-
-function applyIndex(isScrubbing = false) {
-    if (!state.map) return;
-
-
-    if (!isScrubbing) {
-        if (state.overlayGroup) { state.map.removeLayer(state.overlayGroup); state.overlayGroup = null; }
-        if (state.leftGroup) { state.map.removeLayer(state.leftGroup); state.leftGroup = null; }
-        if (state.rightGroup) { state.map.removeLayer(state.rightGroup); state.rightGroup = null; }
-        if (state.sbsControl) { state.map.removeControl(state.sbsControl); state.sbsControl = null; }
-    }
-
-    if (state.activeIndex === 'none') {
-        updateUI();
-        return;
-    }
-
-    let layersToGroup = [];
-    let rightLayersGroup = [];
-
-    if (state.mode === 'single') {
-        if (!ALL_DATES[state.monthIndex]) return;
-        const timeStr = ALL_DATES[state.monthIndex].value;
-
-        if (isScrubbing && state.overlayGroup) {
-            // OPTIMIZED PATH: Just update the WMS time parameter on existing layers
-            state.overlayGroup.eachLayer(layer => {
-                if (layer.setParams) {
-                    layer.setParams({ time: timeStr }, false); // false = don't redraw immediately, let leaflet handle it
-                }
-            });
-        } else {
-            // FULL REBUILD PATH
-            layersToGroup.push(getWMSLayer(timeStr, false));
-
-            if (state.sarFusion && state.activeIndex !== 's1_sar') {
-                layersToGroup.push(getWMSLayer(timeStr, false, 's1_sar'));
-            }
-
-            state.overlayGroup = L.layerGroup(layersToGroup).addTo(state.map);
-        }
-    } else {
-        const t1 = document.getElementById('date-t1').value;
-        const t2 = document.getElementById('date-t2').value;
-
-        if (state.compareType === 'swipe') {
-            const l_layer = getWMSLayer(t1, false);
-            const r_layer = getWMSLayer(t2, false);
-
-            layersToGroup.push(l_layer);
-            rightLayersGroup.push(r_layer);
-
-            if (state.sarFusion && state.activeIndex !== 's1_sar') {
-                const s1_l_layer = getWMSLayer(t1, false, 's1_sar');
-                const s1_r_layer = getWMSLayer(t2, false, 's1_sar');
-                layersToGroup.push(s1_l_layer);
-                rightLayersGroup.push(s1_r_layer);
-            }
-
-            state.leftGroup = L.layerGroup(layersToGroup).addTo(state.map);
-            state.rightGroup = L.layerGroup(rightLayersGroup).addTo(state.map);
-
-            state.sbsControl = L.control.sideBySide(state.leftGroup.getLayers(), state.rightGroup.getLayers()).addTo(state.map);
-        } else if (state.compareType === 'diff') {
-            const timeRange = `${t1}/${t2}`;
-            const diffLayer = getWMSLayer(timeRange, true);
-            layersToGroup.push(diffLayer);
-
-            if (state.sarFusion && state.activeIndex !== 's1_sar') {
-                layersToGroup.push(getWMSLayer(timeRange, true, 's1_sar'));
-            }
-
-            state.overlayGroup = L.layerGroup(layersToGroup).addTo(state.map);
-        } else if (state.compareType === 'cumulative') {
-            const timeRange = `${t1}/${t2}`;
-            const cumulativeLayer = getWMSLayer(timeRange, false, false); // isDiff=false here, we handle logic in getScriptContent
-            layersToGroup.push(cumulativeLayer);
-
-            if (state.sarFusion && state.activeIndex !== 's1_sar') {
-                layersToGroup.push(getWMSLayer(timeRange, false, 's1_sar'));
-            }
-
-            state.overlayGroup = L.layerGroup(layersToGroup).addTo(state.map);
-        }
-    }
-
-    updateUI();
-    if (!isScrubbing) {
-        updateGifInset();
-        
-        // Refresh thumbnail gallery if anomalies exist
-        if (state.anomalousDates && state.anomalousDates.length > 0) {
-            let thumbBounds = state.map.getBounds();
-            if (state.drawnItems && state.drawnItems.getLayers().length > 0) {
-                thumbBounds = state.drawnItems.getBounds();
-            }
-            renderScanThumbnails(state.anomalousDates, thumbBounds);
-        }
-    }
-}
-
-async function updateGifInset() {
-    const inset = document.getElementById('gif-inset');
-    const img = document.getElementById('gif-img');
-    if (!inset || !img) return;
-
-    if (state.activeIndex === 'none' || state.mode !== 'single') {
-        inset.style.display = 'none';
-        return;
-    }
-
-    inset.style.display = 'block';
-    
-    // 1. Determine local bounding box from map
-    const b = state.map.getBounds();
-    const bboxStr = `${b.getWest()},${b.getSouth()},${b.getEast()},${b.getNorth()}`;
-    const size = 360;
-
-    // 2. Select sequence of dates: 1 month prior to 1 month after
-    const targetDate = new Date(ALL_DATES[state.monthIndex].value);
-    const startDate = new Date(targetDate);
-    startDate.setMonth(startDate.getMonth() - 1);
-    const endDate = new Date(targetDate);
-    endDate.setMonth(endDate.getMonth() + 1);
-
-    let validDates = ALL_DATES.filter(ad => {
-        let d = new Date(ad.value);
-        return d >= startDate && d <= endDate;
-    }).map(ad => ad.value);
-
-    // Limit frames to max 15 to maintain smooth loading and playback
-    if (validDates.length > 15) {
-        const step = Math.ceil(validDates.length / 15);
-        validDates = validDates.filter((_, i) => i % step === 0);
-    }
-    
-    // Sort chronologically ascending
-    validDates.sort((a,b) => new Date(a) - new Date(b));
-    if (validDates.length === 0) validDates = [targetDate.toISOString().slice(0,10)];
-    
-    const dates = validDates;
-
-    const tcScript = getScriptContent('tc', false, false);
-    const activeScript = getScriptContent(state.activeIndex, false, false);
-    const b64Tc = btoa(unescape(encodeURIComponent(tcScript)));
-    const b64Active = btoa(unescape(encodeURIComponent(activeScript)));
-
-    // Correct layer param based on sensor
-    let wmsLayerParam = 'AGRICULTURE';
-    const cfg = INDICES[state.activeIndex];
-    if (state.activeIndex === 's1_sar' || (cfg && cfg.sensor === 'Sentinel-1 GRD')) wmsLayerParam = 'SENTINEL1-GRD';
-
-    // 3. Clear existing loop
-    if (img._insetTimer) clearInterval(img._insetTimer);
-    
-    const frames = dates.map(d => {
-        const bgUrl = `${SH_WMS_URL}?service=WMS&request=GetMap&version=1.3.0&layers=${wmsLayerParam}&format=image/jpeg&width=${size}&height=${size}&crs=CRS:84&bbox=${bboxStr}&time=${d}/${d}&maxcc=50&evalscript=${b64Tc}`;
-        const fgUrl = `${SH_WMS_URL}?service=WMS&request=GetMap&version=1.3.0&layers=${wmsLayerParam}&format=image/png&transparent=true&width=${size}&height=${size}&crs=CRS:84&bbox=${bboxStr}&time=${d}/${d}&maxcc=100&evalscript=${b64Active}`;
-        return { bgUrl, fgUrl, date: d };
-    });
-
-    // We'll use a canvas to merge them for a true "fused" view in the inset
-    const canvas = document.createElement('canvas');
-    canvas.width = size;
-    canvas.height = size;
-    const ctx = canvas.getContext('2d');
-
-    let currentFrame = 0;
-    const renderFrame = async (frameIdx) => {
-        const f = frames[frameIdx];
-        if (!f) return;
-
-        const loadImg = (url) => new Promise((res) => { 
-            const img = new Image();
-            img.crossOrigin = "Anonymous";
-            img.onload = () => res(img);
-            img.onerror = () => res(null); 
-            img.src = url; 
-        });
-        
-        const [bg, fg] = await Promise.all([loadImg(f.bgUrl), loadImg(f.fgUrl)]);
-        
-        ctx.fillStyle = '#111';
-        ctx.fillRect(0, 0, size, size);
-        if (bg) ctx.drawImage(bg, 0, 0, size, size);
-        ctx.globalAlpha = 0.8;
-        if (fg) ctx.drawImage(fg, 0, 0, size, size);
-        ctx.globalAlpha = 1.0;
-        
-        // Add date overlay
-        ctx.fillStyle = 'rgba(0,0,0,0.6)';
-        ctx.fillRect(0, size - 20, size, 20);
-        ctx.fillStyle = '#fff';
-        ctx.font = '10px Space Grotesk, sans-serif';
-        ctx.textAlign = 'center';
-        ctx.fillText(f.date, size/2, size - 7);
-
-        img.src = canvas.toDataURL('image/jpeg', 0.8);
-    };
-
-    // Pre-render first frame immediately
-    await renderFrame(0);
-
-    // Start cycling
-    img._insetTimer = setInterval(() => {
-        currentFrame = (currentFrame + 1) % frames.length;
-        renderFrame(currentFrame);
-    }, 1250);
-}
-
-function updateUI() {
-    if (state.activeIndex === 'none') {
-        document.getElementById('btn-generate-report').disabled = true; // Disable report on none
-        return;
-    } else {
-        if (document.getElementById('btn-generate-report').innerText !== "Querying Database...") {
-            // Only re-enable if there is a drawn item
-            if (document.querySelector('.leaflet-interactive')) {
-                document.getElementById('btn-generate-report').disabled = false;
-            }
-        }
-    }
-
-    const cfg = INDICES[state.activeIndex];
-    
-    const diffPos = document.getElementById('diff-label-pos');
-    const diffNeg = document.getElementById('diff-label-neg');
-    if (diffPos && diffNeg) {
-        if (cfg.diffLabels) {
-            diffNeg.innerText = cfg.diffLabels[0];
-            diffPos.innerText = cfg.diffLabels[1];
-        } else {
-            diffNeg.innerText = "Decrease (Loss)";
-            diffPos.innerText = "Increase (Gain)";
-        }
-    }
-
-    const diffLegend = document.getElementById('diff-legend');
-    if (diffLegend) {
-        diffLegend.style.display = (state.mode === 'compare' && state.compareType === 'diff') ? 'block' : 'none';
-    }
-}
-
-
-
 // ── EVENT BINDINGS ─────────────────────────────────
 function bindEvents() {
 
     // Sidebar Tabs
     const tabBtns = document.querySelectorAll('.tab-btn');
-    const tabPanes = document.querySelectorAll('.tab-pane');
     tabBtns.forEach(btn => {
         btn.addEventListener('click', (e) => {
-            const target = e.currentTarget.dataset.tab;
-            tabBtns.forEach(b => b.classList.remove('active'));
-            tabPanes.forEach(p => {
-                p.classList.remove('active', 'tab-animating');
-            });
-            e.currentTarget.classList.add('active');
-            const pane = document.getElementById(`tab-${target}`);
-            if (pane) {
-                pane.classList.add('active', 'tab-animating');
-                pane.addEventListener('animationend', () => {
-                    pane.classList.remove('tab-animating');
-                }, { once: true });
-            }
+            switchTab(e.currentTarget.dataset.tab);
         });
     });
 
@@ -976,21 +359,32 @@ function bindEvents() {
             // Inject Temporal Relevance Badge into the top container
             const idxKey = btn.dataset.index;
             const cfg = INDICES[idxKey];
-            if (cfg && cfg.temporal) {
-                const badge = document.createElement('span');
-                badge.className = `temporal-badge temporal-${cfg.temporal.toLowerCase().replace(/ /g, '-').replace(/\//g, '-').replace(/\+/g, 'plus')}`;
-                badge.textContent = cfg.temporal;
-
-                // If a tag-container exists (e.g. for Radar), use it. Otherwise use topContainer.
-                const tagCont = btn.querySelector('.tag-container');
-                if (tagCont) {
-                    tagCont.appendChild(badge);
-                } else {
-                    topContainer.appendChild(badge);
+            if (cfg) {
+                // Dynamically inject scientific tooltip
+                if (cfg.info) {
+                    btn.setAttribute('data-tooltip', `<strong>${cfg.name}</strong><br>${cfg.info}`);
                 }
+                
+                // Hide the static long description (was causing clutter)
+                const fullSpan = btn.querySelector('.index-full');
+                if (fullSpan) fullSpan.style.display = 'none';
 
-                // Add identifying class to the button itself for more complex styling if needed
-                btn.classList.add(`rel-${cfg.temporal.toLowerCase().replace(/ /g, '-').replace(/\//g, '-').replace(/\+/g, 'plus')}`);
+                if (cfg.temporal) {
+                    const badge = document.createElement('span');
+                    badge.className = `temporal-badge temporal-${cfg.temporal.toLowerCase().replace(/ /g, '-').replace(/\//g, '-').replace(/\+/g, 'plus')}`;
+                    badge.textContent = cfg.temporal;
+
+                    // If a tag-container exists (e.g. for Radar), use it. Otherwise use topContainer.
+                    const tagCont = btn.querySelector('.tag-container');
+                    if (tagCont) {
+                        tagCont.appendChild(badge);
+                    } else {
+                        topContainer.appendChild(badge);
+                    }
+
+                    // Add identifying class to the button itself for more complex styling if needed
+                    btn.classList.add(`rel-${cfg.temporal.toLowerCase().replace(/ /g, '-').replace(/\//g, '-').replace(/\+/g, 'plus')}`);
+                }
             }
         }
 

@@ -3,6 +3,9 @@
    Extracted from app.js for modularity
    ========================================================================== */
 
+import { getCDSEToken } from './auth.js';
+import { INDICES } from './indices.js';
+
 // Helper: Build clean WMS params for offline HTML export (bypasses Leaflet object serialization)
 function buildHTMLWMSParams(timeStr, isDiff) {
     const scriptContent = getScriptContent(state.activeIndex, isDiff);
@@ -21,7 +24,7 @@ function buildHTMLWMSParams(timeStr, isDiff) {
 }
 
 // ── HTML REPORT EXPORT ────────────────────────────
-async function downloadHTMLReport() {
+export async function downloadHTMLReport() {
     const btn = document.getElementById('btn-print-report');
     if (btn) {
         btn.innerText = "Building Offline Report... Please Wait";
@@ -292,7 +295,7 @@ async function downloadHTMLReport() {
 
 // ── GENERATE REPORT ───────────────────────────────
 // Orchestrates the data gathering, modal population, and opening the modal.
-async function generateReport() {
+export async function generateReport() {
     if (!aoiDrawnItem) {
         showToast("Please draw an Area of Interest first.", 'warning');
         return;
@@ -367,7 +370,7 @@ async function generateReport() {
 // orange/red Leaflet circleMarkers. Each marker has a popup with date, volume,
 // operator, county, and RRC district. A sidebar badge shows the total count.
 
-async function initRrcSpillOverlay() {
+export async function initRrcSpillOverlay() {
     // Remove any existing layer first
     if (state.rrcSpillLayer) {
         state.map.removeLayer(state.rrcSpillLayer);
@@ -464,7 +467,7 @@ async function initRrcSpillOverlay() {
  * SENSOR PROBE: Queries the CDSE Catalog for historical acquisitions at current center.
  * Identifies which days have Sentinel-2, Landsat-8, or both to color-code the dropdown.
  */
-async function probeAcquisitions() {
+export async function probeAcquisitions() {
     if (!state.map) return;
     try {
         const center = state.map.getCenter();
@@ -516,9 +519,12 @@ async function probeAcquisitions() {
 
         // Update the Dropdown Options
         document.querySelectorAll('#date-single option, #date-t1 option, #date-t2 option').forEach(opt => {
+            const selectEl = opt.closest('select');
+            if (!selectEl) return;
+            
             let val = opt.value;
-            const idxKey = opt.parentElement.id === 'date-single' ? parseInt(opt.value) : ALL_DATES.findIndex(d => d.value === opt.value);
-            const originalLabel = ALL_DATES[idxKey] ? (opt.parentElement.id === 'date-single' ? ALL_DATES[idxKey].displayStr : ALL_DATES[idxKey].label) : opt.value;
+            const idxKey = selectEl.id === 'date-single' ? parseInt(opt.value) : ALL_DATES.findIndex(d => d.value === opt.value);
+            const originalLabel = ALL_DATES[idxKey] ? (selectEl.id === 'date-single' ? ALL_DATES[idxKey].displayStr : ALL_DATES[idxKey].label) : opt.value;
 
             const sensors = sensorMap[val];
             // Restore original label and clear class
@@ -588,7 +594,7 @@ document.addEventListener('keydown', (e) => {
     }
 });
 
-function openReportModal() {
+export function openReportModal() {
     lastReportTrigger = document.activeElement;
     const modal = document.getElementById('report-modal');
     modal.style.display = 'flex';
@@ -600,7 +606,7 @@ function openReportModal() {
     }, 100);
 }
 
-function closeReportModal() {
+export function closeReportModal() {
     const modal = document.getElementById('report-modal');
     modal.style.display = 'none';
     document.removeEventListener('keydown', trapReportFocus);

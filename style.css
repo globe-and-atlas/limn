@@ -19,7 +19,7 @@
     --border-color: rgba(255, 255, 255, 0.1);
     --border-glow: rgba(0, 210, 255, 0.3);
 
-    --font-ui: 'Space Grotesk', system-ui, -apple-system, sans-serif;
+    --font-ui: 'Instrument Sans', system-ui, -apple-system, sans-serif;
     --font-mono: 'JetBrains Mono', monospace;
 
     --panel-blur: blur(16px);
@@ -30,6 +30,17 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
 }
 
 body {
@@ -449,7 +460,7 @@ button {
     color: var(--text-dim);
     text-transform: uppercase;
     letter-spacing: 0.1em;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    transition: color 0.2s cubic-bezier(0.4, 0, 0.2, 1), background 0.2s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.2s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     border: 1px solid transparent;
 }
 
@@ -531,7 +542,7 @@ button {
     pointer-events: auto;
     opacity: 0;
     transform: translateY(-12px) scale(0.95);
-    transition: all 0.4s cubic-bezier(0.2, 1, 0.3, 1);
+    transition: opacity 0.4s cubic-bezier(0.2, 1, 0.3, 1), transform 0.4s cubic-bezier(0.2, 1, 0.3, 1), border-color 0.4s cubic-bezier(0.2, 1, 0.3, 1);
 }
 
 .toast-visible {
@@ -578,7 +589,7 @@ button {
 
 /* Base Interactions & Micro-animations */
 .index-btn, .loc-btn, .tool-btn, .mode-btn {
-    transition: all 0.25s cubic-bezier(0.2, 1, 0.3, 1);
+    transition: transform 0.25s cubic-bezier(0.2, 1, 0.3, 1), filter 0.25s cubic-bezier(0.2, 1, 0.3, 1), box-shadow 0.25s cubic-bezier(0.2, 1, 0.3, 1), background 0.25s cubic-bezier(0.2, 1, 0.3, 1), border-color 0.25s cubic-bezier(0.2, 1, 0.3, 1);
 }
 
 .index-btn:hover, .loc-btn:hover, .tool-btn:hover:not(:disabled) {
@@ -602,8 +613,8 @@ button {
     border: 1px solid var(--border-color);
     border-radius: 8px;
     margin-bottom: 10px;
-    transition: all 0.2s ease;
-}
+    transition: background 0.2s ease, border-color 0.2s ease;
+  }
 
 .fusion-item:hover {
     background: rgba(255, 255, 255, 0.03);
@@ -672,7 +683,7 @@ button {
     flex-direction: column;
     padding: 16px 20px;
     box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
-    transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+    transition: opacity 0.4s cubic-bezier(0.165, 0.84, 0.44, 1), transform 0.4s cubic-bezier(0.165, 0.84, 0.44, 1), background 0.4s cubic-bezier(0.165, 0.84, 0.44, 1), border-color 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
     border-top: 1px solid rgba(0, 210, 255, 0.2);
 }
 
@@ -888,64 +899,10 @@ button {
     color: var(--text-dim);
 }
 
-/* Tooltips */
+/* Tooltips - JS Managed via data-tooltip */
 .tooltip-wrapper {
     position: relative;
     display: inline-flex;
-}
-
-.tooltip-text {
-    visibility: hidden;
-    position: absolute;
-    bottom: calc(100% + 10px);
-    left: 0;
-    transform: translateY(4px);
-    background: rgba(10, 11, 20, 0.97);
-    color: rgba(255, 255, 255, 0.85);
-    border: 1px solid rgba(0, 210, 255, 0.3);
-    border-radius: 8px;
-    padding: 10px 14px;
-    font-size: 11px;
-    font-family: var(--font-ui);
-    line-height: 1.6;
-    text-align: left;
-    white-space: normal;
-    width: 250px;
-    z-index: 10000;
-    opacity: 0;
-    transition: opacity 0.2s ease, transform 0.2s ease;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
-    pointer-events: none;
-}
-
-.tooltip-wrapper:hover .tooltip-text {
-    visibility: visible;
-    opacity: 1;
-    transform: translateY(0);
-}
-
-/* Prevent clipping for tooltips on the right half of the sidebar grid */
-.index-grid>*:nth-child(even) .tooltip-text,
-.tooltip-wrapper.right-align .tooltip-text {
-    left: auto;
-    right: 0;
-}
-
-.index-grid>*:nth-child(even) .tooltip-text::after,
-.tooltip-wrapper.right-align .tooltip-text::after {
-    left: auto;
-    right: 20px;
-}
-
-.tooltip-text::after {
-    content: '';
-    position: absolute;
-    top: 100%;
-    left: 20px;
-    margin-left: -5px;
-    border-width: 5px;
-    border-style: solid;
-    border-color: rgba(0, 210, 255, 0.3) transparent transparent transparent;
 }
 
 /* Index Grid */
@@ -1079,7 +1036,7 @@ button {
     border-radius: 12px;
     padding: 14px 12px 12px 12px;
     margin-bottom: 20px;
-    transition: all 0.3s ease;
+    transition: border-top-color 0.3s ease, background 0.3s ease, border-color 0.3s ease;
 }
 
 .index-suite-container h3 {
@@ -1164,7 +1121,8 @@ option.opt-fusion {
     box-shadow: inset 0 0 15px rgba(0, 210, 255, 0.1);
 }
 
-.index-btn[data-index="pwi"]::before {
+/* --- Base Button Decorator --- */
+.index-btn::before {
     content: '';
     display: block;
     position: absolute;
@@ -1173,131 +1131,79 @@ option.opt-fusion {
     right: 0;
     height: 3px;
     border-radius: 0 0 8px 8px;
-    background: linear-gradient(to right, #000000, #00FFFF, #FF00FF, #CCFF00);
+    background: var(--idx-gradient, linear-gradient(to right, #00D2FF, #00FFB2));
     opacity: 0;
     transition: opacity 0.2s ease;
 }
 
-.index-btn[data-index="pwi"]:hover::before,
-.index-btn[data-index="pwi"].active::before {
+.index-btn:hover::before,
+.index-btn.active::before {
     opacity: 0.8;
+}
+
+/* PWI (Produced Water Composite) - Aggressive High-Contrast */
+.index-btn[data-index="pwi"] .index-short {
+    color: #00D2FF;
+}
+
+.index-btn[data-index="pwi"] {
+    --idx-gradient: linear-gradient(to right, #000000, #00FFFF, #FF00FF, #CCFF00);
+}
+
+.index-btn[data-index="pwi"]:hover,
+.index-btn[data-index="pwi"].active {
+    background: linear-gradient(135deg, rgba(0, 210, 255, 0.1), rgba(255, 0, 255, 0.05));
+    border-color: #00D2FF;
+    box-shadow: inset 0 0 15px rgba(0, 210, 255, 0.1);
 }
 
 /* Brine - Salt Water */
 .index-btn[data-index="brine"] .index-short {
     color: #F0501E;
 }
-
+.index-btn[data-index="brine"] {
+    --idx-gradient: linear-gradient(to right, #000000, #F0501E);
+}
 .index-btn[data-index="brine"]:hover,
 .index-btn[data-index="brine"].active {
     border-color: #F0501E;
-}
-
-.index-btn[data-index="brine"]::before {
-    content: '';
-    display: block;
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    border-radius: 0 0 8px 8px;
-    background: linear-gradient(to right, #000000, #F0501E);
-    opacity: 0;
-    transition: opacity 0.2s ease;
-}
-
-.index-btn[data-index="brine"]:hover::before,
-.index-btn[data-index="brine"].active::before {
-    opacity: 0.8;
 }
 
 /* CRSI - Salt Stress */
 .index-btn[data-index="crsi"] .index-short {
     color: #e67e22;
 }
-
+.index-btn[data-index="crsi"] {
+    --idx-gradient: linear-gradient(to right, #27ae60, #f1c40f, #e67e22, #c0392b);
+}
 .index-btn[data-index="crsi"]:hover,
 .index-btn[data-index="crsi"].active {
     border-color: #e67e22;
-}
-
-.index-btn[data-index="crsi"]::before {
-    content: '';
-    display: block;
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    border-radius: 0 0 8px 8px;
-    background: linear-gradient(to right, #27ae60, #f1c40f, #e67e22, #c0392b);
-    opacity: 0;
-    transition: opacity 0.2s ease;
-}
-
-.index-btn[data-index="crsi"]:hover::before,
-.index-btn[data-index="crsi"].active::before {
-    opacity: 0.8;
 }
 
 /* AOI - Anoxic Oxidation */
 .index-btn[data-index="aoi"] .index-short {
     color: #c0392b;
 }
-
+.index-btn[data-index="aoi"] {
+    --idx-gradient: linear-gradient(to right, #2c3e50, #8e44ad, #c0392b);
+}
 .index-btn[data-index="aoi"]:hover,
 .index-btn[data-index="aoi"].active {
     border-color: #c0392b;
-}
-
-.index-btn[data-index="aoi"]::before {
-    content: '';
-    display: block;
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    border-radius: 0 0 8px 8px;
-    background: linear-gradient(to right, #2c3e50, #8e44ad, #c0392b);
-    opacity: 0;
-    transition: opacity 0.2s ease;
-}
-
-.index-btn[data-index="aoi"]:hover::before,
-.index-btn[data-index="aoi"].active::before {
-    opacity: 0.8;
 }
 
 /* HPWI - Hybrid SAR / Optical */
 .index-btn[data-index="hpwi"] .index-short {
     color: #f1c40f;
 }
-
+.index-btn[data-index="hpwi"] {
+    --idx-gradient: linear-gradient(to right, #111111, #4b0082, #e74c3c, #f1c40f);
+}
 .index-btn[data-index="hpwi"]:hover,
 .index-btn[data-index="hpwi"].active {
     border-color: #f1c40f;
     box-shadow: 0 0 10px rgba(241, 196, 15, 0.3);
-}
-
-.index-btn[data-index="hpwi"]::before {
-    content: '';
-    display: block;
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    border-radius: 0 0 8px 8px;
-    background: linear-gradient(to right, #111111, #4b0082, #e74c3c, #f1c40f);
-    opacity: 0;
-    transition: opacity 0.2s ease;
-}
-
-.index-btn[data-index="hpwi"]:hover::before,
-.index-btn[data-index="hpwi"].active::before {
-    opacity: 0.8;
 }
 
 /* EHC - Evaporite Halo Composite */
@@ -1307,139 +1213,54 @@ option.opt-fusion {
     background-clip: text;
     -webkit-text-fill-color: transparent;
 }
-
+.index-btn[data-index="ehc"] {
+    --idx-gradient: linear-gradient(to right, #e74c3c, #2ecc71, #3498db);
+}
 .index-btn[data-index="ehc"]:hover,
 .index-btn[data-index="ehc"].active {
     border-color: #3498db;
-}
-
-.index-btn[data-index="ehc"]::before {
-    content: '';
-    display: block;
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    border-radius: 0 0 8px 8px;
-    background: linear-gradient(to right, #e74c3c, #2ecc71, #3498db);
-    opacity: 0;
-    transition: opacity 0.2s ease;
-}
-
-.index-btn[data-index="ehc"]:hover::before,
-.index-btn[data-index="ehc"].active::before {
-    opacity: 0.8;
 }
 
 /* HCAI - Hydrocarbons / Oil */
 .index-btn[data-index="hcai"] .index-short {
     color: #8B4513;
 }
-
+.index-btn[data-index="hcai"] {
+    --idx-gradient: linear-gradient(to right, #F5DEB3, #8B4513, #000000);
+}
 .index-btn[data-index="hcai"]:hover,
 .index-btn[data-index="hcai"].active {
     border-color: #8B4513;
-}
-
-.index-btn[data-index="hcai"]::before {
-    content: '';
-    display: block;
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    border-radius: 0 0 8px 8px;
-    background: linear-gradient(to right, #F5DEB3, #8B4513, #000000);
-    opacity: 0;
-    transition: opacity 0.2s ease;
-}
-
-.index-btn[data-index="hcai"]:hover::before,
-.index-btn[data-index="hcai"].active::before {
-    opacity: 0.8;
 }
 
 /* HMRI - Heavy Metals */
 .index-btn[data-index="hmri"] .index-short {
     color: #FF00FF;
 }
-
+.index-btn[data-index="hmri"] {
+    --idx-gradient: linear-gradient(to right, #E6E6FA, #800080, #FF00FF);
+}
 .index-btn[data-index="hmri"]:hover,
 .index-btn[data-index="hmri"].active {
     border-color: #FF00FF;
-}
-
-.index-btn[data-index="hmri"]::before {
-    content: '';
-    display: block;
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    border-radius: 0 0 8px 8px;
-    background: linear-gradient(to right, #E6E6FA, #800080, #FF00FF);
-    opacity: 0;
-    transition: opacity 0.2s ease;
-}
-
-.index-btn[data-index="hmri"]:hover::before,
-.index-btn[data-index="hmri"].active::before {
-    opacity: 0.8;
 }
 
 /* CSI - Contaminated Soil (Clay Ratio) */
 .index-btn[data-index="csi"] .index-short {
     color: #64DC50;
 }
-
+.index-btn[data-index="csi"] {
+    --idx-gradient: linear-gradient(to right, #A07832, #64DC50, #00FFFF);
+}
 .index-btn[data-index="csi"]:hover,
 .index-btn[data-index="csi"].active {
     border-color: #64DC50;
 }
 
-.index-btn[data-index="csi"]::before {
-    content: '';
-    display: block;
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    border-radius: 0 0 8px 8px;
-    background: linear-gradient(to right, #A07832, #64DC50, #00FFFF);
-    opacity: 0;
-    transition: opacity 0.2s ease;
-}
-
-.index-btn[data-index="csi"]:hover::before,
-.index-btn[data-index="csi"].active::before {
-    opacity: 0.8;
-}
-
 /* Standard Blue Variables (Water/Moisture) */
-.index-btn[data-index="ndwi"]::before,
-.index-btn[data-index="ndmi"]::before {
-    content: '';
-    display: block;
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    border-radius: 0 0 8px 8px;
-    background: linear-gradient(to right, #D46A24, #EFD87A, #1C85A6);
-    opacity: 0;
-    transition: opacity 0.2s ease;
-}
-
-.index-btn[data-index="ndwi"]:hover::before,
-.index-btn[data-index="ndwi"].active::before,
-.index-btn[data-index="ndmi"]:hover::before,
-.index-btn[data-index="ndmi"].active::before {
-    opacity: 0.8;
+.index-btn[data-index="ndwi"],
+.index-btn[data-index="ndmi"] {
+    --idx-gradient: linear-gradient(to right, #D46A24, #EFD87A, #1C85A6);
 }
 
 .index-btn[data-index="ndwi"] .index-short,
@@ -1448,26 +1269,9 @@ option.opt-fusion {
 }
 
 /* Standard Green Variables (Vegetation) */
-.index-btn[data-index="ndvi"]::before,
-.index-btn[data-index="savi"]::before {
-    content: '';
-    display: block;
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    border-radius: 0 0 8px 8px;
-    background: linear-gradient(to right, #824614, #D7AA3C, #146428);
-    opacity: 0;
-    transition: opacity 0.2s ease;
-}
-
-.index-btn[data-index="ndvi"]:hover::before,
-.index-btn[data-index="ndvi"].active::before,
-.index-btn[data-index="savi"]:hover::before,
-.index-btn[data-index="savi"].active::before {
-    opacity: 0.8;
+.index-btn[data-index="ndvi"],
+.index-btn[data-index="savi"] {
+    --idx-gradient: linear-gradient(to right, #824614, #D7AA3C, #146428);
 }
 
 .index-btn[data-index="ndvi"] .index-short,
@@ -1476,23 +1280,8 @@ option.opt-fusion {
 }
 
 /* Drought / Arid Variables */
-.index-btn[data-index="msi"]::before {
-    content: '';
-    display: block;
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    border-radius: 0 0 8px 8px;
-    background: linear-gradient(to right, #1C85A6, #EFD87A, #D46A24);
-    opacity: 0;
-    transition: opacity 0.2s ease;
-}
-
-.index-btn[data-index="msi"]:hover::before,
-.index-btn[data-index="msi"].active::before {
-    opacity: 0.8;
+.index-btn[data-index="msi"] {
+    --idx-gradient: linear-gradient(to right, #1C85A6, #EFD87A, #D46A24);
 }
 
 .index-btn[data-index="msi"] .index-short {
@@ -1866,7 +1655,7 @@ option.opt-fusion {
     cursor: ew-resize !important;
 }
 
-/* Chart Info Badge Tooltip */
+/* Chart Info Badge Tooltip - JS Managed */
 .chart-info-badge {
     position: relative;
     display: inline-flex;
@@ -1888,36 +1677,6 @@ option.opt-fusion {
 .chart-info-badge:hover {
     background: rgba(0, 210, 255, 0.15);
     border-color: rgba(0, 210, 255, 0.5);
-}
-
-.chart-info-badge::after {
-    content: attr(data-tooltip);
-    position: absolute;
-    bottom: calc(100% + 10px);
-    left: 50%;
-    transform: translateX(-50%);
-    width: 280px;
-    background: rgba(10, 11, 20, 0.97);
-    color: rgba(255, 255, 255, 0.85);
-    border: 1px solid rgba(0, 210, 255, 0.3);
-    border-radius: 8px;
-    padding: 10px 14px;
-    font-size: 11px;
-    font-family: var(--font-ui);
-    line-height: 1.6;
-    white-space: normal;
-    text-align: left;
-    pointer-events: none;
-    opacity: 0;
-    transition: opacity 0.2s ease, transform 0.2s ease;
-    transform: translateX(-50%) translateY(4px);
-    z-index: 9999;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
-}
-
-.chart-info-badge:hover::after {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
 }
 
 /* ─── GIF Frame Player ────────────────────────────────────── */
@@ -1993,7 +1752,7 @@ option.opt-fusion {
     border-radius: 3px;
     cursor: pointer;
     font-size: 10px;
-    transition: all 0.15s;
+    transition: transform 0.15s, opacity 0.15s;
 }
 
 .gif-speed-btn:hover {
@@ -2298,7 +2057,7 @@ input[type=range]::-webkit-slider-runnable-track {
 .thumbnail-item {
     flex: 0 0 140px;
     cursor: pointer;
-    transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    transition: background 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275), transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
     position: relative;
 }
 
@@ -2818,3 +2577,46 @@ input[type=range]::-webkit-slider-runnable-track {
 .w-full { width: 100%; }
 .display-flex-inline { display: inline-flex; }
 .text-muted { color: var(--text-muted); }
+
+/* Map Loading Indicator */
+.map-loader {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 3px;
+    background: rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.map-loader.active {
+    visibility: visible;
+    opacity: 1;
+}
+
+.map-loader-bar {
+    width: 30%;
+    height: 100%;
+    background: var(--accent-blue);
+    position: absolute;
+    left: -30%;
+    box-shadow: 0 0 10px var(--accent-blue);
+    animation: loader-slide 1.5s infinite linear;
+}
+
+@keyframes loader-slide {
+    0% { left: -30%; }
+    100% { left: 100%; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .map-loader-bar {
+        animation: none;
+        width: 100%;
+        left: 0;
+        opacity: 0.5;
+    }
+}

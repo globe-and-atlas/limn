@@ -8,4 +8,5 @@ build/
 
 # Credentials
 config.js
+app-config.js
 
