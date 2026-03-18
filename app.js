@@ -846,7 +846,7 @@ function bindEvents() {
             startDate.setUTCFullYear(startDate.getUTCFullYear() - 1); // 1 Year lookback
 
             // 2. Setup Evalscript
-            // The scanner checks 6 key indices: PWI, HPWI, FBC (Spill) and NDMI, NDWI, SAVI (Env)
+            // The scanner checks: PWI, HPWI, APEX (primary spill composites) and NDMI, NDWI, SAVI (env)
             const cal = CALIBRATION_PRESETS[state.activeBasin || 'permian'];
             const pwiLogic = INDICES.pwi.fisLogic
                 .replace(/__BSI_MASK__/g, cal.bsiMask)
@@ -892,11 +892,16 @@ function evaluatePixel(sample) {
   let smooth = sumSmooth === 0 ? 0 : Math.max(0, Math.min(1, ((sample.B03 - sample.B11)/sumSmooth + 0.3) / 0.6));
   let val_hpwi = Math.min(1, chemSignal * smooth * 6.0);
 
-  // B2: FBC
-  let ironScore = sample.B02 === 0 ? 0 : Math.max(0, (sample.B04 / sample.B02) - 1.4);
-  let brineScore = Math.max(0, ndsi - 0.02);
-  let noVeg = Math.max(0, 1.0 - Math.max(0, ndvi));
-  let val_fbc = Math.min(1, Math.sqrt(ironScore * brineScore) * noVeg * 25.0);
+  // B2: APEX — optical proxy composite (reuses sumSmooth and ndsiSum from shared intermediates)
+  let apexOVal = sumSmooth === 0 ? 0 : (sample.B03 - sample.B11) / sumSmooth;
+  let apexRadarProxy = Math.max(0, Math.min(1.2, (apexOVal + 0.3) / 0.6));
+  let apexBrineBoost = ndsiSum === 0 ? 0 : Math.max(0, (sample.B11 - sample.B12) / ndsiSum) * 0.4;
+  let apexMoisture = apexOVal + 0.3 + apexBrineBoost;
+  let val_apex = Math.min(Math.max(
+      (apexRadarProxy > 0.7 && apexMoisture > 0.45)
+          ? (apexRadarProxy * 0.4 + apexMoisture * 0.6 + 0.25)
+          : (apexRadarProxy * 0.3 + apexMoisture * 0.7),
+      0), 1);
 
   // B3: NDMI
   let sum_ndmi = sample.B8A + sample.B11;
@@ -926,7 +931,7 @@ function evaluatePixel(sample) {
   let ndwi_lbi = sum_ndwi === 0 ? 0 : (sample.B03 - sample.B11) / sum_ndwi;
   let val_lbi = Math.max(0, ndsi) * Math.max(0, ndwi_lbi + 0.5) * Math.max(0, 1.0 - ndvi) * Math.max(0, bsi) * 40.0;
 
-  return { default: [val_pwi, val_hpwi, val_fbc, val_ndmi, val_ndwi, val_savi, val_vsi, val_tri, val_bpi, val_lbi], dataMask: [1] };
+  return { default: [val_pwi, val_hpwi, val_apex, val_ndmi, val_ndwi, val_savi, val_vsi, val_tri, val_bpi, val_lbi], dataMask: [1] };
 }`;
 
             const geojson = aoiDrawnItem.toGeoJSON();
@@ -976,7 +981,7 @@ function evaluatePixel(sample) {
 
             const timelineLabels = [];
             const timelineData = { 
-                pwi: [], hpwi: [], fbc: [], lbi: [], // Primary
+                pwi: [], hpwi: [], apex: [], lbi: [], // Primary
                 vsi: [], scri: [], tri: [], bpi: [], // Secondary Effective
                 ndmi: [], ndwi: [] // Standard/Env for rules
             };
@@ -989,7 +994,7 @@ function evaluatePixel(sample) {
                     if (bandsObj && bandsObj.B0 && bandsObj.B0.stats.sampleCount > 0) {
                         let pwi  = bandsObj.B0.stats.mean;
                         let hpwi = bandsObj.B1.stats.mean;
-                        let fbc  = bandsObj.B2.stats.mean;
+                        let apex = bandsObj.B2.stats.mean;
                         let ndmi = bandsObj.B3.stats.mean;
                         let ndwi = bandsObj.B4.stats.mean;
                         // B5 (SAVI) used only for internal rules, not charted directly
@@ -1001,7 +1006,7 @@ function evaluatePixel(sample) {
 
                         timelineData.pwi.push(pwi);
                         timelineData.hpwi.push(hpwi);
-                        timelineData.fbc.push(fbc);
+                        timelineData.apex.push(apex);
                         timelineData.lbi.push(lbi);
                         timelineData.vsi.push(vsi);
                         timelineData.scri.push(null); // SAR-only index; not computable from S2 scan
@@ -1010,10 +1015,10 @@ function evaluatePixel(sample) {
                         timelineData.ndmi.push(ndmi);
                         timelineData.ndwi.push(ndwi);
 
-                        // Rule Engine: Flag if PWI spikes OR if there's a strong Spill signature (HPWI/FBC)
+                        // Rule Engine: Flag if PWI spikes OR if there's a strong Spill signature (HPWI/APEX)
                         if ((pwi  > THRESHOLDS.pwi) ||
                             (hpwi > 0.05) ||
-                            (fbc  > 0.1)  ||
+                            (apex > 0.05) ||
                             (lbi  > 0.05) ||
                             (tri  > 0.05) ||
                             (bpi  > 0.05) ||
@@ -1080,7 +1085,7 @@ function evaluatePixel(sample) {
                     { label: 'HPWI', data: dataset.hpwi, borderColor: '#f1c40f', pointBackgroundColor: '#f1c40f', pointBorderColor: '#f1c40f', backgroundColor: '#f1c40f', tension: 0.3, pointRadius: 2 },
                     { label: 'PWI', data: dataset.pwi, borderColor: '#00D2FF', pointBackgroundColor: '#00D2FF', pointBorderColor: '#00D2FF', backgroundColor: '#00D2FF', tension: 0.3, pointRadius: 2 },
                     { label: 'LBI', data: dataset.lbi, borderColor: '#00D2FF', pointBackgroundColor: '#00D2FF', pointBorderColor: '#00D2FF', backgroundColor: '#00D2FF', borderDash: [2, 2], tension: 0.3, pointRadius: 2 },
-                    { label: 'FBC', data: dataset.fbc, borderColor: '#FFB347', pointBackgroundColor: '#FFB347', pointBorderColor: '#FFB347', backgroundColor: '#FFB347', tension: 0.3, pointRadius: 2 }
+                    { label: 'APEX', data: dataset.apex, borderColor: '#8C00FF', pointBackgroundColor: '#8C00FF', pointBorderColor: '#8C00FF', backgroundColor: '#8C00FF', tension: 0.3, pointRadius: 2 }
                 ]
             },
             options: getChartOptions(labels, 'Primary Indices')
