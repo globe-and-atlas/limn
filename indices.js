@@ -78,8 +78,8 @@ export const genDeepFusionEvalscript = (bands, logic) => `//VERSION=3
 function setup() {
   return {
     input: [
-        { datasource: "S1GRD", bands: ["VV", "VH"] },
-        { datasource: "S2L2A", bands: ["B02", "B03", "B04", "B08", "B11", "B12"], units: "REFLECTANCE" }
+      { datasource: "sentinel-2-l2a", id: "s2", bands: ["B02", "B03", "B04", "B05", "B07", "B08", "B8A", "B11", "B12", "dataMask"] },
+      { datasource: "sentinel-1-grd", id: "s1", bands: ["VV", "VH"] }
     ],
     output: { bands: 4 },
     mosaicking: "ORBIT"
@@ -87,10 +87,11 @@ function setup() {
 }
 
 function evaluatePixel(samples, scenes) {
-    // 1. Find most recent valid S2 sample (Chemical Signature)
+    // 1. Find most recent valid S2 sample
     let s2 = null;
-    for (let i = 0; i < samples.S2L2A.length; i++) {
-        const s = samples.S2L2A[i];
+    const s2Samples = samples.s2 || [];
+    for (let i = 0; i < s2Samples.length; i++) {
+        const s = s2Samples[i];
         if (s.dataMask === 1 && (s.B02 > 0 || s.B11 > 0)) {
             s2 = s;
             break;
@@ -98,31 +99,26 @@ function evaluatePixel(samples, scenes) {
     }
     if (!s2) return [0,0,0,0];
 
-    // 2. Find most recent valid S1 sample (Physical Smoothness)
+    // 2. Find most recent valid S1 sample
     let s1 = null;
-    for (let i = 0; i < samples.S1GRD.length; i++) {
-        const s = samples.S1GRD[i];
-        // Loosened check: VH backscatter present
+    const s1Samples = samples.s1 || [];
+    for (let i = 0; i < s1Samples.length; i++) {
+        const s = s1Samples[i];
         if (s.VH !== 0 && s.VV !== 0) {
             s1 = s;
             break;
         }
     }
     
-    // 3. Fallback: If no S1 data, return "Ghost Mode" (low opacity optical)
-    if (!s1) {
-        // Run logic with dummy S1 values to allow rendering
-        const dummyS1 = { VV: 0.1, VH: 0.001 }; // Simulates smooth surface
-        const sampleFlat = { ...dummyS1, ...s2 };
-        // We'll wrap the logic to force low alpha/grey if no S1
-        ${logic.replace(/sample/g, 'sampleFlat')}
-        // After logic runs, it will return a colorBlend. We can't easily intercept it here
-        // so we rely on the logic itself. But wait, logic is a text string.
-        // Better: return logic but adjust smoothness manually if logic uses VH.
-    }
+    // 3. Construct flattened sample with safe fallbacks
+    // If S1 is missing (e.g. no recent overpass), we use a placeholder that won't trigger the alert
+    const effectiveS1 = s1 || { VV: 0.5, VH: 0.05, dataMask: 1 };
+    
+    // Manual merge for maximum compatibility
+    const sampleFlat = {};
+    for (let key in effectiveS1) sampleFlat[key] = effectiveS1[key];
+    for (let key in s2) sampleFlat[key] = s2[key];
 
-    // 4. Map samples back to the logical sample object for the logic snippet
-    const sampleFlat = { ...s1, ...s2 };
     ${logic.replace(/sample/g, 'sampleFlat')}
 }
 `;
@@ -201,6 +197,7 @@ export const PALETTE_TRI = "[[0, 26, 10, 0], [0.3, 128, 64, 0], [0.7, 153, 51, 2
 export const PALETTE_BPI = "[[0, 34, 34, 34], [0.3, 68, 68, 68], [0.7, 0, 255, 255], [1, 255, 255, 0]]";
 export const PALETTE_VSI = "[[0, 0, 85, 0], [0.3, 255, 255, 0], [0.7, 255, 136, 0], [1, 255, 0, 0]]";
 export const PALETTE_CMA = "[[0, 68, 34, 0], [0.3, 136, 68, 0], [0.7, 170, 136, 170], [1, 255, 255, 255]]";
+export const PALETTE_APEX = "[[0.0, 0, 0, 0], [0.1, 30, 0, 80], [0.3, 0, 80, 255], [0.6, 140, 0, 255], [1.0, 255, 255, 255]]";
 export const PALETTE_PHI = "[[0, 0, 0, 0], [0.3, 51, 51, 51], [0.7, 102, 51, 0], [1, 255, 204, 0]]";
 export const PALETTE_HMI = "[[0, 0, 17, 0], [0.3, 0, 68, 0], [0.7, 0, 255, 187], [1, 255, 255, 255]]";
 export const PALETTE_SCRI = "[[0, 0, 0, 0], [0.2, 75, 0, 130], [0.6, 231, 76, 60], [1, 241, 196, 15]]";
@@ -269,6 +266,53 @@ export const INDICES = {
   let sum = sample.B8A + sample.B11;
   if(sum === 0) return [0];
   return [(sample.B8A - sample.B11) / sum];
+`
+    },
+    apex: {
+        name: "APEX-ANOMALY (Super-Composite)",
+        sensor: "Sentinel-2 L2A",
+        min: 0,
+        max: 1,
+        gradient: 'linear-gradient(to right, #000, #1E0050, #0050FF, #8C00FF, #FFF)',
+        formula: "S2 Smoothness Proxy × Moisture+Brine Signature",
+        info: "Multi-band S2 composite. Uses optical surface smoothness (B03/B11 ratio) as a proxy for SAR low-backscatter, cross-referenced with moisture and brine signatures. Does not use actual Sentinel-1 data — all bands are Sentinel-2 only.",
+        diffLabels: ["Low Confidence", "APEX Anomaly"],
+        // WMS-compatible S2-only evalscript (optical proxy for radar smoothness)
+        evalscript: genEvalscript(['B03', 'B11', 'B12'], `
+  // Optical proxy for SAR surface smoothness:
+  // smooth/wet surfaces (liquid) → high NDWI-like ratio, mirrors low SAR VH backscatter
+  let sum = sample.B03 + sample.B11;
+  let oVal = sum === 0 ? 0 : (sample.B03 - sample.B11) / sum;
+  let radarProxy = Math.max(0, Math.min(1.2, (oVal + 0.3) / 0.6));
+
+  // Moisture + brine chemical signature
+  let ndsiSum = sample.B11 + sample.B12;
+  let brineBoost = ndsiSum === 0 ? 0 : Math.max(0, (sample.B11 - sample.B12) / ndsiSum) * 0.4;
+  let moisture = oVal + 0.3 + brineBoost;
+
+  // APEX Fusion Logic (same thresholds as S1/S2 deep version)
+  let fusion = (radarProxy > 0.7 && moisture > 0.45)
+      ? (radarProxy * 0.4) + (moisture * 0.6) + 0.25
+      : (radarProxy * 0.3) + (moisture * 0.7);
+
+  let finalVal = Math.min(Math.max(fusion, 0), 1);
+  if (typeof VISUAL_FILTER !== 'undefined' && finalVal < VISUAL_FILTER) return [0,0,0,0];
+  ${colorBlend('finalVal', PALETTE_APEX)}
+`),
+        // Note: No deepEvalscript for APEX — WMS cannot handle multi-datasource S1+S2 format.
+        // Deep Fusion toggle has no effect on APEX; optical proxy evalscript is always used.
+        fisBands: ['B03', 'B11', 'B12'],
+        fisLogic: `
+  let sum = sample.B03 + sample.B11;
+  let oVal = sum === 0 ? 0 : (sample.B03 - sample.B11) / sum;
+  let radarProxy = Math.max(0, Math.min(1.2, (oVal + 0.3) / 0.6));
+  let ndsiSum = sample.B11 + sample.B12;
+  let brineBoost = ndsiSum === 0 ? 0 : Math.max(0, (sample.B11 - sample.B12) / ndsiSum) * 0.4;
+  let moisture = oVal + 0.3 + brineBoost;
+  let fusion = (radarProxy > 0.7 && moisture > 0.45)
+      ? (radarProxy * 0.4 + moisture * 0.6 + 0.25)
+      : (radarProxy * 0.3 + moisture * 0.7);
+  return [Math.min(Math.max(fusion, 0), 1)];
 `
     },
     ndwi: {
@@ -640,12 +684,12 @@ export const INDICES = {
     },
     hpwi: {
         name: 'Hybrid Produced Water Index (HPWI)',
-        sensor: 'S1+S2 Dual-Fusion',
+        sensor: 'Sentinel-2 L2A',
         temporal: '0-3M',
         min: 'Background', max: 'Confirmed Liquid Spill',
         gradient: 'linear-gradient(to right, #000000, #00FFFF, #FF00FF, #CCFF00)',
-        formula: 'PWI (Restrictive) * S1 Radar Smoothness Confirmation',
-        info: 'HPWI is a "Double-Lock" verification system. It combines Sentinel-2 chemical signatures (Salinity/Hydrocarbons) with Sentinel-1 physical confirmation (Radar specular smoothness). This mode effectively eliminates false positives from dry salt crusts or bright minerals by requiring a physical liquid "smoothness" signature to be present on the radar return.',
+        formula: 'Chemical Signal (NDOI+NDSI) × S2 Surface Smoothness Proxy',
+        info: 'Multi-band S2 composite. Combines hydrocarbon/brine chemical signatures with an optical surface smoothness proxy (B03/B11 ratio) that approximates what SAR VH dampening would confirm. Does not use actual Sentinel-1 data — all bands are Sentinel-2 only.',
         diffLabels: ['Stable (No Detection)', 'Spill Anomaly Detected'],
         evalscript: genEvalscript(['B02', 'B03', 'B11', 'B12'], `
   if (sample.dataMask === 0) return [0,0,0,0];
@@ -1224,13 +1268,14 @@ function evaluatePixel(sample) {
 };
 
 // Per-index thresholds matching the scan rule engine
-const HIGHLIGHT_THRESHOLDS = {
+export const HIGHLIGHT_THRESHOLDS = {
     pwi:  0.10,   // Produced Water Composite — scan flags > 0.10
     hpwi: 0.05,   // Hot-Pixel PW Index — scan flags > 0.05
+    apex: 0.05,   // APEX Super-Composite — scan flags > 0.05
     fbc:  0.10,   // Forensic Brine Composite — scan flags > 0.1
     lbi:  0.08,   // Proxy for leachate/brine
     ndmi: 0.35,   // Normalized Diff Moisture — anomaly when high + dry
-    ndwi: 0.15,   // Water index
+    ndwi: 0.15,   // Water 
     si:   0.15,   // Salinity Index
     ndsi: 0.15,   // Saline Content (Brine)
     bsi:  0.10,   // Bare Soil Index
@@ -1246,7 +1291,7 @@ const HIGHLIGHT_THRESHOLDS = {
     bpi:  0.08    // Proxy
 };
 
-const CHART_COLORS = {
+export const CHART_COLORS = {
     ndmi: '#1C85A6', ndwi: '#1450B4', ndvi: '#146428', savi: '#A07832',
     msi: '#D46A24', s1_sar: '#999999', ndsi: '#FF00FF', bsi: '#A07832', hcai: '#8B4513',
     hpwi: '#f1c40f', pwi: '#00D2FF', lbi: '#00D2FF', fbc: '#FFB347',
@@ -1254,10 +1299,10 @@ const CHART_COLORS = {
     tc: '#FFFFFF', fc: '#FF0000', si: '#00FFFF', csi: '#8B4513',
     hmri: '#808080', ndoi: '#000000', crsi: '#FF5555', aoi: '#5555FF',
     ehc: '#333333', reai: '#FF0055', vcbi: '#AA0000', cma: '#AA88AA',
-    phi: '#FF00FF', hmi: '#444444'
+    phi: '#FF00FF', hmi: '#444444', apex: '#8C00FF'
 };
 
-function getHighlightScript(indexKey, hexColor, chartValue, includeContext = false, activeBasin = 'permian') {
+export function getHighlightScript(indexKey, hexColor, chartValue, includeContext = false, activeBasin = 'permian') {
     const cfg = INDICES[indexKey];
     if (!cfg || !cfg.fisLogic) return '';
     

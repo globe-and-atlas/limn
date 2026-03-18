@@ -33,7 +33,8 @@ import {
     PALETTE_PHI,
     PALETTE_HMI,
     PALETTE_SCRI,
-    PALETTE_MSI_INV
+    PALETTE_MSI_INV,
+    CHART_COLORS
 } from './indices.js';
 import {
     detectPeakAnomaly,
@@ -47,12 +48,16 @@ import {
 import {
     probeAcquisitions,
     openReportModal,
-    closeReportModal
+    closeReportModal,
+    initRrcSpillOverlay,
+    downloadHTMLReport
 } from './report.js';
 import {
     initLeafletMap,
     applyIndex as applyIndexDelegate,
-    updateGifInset as updateGifInsetDelegate
+    updateGifInset as updateGifInsetDelegate,
+    getScriptContent,
+    getWMSLayer
 } from './map.js';
 import {
     showToast as showToastDelegate,
@@ -65,6 +70,77 @@ const AOI_LOCATIONS = {
     rocker: { lat: 31.244621, lng: -101.261754, zoom: 15 },
     sweatt: { lat: 31.480407, lng: -103.423865, zoom: 15 }
 };
+
+// Confirmed produced water spill incidents — all sourced from TRRC, NMED, or news.
+// Coordinates are approximate (derived from geographic anchors, not survey data).
+const SPILL_BOOKMARKS = [
+    {
+        id: 'meister-2022',
+        label: 'Meister Ranch Geyser',
+        date: '2022-01-15',
+        displayDate: 'Jan 2022',
+        lat: 31.35, lng: -102.55, zoom: 14,
+        volume: '~700,000 bbl over 29 days',
+        source: 'TRRC / Texas Tribune',
+        confidence: 'Approx. ±8km',
+        note: 'Orphaned 1948 well erupted 100-ft brine geyser. Injection-induced overpressure confirmed by SMU (GRL 2024).'
+    },
+    {
+        id: 'crane-crevice-2023',
+        label: 'FM 329 Crevice, Crane Co.',
+        date: '2023-12-07',
+        displayDate: 'Dec 2023',
+        lat: 31.2237, lng: -102.7288, zoom: 13,
+        volume: '~14M gallons over 45 days',
+        source: 'TRRC / Marfa Public Radio',
+        confidence: 'Lake Boehmer anchor ±5km',
+        note: '300-ft ground crevice emitting 13,000 gal/hr of saline produced water. TRRC initially mislabeled as "gas leak."'
+    },
+    {
+        id: 'antina-ranch-2020',
+        label: 'Antina Ranch (Estes 20)',
+        date: '2020-12-10',
+        displayDate: 'Dec 2020',
+        lat: 31.50, lng: -102.85, zoom: 13,
+        volume: 'Not reported',
+        source: 'TRRC / Inside Climate News',
+        confidence: 'Approx. ±15km',
+        note: 'Chevron lease orphan well leaked produced water, killing vegetation. Lawsuit filed 2022; Chevron settled Feb 2026.'
+    },
+    {
+        id: 'toyah-2024',
+        label: 'Toyah Well Blowout',
+        date: '2024-10-02',
+        displayDate: 'Oct 2024',
+        lat: 31.31, lng: -103.88, zoom: 14,
+        volume: 'Active 19 days (volume not reported)',
+        source: 'TRRC / Texas Tribune / DeSmog',
+        confidence: 'Approx. ±3km (5mi W of Toyah)',
+        note: '100-ft geyser of oily saline brine + H₂S from 1961 dry hole. Kinder Morgan named as associated operator.'
+    },
+    {
+        id: 'eog-klondike-2025',
+        label: 'EOG Klondike Pit, Eddy Co. NM',
+        date: '2025-05-01',
+        displayDate: 'Q2 2025',
+        lat: 32.24, lng: -103.57, zoom: 13,
+        volume: '~160,000 gal spilled, ~143,000 gal lost',
+        source: 'NMED / WildEarth Guardians',
+        confidence: 'Approx. ±25km',
+        note: 'Equipment failure overflow at produced water reuse pit on NM state trust land. ~20 acres damaged.'
+    },
+    {
+        id: 'oxy-mesa-verde-2025',
+        label: 'OXY Mesa Verde East, NM',
+        date: '2025-07-15',
+        displayDate: 'Jul 2025',
+        lat: 32.25, lng: -103.63, zoom: 13,
+        volume: '~1.6M gal produced water + 126k gal crude',
+        source: 'NMED / WildEarth Guardians',
+        confidence: 'Approx. ±7km (T24S R31-32E)',
+        note: 'Largest single NM spill in Q3 2025. Equipment failure at produced water recycling facility on federal land.'
+    }
+];
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const START_YEAR = 2020;
@@ -99,7 +175,7 @@ const SH_STAT_API_URL = 'https://sh.dataspace.copernicus.eu/api/v1/statistics';
 
 const APP_VERSION = 'v48';
 
-const config = {
+const internalAppConfig = {
     SH_WMS_URL,
     SH_STAT_API_URL,
     ALL_DATES,
@@ -109,29 +185,32 @@ const config = {
 
 // Modular Delegations
 function applyIndex(isScrubbing = false) {
-    applyIndexDelegate(state, config, isScrubbing);
+    applyIndexDelegate(state, window.CONFIG || internalAppConfig, isScrubbing);
     updateUI();
 }
+window.applyIndex = applyIndex;
+window.downloadHTMLReport = downloadHTMLReport;
 
 function updateUI() {
     updateUIDelegate(state, INDICES);
 }
+window.updateUI = updateUI;
 
 function updateGifInset() {
-    updateGifInsetDelegate(state, config);
+    updateGifInsetDelegate(state, window.CONFIG || internalAppConfig);
 }
 
 function showToast(message, type = 'info') {
     showToastDelegate(message, type);
 }
 
-// Globals for Report Generation
-let aoiDrawnItem = null;
-let reportChartInst = null;
-let primaryChartInst = null;
-let secondaryChartInst = null;
-let reportMapInst = null;
-let reportDiffMapInst = null;
+// Globals for Report Generation (Exposed for report.js and charts.js)
+window.aoiDrawnItem = null;
+window.reportChartInst = null;
+window.primaryChartInst = null;
+window.secondaryChartInst = null;
+window.reportMapInst = null;
+window.reportDiffMapInst = null;
 
 // NOTE: CALIBRATION_PRESETS, evalscript generators, palettes, INDICES,
 // HIGHLIGHT_THRESHOLDS, CHART_COLORS, getHighlightScript → see indices.js
@@ -150,6 +229,7 @@ const state = {
     activeIndex: 'ndmi',
     activeBasin: 'permian',
     mode: 'single', // 'single' or 'compare'
+    compareType: 'swipe', // 'swipe' | 'diff' | 'cumulative'
     monthIndex: Math.max(0, ALL_DATES.length - 1),
     sarFusion: false, // track the state of the SAR Overlay toggle
     hlsEnabled: false, // NASA HLS temporal booster
@@ -173,9 +253,9 @@ const state = {
 
 // Expose core objects to global window scope for modular accessibility
 window.state = state;
+window.CONFIG = Object.assign(window.CONFIG || {}, internalAppConfig);
 window.ALL_DATES = ALL_DATES;
 window.MONTHS = MONTHS;
-window.CONFIG = window.CONFIG || {}; 
 
 // ── INIT ───────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
@@ -346,44 +426,71 @@ function bindEvents() {
         });
     }
 
-    // Index Buttons & Temporal Badges
+    // Index Buttons & Info Icons
     document.querySelectorAll('.index-btn').forEach(btn => {
-        // Create top container for Name + Badge
         const shortSpan = btn.querySelector('.index-short');
+        const fullSpan = btn.querySelector('.index-full');
+        
         if (shortSpan) {
-            const topContainer = document.createElement('div');
-            topContainer.className = 'index-btn-top';
-            shortSpan.parentNode.insertBefore(topContainer, shortSpan);
-            topContainer.appendChild(shortSpan);
+            // Ensure Name container exists
+            let nameWrapper = btn.querySelector('.index-name-wrapper');
+            if (!nameWrapper) {
+                nameWrapper = document.createElement('div');
+                nameWrapper.className = 'index-name-wrapper';
+                shortSpan.parentNode.insertBefore(nameWrapper, shortSpan);
+                nameWrapper.appendChild(shortSpan);
+                if (fullSpan) {
+                    nameWrapper.appendChild(fullSpan);
+                    fullSpan.style.display = 'block'; // Ensure full name is visible
+                }
+            }
 
-            // Inject Temporal Relevance Badge into the top container
+            // Create top container for Name + Badge/Info
+            let topContainer = btn.querySelector('.index-btn-top');
+            if (!topContainer) {
+                topContainer = document.createElement('div');
+                topContainer.className = 'index-btn-top';
+                nameWrapper.parentNode.insertBefore(topContainer, nameWrapper);
+                topContainer.appendChild(nameWrapper);
+            }
+
             const idxKey = btn.dataset.index;
             const cfg = INDICES[idxKey];
             if (cfg) {
-                // Dynamically inject scientific tooltip
+                // Info Icon for Tooltip (requested by user)
                 if (cfg.info) {
-                    btn.setAttribute('data-tooltip', `<strong>${cfg.name}</strong><br>${cfg.info}`);
+                    let infoIcon = btn.querySelector('.index-info-icon');
+                    if (!infoIcon) {
+                        infoIcon = document.createElement('span');
+                        infoIcon.className = 'index-info-icon';
+                        infoIcon.innerHTML = '&#9432;'; // ⓘ icon
+                        topContainer.appendChild(infoIcon);
+                    }
+                    // Move tooltip from button to icon
+                    infoIcon.setAttribute('data-tooltip', `<strong>${cfg.name}</strong><br>${cfg.info}`);
+                    btn.removeAttribute('data-tooltip');
+                    
+                    // Prevent button click when clicking info icon
+                    infoIcon.onclick = (e) => e.stopPropagation();
                 }
                 
-                // Hide the static long description (was causing clutter)
-                const fullSpan = btn.querySelector('.index-full');
-                if (fullSpan) fullSpan.style.display = 'none';
-
+                // Temporal Badge — always the last item in tag-container (pinned right via CSS)
                 if (cfg.temporal) {
-                    const badge = document.createElement('span');
-                    badge.className = `temporal-badge temporal-${cfg.temporal.toLowerCase().replace(/ /g, '-').replace(/\//g, '-').replace(/\+/g, 'plus')}`;
-                    badge.textContent = cfg.temporal;
+                    let badge = btn.querySelector('.temporal-badge');
+                    if (!badge) {
+                        badge = document.createElement('span');
+                        badge.className = `temporal-badge temporal-${cfg.temporal.toLowerCase().replace(/ /g, '-').replace(/\//g, '-').replace(/\+/g, 'plus')}`;
+                        badge.textContent = cfg.temporal;
 
-                    // If a tag-container exists (e.g. for Radar), use it. Otherwise use topContainer.
-                    const tagCont = btn.querySelector('.tag-container');
-                    if (tagCont) {
+                        // Ensure a tag-container header row exists
+                        let tagCont = btn.querySelector('.tag-container');
+                        if (!tagCont) {
+                            tagCont = document.createElement('div');
+                            tagCont.className = 'tag-container';
+                            btn.insertBefore(tagCont, btn.firstChild);
+                        }
                         tagCont.appendChild(badge);
-                    } else {
-                        topContainer.appendChild(badge);
                     }
-
-                    // Add identifying class to the button itself for more complex styling if needed
-                    btn.classList.add(`rel-${cfg.temporal.toLowerCase().replace(/ /g, '-').replace(/\//g, '-').replace(/\+/g, 'plus')}`);
                 }
             }
         }
@@ -422,6 +529,46 @@ function bindEvents() {
             setTimeout(() => probeAcquisitions(), 1600);
         });
     });
+
+    // Spill Bookmarks — build list and wire clicks
+    const spillList = document.getElementById('spill-bookmark-list');
+    if (spillList) {
+        SPILL_BOOKMARKS.forEach(spill => {
+            const btn = document.createElement('button');
+            btn.className = 'spill-bookmark-btn';
+            btn.dataset.spillId = spill.id;
+            btn.setAttribute('data-tooltip', `<strong>${spill.label}</strong><br>${spill.note}<br><br>📅 ${spill.displayDate} &nbsp;|&nbsp; 📦 ${spill.volume}<br>📡 ${spill.source}<br>⚠ Coords: ${spill.confidence}`);
+            btn.innerHTML = `<span class="spill-name">${spill.label}</span><span class="spill-date-tag">${spill.displayDate}</span>`;
+            btn.addEventListener('click', () => {
+                // Find closest date in ALL_DATES
+                const target = new Date(spill.date).getTime();
+                let closestIdx = 0, minDiff = Infinity;
+                ALL_DATES.forEach((d, i) => {
+                    const diff = Math.abs(new Date(d.value).getTime() - target);
+                    if (diff < minDiff) { minDiff = diff; closestIdx = i; }
+                });
+
+                // Set date
+                state.monthIndex = closestIdx;
+                const dateSingleEl = document.getElementById('date-single');
+                if (dateSingleEl) dateSingleEl.value = closestIdx.toString();
+
+                // Fly to location
+                document.getElementById('disp-lat').innerText = spill.lat.toFixed(4) + '°';
+                document.getElementById('disp-lng').innerText = spill.lng.toFixed(4) + '°';
+                state.map.flyTo([spill.lat, spill.lng], spill.zoom, { duration: 1.5 });
+
+                // Deselect preset location buttons
+                document.querySelectorAll('.loc-btn').forEach(b => b.classList.remove('active'));
+                document.querySelectorAll('.spill-bookmark-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+
+                applyIndex();
+                setTimeout(() => probeAcquisitions(), 1600);
+            });
+            spillList.appendChild(btn);
+        });
+    }
 
     // Custom Location Search
     const searchBtn = document.getElementById('btn-search-loc');
@@ -515,13 +662,6 @@ function bindEvents() {
         });
     }
 
-    const toggleHls = document.getElementById('toggle-hls-temporal');
-    if (toggleHls) {
-        toggleHls.addEventListener('change', (e) => {
-            state.hlsEnabled = e.target.checked;
-            applyIndex();
-        });
-    }
 
     const toggleDeep = document.getElementById('toggle-deep-fusion');
     if (toggleDeep) {
@@ -623,7 +763,6 @@ function bindEvents() {
     if (basinSelect) {
         basinSelect.addEventListener('change', (e) => {
             state.activeBasin = e.target.value;
-            console.log(`[Basin] Context switched to: ${state.activeBasin}`);
             applyIndex();
         });
     }
@@ -666,7 +805,7 @@ function bindEvents() {
 
     document.getElementById('btn-draw-aoi').addEventListener('click', () => {
         state.drawnItems.clearLayers();
-        aoiDrawnItem = null;
+        window.aoiDrawnItem = null;
         document.getElementById('btn-generate-report').disabled = true;
         drawPoly.disable();
         drawRect.enable();
@@ -674,7 +813,7 @@ function bindEvents() {
 
     document.getElementById('btn-draw-poly').addEventListener('click', () => {
         state.drawnItems.clearLayers();
-        aoiDrawnItem = null;
+        window.aoiDrawnItem = null;
         document.getElementById('btn-generate-report').disabled = true;
         drawRect.disable();
         drawPoly.enable();
@@ -683,7 +822,7 @@ function bindEvents() {
     state.map.on(L.Draw.Event.CREATED, function (e) {
         let layer = e.layer;
         state.drawnItems.addLayer(layer);
-        aoiDrawnItem = layer;
+        window.aoiDrawnItem = layer;
         document.getElementById('btn-generate-report').disabled = false;
         const scanBtn = document.getElementById('btn-scan-aoi');
         if (scanBtn) scanBtn.disabled = false;
@@ -719,50 +858,75 @@ function bindEvents() {
 const DETECTION_SENSITIVITY = ${state.sensitivity / 100};
 function setup() {
   return {
-    input: ["B02", "B03", "B04", "B08", "B11", "B12", "B8A", "dataMask"],
+    input: ["B02", "B03", "B04", "B05", "B07", "B08", "B11", "B12", "B8A", "dataMask"],
     output: [
-      { id: "default", bands: 6, sampleType: "FLOAT32" },
+      { id: "default", bands: 10, sampleType: "FLOAT32" },
       { id: "dataMask", bands: 1, sampleType: "UINT8" }
     ]
   };
 }
 function evaluatePixel(sample) {
-  if (sample.dataMask === 0) return { default: [NaN, NaN, NaN, NaN, NaN, NaN], dataMask: [0] };
-  
-  // 1. PWI
-  let val_pwi = (function() { ${pwiLogic} })()[0];
-  
-  // 2. HPWI
-  let sumNdoi = sample.B02 + sample.B12;
-  let ndoi = sumNdoi === 0 ? 0 : Math.max(0, (sample.B02 - sample.B12) / sumNdoi);
+  if (sample.dataMask === 0) return { default: [NaN,NaN,NaN,NaN,NaN,NaN,NaN,NaN,NaN,NaN], dataMask: [0] };
+
+  // Shared intermediates
   let ndsiSum = sample.B11 + sample.B12;
   let ndsi = ndsiSum === 0 ? 0 : (sample.B11 - sample.B12) / ndsiSum;
+  let ndviSum = sample.B08 + sample.B04;
+  let ndvi = ndviSum === 0 ? 0 : (sample.B08 - sample.B04) / ndviSum;
+  let hcaiSum = sample.B11 + sample.B04;
+  let hcai = hcaiSum === 0 ? 0 : (sample.B11 - sample.B04) / hcaiSum;
+  let bsiNum = (sample.B11 + sample.B04) - (sample.B08 + sample.B02);
+  let bsiDen = (sample.B11 + sample.B04) + (sample.B08 + sample.B02);
+  let bsi = bsiDen === 0 ? 0 : bsiNum / bsiDen;
+  let hmri = sample.B03 === 0 ? 0 : sample.B12 / sample.B03;
+
+  // B0: PWI
+  let val_pwi = (function() { ${pwiLogic} })()[0];
+
+  // B1: HPWI
+  let sumNdoi = sample.B02 + sample.B12;
+  let ndoi = sumNdoi === 0 ? 0 : Math.max(0, (sample.B02 - sample.B12) / sumNdoi);
   let brineBoost = Math.max(0, ndsi - 0.03) * 0.8;
   let chemSignal = Math.min(1, ndoi + brineBoost);
   let sumSmooth = sample.B03 + sample.B11;
-  let smooth = (sumSmooth === 0) ? 0 : Math.max(0, Math.min(1, ((sample.B03 - sample.B11)/sumSmooth + 0.3) / 0.6));
+  let smooth = sumSmooth === 0 ? 0 : Math.max(0, Math.min(1, ((sample.B03 - sample.B11)/sumSmooth + 0.3) / 0.6));
   let val_hpwi = Math.min(1, chemSignal * smooth * 6.0);
 
-  // 3. FBC
-  let ironScore = Math.max(0, (sample.B04 / sample.B02) - 1.4) / 1.0;
+  // B2: FBC
+  let ironScore = sample.B02 === 0 ? 0 : Math.max(0, (sample.B04 / sample.B02) - 1.4);
   let brineScore = Math.max(0, ndsi - 0.02);
-  let ndviSum = sample.B08 + sample.B04;
-  let noVeg = Math.max(0, 1.0 - Math.max(0, ndviSum === 0 ? 0 : (sample.B08 - sample.B04) / ndviSum));
+  let noVeg = Math.max(0, 1.0 - Math.max(0, ndvi));
   let val_fbc = Math.min(1, Math.sqrt(ironScore * brineScore) * noVeg * 25.0);
 
-  // 4. NDMI
+  // B3: NDMI
   let sum_ndmi = sample.B8A + sample.B11;
   let val_ndmi = sum_ndmi === 0 ? NaN : (sample.B8A - sample.B11) / sum_ndmi;
-  
-  // 5. NDWI
+
+  // B4: NDWI
   let sum_ndwi = sample.B03 + sample.B11;
   let val_ndwi = sum_ndwi === 0 ? NaN : (sample.B03 - sample.B11) / sum_ndwi;
-  
-  // 6. SAVI
-  let sum_savi = sample.B08 + sample.B04 + 0.5;
-  let val_savi = sum_savi === 0 ? NaN : ((sample.B08 - sample.B04) / sum_savi) * 1.5;
-  
-  return { default: [val_pwi, val_hpwi, val_fbc, val_ndmi, val_ndwi, val_savi], dataMask: [1] };
+
+  // B5: SAVI
+  let val_savi = ((sample.B08 - sample.B04) / (ndviSum + 0.5)) * 1.5;
+
+  // B6: VSI — Veg Stress Index (S2 only, real)
+  let redEdgeSum = sample.B07 + sample.B05;
+  let redEdgeDelta = redEdgeSum === 0 ? 0 : (sample.B07 - sample.B05) / redEdgeSum;
+  let msi = sample.B8A === 0 ? 0 : sample.B11 / sample.B8A;
+  let val_vsi = Math.max(0, ndsi) * Math.max(0, 0.4 - redEdgeDelta) * Math.max(0, msi - 1.0) * 10.0;
+
+  // B7: TRI — Toxic Residue Index (S2 only, real)
+  let aoi = (sample.B02 === 0 || sample.B12 === 0) ? 0 : (sample.B04 / sample.B02) * (sample.B11 / sample.B12);
+  let val_tri = Math.max(0, ndsi - 0.05) * Math.max(0, (hmri - 1.5) / 2) * Math.max(0, (aoi - 1.5) / 2) * 10;
+
+  // B8: BPI — Brine-Pavement Index (S2 only, real)
+  let val_bpi = Math.max(0, bsi) * Math.max(0, ndsi - 0.03) * Math.max(0, hcai - 0.15) * 30.0;
+
+  // B9: LBI — Liquid Brine Index (S2 only, real)
+  let ndwi_lbi = sum_ndwi === 0 ? 0 : (sample.B03 - sample.B11) / sum_ndwi;
+  let val_lbi = Math.max(0, ndsi) * Math.max(0, ndwi_lbi + 0.5) * Math.max(0, 1.0 - ndvi) * Math.max(0, bsi) * 40.0;
+
+  return { default: [val_pwi, val_hpwi, val_fbc, val_ndmi, val_ndwi, val_savi, val_vsi, val_tri, val_bpi, val_lbi], dataMask: [1] };
 }`;
 
             const geojson = aoiDrawnItem.toGeoJSON();
@@ -823,33 +987,37 @@ function evaluatePixel(sample) {
                     timelineLabels.push(dateStr);
                     let bandsObj = interval.outputs?.default?.bands;
                     if (bandsObj && bandsObj.B0 && bandsObj.B0.stats.sampleCount > 0) {
-                        let pwi = bandsObj.B0.stats.mean;
+                        let pwi  = bandsObj.B0.stats.mean;
                         let hpwi = bandsObj.B1.stats.mean;
-                        let fbc = bandsObj.B2.stats.mean;
+                        let fbc  = bandsObj.B2.stats.mean;
                         let ndmi = bandsObj.B3.stats.mean;
                         let ndwi = bandsObj.B4.stats.mean;
+                        // B5 (SAVI) used only for internal rules, not charted directly
                         let savi = bandsObj.B5.stats.mean;
+                        let vsi  = bandsObj.B6.stats.mean;
+                        let tri  = bandsObj.B7.stats.mean;
+                        let bpi  = bandsObj.B8.stats.mean;
+                        let lbi  = bandsObj.B9.stats.mean;
 
-                        // Mocking/Approximating additional indices for the charts based on the same 1-year scan for demo/completeness
-                        // In a real scenario, we'd add these to the fisScript bands.
                         timelineData.pwi.push(pwi);
                         timelineData.hpwi.push(hpwi);
                         timelineData.fbc.push(fbc);
-                        timelineData.lbi.push(hpwi * 0.8 + (ndwi > 0.1 ? 0.2 : 0)); // Proxy for demo
-                        
-                        timelineData.vsi.push(savi > 0.5 ? pwi * 1.2 : pwi * 0.5); // Proxy
-                        timelineData.scri.push(pwi > 0.1 ? 0.3 : 0.05); // Proxy
-                        timelineData.tri.push(pwi * 0.7); // Proxy
-                        timelineData.bpi.push(fbc * 0.9); // Proxy
-
+                        timelineData.lbi.push(lbi);
+                        timelineData.vsi.push(vsi);
+                        timelineData.scri.push(null); // SAR-only index; not computable from S2 scan
+                        timelineData.tri.push(tri);
+                        timelineData.bpi.push(bpi);
                         timelineData.ndmi.push(ndmi);
                         timelineData.ndwi.push(ndwi);
 
                         // Rule Engine: Flag if PWI spikes OR if there's a strong Spill signature (HPWI/FBC)
-                        if ((pwi !== null && pwi > THRESHOLDS.pwi) ||
-                            (hpwi !== null && hpwi > 0.05) ||
-                            (fbc !== null && fbc > 0.1) ||
-                            (ndmi !== null && ndmi > THRESHOLDS.ndmi_spike && ndwi !== null && ndwi < 0.1)) {
+                        if ((pwi  > THRESHOLDS.pwi) ||
+                            (hpwi > 0.05) ||
+                            (fbc  > 0.1)  ||
+                            (lbi  > 0.05) ||
+                            (tri  > 0.05) ||
+                            (bpi  > 0.05) ||
+                            (ndmi > THRESHOLDS.ndmi_spike && ndwi < 0.1)) {
                             state.anomalousDates.push(dateStr);
                         }
                     } else {
@@ -888,7 +1056,7 @@ function evaluatePixel(sample) {
 
         } catch (err) {
             console.error("Anomaly scan failed", err);
-            alert("Anomaly Scan failed. See console.");
+            showToast("Anomaly Scan failed. Check browser console for details.", 'warning');
         } finally {
             btn.innerText = originalText;
             btn.disabled = false;
@@ -1029,7 +1197,11 @@ function evaluatePixel(sample) {
             const selectEl = document.getElementById(selectId);
             if (selectEl) {
                 Array.from(selectEl.options).forEach(opt => {
-                    if (anomalySet.has(opt.value)) {
+                    // date-single stores numeric array indices as values; resolve to date string
+                    const dateStr = selectId === 'date-single'
+                        ? (ALL_DATES[parseInt(opt.value, 10)] || {}).value
+                        : opt.value;
+                    if (dateStr && anomalySet.has(dateStr)) {
                         if (!opt.text.includes('⚠️')) {
                             opt.text = '⚠️ ' + opt.text;
                             opt.style.color = '#FF8F00';
@@ -1446,8 +1618,8 @@ function evaluatePixel(sample) {
                         if (anomaliesList) {
                             let anomalyHtml = '';
                             state.anomalousDates.forEach(dateStr => {
-                                let tcScript = getScriptContent('tc', false, false);
-                                let pwiScript = getScriptContent('pwi', false, false);
+                                let tcScript = getScriptContent(internalAppConfig, 'tc', false, false, state);
+                                let pwiScript = getScriptContent(internalAppConfig, 'pwi', false, false, state);
 
                                 // To prevent blank/transparent images due to clouds or orbit gaps on specific days,
                                 // we request a 10-day composite window around the anomaly date
@@ -1587,24 +1759,7 @@ function evaluatePixel(sample) {
                                 hidden: true
                             });
                         }
-                        if (activeKey !== 'bsi') {
-                            chartDatasets.push({
-                                label: "Bare Soil Context (BSI)",
-                                data: bsiArr,
-                                borderColor: CHART_COLORS.bsi,
-                                backgroundColor: 'transparent',
-                                pointBackgroundColor: CHART_COLORS.bsi,
-                                pointBorderColor: CHART_COLORS.bsi,
-                                borderWidth: 1.5,
-                                borderDash: [2, 2],
-                                fill: false,
-                                tension: 0.3,
-                                pointRadius: 1,
-                                spanGaps: true,
-                                order: 6,
-                                hidden: true
-                            });
-                        }
+                        // BSI context dataset removed — bsiArr was never populated from the stats API
                     }
 
                     document.querySelector('.report-chart h3').innerText = `Multivariate Statistical Trends (AOI Mean) - ${chartTitleLabel}`;
@@ -1612,7 +1767,7 @@ function evaluatePixel(sample) {
                     const ctx = document.getElementById('reportChart').getContext('2d');
                     if (reportChartInst) reportChartInst.destroy();
 
-                    reportChartInst = new Chart(ctx, {
+                    window.reportChartInst = new Chart(ctx, {
                         type: 'line',
                         data: {
                             labels: chartLabels,
@@ -1697,7 +1852,7 @@ function evaluatePixel(sample) {
 
             // --- Primary map (imagery / T2 date) ---
             if (!reportMapInst) {
-                reportMapInst = L.map('report-map', {
+                window.reportMapInst = L.map('report-map', {
                     zoomControl: true, attributionControl: false,
                     dragging: false, scrollWheelZoom: false,
                     doubleClickZoom: false, keyboard: false
@@ -1714,7 +1869,7 @@ function evaluatePixel(sample) {
                 mapWrapperSingle.style.display = 'block';
                 mapWrapperCompare.style.display = 'none';
 
-                overlayLayer = getWMSLayer(ALL_DATES[state.monthIndex].value, false);
+                overlayLayer = getWMSLayer(state, internalAppConfig, ALL_DATES[state.monthIndex].value, false);
                 mapLabel.innerText = 'Area of Interest (AOI)';
                 diffContainer.style.display = 'none';
 
@@ -1747,16 +1902,16 @@ function evaluatePixel(sample) {
 
                 setTimeout(() => {
                     // We recycle reportMapInst for T1, and reportDiffMapInst (or a new one) for T2
-                    if (!reportMapInst) {
-                        reportMapInst = L.map('report-map-t1', {
+                    if (!window.reportMapInst) {
+                        window.reportMapInst = L.map('report-map-t1', {
                             zoomControl: false, attributionControl: false,
                             dragging: false, scrollWheelZoom: false,
                             doubleClickZoom: false, keyboard: false
                         });
                     } else {
                         // map already exists, just reparent if needed
-                        reportMapInst.remove();
-                        reportMapInst = L.map('report-map-t1', {
+                        window.reportMapInst.remove();
+                        window.reportMapInst = L.map('report-map-t1', {
                             zoomControl: false, attributionControl: false,
                             dragging: false, scrollWheelZoom: false,
                             doubleClickZoom: false, keyboard: false
@@ -1773,28 +1928,28 @@ function evaluatePixel(sample) {
                         doubleClickZoom: false, keyboard: false
                     });
 
-                    L.tileLayer(BASE_LAYERS[activeBaseKey], { maxZoom: 18 }).addTo(reportMapInst);
+                    L.tileLayer(BASE_LAYERS[activeBaseKey], { maxZoom: 18 }).addTo(window.reportMapInst);
                     L.tileLayer(BASE_LAYERS[activeBaseKey], { maxZoom: 18 }).addTo(window.reportMapInstT2);
 
                     reportMapInst.invalidateSize();
                     window.reportMapInstT2.invalidateSize();
 
-                    reportMapInst.fitBounds(bounds, { padding: [10, 10] });
+                    window.reportMapInst.fitBounds(bounds, { padding: [10, 10] });
                     window.reportMapInstT2.fitBounds(bounds, { padding: [10, 10] });
 
                     L.geoJSON(geojson, {
                         style: { color: '#1C85A6', weight: 3, fillOpacity: 0.2 }
-                    }).addTo(reportMapInst);
+                    }).addTo(window.reportMapInst);
                     L.geoJSON(geojson, {
                         style: { color: '#1C85A6', weight: 3, fillOpacity: 0.2 }
                     }).addTo(window.reportMapInstT2);
 
-                    getWMSLayer(rd1Compare, false).addTo(reportMapInst);
-                    getWMSLayer(rd2Compare, false).addTo(window.reportMapInstT2);
+                    getWMSLayer(state, internalAppConfig, rd1Compare, false).addTo(window.reportMapInst);
+                    getWMSLayer(state, internalAppConfig, rd2Compare, false).addTo(window.reportMapInstT2);
 
                     // Init diff map below side-by-side
                     if (!reportDiffMapInst) {
-                        reportDiffMapInst = L.map('report-map-diff', {
+                        window.reportDiffMapInst = L.map('report-map-diff', {
                             zoomControl: false, attributionControl: false,
                             dragging: false, scrollWheelZoom: false,
                             doubleClickZoom: false, keyboard: false
@@ -1818,7 +1973,7 @@ function evaluatePixel(sample) {
                     }).addTo(reportDiffMapInst._drawnItems);
 
                     if (reportDiffMapInst.overlayLayer) reportDiffMapInst.removeLayer(reportDiffMapInst.overlayLayer);
-                    reportDiffMapInst.overlayLayer = getWMSLayer(`${rd1Compare}/${rd2Compare}`, true).addTo(reportDiffMapInst);
+                    reportDiffMapInst.overlayLayer = getWMSLayer(state, internalAppConfig, `${rd1Compare}/${rd2Compare}`, true).addTo(reportDiffMapInst);
                 }, 150);
             }
 
@@ -1868,9 +2023,9 @@ function evaluatePixel(sample) {
                 // Standard imagery GIF always uses True Color — reliable across all WMS time-range requests.
                 // Index-specific visualization is the diff heatmap GIF's job.
                 const safeB64 = (str) => btoa(unescape(encodeURIComponent(str)));
-                const b64TcBg = state.activeIndex === 's1_sar' ? safeB64(getScriptContent('s1_sar', false)) : safeB64(getScriptContent('tc', false));
+                const b64TcBg = state.activeIndex === 's1_sar' ? safeB64(getScriptContent(internalAppConfig, 's1_sar', false, false, state)) : safeB64(getScriptContent(internalAppConfig, 'tc', false, false, state));
 
-                let diffB64Math = safeB64(getScriptContent(state.activeIndex, true));
+                let diffB64Math = safeB64(getScriptContent(internalAppConfig, state.activeIndex, true, false, state));
 
                 // Calculate dynamic GIF dimensions based on AOI aspect ratio to prevent squashing
                 let latRad = bounds.getCenter().lat * Math.PI / 180;
@@ -2016,7 +2171,7 @@ function evaluatePixel(sample) {
                 if (gifIndexTitle) gifIndexTitle.innerText = `${idxName} — Index Gradient`;
 
                 // Build index-specific evalscript URLs (one per frame, single-date)
-                const b64IndexScript = safeB64(getScriptContent(state.activeIndex, false));
+                const b64IndexScript = safeB64(getScriptContent(internalAppConfig, state.activeIndex, false, false, state));
                 const indexUrls = frameIndices.map(i => {
                     const dateStr = ALL_DATES[i].value;
                     let dPrior = new Date(dateStr);

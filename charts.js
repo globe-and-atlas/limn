@@ -1,12 +1,12 @@
-/* ==========================================================================
-   Sentinel Explorer – Chart & Hover Highlight Logic
-   Extracted from app.js for modularity
-   ========================================================================== */
+import { INDICES, CHART_COLORS, getHighlightScript } from './indices.js';
+
+// Configuration (should ideally come from a shared config module, but for now we'll define it here if not available)
+const SH_WMS_URL = 'https://sh.dataspace.copernicus.eu/ogc/wms/959ea2c5-5892-4b36-82b3-76e6bdb93c8a';
 
 let hoverHighlightDebounce = null;
-    let lastHoverKey = '';
-    const hotspotCache = {}; // key → [{lat, lng, intensity}]
-    const peakCache = {}; // key → {lat, lng, intensity}
+let lastHoverKey = '';
+const hotspotCache = {}; // key → [{lat, lng, intensity}]
+const peakCache = {}; // key → {lat, lng, intensity}
 
 export function detectPeakAnomaly(imgUrl, bounds) {
     return new Promise((resolve) => {
@@ -70,15 +70,15 @@ export function detectPeakAnomaly(imgUrl, bounds) {
         if (hoverKey === lastHoverKey) return;
         lastHoverKey = hoverKey;
         const currentReqDate = Date.now();
-        state.currentHoverRequest = currentReqDate;
+        window.state.currentHoverRequest = currentReqDate;
 
         if (hoverHighlightDebounce) clearTimeout(hoverHighlightDebounce);
         hoverHighlightDebounce = setTimeout(async () => {
             hideHoverHighlight(true); // cleanup previous
 
-            let bounds = state.map.getBounds();
-            if (state.drawnItems && state.drawnItems.getLayers().length > 0) {
-                bounds = state.drawnItems.getBounds();
+            let bounds = window.state.map.getBounds();
+            if (window.state.drawnItems && window.state.drawnItems.getLayers().length > 0) {
+                bounds = window.state.drawnItems.getBounds();
             }
 
             const hexColor = CHART_COLORS[indexKey] || '#FF00AA';
@@ -92,27 +92,27 @@ export function detectPeakAnomaly(imgUrl, bounds) {
             const peak = peakCache[hoverKey] || await detectPeakAnomaly(imgUrl, bounds);
             
             // If the user has hovered over something else while we were processing, abort.
-            if (state.currentHoverRequest !== currentReqDate) return;
+            if (window.state.currentHoverRequest !== currentReqDate) return;
             
             if (peak) {
                 peakCache[hoverKey] = peak;
                 const markerColor = hexColor === '#FFFFFF' ? '#FF00FF' : hexColor;
                 
                 // Double check cleanup right before adding new marker
-                if (state.hoverMarker) {
-                    state.map.removeLayer(state.hoverMarker);
+                if (window.state.hoverMarker) {
+                    window.state.map.removeLayer(window.state.hoverMarker);
                 }
                 
-                state.hoverMarker = L.circleMarker([peak.lat, peak.lng], {
+                window.state.hoverMarker = L.circleMarker([peak.lat, peak.lng], {
                     radius: 8,
                     color: '#fff',
                     weight: 2,
                     fillColor: markerColor,
                     fillOpacity: 0.9,
                     className: 'pulse-marker'
-                }).addTo(state.map);
+                }).addTo(window.state.map);
 
-                state.hoverMarker.bindTooltip(`
+                window.state.hoverMarker.bindTooltip(`
                     <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px;">
                         <strong style="color: ${markerColor}; text-shadow: 0 0 4px rgba(0,0,0,0.8);">${indexKey.toUpperCase()} PEAK</strong><br/>
                         DATE: ${date}<br/>
@@ -132,9 +132,9 @@ export function detectPeakAnomaly(imgUrl, bounds) {
 
     // Helper to generate WKT from user drawn polygon to restrict peak detection
     export function getDrawnWKT() {
-        if (!state.drawnItems || state.drawnItems.getLayers().length === 0) return null;
+        if (!window.state.drawnItems || window.state.drawnItems.getLayers().length === 0) return null;
         try {
-            const geojson = state.drawnItems.toGeoJSON();
+            const geojson = window.state.drawnItems.toGeoJSON();
             if (geojson.features.length > 0 && geojson.features[0].geometry) {
                 const geom = geojson.features[0].geometry;
                 if (geom.type === 'Polygon') {
@@ -149,7 +149,7 @@ export function detectPeakAnomaly(imgUrl, bounds) {
     }
 
     export function buildHighlightUrl(date, indexKey, bounds, hexColor, chartValue, includeContext = false) {
-        const script = getHighlightScript(indexKey, hexColor, chartValue, includeContext, state.activeBasin);
+        const script = getHighlightScript(indexKey, hexColor, chartValue, includeContext, window.state.activeBasin);
         if (!script) return null;
 
         const dStart = new Date(date);
@@ -191,7 +191,7 @@ export function detectPeakAnomaly(imgUrl, bounds) {
         const topDates = dates.slice(0, 8);
 
         // Use the currently selected index, or default to pwi if none
-        const renderIndex = (state.activeIndex && state.activeIndex !== 'none') ? state.activeIndex : 'pwi';
+        const renderIndex = (window.state.activeIndex && window.state.activeIndex !== 'none') ? window.state.activeIndex : 'pwi';
         const renderColor = CHART_COLORS[renderIndex] || '#FF00FF';
 
         topDates.forEach(date => {
@@ -210,23 +210,24 @@ export function detectPeakAnomaly(imgUrl, bounds) {
             `;
             
             item.addEventListener('click', () => {
-                // Find matching index in ALL_DATES (objects, not strings)
-                const idx = ALL_DATES.findIndex(d => d.value === date);
+                // Find matching index in window.ALL_DATES (objects, not strings)
+                const idx = window.ALL_DATES.findIndex(d => d.value === date);
                 if (idx !== -1) {
-                    state.monthIndex = idx;
+                    window.state.monthIndex = idx;
                     const dateDropdown = document.getElementById('date-single');
                     if (dateDropdown) dateDropdown.value = idx;
                     
                     // Switch to single mode if not already
-                    if (state.mode !== 'single') {
+                    if (window.state.mode !== 'single') {
                         const mSing = document.getElementById('mode-single');
                         if (mSing) mSing.click();
                     } else {
-                        applyIndex();
+                        // applyIndex is global now or should be window.applyIndex
+                        if (window.applyIndex) window.applyIndex();
                     }
                     
                     // Center map on the anomaly
-                    state.map.flyTo(bounds.getCenter(), 15);
+                    window.state.map.flyTo(bounds.getCenter(), 15);
                 }
             });
             
@@ -254,13 +255,13 @@ export function detectPeakAnomaly(imgUrl, bounds) {
 export function hideHoverHighlight(keepKey) {
     if (!keepKey) lastHoverKey = '';
     if (hoverHighlightDebounce) clearTimeout(hoverHighlightDebounce);
-    if (state.hoverHighlightLayer) {
-        state.map.removeLayer(state.hoverHighlightLayer);
-        state.hoverHighlightLayer = null;
+    if (window.state.hoverHighlightLayer) {
+        window.state.map.removeLayer(window.state.hoverHighlightLayer);
+        window.state.hoverHighlightLayer = null;
     }
-    if (state.hoverMarker) {
-        state.map.removeLayer(state.hoverMarker);
-        state.hoverMarker = null;
+    if (window.state.hoverMarker) {
+        window.state.map.removeLayer(window.state.hoverMarker);
+        window.state.hoverMarker = null;
     }
 }
 

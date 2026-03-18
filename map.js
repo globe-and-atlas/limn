@@ -23,6 +23,8 @@ import {
     PALETTE_HMI,
     PALETTE_SCRI,
     PALETTE_MSI_INV,
+    PALETTE_LBI,
+    PALETTE_APEX,
     INDICES
 } from './indices.js';
 
@@ -51,6 +53,11 @@ export function getScriptContent(config, activeIndex, isDiff, isCumulative = fal
     const cfg = INDICES[activeIndex];
     if (!cfg) return '';
     let scriptContent = cfg.evalscript;
+
+    // Switch to deep fusion evalscript when radar confirmation is enabled
+    if (state.deepFusion && cfg.deepEvalscript) {
+        scriptContent = cfg.deepEvalscript;
+    }
 
     // Apply Dynamic Calibration Placeholders
     const cal = CALIBRATION_PRESETS[state.activeBasin || 'permian'];
@@ -143,25 +150,9 @@ export function getScriptContent(config, activeIndex, isDiff, isCumulative = fal
             bands = ['B02', 'B04', 'B08', 'B11', 'B12'];
         }
         if (activeIndex === 'hpwi') {
-            if (state.deepFusion) {
-                let fusionLogic = `
-                let sumNdsi = (sample.B11 + sample.B12);
-                let ndsi = sumNdsi === 0 ? 0 : (sample.B11 - sample.B12) / sumNdsi;
-                let sumHcai = (sample.B11 + sample.B04);
-                let hcai = sumHcai === 0 ? 0 : (sample.B11 - sample.B04) / sumHcai;
-                let hmri = (sample.B03 === 0) ? 0 : (sample.B12 / sample.B03);
-                let brineScore = Math.max(0, ndsi - 0.10);
-                let hydrocarbonScore = Math.max(0, (hcai - 0.30) * 2);
-                let metalScore = Math.max(0, (hmri - 2.0) * 2);
-                let chemPWI = brineScore * hydrocarbonScore * metalScore;
-                let vh_db = 10 * Math.log10(Math.max(0.0001, sample.VH));
-                let smoothness = Math.max(0, Math.min(1, (-vh_db - 15) / 10));
-                let combinedScore = chemPWI * smoothness;
-                let mapped = Math.min(1.0, Math.pow(combinedScore * 20.0, 3.0));
-                ${colorBlend('mapped', PALETTE_PWI)}
-                `;
-                return genDeepFusionEvalscript(['VV', 'VH', 'B02', 'B03', 'B04', 'B11', 'B12'], fusionLogic);
-            } else {
+            // Note: genDeepFusionEvalscript is WMS-incompatible (multi-datasource).
+            // Always use S2-only optical proxy in cumulative mode regardless of deepFusion toggle.
+            {
                 logic = `(function() {
                     let ndsi = (sample.B11+sample.B12===0)?0:(sample.B11-sample.B12)/(sample.B11+sample.B12);
                     let hcai = (sample.B11+sample.B04===0)?0:(sample.B11-sample.B04)/(sample.B11+sample.B04);
@@ -227,9 +218,30 @@ export function getScriptContent(config, activeIndex, isDiff, isCumulative = fal
             bands = ['VV', 'VH'];
         }
 
+        if (activeIndex === 'apex') {
+            logic = `(function() {
+                let sum = sample.B03 + sample.B11;
+                let oVal = sum === 0 ? 0 : (sample.B03 - sample.B11) / sum;
+                let radarProxy = Math.max(0, Math.min(1.2, (oVal + 0.3) / 0.6));
+                let ndsiSum = sample.B11 + sample.B12;
+                let brineBoost = ndsiSum === 0 ? 0 : Math.max(0, (sample.B11 - sample.B12) / ndsiSum) * 0.4;
+                let moisture = oVal + 0.3 + brineBoost;
+                let fusion = (radarProxy > 0.7 && moisture > 0.45)
+                    ? (radarProxy * 0.4 + moisture * 0.6 + 0.25)
+                    : (radarProxy * 0.3 + moisture * 0.7);
+                return Math.min(Math.max(fusion, 0), 1);
+            })()`;
+            palette = PALETTE_APEX;
+            bands = ['B03', 'B11', 'B12'];
+        }
+
         if (activeIndex !== 'hpwi') {
-            if (activeIndex === 'msi') palette = PALETTE_MSI_INV;
-            scriptContent = genCumulativeEvalscript(bands, logic, palette);
+            if (logic === '') {
+                // No cumulative logic defined for this index — fall back to standard evalscript
+            } else {
+                if (activeIndex === 'msi') palette = PALETTE_MSI_INV;
+                scriptContent = genCumulativeEvalscript(bands, logic, palette);
+            }
         }
     } else {
         if (cfg.diffscript) {
@@ -313,6 +325,68 @@ function evaluatePixel(samples) {
 }
 
 /**
+ * Rate-limited WMS tile layer.
+ * Queues tile fetches (max 4 concurrent) and retries on HTTP 429 with backoff.
+ */
+const RateLimitedWMS = L.TileLayer.WMS.extend({
+    initialize(url, options) {
+        L.TileLayer.WMS.prototype.initialize.call(this, url, options);
+        this._queue = [];
+        this._active = 0;
+        this._maxConcurrent = 4;
+    },
+
+    createTile(coords, done) {
+        const img = document.createElement('img');
+        if (this.options.crossOrigin || this.options.crossOrigin === '') {
+            img.crossOrigin = this.options.crossOrigin === true ? '' : this.options.crossOrigin;
+        }
+        this._enqueue(this.getTileUrl(coords), img, done, 3);
+        return img;
+    },
+
+    _enqueue(url, img, done, retriesLeft) {
+        this._queue.push({ url, img, done, retriesLeft });
+        this._drain();
+    },
+
+    _drain() {
+        while (this._active < this._maxConcurrent && this._queue.length > 0) {
+            this._active++;
+            this._load(this._queue.shift());
+        }
+    },
+
+    _load({ url, img, done, retriesLeft }) {
+        fetch(url)
+            .then(r => {
+                if (r.status === 429 && retriesLeft > 0) {
+                    this._active--;
+                    this._drain();
+                    setTimeout(() => this._enqueue(url, img, done, retriesLeft - 1), 2000);
+                    return null;
+                }
+                if (!r.ok) throw new Error(`HTTP ${r.status}`);
+                return r.blob();
+            })
+            .then(blob => {
+                if (!blob) return;
+                const objUrl = URL.createObjectURL(blob);
+                img.onload = () => { URL.revokeObjectURL(objUrl); this._release(null, img, done); };
+                img.onerror = () => { URL.revokeObjectURL(objUrl); this._release(new Error('img decode failed'), img, done); };
+                img.src = objUrl;
+            })
+            .catch(e => this._release(e, img, done));
+    },
+
+    _release(err, img, done) {
+        this._active--;
+        this._drain();
+        done(err, img);
+    }
+});
+
+/**
  * Creates a WMS tile layer.
  */
 export function getWMSLayer(state, config, timeStr, isDiff, overrideIndex = null) {
@@ -325,32 +399,48 @@ export function getWMSLayer(state, config, timeStr, isDiff, overrideIndex = null
     const cfg = INDICES[activeIdx];
     if (activeIdx === 's1_sar' || (cfg && cfg.sensor === 'Sentinel-1 GRD')) wmsLayerParam = 'SENTINEL1-GRD';
     if (state.hlsEnabled && activeIdx !== 's1_sar' && activeIdx !== 'hpwi') {
-        wmsLayerParam = SH_WMS_URL.includes('copernicus.eu') ? 'SENTINEL2-L2A,LANDSAT-8-L2A' : 'NASA-HLS';
+        wmsLayerParam = SH_WMS_URL.includes('copernicus.eu') ? 'SENTINEL-2-L2A,LANDSAT-8-L2A' : 'NASA-HLS';
     }
-    if (state.deepFusion && activeIdx === 'hpwi') wmsLayerParam = 'SENTINEL1-GRD,SENTINEL2-L2A';
+    // Force single main carrier layer for multi-source fusion scripts to avoid 400 error.
+    // 'AGRICULTURE' is a near-universal default in Sentinel Hub configs.
+    if ((cfg && cfg.sensor === 'S1/S2 Fusion') || (state.deepFusion && activeIdx === 'hpwi')) {
+        wmsLayerParam = 'AGRICULTURE';
+    }
 
     let queryTime = timeStr;
-    if ((activeIdx === 'hpwi' || state.deepFusion) && !timeStr.includes('/')) {
+    if ((activeIdx === 'hpwi' || activeIdx === 'apex') && !timeStr.includes('/')) {
         let dateObj = new Date(timeStr);
         let pastObj = new Date(dateObj);
         pastObj.setDate(pastObj.getDate() - 30);
         queryTime = pastObj.toISOString().split('T')[0] + '/' + timeStr;
     }
 
-    const layer = L.tileLayer.wms(SH_WMS_URL, {
+    // HPWI/APEX use a 30-day window — relax cloud cover filter so more scenes are eligible
+    const maxcc = (activeIdx === 'hpwi' || activeIdx === 'apex') ? 60 : 20;
+
+    const layer = new RateLimitedWMS(SH_WMS_URL, {
         layers: wmsLayerParam,
         format: 'image/png',
         transparent: true,
         version: '1.3.0',
         time: queryTime,
-        maxcc: 20,
+        maxcc,
         showlogo: false,
-        evalscript: btoa(unescape(encodeURIComponent(scriptContent))),
+        evalscript: btoa(unescape(encodeURIComponent(
+            scriptContent
+                .replace(/\/\*[\s\S]*?\*\/|([^\:]|^)\/\/.*$/gm, '$1')
+                .split('\n')
+                .map(line => line.trim())
+                .filter(line => line.length > 0)
+                .join('\n')
+        ))),
         opacity: overrideIndex ? 0.5 : state.opacity,
         attribution: 'Copernicus Sentinel Hub',
         tileSize: 256,
         minZoom: 10,
-        zIndex: overrideIndex ? 20 : 10
+        zIndex: overrideIndex ? 20 : 10,
+        crossOrigin: 'anonymous',
+        updateWhenIdle: true
     });
 
     layer.on('tileerror', (error) => {

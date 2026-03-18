@@ -6,7 +6,8 @@ dist/
 build/
 *.log
 
-# Credentials
+# Credentials — never commit real config files; use config-v1.example.js as template
 config.js
 app-config.js
+config-v1.js
 

@@ -41,7 +41,12 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gifshot/0.3.2/gifshot.min.js"></script>
 
     <!-- Application Config -->
-    <script src="app-config.js"></script>
+    <script src="config-v1.js"></script>
+    <script>
+        // Defensive check: if config-v1.js failed (404), initialize empty object
+        // to prevent downstream crashes in auth.js
+        window.CONFIG = window.CONFIG || {};
+    </script>
 
     <!-- Custom Styles -->
     <link rel="stylesheet" href="style.css?v=2">
@@ -60,6 +65,21 @@
         <!-- Map Area -->
         <main class="map-container" role="main">
             <div id="map"></div>
+
+            <!-- Index Legend (Bottom Right) -->
+            <div class="legend-panel glass-panel" id="legend-panel">
+                <div class="legend-header">
+                    <h3 id="active-index-name">—</h3>
+                    <span class="sensor-tag" id="sensor-tag-display">Sentinel-2 L2A</span>
+                </div>
+                <div class="legend-gradient" id="legend-gradient"></div>
+                <div class="legend-labels">
+                    <span id="legend-min"></span>
+                    <span id="legend-max"></span>
+                </div>
+                <div id="formula-display" class="formula-display"></div>
+            </div>
+
             <!-- Subtle Map Loading Bar -->
             <div id="map-loader" class="map-loader">
                 <div class="map-loader-bar"></div>
@@ -153,6 +173,15 @@
                 </div>
             </section>
 
+            <!-- Confirmed Spill Bookmarks -->
+            <section class="control-group spill-bookmarks-section">
+                <h3>Confirmed Spill Sites</h3>
+                <p class="spill-disclaimer">TRRC/NMED confirmed · coordinates approximate</p>
+                <div class="spill-bookmark-list" id="spill-bookmark-list">
+                    <!-- Populated by JS -->
+                </div>
+            </section>
+
             <!-- Sidebar Navigation Tabs -->
             <nav class="sidebar-tabs">
                 <button class="tab-btn active" data-tab="detection">DETECTION</button>
@@ -169,12 +198,16 @@
                         <div class="index-grid" role="group" aria-label="Spill detection indices">
                             <!-- Primary Target Indices — ordered by PW detection effectiveness -->
                             <!-- Primary Detection Tools -->
-                            <button class="index-btn idx-hpwi" data-index="hpwi" data-tooltip="Sentinel-1 Radar + Sentinel-2 Optical fusion. Ideal for overcoming cloud cover and identifying persistent liquid bodies.">
+                            <button class="index-btn idx-apex" data-index="apex" data-tooltip="S2-only super-composite. Uses optical band ratios as proxies for SAR surface smoothness — does not use actual Sentinel-1 data.">
                                 <div class="tag-container">
-                                    <span class="radar-tag">📡 Radar</span>
+                                    <span class="premium-tag">APEX-ANOMALY</span>
                                 </div>
+                                <span class="index-short">APX</span>
+                                <span class="index-full index-full-bold">SUPER-COMPOSITE</span>
+                            </button>
+                            <button class="index-btn idx-hpwi" data-index="hpwi" data-tooltip="S2-only composite. Uses optical surface smoothness as a proxy for SAR confirmation — does not use actual Sentinel-1 data.">
                                 <span class="index-short">HPWI</span>
-                                <span class="index-full index-full-bold">Hydro-Optical Fusion</span>
+                                <span class="index-full index-full-bold">Brine + Smoothness Index</span>
                             </button>
                             <button class="index-btn idx-pwi" data-index="pwi" data-tooltip="Produced Water Index. Specifically tuned to the spectral signature of brine and oil-field liquids.">
                                 <span class="index-short">PWI</span>
@@ -272,9 +305,6 @@
                             </button>
                             <!-- Secondary / Standard Indices (Alphabetical) -->
                             <button class="index-btn" data-index="s1_sar">
-                                <div class="tag-container">
-                                    <span class="radar-tag">📡 Radar</span>
-                                </div>
                                 <span class="index-short">SAR</span>
                                 <span class="index-full">S1 VV/VH Radar</span>
                             </button>
@@ -343,7 +373,10 @@
                         <!-- Single Mode Date Selector -->
                         <div id="single-time-container">
                             <div class="date-input-group">
-                                <label for="date-single" class="date-input-label">Analysis Date</label>
+                                <label for="date-single" class="date-input-label">
+                                    Analysis Date
+                                    <span class="info-icon-small" data-tooltip="<strong>Imagery Sources:</strong><br>[S] = Sentinel-2 Optical (10m)<br>[L] = Landsat-8 Optical (30m)<br>[F] = Sensor Fusion (Both S2+L8)">ℹ️</span>
+                                </label>
                                 <select id="date-single" class="date-picker date-dropdown-main"></select>
                             </div>
                         </div>
@@ -351,11 +384,17 @@
                         <!-- Compare Mode Dates -->
                         <div id="compare-dates-container" style="display: none;">
                             <div class="date-input-group">
-                                <label for="date-t1">T1 (Before)</label>
+                                <label for="date-t1">
+                                    T1 (Before)
+                                    <span class="info-icon-small" data-tooltip="<strong>Imagery Sources:</strong><br>[S] = Sentinel-2 Optical (10m)<br>[L] = Landsat-8 Optical (30m)<br>[F] = Sensor Fusion (Both S2+L8)">ℹ️</span>
+                                </label>
                                 <select id="date-t1" class="date-picker date-dropdown"></select>
                             </div>
                             <div class="date-input-group mt-2">
-                                <label for="date-t2">T2 (After)</label>
+                                <label for="date-t2">
+                                    T2 (After)
+                                    <span class="info-icon-small" data-tooltip="<strong>Imagery Sources:</strong><br>[S] = Sentinel-2 Optical (10m)<br>[L] = Landsat-8 Optical (30m)<br>[F] = Sensor Fusion (Both S2+L8)">ℹ️</span>
+                                </label>
                                 <select id="date-t2" class="date-picker date-dropdown"></select>
                             </div>
 
@@ -382,14 +421,11 @@
                             <input type="checkbox" id="toggle-sar-fusion">
                         </div>
 
-                        <div class="fusion-item fusion-hls">
-                            <label for="toggle-hls-temporal">🛰 NASA HLS Temporal Booster</label>
-                            <input type="checkbox" id="toggle-hls-temporal">
-                        </div>
 
                         <div class="fusion-item fusion-deep">
-                            <label for="toggle-deep-fusion">⚡ Deep Fusion (HPWI 2.0)</label>
+                            <label for="toggle-deep-fusion">📡 Radar Confirmation (HPWI &amp; APEX)</label>
                             <input type="checkbox" id="toggle-deep-fusion">
+                            <div class="fusion-item-desc">Replaces optical smoothness proxy with true Sentinel-1 SAR backscatter. Requires an S1 overpass within 30 days. Near-zero false positives; goes silent if no radar data is available.</div>
                         </div>
                     </section>
                 </div>
@@ -623,10 +659,10 @@
         </div>
     </div>
 
-    <script type="module" src="indices.js"></script>
-    <script type="module" src="charts.js"></script>
-    <script type="module" src="report.js"></script>
-    <script type="module" src="app.js?v=29"></script>
+    <script type="module" src="indices.js?v=73"></script>
+    <script type="module" src="charts.js?v=73"></script>
+    <script type="module" src="report.js?v=73"></script>
+    <script type="module" src="app.js?v=73"></script>
     <script>
         // JS-powered tooltip for .chart-info-badge
         // Uses body-level element to avoid modal overflow-y clipping

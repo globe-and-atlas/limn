@@ -15,6 +15,8 @@
     --text-main: #FFFFFF;
     --text-dim: #94A3B8;
     --text-dark: #cbd5e1;
+    --text-muted: #64748B;
+    --accent-primary: #00D2FF;
 
     --border-color: rgba(255, 255, 255, 0.1);
     --border-glow: rgba(0, 210, 255, 0.3);
@@ -652,9 +654,19 @@ button {
 
 .fusion-deep {
     border-left: 3px solid #f1c40f;
+    flex-wrap: wrap;
 }
 .fusion-deep input[type="checkbox"] {
     accent-color: #f1c40f;
+}
+
+.fusion-item-desc {
+    width: 100%;
+    font-size: 10px;
+    color: var(--text-dim);
+    opacity: 0.65;
+    margin-top: 6px;
+    line-height: 1.4;
 }
 
 /* Settings Box */
@@ -786,6 +798,17 @@ button {
 
 /* Legend */
 
+.legend-panel {
+    position: absolute;
+    bottom: 28px;
+    right: 12px;
+    z-index: 500;
+    width: 220px;
+    padding: 12px;
+    border-radius: 10px;
+    pointer-events: none;
+}
+
 .legend-header {
     display: flex;
     justify-content: space-between;
@@ -885,6 +908,71 @@ button {
     color: #fff;
 }
 
+.spill-bookmarks-section .spill-disclaimer {
+    font-size: 10px;
+    color: var(--text-dim);
+    margin-bottom: 8px;
+    font-family: var(--font-mono);
+    opacity: 0.7;
+}
+
+.spill-bookmark-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.spill-bookmark-btn {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 8px 10px;
+    background: rgba(255, 80, 40, 0.04);
+    border: 1px solid rgba(255, 100, 50, 0.15);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: left;
+    gap: 8px;
+}
+
+.spill-bookmark-btn:hover {
+    background: rgba(255, 80, 40, 0.1);
+    border-color: rgba(255, 100, 50, 0.35);
+}
+
+.spill-bookmark-btn.active {
+    background: rgba(255, 80, 40, 0.15);
+    border-color: rgba(255, 100, 50, 0.6);
+}
+
+.spill-name {
+    font-size: 11px;
+    color: var(--text-dark);
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.spill-bookmark-btn.active .spill-name {
+    color: #fff;
+}
+
+.spill-date-tag {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    padding: 2px 5px;
+    border-radius: 3px;
+    background: rgba(255, 100, 50, 0.15);
+    color: #FF6633;
+    border: 1px solid rgba(255, 100, 50, 0.3);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
 .coord-display {
     font-family: var(--font-mono);
     font-size: 11px;
@@ -915,21 +1003,38 @@ button {
 .index-btn {
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
-    padding: 10px;
+    align-items: stretch;
+    padding: 12px;
     background: rgba(255, 255, 255, 0.02);
     border: 1px solid rgba(255, 255, 255, 0.08);
     border-radius: 8px;
     transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     position: relative;
+    text-align: left;
+    min-height: 80px;
+    justify-content: flex-start;
+    gap: 0;
 }
 
 .index-btn-top {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
     width: 100%;
-    margin-bottom: 4px;
+    gap: 4px;
+}
+
+.index-btn-top > .index-info-icon {
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.index-name-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    flex: 1;
+    min-width: 0; /* Allow shrinking */
 }
 
 .index-btn:hover {
@@ -943,15 +1048,42 @@ button {
     box-shadow: inset 0 0 20px rgba(0, 210, 255, 0.05);
 }
 
+/* Header row: category tags left, temporal badge pinned right */
 .tag-container {
-    position: absolute;
-    top: 6px;
-    right: 6px;
     display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 4px;
-    z-index: 10;
+    flex-wrap: nowrap;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 8px;
+    width: 100%;
+    min-height: 22px;
+}
+
+.tag-container .temporal-badge {
+    margin-left: auto;
+    flex-shrink: 0;
+}
+
+.index-info-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+}
+
+.index-info-icon {
+    font-size: 14px;
+    color: var(--accent-primary);
+    cursor: help;
+    background: rgba(255, 255, 255, 0.05);
+    line-height: 1;
+}
+
+.index-info-icon:hover {
+    opacity: 1;
+    color: var(--accent-blue);
+    background: rgba(0, 210, 255, 0.1);
+    transform: scale(1.1);
 }
 
 .temporal-badge {
@@ -979,6 +1111,12 @@ button {
     color: #00FFCC;
     border-color: rgba(0, 255, 204, 0.3);
     background: rgba(0, 255, 204, 0.05);
+}
+
+.temporal-deep-fusion {
+    color: #FF66FF;
+    border-color: rgba(255, 0, 255, 0.3);
+    background: rgba(255, 0, 255, 0.05);
 }
 
 .temporal-0-3m {
@@ -1098,10 +1236,22 @@ option.opt-fusion {
 }
 
 .index-short {
-    font-size: 14px;
-    font-weight: 700;
+    font-size: 15px;
+    font-weight: 800;
     color: #fff;
-    margin-bottom: 4px;
+    letter-spacing: 0.5px;
+}
+
+.index-full {
+    display: block !important;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    line-height: 1.1;
+    margin-top: 2px;
+    white-space: normal;
 }
 
 .index-btn.active .index-short {
@@ -1109,6 +1259,42 @@ option.opt-fusion {
 }
 
 /* --- Themed Button Styling --- */
+
+/* APEX-ANOMALY Super-Composite - Premium Apex Stylings */
+.premium-tag {
+    background: linear-gradient(90deg, #FF00FF, #00D2FF, #FF00FF);
+    background-size: 200% auto;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    font-weight: 800;
+    font-size: 10px; /* Increased from 8px */
+    letter-spacing: 1.5px;
+    animation: premium-shine 3s linear infinite;
+    text-transform: uppercase;
+}
+
+@keyframes premium-shine {
+    to { background-position: 200% center; }
+}
+
+.index-btn.idx-apex .index-short {
+    color: #FF00FF;
+    text-shadow: 0 0 8px rgba(255, 0, 255, 0.4);
+}
+
+.index-btn.idx-apex {
+    border: 1px solid rgba(255, 0, 255, 0.2);
+    --idx-gradient: linear-gradient(to right, #300030, #0088ff, #ffffff);
+}
+
+.index-btn.idx-apex:hover,
+.index-btn.idx-apex.active {
+    border-color: #FF00FF !important;
+    background: linear-gradient(135deg, rgba(48, 0, 48, 0.9), rgba(0, 136, 255, 0.3)) !important;
+    box-shadow: 0 0 15px rgba(255, 0, 255, 0.2), inset 0 0 10px rgba(255, 0, 255, 0.1);
+}
+
 /* PWI (Produced Water Composite) - Aggressive High-Contrast */
 .index-btn[data-index="pwi"] .index-short {
     color: #00D2FF;
@@ -1989,16 +2175,16 @@ input[type=range]::-webkit-slider-runnable-track {
 }
 
 .radar-tag {
-    font-size: 8px;
+    background: rgba(0, 210, 255, 0.15);
+    color: var(--accent-blue);
+    padding: 3px 8px; /* Slightly increased padding */
+    border-radius: 4px;
+    font-size: 11px; /* Increased from 9px */
     font-weight: 800;
-    color: #00FFFF;
-    background: rgba(0, 255, 255, 0.1);
-    padding: 1px 4px;
-    border-radius: 3px;
-    text-transform: uppercase;
     letter-spacing: 0.5px;
+    border: 1px solid rgba(0, 210, 255, 0.2);
+    text-transform: uppercase;
     pointer-events: none;
-    border: 1px solid rgba(0, 255, 255, 0.2);
 }
 
 .fusion-active-warning {
@@ -2095,6 +2281,23 @@ input[type=range]::-webkit-slider-runnable-track {
     background: rgba(0, 0, 0, 0.4);
     padding: 2px 0;
     border-radius: 4px;
+}
+
+.thumbnail-item .temporal-badge {
+    position: absolute;
+    top: -8px;
+    right: -8px;
+    background: var(--accent-blue);
+    color: #000;
+    font-size: 11px;
+    font-weight: 800;
+    padding: 3px 8px;
+    border-radius: 4px;
+    letter-spacing: 0.5px;
+    box-shadow: 0 4px 10px rgba(0, 210, 255, 0.3);
+    pointer-events: none;
+    z-index: 5;
+    text-transform: uppercase;
 }
 
 .thumbnail-badge {
@@ -2576,6 +2779,25 @@ input[type=range]::-webkit-slider-runnable-track {
 
 .w-full { width: 100%; }
 .display-flex-inline { display: inline-flex; }
+.info-icon-small {
+    margin-left: 6px;
+    font-size: 14px;
+    cursor: help;
+    opacity: 1;
+    transition: transform 0.2s ease;
+    vertical-align: middle;
+    display: inline-flex;
+    align-items: center;
+}
+
+.info-icon-small:hover {
+    transform: scale(1.2);
+}
+
+.date-input-label {
+    display: flex;
+    align-items: center;
+}
 .text-muted { color: var(--text-muted); }
 
 /* Map Loading Indicator */

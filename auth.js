@@ -12,6 +12,10 @@ let tokenExpiry = null;
  * @returns {Promise<string>} Bearer token.
  */
 export async function getCDSEToken(config = window.CONFIG) {
+    if (!config || !config.CDSE_CLIENT_ID) {
+        throw new Error("Auth config missing: CDSE_CLIENT_ID not found in window.CONFIG");
+    }
+
     if (cachedAccessToken && tokenExpiry && Date.now() < tokenExpiry) {
         return cachedAccessToken;
     }

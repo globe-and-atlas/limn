@@ -70,6 +70,8 @@
             display: flex;
             justify-content: space-between;
             align-items: baseline;
+            flex-wrap: wrap;
+            gap: 8px;
         }
 
         .index-card .formula {
@@ -176,6 +178,27 @@
         .footnotes li {
             margin-bottom: 8px;
         }
+
+        .comparison-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.88em;
+            margin: 16px 0;
+        }
+        .comparison-table th {
+            text-align: left;
+            padding: 6px 10px;
+            color: var(--accent-blue);
+            border-bottom: 1px solid rgba(255,255,255,0.15);
+        }
+        .comparison-table td {
+            padding: 6px 10px;
+            border-bottom: 1px solid rgba(255,255,255,0.06);
+            vertical-align: top;
+        }
+        .comparison-table tr:last-child td {
+            border-bottom: none;
+        }
     </style>
 </head>
 
@@ -189,19 +212,21 @@
         hydrocarbon releases. Below is the comprehensive scientific justification for each spectral index utilized in
         this engine.</p>
 
-    <div
-        style="background: rgba(0, 210, 255, 0.05); border: 1px solid rgba(0, 210, 255, 0.2); border-radius: 8px; padding: 20px; margin: 30px 0;">
-        <h2 style="margin-top: 0; border-bottom: none; color: #00D2FF;">The Visionary Distinction (✧ / ✧✧)</h2>
-        <p style="font-size: 0.95em; margin-bottom: 10px;">Indices marked with <strong>✧</strong> represent novel
-            spectral composites developed specifically for this platform to fill critical gaps in standard industrial
-            monitoring.</p>
-        <p style="font-size: 0.95em; color: #f1c40f;">Indices marked with <strong>✧✧</strong> represent wholly new,
-            peer-review-grade breakthroughs in environmental remote sensing that solve previously "impossible" detection
-            challenges.</p>
+    <!-- NOVELTY LEGEND -->
+    <div style="background: rgba(0, 210, 255, 0.05); border: 1px solid rgba(0, 210, 255, 0.2); border-radius: 8px; padding: 20px; margin: 30px 0;">
+        <h2 style="margin-top: 0; border-bottom: none; color: #00D2FF;">The Novelty Distinction (✧ / ✧✧)</h2>
+        <p style="font-size: 0.95em; margin-bottom: 10px;">Indices marked with <strong>✧</strong> are novel spectral
+            composites developed specifically for this platform. They combine established band physics in configurations
+            not found in the general literature — original engineering applied to a unique detection problem.</p>
+        <p style="font-size: 0.95em; color: #f1c40f; margin-bottom: 0;">Indices marked with <strong>✧✧</strong> represent
+            formulations with legitimate academic paper candidacy: either a genuinely new detection mechanism, a novel
+            multi-gate architecture with no published equivalent for this application, or a fusion approach that solves
+            a previously unaddressed problem in oilfield remote sensing. These require field-validation datasets to
+            fully substantiate the claim.</p>
     </div>
 
-    <div
-        style="background: rgba(142, 45, 226, 0.05); border: 1px solid rgba(142, 45, 226, 0.2); border-radius: 8px; padding: 20px; margin: 30px 0;">
+    <!-- ADVANCED DATA -->
+    <div style="background: rgba(142, 45, 226, 0.05); border: 1px solid rgba(142, 45, 226, 0.2); border-radius: 8px; padding: 20px; margin: 30px 0;">
         <h2 style="margin-top: 0; border-bottom: none; color: #8E2DE2;">Advanced Data Expansion (Phase 3)</h2>
         <p style="font-size: 0.95em; margin-bottom: 10px;"><strong>NASA HLS Temporal Booster:</strong> Toggles the data
             source to the NASA Harmonized Landsat Sentinel-2 collection (fallback to Landsat-OT on CDSE). This unlocks
@@ -214,8 +239,8 @@
             mineral-rich soils.</p>
     </div>
 
-    <div
-        style="background: rgba(0, 210, 255, 0.05); border: 1px solid rgba(0, 210, 255, 0.2); border-radius: 8px; padding: 20px; margin: 30px 0;">
+    <!-- TEMPORAL GUIDE -->
+    <div style="background: rgba(0, 210, 255, 0.05); border: 1px solid rgba(0, 210, 255, 0.2); border-radius: 8px; padding: 20px; margin: 30px 0;">
         <h2 style="margin-top: 0; border-bottom: none; color: #00D2FF;">Temporal Relevance Guide</h2>
         <p style="font-size: 0.95em; margin-bottom: 10px;">Spectral signatures evolve as produced water interacts with
             the environment. Use the badges below to select the right tool for the age of the spill:</p>
@@ -233,8 +258,8 @@
         </div>
     </div>
 
-    <div
-        style="background: rgba(231, 76, 60, 0.05); border: 1px solid rgba(231, 76, 60, 0.2); border-radius: 8px; padding: 20px; margin: 30px 0;">
+    <!-- PERMIAN CALIBRATION -->
+    <div style="background: rgba(231, 76, 60, 0.05); border: 1px solid rgba(231, 76, 60, 0.2); border-radius: 8px; padding: 20px; margin: 30px 0;">
         <h2 style="margin-top: 0; border-bottom: none; color: #e74c3c;">Permian Environmental Optimization (V40+)</h2>
         <p style="font-size: 0.95em; margin-bottom: 10px;">The Permian Basin presents unique spectral challenges: high
             background reflectance from caliche soils, bright gypsum beds, and extremely low humidity. The following
@@ -243,8 +268,7 @@
         <ul style="font-size: 0.9em; color: var(--text-main); line-height: 1.4;">
             <li><strong>The "Liquid Gate" (+0.5 NDWI):</strong> Arid rangelands have a baseline NDWI near -0.6. We apply
                 a +0.5 offset to lift "damp soil" signatures into the positive detection range without firing on
-                bone-dry
-                caliche.</li>
+                bone-dry caliche.</li>
             <li><strong>BSI Mask Relaxation (-0.3):</strong> Standard soil masks (BSI) reject water bodies (negative
                 BSI). Because severe hypersaline spills and standing oil appear spectrally "smooth" like water, we
                 lowered the mask to -0.3 to prevent high-severity detections from being clipped.</li>
@@ -253,120 +277,304 @@
         </ul>
     </div>
 
-    <h2>1. Wholly New Novelties (Academic Paper Status ✧✧)</h2>
+    <!-- ══════════════════════════════════════════════════════
+         SECTION 1: ✧✧ ACADEMIC PAPER CANDIDATES
+         ══════════════════════════════════════════════════════ -->
+    <h2>1. Academic Paper Candidates ✧✧</h2>
+    <p style="color: var(--text-dim); font-size: 0.9em; margin-top: -10px;">These indices combine established spectral
+        physics in architectures with no published equivalent for oilfield produced water detection. Both require
+        field-validation datasets to fully substantiate the novelty claim.</p>
 
     <div class="index-card">
-        <h3><span>Vegetation Stress Index (VSI) ✧✧</span> <span class="temporal-badge temporal-3-24m">3-24M</span> <span
-                class="formula">NDSI * RedEdgeDelta * MSI</span></h3>
-        <p><strong>The Gap:</strong> Traditional vegetation indices (NDVI) only detect death or severe chlorosis. In
-            produced water spills, vegetation often remains green but undergoes internal physiological stress from heavy
-            metal and chloride uptake that is invisible to the human eye.</p>
-        <p><strong>The Innovation:</strong> VSI is the first index to triplet-sync the "Blue Shift" of the Red-Edge
-            inflection point (B07-B05), SWIR moisture stress (B11/B8A), and chemical salinity (NDSI). It detects the
-            spill path 2-3 months *before* the vegetation actually dies, allowing for rapid intervention.<sup><a
-                    href="#fn6">6</a></sup><sup><a href="#fn15">15</a></sup><sup><a href="#fn20">20</a></sup></p>
-    </div>
-
-    <div class="index-card">
-        <h3><span>Salt Crust Roughness Index (SCRI) ✧✧</span> <span class="temporal-badge temporal-3mplus">3M+</span>
-            <span class="formula">SAR VH + Texture Proxy</span>
+        <h3><span>APEX-ANOMALY Super-Composite ✧✧</span>
+            <span class="temporal-badge temporal-live">Live / Deep Fusion</span>
+            <span class="formula fusion-badge">Optical Smoothness × Moisture+Brine → SAR Coincidence (Deep)</span>
         </h3>
-        <p><strong>The Gap:</strong> Optical salinity indices (NDSI) are blinded by clouds, dust, and smoke.
-            Furthermore, they cannot distinguish between a thin chemical stain and a thick, potentially hazardous salt
-            crust.</p>
-        <p><strong>The Innovation:</strong> SCRI leverages Sentinel-1 C-Band SAR to measure the physical change in
-            surface micro-topography caused by salt crystallization. This is a "mechanical" verification of the chemical
-            signatures seen by optical satellites, providing a cloud-penetrating structural assessment of spill
-            severity.<sup><a href="#fn17">17</a></sup><sup><a href="#fn30">30</a></sup><sup><a href="#fn31">31</a></sup>
-        </p>
-    </div>
+        <p><strong>The Gap:</strong> Identifying industrial spills in complex terrain produces "look-alike" false
+            positives from shadows, bright soil, or dry salt ponds. No single-source optical index can reliably separate
+            chemical moisture from physical surface texture across varied lighting and weather conditions.</p>
+        <p><strong>The Innovation:</strong> APEX is the platform's <em>broad-spectrum anomaly net</em>. It uses a
+            surface smoothness proxy — the ratio <code>(B03 − B11) / (B03 + B11)</code>, an NDWI-like value that mirrors
+            how specularly smooth liquid surfaces suppress SAR VH backscatter — cross-referenced against a combined
+            moisture+brine score. A pixel is only flagged if it simultaneously exhibits optical smoothness <em>and</em>
+            elevated chemical moisture, with a non-linear boost for high-confidence coincidence. In
+            <strong>Deep Fusion mode</strong>, the optical smoothness proxy is replaced with true Sentinel-1 SAR VH
+            backscatter, achieving genuine radar-optical coincidence detection.<sup><a href="#fn4">4</a></sup><sup><a
+                    href="#fn18">18</a></sup><sup><a href="#fn31">31</a></sup></p>
 
-    <h2>2. Primary Custom Composites & Novel Indices</h2>
+        <p style="border-top: 1px solid rgba(255,255,255,0.08); padding-top: 16px; margin-top: 8px;">
+            <strong>APEX vs. HPWI — When to Use Each</strong>
+        </p>
+        <p>APEX and HPWI produce visually similar outputs because both use the B03/B11 optical smoothness ratio in
+            standard mode. The critical difference is in what chemical evidence they require before firing:</p>
+
+        <table class="comparison-table">
+            <thead>
+                <tr>
+                    <th>Property</th>
+                    <th>APEX</th>
+                    <th>HPWI</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Role</strong></td>
+                    <td>Broad anomaly net — early warning</td>
+                    <td>Confirmation engine — high specificity</td>
+                </tr>
+                <tr>
+                    <td><strong>Chemical gate</strong></td>
+                    <td>Optical smoothness + moisture/brine combined score (loose)</td>
+                    <td>Triple-AND gate: NDSI &gt; 0.10 AND HCAI &gt; 0.30 AND HMRI &gt; 2.0 (strict)</td>
+                </tr>
+                <tr>
+                    <td><strong>Sensitivity vs. specificity</strong></td>
+                    <td>Higher sensitivity — catches weaker and fresher anomalies</td>
+                    <td>Higher specificity — fewer detections, but more confirmed</td>
+                </tr>
+                <tr>
+                    <td><strong>What it fires on that HPWI doesn't</strong></td>
+                    <td>Fresh water, mild brine, early-stage spills where the full chemical triplet hasn't developed</td>
+                    <td>—</td>
+                </tr>
+                <tr>
+                    <td><strong>What HPWI fires on that APEX doesn't</strong></td>
+                    <td>—</td>
+                    <td>Mature spills with full triple-lock chemistry confirmed</td>
+                </tr>
+                <tr>
+                    <td><strong>Deep Fusion mode</strong></td>
+                    <td>True SAR VH coincidence with optical moisture proxy</td>
+                    <td>Triple-gate chemical signal × true SAR VH smoothness</td>
+                </tr>
+                <tr>
+                    <td><strong>Recommended workflow</strong></td>
+                    <td>Run first to identify candidate areas</td>
+                    <td>Run second to confirm APEX detections as produced water</td>
+                </tr>
+                <tr>
+                    <td><strong>False positives include</strong></td>
+                    <td>Irrigation, ponded rainwater, natural seeps</td>
+                    <td>Near-zero in Deep Fusion mode</td>
+                </tr>
+            </tbody>
+        </table>
+        <p><strong>Practical workflow:</strong> Use APEX to scan the AOI for anything anomalous — any optically smooth,
+            chemically active pixel. Then switch to HPWI (or HPWI Deep Fusion) on candidate sites to confirm whether
+            the chemistry qualifies as produced water. A detection that appears on APEX but not HPWI is worth
+            investigating as a fresh or mild anomaly. A detection that appears on both is a high-confidence spill
+            indicator.</p>
+    </div>
 
     <div class="index-card">
         <h3><span>Produced Water Index (PWI) ✧✧</span> <span class="temporal-badge temporal-0-3m">0-3M</span> <span
-                class="formula pwi-badge">Restrictive Triple-Gate
-                Engine</span></h3>
+                class="formula pwi-badge">Restrictive Triple-Gate Engine</span></h3>
         <p><strong>The Gap:</strong> Permian Basin "desert noise" from bright caliche sands often mimics salt crusts.
-            Standard indices cannot distinguish natural minerals from hazardous industrial spills.</p>
-        <p><strong>The Innovation:</strong> PWI is a restrictive "AND GATE" engine requiring simultaneous elevation of
-            **Salinity** (NDSI > 0.05), **Hydrocarbons** (HCAI > 0.20), and **Heavy Metals** (HMRI > 1.5). By enforcing
-            this triplet overlap and applying a square-root scaling (120x boost), the index preserves plume continuity
-            across varied terrain while mathematically rejecting background mineral noise.<sup><a
-                    href="#fn1">1</a></sup><sup><a href="#fn2">2</a></sup><sup><a href="#fn22">22</a></sup></p>
+            Standard indices cannot distinguish natural minerals from hazardous industrial spills because they test for
+            only one chemical signature at a time.</p>
+        <p><strong>The Innovation:</strong> PWI is a restrictive "AND GATE" engine requiring the simultaneous elevation
+            of three independent chemical signatures: <strong>Salinity</strong> (NDSI &gt; 0.05),
+            <strong>Hydrocarbons</strong> (HCAI &gt; 0.20), and <strong>Heavy Metals</strong> (HMRI &gt; 1.5). No
+            published index applies all three simultaneously as a triple-lock composite specifically for oilfield
+            produced water. The multiplicative gating means a strong signal on one component cannot compensate for a
+            missing signal on another — all three must be present. A power scaling
+            (<code>pow(pScore × 60, 1.5)</code>) amplifies confirmed detections while suppressing marginal
+            signals.<sup><a href="#fn1">1</a></sup><sup><a href="#fn2">2</a></sup><sup><a href="#fn22">22</a></sup></p>
         <p><strong>Balanced Recovery Calibration:</strong> Tuned specifically to maintain high-visibility "tails" and
             faint anomaly detection without the fragmentation seen in purely peak-based models.</p>
+        <p><strong>Academic status note:</strong> The triple-gate AND architecture for produced water is the primary
+            claim. Substantiating ✧✧ status requires field-validation data comparing detection accuracy against
+            confirmed spill records from the RRC database.</p>
+    </div>
+
+
+    <!-- ══════════════════════════════════════════════════════
+         SECTION 2: ✧ NOVEL COMPOSITES & APPLIED INDICES
+         ══════════════════════════════════════════════════════ -->
+    <h2>2. Novel Composites & Applied Indices ✧</h2>
+    <p style="color: var(--text-dim); font-size: 0.9em; margin-top: -10px;">These indices are original engineering —
+        novel combinations of established band physics calibrated to the specific spectral environment of oilfield
+        contamination. The underlying mechanisms are documented in the literature; the specific composites and
+        calibrations for this application are not.</p>
+
+    <div class="index-card">
+        <h3><span>Hydro-Optical Spill Index (HPWI) ✧</span> <span class="temporal-badge temporal-0-3m">0-3M</span>
+            <span class="formula fusion-badge">PWI × Smoothness (Optical / SAR)</span></h3>
+        <p><strong>Mechanisms &amp; Utility:</strong> The platform's highest-precision detection engine. In standard
+            mode, it multiplies the full PWI triple-gate chemical score against an optical smoothness proxy
+            (<code>(B03 − B11) / (B03 + B11)</code>). In <strong>Deep Spectral Fusion</strong> mode, the optical proxy
+            is replaced by true Sentinel-1 SAR VH backscatter, achieving genuine dual-source confirmation: a pixel must
+            simultaneously carry the full triple-lock chemical fingerprint of produced water <em>and</em> the physical
+            surface smoothness of standing fluid.<sup><a href="#fn4">4</a></sup><sup><a
+                    href="#fn17">17</a></sup><sup><a href="#fn31">31</a></sup></p>
+        <p><strong>Logic:</strong> <code>combinedScore = PWI_Chemical_Signal × Radar_Smoothness_Confirmation</code>.
+            This dual-source validation virtually eliminates false positives from dry salt crusts and legacy mineral
+            stains. See the APEX entry above for a direct comparison of when to use HPWI versus APEX.</p>
     </div>
 
     <div class="index-card">
-        <h3><span>Hydro-Optical Spill Index (HPWI)</span> <span class="temporal-badge temporal-0-3m">0-3M</span> <span
-                class="formula fusion-badge">PWI * S1 Smoothness (Fusion
-                Mode)</span></h3>
-        <p><strong>Mechanisms &amp; Utility:</strong> The platform's ultimate detection engine. In standard mode, it
-            uses an optical smoothness proxy (B03/B11). In <strong>Deep Spectral Fusion</strong> mode, it cross-verifies
-            the triple-confirmation chemical signature (PWI) against physical Sentinel-1 Radar backscatter. This
-            requires a smooth liquid surface (VH/VV dampening) to confirm the presence of fluid before flagging.<sup><a
-                    href="#fn4">4</a></sup><sup><a href="#fn17">17</a></sup><sup><a href="#fn31">31</a></sup></p>
-        <p><strong>Logic:</strong> <code>combinedScore = PWI_Chemical_Signal * Radar_Smoothness_Confirmation</code>.
-            This dual-source validation virtually eliminates false positives from dry salt crusts or legacy mineral
-            stains.</p>
+        <h3><span>Liquid Brine Index (LBI) ✧</span> <span class="temporal-badge temporal-0-3m">0-3M</span>
+            <span class="formula">NDSI × NDWI × (1 − NDVI) × BSI</span></h3>
+        <p><strong>Mechanisms &amp; Utility:</strong> Captures actively standing pools of hazardous produced water
+            rather than legacy residues. LBI enforces four simultaneous gates: a brine chemical signature (NDSI), a
+            standing water proxy (NDWI), absence of vegetation (1−NDVI), and bare-soil confirmation (BSI). The
+            four-way product means the index is nearly silent on dry salt flats, clean ponded rainwater, and vegetated
+            areas — it fires specifically at bare ground with co-located liquid brine chemistry.</p>
+        <p><strong>Calibration:</strong> The NDWI and BSI offsets are Permian-adjusted (standard preset: NDWI +0.0,
+            BSI +0.0; arid/Permian preset: NDWI +0.5, BSI −0.3) to account for the extreme dry baseline of West Texas
+            soils, which would otherwise suppress valid detections.</p>
+        <p><strong>Scientific Basis:</strong> Built from established salinity and water-index literature, assembled
+            specifically for the liquid brine detection use case not addressed by any single
+            index.<sup><a href="#fn1">1</a></sup><sup><a href="#fn10">10</a></sup></p>
     </div>
 
     <div class="index-card">
-        <h3><span>Evaporite Halo Composite (EHC)</span> <span class="temporal-badge temporal-0-3m">0-3M</span> <span
-                class="formula">RGB [NDOI, BSI, NDSI]</span></h3>
-        <p><strong>Mechanisms & Utility:</strong> A custom RGB false-color proxy designed to visually isolate the
-            spatial morphology of a high-pressure blowout. Produced water spills evaporate concentrically, leaving a
-            dark, oily hydrocarbon core, a crystallized salt boundary, and a surrounding mud imprint.</p>
-        <p><strong>Scientific Basis:</strong> By mapping Hydrocarbons to Red, Bare Soil to Green, and Salinity to Blue,
-            EHC highlights this specific spatial phenomenon. A confirmed blowout will often render as a bright red core
-            encompassed by a glowing blue "halo".<sup><a href="#fn14">14</a></sup><sup><a
+        <h3><span>Vegetation Stress Index (VSI) ✧</span> <span class="temporal-badge temporal-3-24m">3-24M</span>
+            <span class="formula">NDSI × RedEdgeDelta × MSI</span></h3>
+        <p><strong>The Gap:</strong> Traditional vegetation indices (NDVI) only detect death or severe chlorosis. In
+            produced water spills, vegetation often remains visibly green while undergoing internal physiological stress
+            from heavy metal and chloride uptake — damage invisible to standard optical sensors.</p>
+        <p><strong>The Application:</strong> VSI combines the "Blue Shift" of the Red-Edge inflection point
+            (<code>(B07 − B05) / (B07 + B05)</code>) — indicative of chlorophyll disruption from chloride toxicity —
+            with SWIR moisture stress (<code>B11 / B8A</code>) and chemical salinity (NDSI). The triplet combination
+            is calibrated to detect physiological stress in Permian rangeland vegetation 2–3 months before visible
+            wilting.<sup><a href="#fn6">6</a></sup><sup><a href="#fn15">15</a></sup><sup><a href="#fn20">20</a></sup></p>
+        <p><strong>Novelty note:</strong> The red-edge shift as a salinity stress indicator is well-documented in
+            precision agriculture (Allbed 2014, Scudiero 2014). The novelty here is the specific triplet assembly and
+            calibration for the oilfield produced water context, not the underlying band physics. This is applied
+            engineering, not new spectral science.</p>
+    </div>
+
+    <div class="index-card">
+        <h3><span>Salt Crust Roughness Index (SCRI) ✧</span> <span class="temporal-badge temporal-3mplus">3M+</span>
+            <span class="formula">SAR VH Backscatter + VH/VV Ratio</span>
+        </h3>
+        <p><strong>The Gap:</strong> Optical salinity indices (NDSI) are blinded by clouds, dust, and smoke, and cannot
+            distinguish between a thin chemical stain and a thick, potentially hazardous salt crust.</p>
+        <p><strong>The Application:</strong> SCRI uses Sentinel-1 C-Band SAR backscatter to detect surface-state
+            changes caused by salt crystallization. Dry, rough salt crusts produce higher VH backscatter than smooth
+            liquid surfaces; the combination of absolute VH amplitude and the VH/VV cross-polarization ratio provides
+            a cloud-penetrating proxy for salt crust presence and relative
+            thickness.<sup><a href="#fn17">17</a></sup><sup><a href="#fn30">30</a></sup><sup><a href="#fn31">31</a></sup></p>
+        <p><strong>Implementation note:</strong> The current formula uses log-scaled VH amplitude and a VH−VV ratio
+            — standard SAR backscatter intensity analysis. It is not a full spatial texture measure (no GLCM or
+            second-order statistics). The "roughness" claim is a backscatter-intensity proxy, not a true surface
+            micro-topography measurement. A future version using windowed texture statistics would strengthen the
+            physical justification.</p>
+    </div>
+
+    <div class="index-card">
+        <h3><span>Brine-Pavement Index (BPI) ✧</span> <span class="temporal-badge temporal-live">Live</span>
+            <span class="formula">NDSI × HCAI × BSI</span></h3>
+        <p><strong>Mechanisms &amp; Utility:</strong> Optimized for detecting leaks on caliche pads and lease roads —
+            the most common spill scenario at the wellhead level. BPI enforces three gates simultaneously: brine
+            chemistry (NDSI), hydrocarbon absorption (HCAI), and bare/compacted soil confirmation (BSI). This is the
+            primary tool for pad-level integrity monitoring, where the surface is already stripped of vegetation and
+            the relevant chemistry is brine + crude co-contamination on compacted ground.</p>
+        <p><strong>Calibration:</strong> The BSI offset (−0.3 in Permian mode) is critical: hard caliche pads are
+            spectrally similar to dry playas, and without the offset, legitimate pad detections would be clipped by a
+            strict BSI floor. The NDSI floor of 0.03 and HCAI floor of 0.15 are set just above the Permian ambient
+            mineral baseline.<sup><a href="#fn1">1</a></sup><sup><a href="#fn2">2</a></sup></p>
+    </div>
+
+    <div class="index-card">
+        <h3><span>Toxic Residue Index (TRI) ✧</span> <span class="temporal-badge temporal-6mplus">6M+</span>
+            <span class="formula">NDSI × HMRI × AOI</span></h3>
+        <p><strong>Mechanisms &amp; Utility:</strong> A forensic tool for identifying historical spill footprints where
+            liquid is no longer present. TRI combines three post-evaporation residue signatures: salt chemistry (NDSI),
+            heavy metal precipitation (HMRI — the B12/B03 ratio elevated by Barium, Strontium, and iron scaling), and
+            anoxic oxidation (AOI — the iron-rust "scab" from Fe²⁺ → Fe³⁺ oxidation). All three must clear calibrated
+            Permian baselines (NDSI &gt; 0.05, HMRI &gt; 1.5, AOI &gt; 1.5) before the pixel fires.</p>
+        <p><strong>Use case:</strong> The 6M+ temporal window reflects the time required for heavy metal precipitation
+            and iron oxidation to accumulate to detectable levels after liquid has evaporated. TRI is the primary
+            tool for identifying "cold" legacy contamination from spills that occurred before the available satellite
+            record.<sup><a href="#fn3">3</a></sup><sup><a href="#fn11">11</a></sup><sup><a href="#fn22">22</a></sup></p>
+    </div>
+
+    <div class="index-card">
+        <h3><span>Petro-Hydrocarbon Index (PHI) ✧</span> <span class="temporal-badge temporal-0-6m">0-6M</span>
+            <span class="formula">NDSI × (B11/B12) × HCAI</span></h3>
+        <p><strong>Mechanisms &amp; Utility:</strong> Isolates oily brine specifically — distinguishing co-contaminated
+            produced water from clean runoff or pure salt. PHI gates on three co-occurring signals: salinity (NDSI),
+            the SWIR absorption shoulder elevation indicative of petroleum hydrocarbons (<code>B11/B12 &gt; 1.0</code>),
+            and the hydrocarbon absorption index (HCAI &gt; 0.20). Clean water and dry salt both fail the shoulder +
+            HCAI combination; crude-contaminated brine elevates all three
+            simultaneously.<sup><a href="#fn2">2</a></sup><sup><a href="#fn13">13</a></sup></p>
+    </div>
+
+    <div class="index-card">
+        <h3><span>Clay-Mineral Alteration (CMA) ✧</span> <span class="temporal-badge temporal-persistent">Persistent</span>
+            <span class="formula">NDSI × (B11/B12) × (B04/B02)</span></h3>
+        <p><strong>Mechanisms &amp; Utility:</strong> A forensic index targeting the chemical modification of clay
+            lattices by produced water residues. Highly saline formation water (TDS &gt;100,000 mg/L) replaces
+            exchangeable cations in clay minerals, shifting the SWIR-1/SWIR-2 ratio. Iron-oxide co-precipitation from
+            the same brine elevates the Red/Blue visible ratio. CMA requires both the SWIR clay-interaction signal and
+            the iron-oxidation signal to be co-located with a salt baseline (NDSI &gt; 0), making it specific to
+            brine-altered, iron-enriched soil chemistry rather than simple dust or caliche.</p>
+        <p><strong>Temporal window:</strong> Clay lattice cation exchange and iron precipitate accumulation are slow
+            processes — CMA is most useful 6+ months post-spill and can persist for years, making it complementary
+            to TRI for mapping the permanent footprint of legacy
+            contamination.<sup><a href="#fn1">1</a></sup><sup><a href="#fn11">11</a></sup><sup><a href="#fn27">27</a></sup></p>
+    </div>
+
+    <div class="index-card">
+        <h3><span>Heavy Metal Interaction (HMI) ✧</span> <span class="temporal-badge temporal-12mplus">12M+</span>
+            <span class="formula">(B03/B02) × (B11/B12)</span></h3>
+        <p><strong>Mechanisms &amp; Utility:</strong> Targets Barium and Strontium proxies — the dominant dissolved
+            solids in Permian produced water. Heavy metal precipitation shifts the Green/Blue visible ratio (B03/B02)
+            as metal sulfates and carbonates alter surface spectral properties. The mineral salt precipitation
+            signature (B11/B12 &gt; 1.2) confirms co-located salt-mineral deposition. Both gates use offsets
+            calibrated to sit above the Permian ambient baseline.</p>
+        <p><strong>Comparison to HMRI:</strong> HMRI (B12/B03) is a simpler ratio with broader detection. HMI is a
+            multiplicative composite requiring co-location of both the green-shift and the SWIR mineral signature —
+            more specific to the brine-heavy-metal interaction rather than general SWIR
+            brightness.<sup><a href="#fn3">3</a></sup><sup><a href="#fn25">25</a></sup></p>
+    </div>
+
+    <div class="index-card">
+        <h3><span>Evaporite Halo Composite (EHC)</span> <span class="temporal-badge temporal-0-3m">0-3M</span>
+            <span class="formula">RGB [NDOI, BSI, NDSI]</span></h3>
+        <p><strong>Mechanisms &amp; Utility:</strong> A custom RGB false-color proxy designed to visually isolate
+            the spatial morphology of a high-pressure blowout. Produced water spills evaporate concentrically, leaving
+            a dark oily hydrocarbon core, a crystallized salt boundary, and a surrounding mud imprint.</p>
+        <p><strong>Scientific Basis:</strong> By mapping Hydrocarbons to Red, Bare Soil to Green, and Salinity to
+            Blue, EHC highlights this specific spatial phenomenon. A confirmed blowout will often render as a bright
+            red core encompassed by a glowing blue "halo".<sup><a href="#fn14">14</a></sup><sup><a
                     href="#fn19">19</a></sup><sup><a href="#fn26">26</a></sup></p>
     </div>
 
     <div class="index-card">
-        <h3><span>Anoxic Oxidation Index (AOI)</span> <span class="temporal-badge temporal-0-6m">0-6M</span> <span
-                class="formula">(B04 / B02) * (B11 / B12)</span></h3>
-        <p><strong>Mechanisms & Utility:</strong> Deep formation water is severely oxygen-starved and saturated with
-            dissolved iron and sulfides. When violently brought to the surface during a frac hit or spill, these
-            minerals rapidly oxidize, forming a dark "rust scab." AOI isolates the combination of iron oxidation
-            (Red/Blue ratio) and dense mineral absorption in the SWIR spectrum.<sup><a href="#fn11">11</a></sup><sup><a
-                    href="#fn22">22</a></sup><sup><a href="#fn27">27</a></sup></p>
+        <h3><span>Anoxic Oxidation Index (AOI)</span> <span class="temporal-badge temporal-0-6m">0-6M</span>
+            <span class="formula">(B04/B02) × (B11/B12)</span></h3>
+        <p><strong>Mechanisms &amp; Utility:</strong> Deep formation water is severely oxygen-starved and saturated
+            with dissolved iron and sulfides. When brought to the surface during a frac hit or spill, these minerals
+            rapidly oxidize, forming a dark "rust scab." AOI isolates the combination of iron oxidation (Red/Blue
+            ratio) and dense mineral absorption in the SWIR
+            spectrum.<sup><a href="#fn11">11</a></sup><sup><a href="#fn22">22</a></sup><sup><a href="#fn27">27</a></sup></p>
     </div>
 
     <div class="index-card">
         <h3><span>Ferrugination-Brine Composite (FBC)</span> <span class="temporal-badge temporal-3-12m">3-12M</span>
-            <span class="formula fusion-badge">(B04/B02) × NDSI ×
-                (1−NDVI)</span>
+            <span class="formula fusion-badge">(B04/B02) × NDSI × (1 − NDVI)</span>
         </h3>
         <p><strong>Mechanisms &amp; Utility:</strong> Deep Permian produced water is rich in ferrous iron (Fe²⁺). When
             surfaced and exposed to oxygen, it oxidizes to ferric iron (Fe³⁺), forming a rust-brown staining with a
-            measurably elevated Red/Blue ratio (B04/B02). FBC enforces three independent physical gates simultaneously:
-            iron alteration, brine chemistry (NDSI), and bare-ground confirmation (1−NDVI). All three must clear their
-            calibrated Permian baseline before a pixel is flagged.</p>
+            measurably elevated Red/Blue ratio (B04/B02). FBC enforces three independent physical gates
+            simultaneously: iron alteration, brine chemistry (NDSI), and bare-ground confirmation (1−NDVI).</p>
         <p><strong>Permian-Calibrated Gate Logic:</strong></p>
         <ul>
             <li><strong>Gate 1 — Iron Oxidation:</strong> <code>ironScore = max(0, (B04/B02 − 1.5) / 1.0)</code><br>
-                Permian red-dirt baseline B04/B02 ≈ 1.2–1.6. Produced water iron precipitation (Fe²⁺→Fe³⁺) pushes
-                this ratio above 1.5. The offset of <strong>1.5</strong> sits just at the iron-alteration onset,
-                with a scale of <strong>1.0</strong> for high sensitivity on moderate spills.</li>
+                Permian red-dirt baseline B04/B02 ≈ 1.2–1.6. Iron precipitation pushes above 1.5.</li>
             <li><strong>Gate 2 — Brine Chemistry:</strong> <code>brineScore = max(0, NDSI − 0.02)</code><br>
-                NDSI = (B11−B12)/(B11+B12). Clean dry soil is typically NDSI ≈ −0.05 to +0.02; active brine or
-                chloride-enriched surface registers ≥ 0.03. Floor of <strong>0.02</strong> admits early-stage brine
-                before a thick crust forms.</li>
+                Floor of 0.02 admits early-stage brine before a thick crust forms.</li>
             <li><strong>Gate 3 — No Vegetation:</strong> <code>noVeg = max(0, 1 − max(0, NDVI))</code><br>
-                Suppresses any pixel with living plant cover. Healthy rangeland around a pad will have NDVI ≈ 0.15–0.35,
-                which pulls noVeg below 0.7 and effectively zeros the composite on vegetated ground.</li>
+                Suppresses any pixel with living plant cover.</li>
         </ul>
         <p><strong>Composite &amp; Scaling:</strong>
             <code>FBC = sqrt(ironScore × brineScore) × noVeg × 25</code><br>
-            A <strong>geometric mean</strong> replaces the raw product: both gates must be nonzero to produce output,
-            but a very strong signal on one gate cannot be completely zeroed by a moderately weak signal on the other.
-            The multiplier of <strong>25</strong> is calibrated with sqrt amplification in mind — a moderate spill
-            (ironScore ≈ 0.3, brineScore ≈ 0.05, noVeg ≈ 0.9) maps to
-            sqrt(0.015) × 0.9 × 20 ≈ 2.2, clipped to 1.0 and rendered amber.
+            A geometric mean replaces the raw product so both iron and brine gates must be nonzero, but a very strong
+            signal on one cannot be completely zeroed by a moderately weak signal on the other.
         </p>
-        <p><strong>False-Positive Rejection (Permian Environment):</strong></p>
         <table style="width:100%; border-collapse:collapse; font-size:0.88em; margin-bottom:12px;">
             <thead>
                 <tr style="border-bottom:1px solid rgba(255,255,255,0.2);">
@@ -415,185 +623,184 @@
                 </tr>
             </tbody>
         </table>
-        <p><strong>Planned Enhancement — BSI Floor Check:</strong> A future gate will also require a positive Bare Soil
-            Index (<code>BSI = ((B11+B04)−(B08+B02)) / ((B11+B04)+(B08+B02)) &gt; 0</code>) to specifically reject
-            playa lake margins and gypsum beds where iron-enriched soil co-occurs with natural salt minerals. This gate
-            is already active in the PWI composite and will be ported to FBC once field-validated.</p>
         <p><strong>Scientific Basis:</strong><sup><a href="#fn11">11</a></sup><sup><a href="#fn12">12</a></sup><sup><a
-                    href="#fn18">18</a></sup><sup><a href="#fn19">19</a></sup>
-            Ferric iron (goethite/hematite) has a characteristic absorption feature at 700–750 nm and elevated Red-band
-            reflectance — a well-established geologic remote-sensing signature applied here to distinguish produced
-            water iron precipitation from the native Permian red-soil background.</p>
+                href="#fn18">18</a></sup><sup><a href="#fn19">19</a></sup>
+            Ferric iron (goethite/hematite) has a characteristic absorption feature at 700–750 nm and elevated
+            Red-band reflectance — a well-established geologic remote-sensing signature applied here to distinguish
+            produced water iron precipitation from the native Permian red-soil background.</p>
     </div>
 
     <div class="index-card">
-        <h3><span>Red Edge Alteration Index (REAI)</span> <span class="temporal-badge temporal-3-12m">3-12M</span> <span
-                class="formula fusion-badge">(B06 / B05) × NDSI</span>
+        <h3><span>Red Edge Alteration Index (REAI) ✧</span> <span class="temporal-badge temporal-3-12m">3-12M</span>
+            <span class="formula fusion-badge">(B06/B05) × NDSI</span>
         </h3>
         <p><strong>Mechanisms &amp; Utility:</strong> Exploits Sentinel-2's dedicated Red Edge bands (B05=705nm,
             B06=740nm) — unused by any other index in this suite. Over bare or disturbed soil, a B06/B05 ratio
-            exceeding ~1.10 indicates ferric mineral enrichment (goethite, hematite) from iron precipitation. Multiplied
-            by NDSI, it confirms co-located brine chemistry at the same pixel. REAI is particularly sensitive to
-            early-stage, low-volume iron staining that the standard SWIR composites have not yet detected.</p>
+            exceeding ~1.10 indicates ferric mineral enrichment (goethite, hematite) from iron precipitation.
+            Multiplied by NDSI, it confirms co-located brine chemistry at the same pixel. REAI is particularly
+            sensitive to early-stage, low-volume iron staining that the SWIR composites have not yet detected.</p>
         <p><strong>Scientific Basis:</strong> Goethite (FeOOH) and hematite (Fe₂O₃) have characteristic absorption
             features at 700–750nm and high reflectance in the Red Edge range. This is a well-established geologic
-            remote-sensing technique applied here specifically to distinguish produced water iron precipitation from
-            natural red-soil backgrounds.<sup><a href="#fn11">11</a></sup></p>
+            remote-sensing technique applied here to distinguish produced water iron precipitation from natural
+            red-soil backgrounds.<sup><a href="#fn11">11</a></sup></p>
     </div>
 
     <div class="index-card">
-        <h3><span>Vegetation-Confirmed Brine Index (VCBI)</span> <span
-                class="temporal-badge temporal-6-24m">6-24M</span> <span class="formula fusion-badge">max(0, −CRSI) ×
-                NDSI</span></h3>
-        <p><strong>Mechanisms &amp; Utility:</strong> Targets the off-pad migration front — the leading edge of a spill
-            where produced water is actively killing surrounding brush and rangeland <em>before</em> a strong
-            ground-zero
-            chemical signature develops. CRSI tracks the osmotic shock of chloride intrusion into vegetation; as brine
-            concentrations rise, CRSI collapses. The inverted (−CRSI) term is multiplied by NDSI so the index only fires
-            at pixels where both vegetation stress and measurable brine chemistry co-occur.</p>
-        <p><strong>Scientific Basis:</strong> Salt-induced osmotic stress causes predictable canopy reflectance changes
-            in the Red Edge and NIR bands before visible wilting. VCBI operationalizes this as a change-detection
-            mechanism: a sudden CRSI collapse in a zone of previously healthy rangeland, combined with a rising NDSI
-            signal, is strong evidence of subsurface or surface brine migration off the pad
+        <h3><span>Vegetation-Confirmed Brine Index (VCBI) ✧</span>
+            <span class="temporal-badge temporal-6-24m">6-24M</span>
+            <span class="formula fusion-badge">max(0, −CRSI) × NDSI</span></h3>
+        <p><strong>Mechanisms &amp; Utility:</strong> Targets the off-pad migration front — the leading edge of a
+            spill where produced water is actively killing surrounding brush and rangeland <em>before</em> a strong
+            ground-zero chemical signature develops. CRSI tracks the osmotic shock of chloride intrusion; as brine
+            concentrations rise, CRSI collapses. The inverted (−CRSI) term is multiplied by NDSI so the index only
+            fires at pixels where both vegetation stress and measurable brine chemistry co-occur.</p>
+        <p><strong>Scientific Basis:</strong> Salt-induced osmotic stress causes predictable canopy reflectance
+            changes in the Red Edge and NIR bands before visible wilting. VCBI operationalizes this as a
+            change-detection mechanism: a sudden CRSI collapse in a zone of previously healthy rangeland, combined
+            with a rising NDSI signal, is strong evidence of subsurface or surface brine migration off the pad
             boundary.<sup><a href="#fn6">6</a></sup><sup><a href="#fn1">1</a></sup></p>
     </div>
 
 
-    <!-- CORE CHEMICAL INDICES -->
-    <h2>2. Core Chemical Detectors</h2>
+    <!-- ══════════════════════════════════════════════════════
+         SECTION 3: CORE CHEMICAL DETECTORS
+         ══════════════════════════════════════════════════════ -->
+    <h2>3. Core Chemical Detectors</h2>
 
     <div class="index-card">
-        <h3><span>Brine / Salt Water (NDSI)</span> <span class="temporal-badge temporal-0-12m">0-12M</span> <span
-                class="formula">(B11 - B12) / (B11 + B12)</span></h3>
-        <p><strong>Mechanisms & Utility:</strong> Optimized to detect intense absorption in the furthest SWIR band (B12)
-            against standard SWIR (B11). Pure water absorbs deeply in both, but hypersaline brine drastically alters the
-            reflectance geometry of wetted soil.</p>
+        <h3><span>Brine / Salt Water (NDSI)</span> <span class="temporal-badge temporal-0-12m">0-12M</span>
+            <span class="formula">(B11 − B12) / (B11 + B12)</span></h3>
+        <p><strong>Mechanisms &amp; Utility:</strong> Optimized to detect intense absorption in the furthest SWIR band
+            (B12) against standard SWIR (B11). Pure water absorbs deeply in both, but hypersaline brine drastically
+            alters the reflectance geometry of wetted soil.</p>
         <p><strong>Scientific Basis:</strong> Modified from general salinity literature specifically for liquid-state
-            detection rather than dry crust mapping.<sup><a href="#fn1">1</a></sup> It separates high-TDS (Total
-            Dissolved Solids) liquid spills from standard freshwater ponding.</p>
+            detection rather than dry crust mapping.<sup><a href="#fn1">1</a></sup> Separates high-TDS liquid spills
+            from standard freshwater ponding.</p>
     </div>
 
     <div class="index-card">
-        <h3><span>Oil Slicks (NDOI)</span> <span class="temporal-badge temporal-0-3m">0-3M</span> <span
-                class="formula">(B02 - B12) / (B02 + B12)</span></h3>
-        <p><strong>Mechanisms & Utility:</strong> The Normalized Difference Oil Index perfectly contrasts the naturally
-            high reflectance of the Blue band (B02) against the extreme absorptive properties of liquid hydrocarbons in
+        <h3><span>Oil Slicks (NDOI)</span> <span class="temporal-badge temporal-0-3m">0-3M</span>
+            <span class="formula">(B02 − B12) / (B02 + B12)</span></h3>
+        <p><strong>Mechanisms &amp; Utility:</strong> The Normalized Difference Oil Index contrasts the naturally high
+            reflectance of the Blue band (B02) against the extreme absorptive properties of liquid hydrocarbons in
             the SWIR2 band (B12).</p>
         <p><strong>Scientific Basis:</strong> Originally developed for marine environments, NDOI is highly effective
-            over stark desert surfaces because terrestrial terrain generally possesses much higher baseline SWIR
-            reflectance than marine water, making the sudden drop caused by crude atmospheric smothering immediately
+            over stark desert surfaces because terrestrial terrain has much higher baseline SWIR reflectance than
+            marine water, making the sudden drop caused by crude atmospheric smothering immediately
             apparent.<sup><a href="#fn5">5</a></sup></p>
     </div>
 
     <div class="index-card">
-        <h3><span>Heavy Metals (HMRI)</span> <span class="temporal-badge temporal-12mplus">12M+</span> <span
-                class="formula">B12 / B03</span></h3>
-        <p><strong>Mechanisms & Utility:</strong> Tracks the ratio of SWIR to Green wavelength reflectance. Extensively
-            contaminated soil, laced with precipitated Barium, Strontium, and heavy metal scaling from produced water,
-            pushes this ratio exceptionally high.</p>
+        <h3><span>Heavy Metals (HMRI)</span> <span class="temporal-badge temporal-12mplus">12M+</span>
+            <span class="formula">B12 / B03</span></h3>
+        <p><strong>Mechanisms &amp; Utility:</strong> Tracks the ratio of SWIR to Green wavelength reflectance.
+            Extensively contaminated soil, laced with precipitated Barium, Strontium, and heavy metal scaling from
+            produced water, pushes this ratio exceptionally high.</p>
         <p><strong>Scientific Basis:</strong> Studies of industrial mine tailings and legacy oilfield contamination
-            confirm that heavy metal precipitation drastically increases short-wave infrared reflectance while
-            simultaneously dulling the visible green spectrum.<sup><a href="#fn3">3</a></sup></p>
+            confirm that heavy metal precipitation drastically increases SWIR reflectance while simultaneously dulling
+            the visible green spectrum.<sup><a href="#fn3">3</a></sup></p>
     </div>
 
     <div class="index-card">
-        <h3><span>Hydrocarbons (HCAI)</span> <span class="temporal-badge temporal-0-3m">0-3M</span> <span
-                class="formula">(B11 - B04) / (B11 + B04)</span></h3>
-        <p><strong>Mechanisms & Utility:</strong> The Hydrocarbon Absorption Index measures the disparity between
+        <h3><span>Hydrocarbons (HCAI)</span> <span class="temporal-badge temporal-0-3m">0-3M</span>
+            <span class="formula">(B11 − B04) / (B11 + B04)</span></h3>
+        <p><strong>Mechanisms &amp; Utility:</strong> The Hydrocarbon Absorption Index measures the disparity between
             standard SWIR reflectance and visible Red light absorption. Oil-contaminated earth absorbs red light at a
             substantially higher rate than natural iron-rich Permian soils.</p>
         <p><strong>Scientific Basis:</strong> Extensively documented in terrestrial oil spill tracking. Baseline red
-            dirt registers at roughly ~0.25 on the HCAI scale, whereas thick crude contamination spikes above
+            dirt registers at roughly ~0.25 on the HCAI scale; thick crude contamination spikes above
             0.45.<sup><a href="#fn2">2</a></sup></p>
     </div>
 
     <div class="index-card">
-        <h3><span>Salt Stress / Mortality (CRSI)</span> <span class="temporal-badge temporal-3-12m">3-12M</span> <span
-                class="formula">sqrt((B8*B4 - B3*B2) / (B8*B4 +
-                B3*B2))</span></h3>
-        <p><strong>Mechanisms & Utility:</strong> The Canopy Response Salinity Index. Unlike NDSI which looks for bare
-            salt crusts, CRSI detects the <em>physiological stress</em> and osmotic shock inflicted by brine upon sparse
-            surrounding vegetation (such as mesquite or grazing brush).</p>
+        <h3><span>Salt Stress / Mortality (CRSI)</span> <span class="temporal-badge temporal-3-12m">3-12M</span>
+            <span class="formula">sqrt((B8×B4 − B3×B2) / (B8×B4 + B3×B2))</span></h3>
+        <p><strong>Mechanisms &amp; Utility:</strong> The Canopy Response Salinity Index detects the physiological
+            stress and osmotic shock inflicted by brine upon sparse surrounding vegetation (mesquite, grazing brush).
+            Unlike NDSI which looks for bare salt crusts, CRSI reads the vegetation's internal response.</p>
         <p><strong>Scientific Basis:</strong> CRSI is deeply established in precision agriculture for tracking soil
-            salinization. A sudden, sharp decline in CRSI surrounding a well pad is an irrefutable secondary indicator
-            of off-pad liquid migration.<sup><a href="#fn6">6</a></sup></p>
+            salinization. A sudden, sharp decline in CRSI surrounding a well pad is an irrefutable secondary
+            indicator of off-pad liquid migration.<sup><a href="#fn6">6</a></sup></p>
     </div>
 
 
-    <!-- STANDARD / SECONDARY INDICES -->
-    <h2>3. Standard Environmental Monitors</h2>
+    <!-- ══════════════════════════════════════════════════════
+         SECTION 4: STANDARD ENVIRONMENTAL MONITORS
+         ══════════════════════════════════════════════════════ -->
+    <h2>4. Standard Environmental Monitors</h2>
 
     <div class="index-card">
-        <h3><span>Contaminated Soil / Clay Ratio (CSI)</span> <span
-                class="temporal-badge temporal-persistent">Persistent</span> <span class="formula">B11 / B12</span></h3>
+        <h3><span>Contaminated Soil / Clay Ratio (CSI)</span>
+            <span class="temporal-badge temporal-persistent">Persistent</span>
+            <span class="formula">B11 / B12</span></h3>
         <p><strong>Utility:</strong> Highly sensitive to clay minerals and soil disturbance. Useful for tracking pad
             construction, road grading, and identifying areas where protective topsoils have been stripped by fluid
             erosion.</p>
     </div>
 
     <div class="index-card">
-        <h3><span>Moisture Stress Index (MSI)</span> <span class="temporal-badge temporal-live">Live</span> <span
-                class="formula">B11 / B08</span></h3>
-        <p><strong>Utility:</strong> Effectively tracks drought stress. The SWIR band (B11) is absorbed by water, while
-            the NIR band (B08) reflects healthy cell structure. As water depletes, B11 skyrockets relative to
+        <h3><span>Moisture Stress Index (MSI)</span> <span class="temporal-badge temporal-live">Live</span>
+            <span class="formula">B11 / B08</span></h3>
+        <p><strong>Utility:</strong> Effectively tracks drought stress. The SWIR band (B11) is absorbed by water,
+            while the NIR band (B08) reflects healthy cell structure. As water depletes, B11 skyrockets relative to
             B08.<sup><a href="#fn7">7</a></sup></p>
     </div>
 
     <div class="index-card">
-        <h3><span>Normalized Difference Moisture Index (NDMI)</span> <span
-                class="temporal-badge temporal-live">Live</span> <span class="formula">(B8A - B11) / (B8A +
-                B11)</span></h3>
+        <h3><span>Normalized Difference Moisture Index (NDMI)</span>
+            <span class="temporal-badge temporal-live">Live</span>
+            <span class="formula">(B8A − B11) / (B8A + B11)</span></h3>
         <p><strong>Utility:</strong> Calculates overall liquid water content in vegetation canopies. Useful for
             observing general site wetness and tracking the flow paths of both fresh and contaminated surface
             runoff.<sup><a href="#fn8">8</a></sup></p>
     </div>
 
     <div class="index-card">
-        <h3><span>Vegetation Health (NDVI & SAVI)</span> <span
-                class="temporal-badge temporal-persistent">Persistent</span> <span class="formula">NDVI / Soil Adjusted
-                Veg Index</span>
-        </h3>
-        <p><strong>Utility:</strong> NDVI is the industry absolute standard for measuring photosynthetic activity. SAVI
-            applies a mathematical constant to correct for the high background reflectance of bare soil in arid
+        <h3><span>Vegetation Health (NDVI &amp; SAVI)</span>
+            <span class="temporal-badge temporal-persistent">Persistent</span>
+            <span class="formula">NDVI / Soil Adjusted Veg Index</span></h3>
+        <p><strong>Utility:</strong> NDVI is the industry absolute standard for measuring photosynthetic activity.
+            SAVI applies a mathematical constant to correct for the high background reflectance of bare soil in arid
             environments like West Texas.<sup><a href="#fn9">9</a></sup></p>
     </div>
 
     <div class="index-card">
-        <h3><span>Wetness / Ponding (NDWI)</span> <span class="temporal-badge temporal-live">Live</span> <span
-                class="formula">(B03 - B11) / (B03 + B11)</span></h3>
+        <h3><span>Wetness / Ponding (NDWI)</span> <span class="temporal-badge temporal-live">Live</span>
+            <span class="formula">(B03 − B11) / (B03 + B11)</span></h3>
         <p><strong>Utility:</strong> Specifically isolates free-standing water bodies. Imperative for ensuring
             containment ponds are accurately mapped and determining if fresh rainwater is skewing anomalous chemical
             alerts.<sup><a href="#fn10">10</a></sup></p>
     </div>
 
     <div class="index-card">
-        <h3><span>Salinity Index (SI)</span> <span class="temporal-badge temporal-6mplus">6M+</span> <span
-                class="formula">(B11 - B08) / (B11 + B08)</span></h3>
+        <h3><span>Salinity Index (SI)</span> <span class="temporal-badge temporal-6mplus">6M+</span>
+            <span class="formula">(B11 − B08) / (B11 + B08)</span></h3>
         <p><strong>Utility:</strong> Tracks surface salt crusts (crystallized evaporites) on bare earth rather than
             mapping liquid brine. Extremely useful for verifying long-term historical damage scars from past blowouts.
         </p>
     </div>
 
     <div class="index-card">
-        <h3><span>SAR Physics (Sentinel-1)</span> <span class="temporal-badge temporal-persistent">Persistent</span>
+        <h3><span>SAR Physics (Sentinel-1)</span>
+            <span class="temporal-badge temporal-persistent">Persistent</span>
             <span class="formula">VV/VH Backscatter</span>
         </h3>
-        <p><strong>Utility:</strong> Raw radar backscatter from Sentinel-1's C-band instrument. Bright areas equal rough
-            terrain; dark areas represent smooth or wetted surfaces (capillary wave dampening). Radar effortlessly
-            penetrates clouds and darkness for 24/7 intelligence acquisition.</p>
+        <p><strong>Utility:</strong> Raw radar backscatter from Sentinel-1's C-band instrument. Bright areas equal
+            rough terrain; dark areas represent smooth or wetted surfaces (capillary wave dampening). Radar
+            effortlessly penetrates clouds and darkness for 24/7 intelligence acquisition.</p>
     </div>
 
     <div class="index-card">
-        <h3><span>False Color (NIR)</span> <span class="temporal-badge temporal-persistent">Persistent</span> <span
-                class="formula">RGB [B08, B04, B03]</span></h3>
+        <h3><span>False Color (NIR)</span> <span class="temporal-badge temporal-persistent">Persistent</span>
+            <span class="formula">RGB [B08, B04, B03]</span></h3>
         <p><strong>Utility:</strong> Standard remote sensing composite replacing the Red channel with Near-Infrared.
-            Vegetation glows bright red, making it exceptionally easy to visually isolate dead zones around active well
-            pads.</p>
+            Vegetation glows bright red, making it exceptionally easy to visually isolate dead zones around active
+            well pads.</p>
     </div>
 
     <div class="index-card">
-        <h3><span>True Color (TC)</span> <span class="temporal-badge temporal-persistent">Persistent</span> <span
-                class="formula">RGB [B04, B03, B02]</span></h3>
+        <h3><span>True Color (TC)</span> <span class="temporal-badge temporal-persistent">Persistent</span>
+            <span class="formula">RGB [B04, B03, B02]</span></h3>
         <p><strong>Utility:</strong> The standard optical spectrum as seen by the human eye. Used predominantly as a
             baseline truth layer before analyzing invisible or non-optical index wavelengths.</p>
     </div>
@@ -602,84 +809,78 @@
     <!-- FOOTNOTES -->
     <ul class="footnotes">
         <li id="fn1"><strong>[1]</strong> Metternicht, G. I., & Zinck, J. A. (2003). Remote sensing of soil salinity:
-            potentials and constraints. <em>Remote Sensing of Environment</em>, 85(1), 1-20.</li>
+            potentials and constraints. <em>Remote Sensing of Environment</em>, 85(1), 1–20.</li>
         <li id="fn2"><strong>[2]</strong> Kühn, F., et al. (2004). Remote sensing of hydrocarbon pollution.
-            <em>International Journal of Remote Sensing</em>, 25(22), 5023-5043.
-        </li>
-        <li id="fn3"><strong>[3]</strong> Choe, E., et al. (2008). Mapping of heavy metal pollution in stream sediments
-            using multispectral and hyperspectral imagery. <em>Remote Sensing of Environment</em>, 112(8), 3222-3233.
-        </li>
-        <li id="fn4"><strong>[4]</strong> Brekke, C., & Solberg, A. H. (2005). Oil spill detection by satellite remote
-            sensing. <em>Remote Sensing of Environment</em>, 95(1), 1-13.</li>
+            <em>International Journal of Remote Sensing</em>, 25(22), 5023–5043.</li>
+        <li id="fn3"><strong>[3]</strong> Choe, E., et al. (2008). Mapping of heavy metal pollution in stream
+            sediments using multispectral and hyperspectral imagery. <em>Remote Sensing of Environment</em>,
+            112(8), 3222–3233.</li>
+        <li id="fn4"><strong>[4]</strong> Brekke, C., & Solberg, A. H. (2005). Oil spill detection by satellite
+            remote sensing. <em>Remote Sensing of Environment</em>, 95(1), 1–13.</li>
         <li id="fn5"><strong>[5]</strong> Salem, F., & Kafatos, M. (2001). Oil spill detection and monitoring using
             satellite remote sensing. <em>Earth Observation Magazine</em>.</li>
-        <li id="fn6"><strong>[6]</strong> Scudiero, E., et al. (2014). Canopy Response Salinity Index (CRSI) mapping of
-            soil salinity in desert environments. <em>Remote Sensing of Environment</em>, 154, 434-444.</li>
-        <li id="fn7"><strong>[7]</strong> Hunt, E. R., & Rock, B. N. (1989). Detection of changes in leaf water content
-            using Near- and Middle-Infrared reflectances. <em>Remote Sensing of Environment</em>, 30(1), 43-54.</li>
-        <li id="fn8"><strong>[8]</strong> Gao, B. C. (1996). NDWI—A normalized difference water index for remote sensing
-            of vegetation liquid water from space. <em>Remote Sensing of Environment</em>, 58(3), 257-266.</li>
+        <li id="fn6"><strong>[6]</strong> Scudiero, E., et al. (2014). Canopy Response Salinity Index (CRSI)
+            mapping of soil salinity in desert environments. <em>Remote Sensing of Environment</em>, 154, 434–444.</li>
+        <li id="fn7"><strong>[7]</strong> Hunt, E. R., & Rock, B. N. (1989). Detection of changes in leaf water
+            content using Near- and Middle-Infrared reflectances. <em>Remote Sensing of Environment</em>,
+            30(1), 43–54.</li>
+        <li id="fn8"><strong>[8]</strong> Gao, B. C. (1996). NDWI—A normalized difference water index for remote
+            sensing of vegetation liquid water from space. <em>Remote Sensing of Environment</em>, 58(3), 257–266.</li>
         <li id="fn9"><strong>[9]</strong> Huete, A. R. (1988). A soil-adjusted vegetation index (SAVI). <em>Remote
-                Sensing of Environment</em>, 25(3), 295-309.</li>
-        <li id="fn10"><strong>[10]</strong> McFeeters, S. K. (1996). The use of the Normalized Difference Water Index
-            (NDWI) in the delineation of open water features. <em>International Journal of Remote Sensing</em>, 17(7),
-            1425-1432.</li>
-        <li id="fn11"><strong>[11]</strong> Rowan, L. C., et al. (1977). Discrimination of rock types and detection of
-            hydrothermally altered areas in Nevada by use of computer-enhanced ERTS images. <em>USGS Professional Paper
-                883</em>.</li>
-        <li id="fn12"><strong>[12]</strong> Elvidge, C. D. (1990). Visible and near infrared reflectance characteristics
-            of dry plant materials. <em>International Journal of Remote Sensing</em>, 11(10), 1775-1795. (Basis for
-            1-NDVI bare ground isolation).</li>
+                Sensing of Environment</em>, 25(3), 295–309.</li>
+        <li id="fn10"><strong>[10]</strong> McFeeters, S. K. (1996). The use of the Normalized Difference Water
+            Index (NDWI) in the delineation of open water features. <em>International Journal of Remote Sensing</em>,
+            17(7), 1425–1432.</li>
+        <li id="fn11"><strong>[11]</strong> Rowan, L. C., et al. (1977). Discrimination of rock types and detection
+            of hydrothermally altered areas in Nevada by use of computer-enhanced ERTS images. <em>USGS Professional
+                Paper 883</em>.</li>
+        <li id="fn12"><strong>[12]</strong> Elvidge, C. D. (1990). Visible and near infrared reflectance
+            characteristics of dry plant materials. <em>International Journal of Remote Sensing</em>, 11(10),
+            1775–1795.</li>
         <li id="fn13"><strong>[13]</strong> Cloutis, E. A. (1989). Spectral reflectance properties of hydrocarbons:
-            Remote-sensing implications. <em>Science</em>, 245(4914), 165-168.</li>
+            Remote-sensing implications. <em>Science</em>, 245(4914), 165–168.</li>
         <li id="fn14"><strong>[14]</strong> Fingas, M., & Brown, C. E. (2014). Review of oil spill remote sensing.
-            <em>Marine Pollution Bulletin</em>, 83(1), 9-23.
-        </li>
-        <li id="fn15"><strong>[15]</strong> Allbed, A., et al. (2014). Use of vegetation indices to monitor changes in
-            salt-affected soil. <em>Ecological Indicators</em>, 45, 398-408.</li>
-        <li id="fn16"><strong>[16]</strong> Gorji, T., et al. (2019). A review on remote sensing of soil salinity and
-            its methods. <em>Journal of Soils and Sediments</em>, 19(1), 1-28.</li>
+            <em>Marine Pollution Bulletin</em>, 83(1), 9–23.</li>
+        <li id="fn15"><strong>[15]</strong> Allbed, A., et al. (2014). Use of vegetation indices to monitor changes
+            in salt-affected soil. <em>Ecological Indicators</em>, 45, 398–408.</li>
+        <li id="fn16"><strong>[16]</strong> Gorji, T., et al. (2019). A review on remote sensing of soil salinity
+            and its methods. <em>Journal of Soils and Sediments</em>, 19(1), 1–28.</li>
         <li id="fn17"><strong>[17]</strong> Filipponi, F. (2019). Sentinel-1 GRD Preprocessing Workflow.
-            <em>Proceedings</em>, 18(1), 11. (ESA SAR preprocessing standard for terrestrial backscatter).
-        </li>
+            <em>Proceedings</em>, 18(1), 11.</li>
         <li id="fn18"><strong>[18]</strong> Korneev, V., et al. (2020). Remote sensing of oil spills on land using
-            multispectral satellite images. <em>IOP Conference Series: Earth and Environmental Science</em>, 459,
-            032049.</li>
-        <li id="fn19"><strong>[19]</strong> Mering, C., et al. (2014). Remote sensing for the monitoring of oil slicks
-            on the ground. <em>International Journal of Remote Sensing</em>, 35(1), 45-62.</li>
-        <li id="fn20"><strong>[20]</strong> Zhao, J., et al. (2017). Estimating soil salinity with Sentinel-2 MSI data
-            of different spatial resolutions. <em>Journal of Applied Remote Sensing</em>, 11(2), 026027.</li>
+            multispectral satellite images. <em>IOP Conference Series: Earth and Environmental Science</em>,
+            459, 032049.</li>
+        <li id="fn19"><strong>[19]</strong> Mering, C., et al. (2014). Remote sensing for the monitoring of oil
+            slicks on the ground. <em>International Journal of Remote Sensing</em>, 35(1), 45–62.</li>
+        <li id="fn20"><strong>[20]</strong> Zhao, J., et al. (2017). Estimating soil salinity with Sentinel-2 MSI
+            data of different spatial resolutions. <em>Journal of Applied Remote Sensing</em>, 11(2), 026027.</li>
         <li id="fn21"><strong>[21]</strong> Coggan, M., et al. (2001). Remote sensing of heavy metal impacts on
             vegetation. <em>Annual Meeting of the Geological Society of America</em>.</li>
         <li id="fn22"><strong>[22]</strong> Kokaly, R. F., et al. (2013). Spectroscopic remote sensing of the
-            environment. <em>Remote Sensing of Environment</em>, 131, 1-24. (Absorption features for hydrocarbons and
-            iron oxides).</li>
-        <li id="fn23"><strong>[23]</strong> NASA (2023). Harmonized Landsat Sentinel-2 (HLS) Product User Guide. (NASA
-            Goddard Space Flight Center).</li>
-        <li id="fn24"><strong>[24]</strong> ESA (2023). Sentinel-2 MSI Technical Guide. (ESA SP-1322/2).</li>
-        <li id="fn25"><strong>[25]</strong> Shparyk, Y. S., & Parpan, V. I. (2004). Heavy metal pollution and forest
-            health in the Ukrainian Carpathians. <em>Environmental Pollution</em>, 130(1), 55-63.</li>
-        <li id="fn26"><strong>[26]</strong> Hörig, B., et al. (2001). HyMap hyperspectral data for mapping hydrocarbon
-            contamination. <em>Remote Sensing of Environment</em>, 76(2), 191-205.</li>
+            environment. <em>Remote Sensing of Environment</em>, 131, 1–24.</li>
+        <li id="fn23"><strong>[23]</strong> NASA (2023). Harmonized Landsat Sentinel-2 (HLS) Product User Guide.
+            NASA Goddard Space Flight Center.</li>
+        <li id="fn24"><strong>[24]</strong> ESA (2023). Sentinel-2 MSI Technical Guide. ESA SP-1322/2.</li>
+        <li id="fn25"><strong>[25]</strong> Shparyk, Y. S., & Parpan, V. I. (2004). Heavy metal pollution and
+            forest health in the Ukrainian Carpathians. <em>Environmental Pollution</em>, 130(1), 55–63.</li>
+        <li id="fn26"><strong>[26]</strong> Hörig, B., et al. (2001). HyMap hyperspectral data for mapping
+            hydrocarbon contamination. <em>Remote Sensing of Environment</em>, 76(2), 191–205.</li>
         <li id="fn27"><strong>[27]</strong> Clark, R. N., et al. (2009). Spectroscopy of rocks and minerals, and
-            principles of spectroscopy. <em>Manual of Remote Sensing</em>, 3, 3-160.</li>
-        <li id="fn28"><strong>[28]</strong> Gholizadeh, A., et al. (2018). Multi-sensor data fusion for soil salinity
-            mapping. <em>Geoinformation</em>.</li>
-        <li id="fn29"><strong>[29]</strong> Small, C. (2004). The Landsat archive: A new resource for global monitoring.
-            <em>International Journal of Remote Sensing</em>.
-        </li>
+            principles of spectroscopy. <em>Manual of Remote Sensing</em>, 3, 3–160.</li>
+        <li id="fn28"><strong>[28]</strong> Gholizadeh, A., et al. (2018). Multi-sensor data fusion for soil
+            salinity mapping. <em>Geoinformation</em>.</li>
+        <li id="fn29"><strong>[29]</strong> Small, C. (2004). The Landsat archive: A new resource for global
+            monitoring. <em>International Journal of Remote Sensing</em>.</li>
         <li id="fn30"><strong>[30]</strong> Mondini, A. C. (2017). Measures of surface roughness from SAR images.
-            <em>Remote Sensing</em>, 9(3), 190.
-        </li>
-        <li id="fn31"><strong>[31]</strong> Paloscia, S., et al. (2013). Soil moisture retrieval from Sentinel-1 data.
-            <em>IEEE International Geoscience and Remote Sensing Symposium</em>.
-        </li>
-        <li id="fn32"><strong>[32]</strong> Drusch, M., et al. (2012). Sentinel-2: ESA's Optical High-Resolution Mission
-            for GMES Operational Services. <em>Remote Sensing of Environment</em>, 120, 25-36.</li>
-        <li id="fn33"><strong>[33]</strong> Vermote, E., et al. (2016). Preliminary analysis of the performance of the
-            Landsat 8/OLI surface reflectance product. <em>Remote Sensing of Environment</em>, 185, 46-56.</li>
+            <em>Remote Sensing</em>, 9(3), 190.</li>
+        <li id="fn31"><strong>[31]</strong> Paloscia, S., et al. (2013). Soil moisture retrieval from Sentinel-1
+            data. <em>IEEE International Geoscience and Remote Sensing Symposium</em>.</li>
+        <li id="fn32"><strong>[32]</strong> Drusch, M., et al. (2012). Sentinel-2: ESA's Optical High-Resolution
+            Mission for GMES Operational Services. <em>Remote Sensing of Environment</em>, 120, 25–36.</li>
+        <li id="fn33"><strong>[33]</strong> Vermote, E., et al. (2016). Preliminary analysis of the performance of
+            the Landsat 8/OLI surface reflectance product. <em>Remote Sensing of Environment</em>, 185, 46–56.</li>
         <li id="fn34"><strong>[34]</strong> Wulder, M. A., et al. (2019). The global Landsat archive: Status,
-            consolidation, and direction. <em>Remote Sensing of Environment</em>, 222, 220-237.</li>
+            consolidation, and direction. <em>Remote Sensing of Environment</em>, 222, 220–237.</li>
         <li id="fn35"><strong>[35]</strong> Justice, C. O., et al. (1998). The Moderate Resolution Imaging
             Spectroradiometer (MODIS): Land remote sensing for global change research. <em>IEEE Transactions on
                 Geoscience and Remote Sensing</em>.</li>

@@ -96,7 +96,36 @@ export function updateUI(state, INDICES) {
     }
 
     const cfg = INDICES[state.activeIndex];
-    
+
+    // Legend panel
+    const nameEl = document.getElementById('active-index-name');
+    const sensorEl = document.getElementById('sensor-tag-display');
+    const minEl = document.getElementById('legend-min');
+    const maxEl = document.getElementById('legend-max');
+    const formulaEl = document.getElementById('formula-display');
+    const gradEl = document.getElementById('legend-gradient');
+
+    if (cfg && nameEl) {
+        nameEl.innerText = cfg.name;
+        if (sensorEl) sensorEl.innerText = cfg.sensor || 'Sentinel-2 L2A';
+        if (minEl) minEl.innerText = cfg.min || '';
+        if (maxEl) maxEl.innerText = cfg.max || '';
+        if (formulaEl) formulaEl.innerText = cfg.formula || '';
+
+        if (gradEl) {
+            if (cfg.gradient && cfg.gradient !== 'none') {
+                gradEl.style.display = 'block';
+                gradEl.style.background = cfg.gradient;
+                if (minEl) minEl.style.display = 'block';
+                if (maxEl) maxEl.style.display = 'block';
+            } else {
+                gradEl.style.display = 'none';
+                if (minEl) minEl.style.display = 'none';
+                if (maxEl) maxEl.style.display = 'none';
+            }
+        }
+    }
+
     const diffPos = document.getElementById('diff-label-pos');
     const diffNeg = document.getElementById('diff-label-neg');
     if (diffPos && diffNeg) {
