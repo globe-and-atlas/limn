@@ -13,9 +13,9 @@ Sentinel Explorer is a browser-based GIS tool for visualizing Sentinel-2 (optica
 open index.html
 
 # Run tests
-node test.js
-node test_fetch.js
-node test_pwi.js
+node tests/test.js
+node tests/test_fetch.js
+node tests/test_pwi.js
 ```
 
 ## Key Files
@@ -23,22 +23,29 @@ node test_pwi.js
 | File | Purpose |
 |------|---------|
 | `index.html` | Main app entry point |
-| `app.js` | Core Leaflet map + WMS layer logic |
+| `src/app.js` | Core Leaflet map + WMS layer logic |
+| `src/indices.js` | Spectral index definitions and evalscripts |
+| `src/map.js` | WMS layer construction and tile management |
+| `src/ui.js` | UI controls and panel logic |
+| `src/charts.js` | FIS trend charts and scan thumbnails |
+| `src/report.js` | PDF/export report generation |
+| `src/auth.js` | CDSE OAuth token management |
 | `style.css` | UI styles |
-| `config.js` | Sentinel Hub instance ID and WMS config |
-| `config.example.js` | Safe template for config (commit this, not config.js) |
+| `config-v1.js` | Active config: Sentinel Hub instance ID and WMS config (gitignored) |
+| `config.example.js` | Safe template for config (commit this, not config-v1.js) |
 | `directives/` | SOPs for agent tasks |
-| `execution/` | Deterministic scripts |
-| `sentinel_explorer_architecture.md` | Full spectral index reference |
-| `PWI_SPEC.md` | Produced Water Index specification |
+| `execution/` | Deterministic Python scripts |
+| `tests/` | Node test scripts and debug utilities |
+| `knowledge/domain/spectral-indices-full.md` | Full spectral index reference with formulas and citations |
+| `directives/pwi_spec.md` | Produced Water Index specification |
 
 ## Conventions
 
 - Use `python3` explicitly
 - Use `pathlib.Path` for paths
-- Secrets (Sentinel Hub instance ID, API keys) in `.env` or `config.js` — never committed
+- Secrets (Sentinel Hub instance ID, API keys) in `config-v1.js` or `.env` — never committed
 - Temp outputs in `.tmp/` (never committed)
-- Evalscripts live inline in `app.js` — document formula and citation when adding
+- Evalscripts live inline in `src/indices.js` — document formula and citation when adding
 
 ## Spectral Indices Implemented
 
@@ -58,6 +65,6 @@ Before acting:
 1. Identify target directive(s) in `directives/` (or say "none found")
 2. List intended execution scripts (or say "none found")
 3. State expected output and location
-4. Confirm safety: never commit `config.js`, `.env`, or `.tmp/`
+4. Confirm safety: never commit `config-v1.js`, `config.js`, `app-config.js`, `.env`, or `.tmp/`
 
 Log to `.tmp/runlog.md` for complex tasks.

@@ -33,5 +33,5 @@
 
 ### Expected Outputs
 
-- `validation_summary.md`: Final metrics including recall by volume and recommended threshold adjustments.
+- `knowledge/procedural/validation-summary.md`: Final metrics including recall by volume and recommended threshold adjustments.
 - `.tmp/validation_raw.csv`: Raw spectral signatures for further research.
