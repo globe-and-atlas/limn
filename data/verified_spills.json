@@ -1,0 +1,187 @@
+{
+  "_meta": {
+    "description": "Verified Permian Basin produced water / brine spill sites with sourced GPS coordinates. Higher spatial confidence than rrc_spills.json (TRRC parcel centroids). Used for APEX/HPWI spectral index validation.",
+    "created": "2026-03-27",
+    "sources": [
+      "Texas Tribune / Inside Climate News / ProPublica investigative reporting (Oct 2023, 2024)",
+      "NM OCD (emnrd.nm.gov) permit and deferral documents — entry #devon has exact GPS from NMOCD",
+      "Karanam et al. 2024, Geophysical Research Letters (Crane County geyser InSAR study)",
+      "TRRC inspection records (Apache/Balmorhea)",
+      "Wikipedia / Wikidata coordinates (Lake Boehmer)",
+      "Pipeline Safety Trust / PHMSA (EnLink Midstream Chickadee rupture)",
+      "NM Political Report / EMNRD NOV (Murchison fine)",
+      "Marfa Public Radio, Big Bend Sentinel, Texas Monthly, DeSmog, First Alert 7"
+    ],
+    "coordinate_confidence": {
+      "high":   "< 200m — from official GPS in govt docs, WikiData, or academic paper",
+      "medium": "~0.5–2 km — from named road, distance-from-landmark triangulation",
+      "low":    "~5–20 km — county-level only, not usable for pixel-level validation"
+    },
+    "excluded_sites": [
+      "Antina Ranch/Estes 24 (Chevron, Jun 2021) — county centroid only, 15 km uncertainty",
+      "Oxy/Gaines County Nov 2022 — county centroid only",
+      "Enhanced Midstream/Lamesa 2021 — town center only, ~5 km",
+      "Heritage/T-Bar Ranch Midland — city only, 10+ km",
+      "Diamondback Energy 2022 — multi-county aggregate, no specific incident",
+      "Pecos Co. Wight Cousin Ranch 2023 — 30 km uncertainty",
+      "Pecos Co. Jun 2024 orphan blowout — 20 km uncertainty"
+    ],
+    "notes": [
+      "FBC excluded from primary scoring — too noisy on bare Permian Basin caliche.",
+      "APEX and HPWI are primary trust indices.",
+      "For sites where reported_date lags the actual spill, run sweep_dates.py to find peak signal date.",
+      "Devon NM coordinates from NMOCD permit application (Section 36, T22S, R28E, Eddy County).",
+      "Crane County geyser coordinates from Tubbs Corner gazetteer + Karanam 2024 paper.",
+      "Lake Boehmer coordinates from Wikipedia/Wikidata (31°13'25.3\"N 102°43'43.7\"W).",
+      "EnLink Midstream is crude oil (not produced water) but included as highest-confidence large spill for calibration.",
+      "Apache/Balmorhea is July 2020 but persistent salt/vegetation damage visible in 2021+ imagery."
+    ]
+  },
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-102.6171, 31.3826] },
+      "properties": {
+        "id": "crane-tubbs-corner-2022",
+        "date": "2022-01-01",
+        "volume_bbl": 357143,
+        "operator": "Orphan well (1948 Gulf Oil legacy); injection pressure from Goodnight Midstream Permian + Blackbeard Operating",
+        "county": "Crane",
+        "state": "TX",
+        "incident_type": "Brine Geyser Blowout",
+        "coordinate_confidence": "high",
+        "source": "Karanam et al. 2024 Geophys. Res. Lett.; Texas Monthly; Tubbs Corner gazetteer 31.3826°N 102.6171°W",
+        "source_url": "https://agupubs.onlinelibrary.wiley.com/doi/full/10.1029/2024GL109435",
+        "description": "Meister West Ranch. Abandoned 1948 Gulf Oil dry hole (1,390 ft), brine erupted 30m for ~2 weeks. ~357,000 BBL cumulative (15M gallons). Chlorides 174,000 ppm. Injection-induced: pressure migrated 12 mi from 9 SWD wells. SkyGeo InSAR detected uplift 1.5 yr prior. Second surface event (fissures) began within 1 year nearby.",
+        "spill_footprint_note": "Surface expression documented; 500m bbox captures salinized zone. Use 2022-01 to 2022-06 for peak signal."
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-102.620, 31.370] },
+      "properties": {
+        "id": "crane-fm329-2023",
+        "date": "2023-12-07",
+        "volume_bbl": 334000,
+        "operator": "Orphan well — RRC plugging crews",
+        "county": "Crane",
+        "state": "TX",
+        "incident_type": "Brine Geyser Blowout",
+        "coordinate_confidence": "medium",
+        "source": "First Alert 7 Dec 2023; Marfa Public Radio Jan/Feb 2024; Big Bend Sentinel Jan 2024",
+        "source_url": "https://www.marfapublicradio.org/2024-02-05/state-spends-millions-to-plug-massive-well-leak-in-the-oil-fields-of-crane-county",
+        "description": "FM 329, Bill Wright Ranch. ~0.5 mi from Tubbs Corner 2022 event. 100-ft brine geyser, ~13,000 gal/hr for 45 days. Chlorides 154,000 ppm. ~30 acres vegetation kill. RRC plugging completed Jan 29 2024 ($2.5M). 'This well is on no map' — RRC Director Danny Sorrells.",
+        "spill_footprint_note": "30-acre kill zone confirmed. Check Dec 7 2023 – Feb 2024 imagery window."
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-103.745, 31.130] },
+      "properties": {
+        "id": "apache-balmorhea-2020",
+        "date": "2020-07-29",
+        "volume_bbl": 77500,
+        "operator": "Apache Corporation",
+        "county": "Reeves",
+        "state": "TX",
+        "incident_type": "Produced Water Storage Tank Spill",
+        "coordinate_confidence": "medium",
+        "source": "Inside Climate News Oct 2023; Texas Tribune Oct 2023; TRRC inspection records",
+        "source_url": "https://insideclimatenews.org/news/31102023/oil-gas-companies-spill-wastewater-in-texas/",
+        "description": "~10 miles north of Balmorhea. 77,500 BBL tank battery spill. Affected area ~0.25 × 0.5 mi. Heavy salt crystals and distressed vegetation on 3 RRC inspections (Jul, Sep, Nov 2020). Spill pre-dates 2021 cutoff but salt/vegetation damage persists in 2021+ imagery.",
+        "spill_footprint_note": "Persistent salt deposition and veg kill. Use 2021-01 onwards for residual signature detection."
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-104.0378, 32.3560] },
+      "properties": {
+        "id": "devon-pinnacle-eddy-nm-2021",
+        "date": "2021-09-27",
+        "volume_bbl": 7,
+        "operator": "Devon Energy Production LP",
+        "county": "Eddy",
+        "state": "NM",
+        "incident_type": "Produced Water + Crude Release",
+        "coordinate_confidence": "high",
+        "source": "NMOCD deferral request APP_82711_513008; Section 36 T22S R28E Eddy County — exact GPS in filing",
+        "source_url": "https://ocdimage.emnrd.nm.gov/imaging/filestore/SantaFe/NF/20220405/nAPP2127347137_04_05_2022_01_51_45.pdf",
+        "description": "Pinnacle State #035H. Valve left open (human error). 7 BBL produced water + 7 BBL crude; ~5 BBL each recovered. ~300 cu yd contaminated soil removed Nov 1 2021. Deferral denied Jan 2022.",
+        "spill_footprint_note": "Very small volume — useful as LOW-SIGNAL calibration point. Should NOT trigger strong APEX/HPWI response."
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-102.729, 31.224] },
+      "properties": {
+        "id": "lake-boehmer-pecos-orphan",
+        "date": "2021-01-01",
+        "volume_bbl": 999999,
+        "operator": "Orphan well — Sloan Blair No. 1 (1951, originally Gulf Oil dry hole)",
+        "county": "Pecos",
+        "state": "TX",
+        "incident_type": "Chronic Brine Lake — Orphan Well",
+        "coordinate_confidence": "high",
+        "source": "Wikipedia Lake Boehmer: 31°13'25.3\"N 102°43'43.7\"W; Texas Standard Apr 2024; Marfa Public Radio Apr 2024",
+        "source_url": "https://en.wikipedia.org/wiki/Lake_Boehmer",
+        "description": "~25 mi north of Fort Stockton, off FM 1053 near Imperial TX. Ongoing brine discharge for 20+ years; 60-acre artificial saltwater lake. TCEQ/RRC jurisdiction dispute. Continuous leak — use any 2021+ imagery for reliable detection.",
+        "spill_footprint_note": "HIGHEST CONFIDENCE DETECTION SITE. 60-acre persistent saltwater lake. Any date 2021+ should show strong SWIR brine signal."
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-103.872, 31.320] },
+      "properties": {
+        "id": "kinder-morgan-toyah-2024",
+        "date": "2024-10-02",
+        "volume_bbl": 2000,
+        "operator": "Kinder Morgan (well drilled 1961 by Texas El Paso Gas, 11,331 ft)",
+        "county": "Reeves",
+        "state": "TX",
+        "incident_type": "Produced Water + H2S Blowout",
+        "coordinate_confidence": "medium",
+        "source": "DeSmog Oct 2024; Texas Tribune Oct 10 & 22 2024; Big Bend Sentinel Oct 2024",
+        "source_url": "https://www.texastribune.org/2024/10/22/west-texas-well-blowout-oil-gas-sealed/",
+        "description": "5 mi west of Toyah (pop. 61). 100-ft brine geyser with H2S (rotten-egg detected 2 mi downwind). Continuous blowout Oct 2–21 (19 days). Sealed Oct 21 2024. RRC initially would not confirm well owner.",
+        "spill_footprint_note": "Active Oct 2–21 2024. Check Oct 5–25 S2 acquisitions for peak signal."
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-102.078, 31.840] },
+      "properties": {
+        "id": "enlink-midstream-chickadee-2023",
+        "date": "2023-03-29",
+        "volume_bbl": 9583,
+        "operator": "EnLink Midstream",
+        "county": "Midland",
+        "state": "TX",
+        "incident_type": "Crude Oil Pipeline Rupture",
+        "coordinate_confidence": "medium",
+        "source": "Inside Climate News May 2023; Pipeline Safety Trust; EPA OSC response.epa.gov/EnlinkMidstream",
+        "source_url": "https://pstrust.org/enlink-midstreams-chickadee-pipeline-ruptured-and-spilled-402486-gallons-of-crude-oil-just-south-of-midland-texas/",
+        "description": "El Dorado Crude Station, 11 mi south of Midland. 9,583 BBL crude oil (402,486 gallons), only 720 BBL recovered. Operator overpressurized 12-inch pipeline; leak detection alarm ignored ~3 hrs. Largest crude spill in Permian since 2010. PHMSA investigation. NOTE: crude oil, not produced water — useful for hydrocarbon index (HCAI) calibration.",
+        "spill_footprint_note": "Large crude spill — HCAI/FBC signal expected, NOT brine indices. Include as crude-vs-brine discrimination test."
+      }
+    },
+    {
+      "type": "Feature",
+      "geometry": { "type": "Point", "coordinates": [-104.230, 32.190] },
+      "properties": {
+        "id": "murchison-carlsbad-nm-2024",
+        "date": "2024-12-01",
+        "volume_bbl": 25,
+        "operator": "Murchison Oil and Gas LLC",
+        "county": "Eddy",
+        "state": "NM",
+        "incident_type": "Produced Water (under-reported, chronic)",
+        "coordinate_confidence": "low",
+        "source": "NM Political Report Mar 2024; EMNRD NOV doc; $2,007,900 civil penalty",
+        "source_url": "https://nmpoliticalreport.com/2024/03/15/state-fines-oil-company-more-than-2-million-after-spill/",
+        "description": "~16 mi south of Carlsbad, two well sites. Violations from under-reported spills; $2M+ EMNRD penalty. Low volume but chronic and deliberate non-reporting.",
+        "spill_footprint_note": "Low coordinate confidence (~2 km). Small volume. Best used as likely-negative calibration point."
+      }
+    }
+  ]
+}

@@ -12,5 +12,9 @@
 - [adding-index.md](procedural/adding-index.md) — Step-by-step: adding a new spectral index end-to-end
 - [validation-summary.md](procedural/validation-summary.md) — 2026-03-08 validation run: FBC/HPWI/PWI detection rates on 32 RRC spill sites
 
+## Session & Decisions
+- [SESSION.md](SESSION.md) — Active session state and last known state
+- [DECISIONS.md](DECISIONS.md) — Architecture decisions (S2-only proxy for APEX/HPWI)
+
 ## Error Log
 - [ERRORS.md](ERRORS.md) — Chronological bug log with root causes and fixes

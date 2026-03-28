@@ -41,6 +41,20 @@ The CDSE access token is cached in `cachedAccessToken` at module level. Multiple
 
 The 1-year AOI scan only computes PWI, HPWI, FBC, NDMI, NDWI, SAVI via the Statistics API (6 bands). The VSI, SCRI, TRI, BPI values shown in the secondary chart are mathematical proxies derived from those 6. They are approximations intended for visual trend reference, not precise index values.
 
+## NDWI Dry-Soil Trap (APEX + HPWI)
+
+Permian Basin bare caliche has B11 >> B03, yielding NDWI = −0.39 to −0.51. Both APEX and HPWI use `smoothness = (B03 − B11) / (B03 + B11)` as a liquid-surface proxy. When NDWI is this negative, `norm_smooth = clamp((smoothness + 0.3) / 0.6) = 0`, which zeros the entire composite score. This caused 29.6% / 14.8% detection pre-fix for APEX / HPWI respectively on dry Permian spill sites.
+
+**Fix (2026-03-28):** Dry brine mode — parallel formula path gated on `NDWI < −0.30 AND NDSI > 0.05 AND BSI > 0.10`. Takes `max(wet_score, dry_score)`.
+
+**Risk:** NDSI > 0.05 can fire on naturally high-NDSI caliche outcrops with no spill. Need control sites (non-spill bare caliche) to characterize false positive rate before relying on APEX/HPWI dry-mode scores alone.
+
+## Apache-Balmorhea Date Window
+
+The Apache-Balmorhea 77.5K BBL spill (July 2020) scores 0 on all indices when queried at date `2020-07-29`. Root cause: NDSI at that date is 0.029, below the dry-brine threshold of 0.05. The salt residue signal likely appears in 2021+ imagery after evaporation concentrates the brine.
+
+**Action:** Run `execution/sweep_dates.py` on this site using 2021–2022 imagery to find the peak NDSI date.
+
 ## corsproxy.io for Auth
 
 The Copernicus Keycloak auth endpoint blocks CORS from browsers. The app routes through `corsproxy.io` as a workaround. This is a third-party service — if it goes down, auth fails entirely. A backend proxy would be the production-grade fix.

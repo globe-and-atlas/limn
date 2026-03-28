@@ -29,17 +29,20 @@ def calculate_indices(stats):
     stats: dict containing mean values for B02, B03, B04, B05, B06, B08, B11, B12.
     """
     bands = stats
-    
+
+    # Shared intermediates used across multiple indices
+    ndsi_sum = bands['B11'] + bands['B12']
+    ndsi = (bands['B11'] - bands['B12']) / ndsi_sum if ndsi_sum > 0 else 0
+    ndvi_sum = bands['B08'] + bands['B04']
+    ndvi = (bands['B08'] - bands['B04']) / ndvi_sum if ndvi_sum > 0 else 0
+    bsi_top = (bands['B11'] + bands['B04']) - (bands['B08'] + bands['B02'])
+    bsi_bot = (bands['B11'] + bands['B04']) + (bands['B08'] + bands['B02'])
+    bsi = bsi_top / bsi_bot if bsi_bot > 0 else 0
+
     # 1. FBC Logic
     iron_oxide = bands['B04'] / bands['B02'] if bands['B02'] > 0 else 0
     iron_score = max(0, (iron_oxide - 1.4) / 1.0)
-    
-    ndsi_sum = bands['B11'] + bands['B12']
-    ndsi = (bands['B11'] - bands['B12']) / ndsi_sum if ndsi_sum > 0 else 0
     brine_score_fbc = max(0, ndsi - 0.02)
-    
-    ndvi_sum = bands['B08'] + bands['B04']
-    ndvi = (bands['B08'] - bands['B04']) / ndvi_sum if ndvi_sum > 0 else 0
     no_veg = max(0, 1.0 - max(0, ndvi))
     
     fbc_raw = np.sqrt(iron_score * brine_score_fbc) * no_veg
@@ -57,23 +60,29 @@ def calculate_indices(stats):
     norm_smooth = max(0, min(1.0, (smoothness + 0.3) / 0.6))
     
     hpwi = min(1.0, chem_signal * norm_smooth * 6.0)
+    # DRY mode: norm_smooth = 0 when B11 >> B03, killing HPWI for all dry bare soil sites.
+    # Use `smoothness` (same as ndwi) — ndwi variable is defined later in LBI section.
+    # Add parallel path: elevated NDSI + BSI on dry ground = salt crust signal.
+    if smoothness < -0.30 and ndsi > 0.05 and bsi > 0.10:
+        hpwi_dry = min(1.0, max(0, ndsi - 0.04) * min(1.0, bsi * 3.5) * 14.0)
+        hpwi = max(hpwi, hpwi_dry)
     
-    # 3. PWI Logic (with BSI Mask)
-    bsi_top = (bands['B11'] + bands['B04']) - (bands['B08'] + bands['B02'])
-    bsi_bot = (bands['B11'] + bands['B04']) + (bands['B08'] + bands['B02'])
-    bsi = bsi_top / bsi_bot if bsi_bot > 0 else 0
-    
-    if bsi <= 0.01:
-        pwi = 0
-    else:
-        brine_score_pwi = max(0, ndsi - 0.05)
-        hcai_sum = bands['B11'] + bands['B04']
-        hcai = (bands['B11'] - bands['B04']) / hcai_sum if hcai_sum > 0 else 0
-        hcai_score = max(0, (hcai - 0.20) * 2.5)
-        hmri = bands['B12'] / bands['B03'] if bands['B03'] > 0 else 0
-        hmri_score = max(0, (hmri - 1.5) * 2.5)
-        pwi_base = brine_score_pwi * hcai_score * hmri_score
-        pwi = min(1.0, pow(pwi_base * 60.0, 1.5))
+    # 3. PWI Logic (fixed: soft BSI weight instead of hard gate; lowered thresholds)
+    # Previous hard gate (bsi <= 0.01 → pwi = 0) caused 0% detection because:
+    #   (a) centroid offset puts box over mixed/veg pixels, dropping BSI near 0
+    #   (b) triple product (brine × hcai × hmri) requires ALL three to fire simultaneously
+    #   (c) HCAI threshold 0.20 and HMRI threshold 1.5 were both too high for Permian Basin caliche
+    # Soft BSI weight: floor at 0.3 so centroid mis-hits don't zero the full score
+    bsi_weight = min(1.0, max(0.3, bsi * 5.0 + 0.3))
+
+    brine_score_pwi = max(0, ndsi - 0.03)           # was 0.05
+    hcai_sum = bands['B11'] + bands['B04']
+    hcai = (bands['B11'] - bands['B04']) / hcai_sum if hcai_sum > 0 else 0
+    hcai_score = max(0, (hcai - 0.05) * 5.0)        # was (hcai - 0.20) * 2.5
+    hmri = bands['B12'] / bands['B03'] if bands['B03'] > 0 else 0
+    hmri_score = max(0, (hmri - 1.1) * 3.0)         # was (hmri - 1.5) * 2.5
+    pwi_base = brine_score_pwi * hcai_score * hmri_score
+    pwi = min(1.0, pow(pwi_base * 50.0, 1.2) * bsi_weight)
     
     # 4. New "AND GATE" Indices (Suite 1: Active & Residue)
     # LBI = NDSI * (NDWI+0.5) * (1-NDVI) * BSI
@@ -114,7 +123,31 @@ def calculate_indices(stats):
     salt_ppt = bands['B11'] / bands['B12'] if bands['B12'] > 0 else 0
     hmi = max(0, green_shift - 1.1) * max(0, salt_ppt - 1.2) * 10.0
 
+    # APEX — S2 optical proxy for SAR surface smoothness × brine signature
+    # Translated from src/indices.js evalscript (S2-only, WMS-compatible)
+    # WET mode: fires when B03 > B11 (liquid/moist brine — e.g. saltwater lake)
+    apex_sum = bands['B03'] + bands['B11']
+    apex_oval = (bands['B03'] - bands['B11']) / apex_sum if apex_sum > 0 else 0
+    apex_radar_proxy = max(0, min(1.2, (apex_oval + 0.3) / 0.6))
+    apex_ndsi_sum = bands['B11'] + bands['B12']
+    apex_brine_boost = max(0, (bands['B11'] - bands['B12']) / apex_ndsi_sum) * 0.4 if apex_ndsi_sum > 0 else 0
+    apex_moisture = apex_oval + 0.3 + apex_brine_boost
+    if apex_radar_proxy > 0.7 and apex_moisture > 0.45:
+        apex = (apex_radar_proxy * 0.4) + (apex_moisture * 0.6) + 0.25
+    else:
+        apex = (apex_radar_proxy * 0.3) + (apex_moisture * 0.7)
+    apex = min(max(apex, 0), 1.0)
+    # DRY mode: fires when B11 >> B03 (dry salt crust on bare soil — geyser deposits, tank spills)
+    # ndwi < -0.30: definitively dry bare soil; ndsi > 0.05: elevated SWIR salt above caliche
+    # background; bsi > 0.10: bare (not vegetation-covered)
+    if ndwi < -0.30 and ndsi > 0.05 and bsi > 0.10:
+        salt_excess = max(0, ndsi - 0.04)            # above typical caliche baseline
+        bsi_factor = min(1.0, bsi * 4.0)             # bare soil intensity weight
+        apex_dry = min(1.0, salt_excess * bsi_factor * 15.0)
+        apex = max(apex, apex_dry)                   # take higher of wet or dry mode
+
     return {
+        "APEX": apex,
         "FBC": fbc,
         "HPWI": hpwi,
         "PWI": pwi,
@@ -207,15 +240,36 @@ function evaluatePixel(sample) {
     }
 
 def main():
-    spills_path = Path("data/rrc_spills.json")
+    import argparse
+    parser = argparse.ArgumentParser(description="Batch-analyze spill sites via Sentinel Hub Statistics API.")
+    parser.add_argument("--spills", default="data/rrc_spills.json",
+                        help="GeoJSON spills file to analyze (default: data/rrc_spills.json)")
+    parser.add_argument("--output", default=None,
+                        help="Output CSV path (default: execution/validation_raw.csv, or _verified suffix for non-default input)")
+    parser.add_argument("--force", action="store_true",
+                        help="Re-analyze all sites, ignoring existing results")
+    args = parser.parse_args()
+
+    spills_path = Path(args.spills)
+    if not spills_path.exists():
+        print(f"ERROR: {spills_path} not found.")
+        sys.exit(1)
+
+    # Default output: validation_raw.csv for rrc_spills, validation_raw_<stem>.csv for others
+    if args.output:
+        output_path = Path(args.output)
+    elif args.spills == "data/rrc_spills.json":
+        output_path = Path("execution/validation_raw.csv")
+    else:
+        output_path = Path(f"execution/validation_raw_{spills_path.stem}.csv")
+
     with open(spills_path) as f:
         spills = json.load(f)
-        
+
     token = get_token()
-    output_path = Path("execution/validation_raw.csv")
-    
+
     # Handle force flag
-    force_reanalyze = "--force" in sys.argv
+    force_reanalyze = args.force
     
     features = spills["features"]
     features_to_process = features

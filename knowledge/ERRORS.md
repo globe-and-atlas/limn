@@ -29,6 +29,24 @@
 - **`highlightAnomalies` silent bug** — `date-single` uses numeric array indices as `opt.value` (not date strings), but `anomalySet` contains date strings. Anomaly warnings never appeared on the single-date dropdown. Fixed: resolve date string via `ALL_DATES[parseInt(opt.value)]`.
 - **`alert()` in scan error handler** — inconsistent UX. Replaced with `showToast()`.
 
+## 2026-03-28: APEX/HPWI Zero-Scored Dry Brine Sites — RESOLVED
+
+**Symptom:** APEX and HPWI scored 0.000 for 7/8 verified spill sites including the 357K BBL Crane County geyser. Only Lake Boehmer (a 60-acre saltwater lake) scored high (APEX 0.843, HPWI 0.814).
+
+**Root cause:** Both APEX and HPWI formulas use `smoothness = (B03−B11)/(B03+B11)` as a surface roughness proxy. For dry Permian Basin bare soil and salt crust deposits, B11 (SWIR1, 1610nm) >> B03 (green, 560nm), giving NDWI ≈ −0.40 to −0.51. The normalised form `norm_smooth = max(0, (NDWI + 0.30) / 0.60)` → 0 exactly. Since HPWI = `chem_signal × norm_smooth × 6.0`, this zeroes the index entirely for dry sites. APEX uses the same formula for `apex_radar_proxy` and `apex_moisture`. Water bodies (Lake Boehmer) have B03 > B11 (positive NDWI), which is why only the lake was detected.
+
+**Fix:** Added dry brine mode to both APEX and HPWI:
+- Condition: `NDWI < −0.30 AND NDSI > 0.05 AND BSI > 0.10` (dry bare soil with elevated SWIR salt)
+- Formula: `dry_score = (ndsi − 0.04) × min(1, bsi × N) × scale`
+- Result: `score = max(wet_mode_score, dry_mode_score)` — complementary detection paths
+- APEX: `(ndsi − 0.04) × min(1, bsi × 4.0) × 15.0`, clipped [0, 1]
+- HPWI: `max(0, ndsi − 0.04) × min(1, bsi × 3.5) × 14.0`, clipped [0, 1]
+
+**Variable ordering bug discovered:** `ndwi` and `bsi` were defined in the LBI/PWI sections, AFTER the HPWI block. Dry mode condition in HPWI used `smoothness` (identical formula, already available in HPWI block) and `bsi` was moved to shared intermediates at top of `calculate_indices()`.
+
+**Detection delta:** APEX 29.6%→77.8%, HPWI 14.8%→66.7%, composite 38.1%→55.2%.
+**Graduated to:** knowledge/procedural/validation-summary.md
+
 ## 2026-03-16: Basemap Visibility & Index TypeError
 
 - **Deterministic error**: `Uncaught TypeError: Cannot read properties of undefined (reading 'hpwi')` in `map.js`.
