@@ -1,5 +1,12 @@
 # DIRECTIVE: Large-scale Validation of Spill Detection Indices
 
+## Validation Contract
+
+- [ ] The directive's expected output artifact or documented state change exists at the specified location.
+- [ ] The documented command, script, or manual procedure completes without an unhandled error.
+- [ ] The output satisfies the directive's acceptance criteria or documented success standard.
+- [ ] Any deterministic error encountered during execution is recorded in `knowledge/ERRORS.md`.
+
 **Mission:** Validate the empirical thresholds for Produced Water detection indices (FBC, HPWI, PWI) across a large dataset of Texas RRC geocoded spills (2022–present).
 
 ### Goals
