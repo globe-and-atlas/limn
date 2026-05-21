@@ -269,7 +269,7 @@ export const INDICES = {
 `
     },
     apex: {
-        name: "Bally Index / APEX-ANOMALY",
+        name: "APEX Anomaly Index",
         sensor: "Sentinel-2 L2A",
         min: 0,
         max: 1,

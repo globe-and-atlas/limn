@@ -563,7 +563,7 @@ Water bodies, vegetation, and clouds all have BSI well below the mask threshold.
 
 ---
 
-## 10. APEX — The Bally Index: The Anomaly Super-Composite
+## 10. APEX Anomaly Index: The Anomaly Super-Composite
 
 **APEX** (Anomaly Proximity EXpression), also called the **Bally Index**, is an original composite developed by Daniel Bally (2025–2026). It serves as a Sentinel-2 **optical proxy for what SAR would measure**: detecting abnormally smooth surfaces consistent with liquid brine pooling or dried salt crusts using only optical bands — no SAR required.
 
