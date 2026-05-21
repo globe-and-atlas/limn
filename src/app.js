@@ -981,7 +981,7 @@ function evaluatePixel(sample) {
 
             const timelineLabels = [];
             const timelineData = { 
-                pwi: [], hpwi: [], apex: [], lbi: [], // Primary
+                pwi: [], hpwi: [], pwoi: [], lbi: [], // Primary
                 vsi: [], scri: [], tri: [], bpi: [], // Secondary Effective
                 ndmi: [], ndwi: [] // Standard/Env for rules
             };
@@ -994,7 +994,7 @@ function evaluatePixel(sample) {
                     if (bandsObj && bandsObj.B0 && bandsObj.B0.stats.sampleCount > 0) {
                         let pwi  = bandsObj.B0.stats.mean;
                         let hpwi = bandsObj.B1.stats.mean;
-                        let apex = bandsObj.B2.stats.mean;
+                        let pwoi = bandsObj.B2.stats.mean;
                         let ndmi = bandsObj.B3.stats.mean;
                         let ndwi = bandsObj.B4.stats.mean;
                         // B5 (SAVI) used only for internal rules, not charted directly
@@ -1006,7 +1006,7 @@ function evaluatePixel(sample) {
 
                         timelineData.pwi.push(pwi);
                         timelineData.hpwi.push(hpwi);
-                        timelineData.apex.push(apex);
+                        timelineData.pwoi.push(pwoi);
                         timelineData.lbi.push(lbi);
                         timelineData.vsi.push(vsi);
                         timelineData.scri.push(null); // SAR-only index; not computable from S2 scan
@@ -1015,10 +1015,10 @@ function evaluatePixel(sample) {
                         timelineData.ndmi.push(ndmi);
                         timelineData.ndwi.push(ndwi);
 
-                        // Rule Engine: Flag if PWI spikes OR if there's a strong Spill signature (HPWI/APEX)
+                        // Rule Engine: Flag if PWI spikes OR if there's a strong Spill signature (HPWI/PWOI)
                         if ((pwi  > THRESHOLDS.pwi) ||
                             (hpwi > 0.05) ||
-                            (apex > 0.05) ||
+                            (pwoi > 0.05) ||
                             (lbi  > 0.05) ||
                             (tri  > 0.05) ||
                             (bpi  > 0.05) ||
@@ -1085,7 +1085,7 @@ function evaluatePixel(sample) {
                     { label: 'HPWI', data: dataset.hpwi, borderColor: '#f1c40f', pointBackgroundColor: '#f1c40f', pointBorderColor: '#f1c40f', backgroundColor: '#f1c40f', tension: 0.3, pointRadius: 2 },
                     { label: 'PWI', data: dataset.pwi, borderColor: '#00D2FF', pointBackgroundColor: '#00D2FF', pointBorderColor: '#00D2FF', backgroundColor: '#00D2FF', tension: 0.3, pointRadius: 2 },
                     { label: 'LBI', data: dataset.lbi, borderColor: '#00D2FF', pointBackgroundColor: '#00D2FF', pointBorderColor: '#00D2FF', backgroundColor: '#00D2FF', borderDash: [2, 2], tension: 0.3, pointRadius: 2 },
-                    { label: 'APEX', data: dataset.apex, borderColor: '#8C00FF', pointBackgroundColor: '#8C00FF', pointBorderColor: '#8C00FF', backgroundColor: '#8C00FF', tension: 0.3, pointRadius: 2 }
+                    { label: 'PWOI', data: dataset.pwoi, borderColor: '#8C00FF', pointBackgroundColor: '#8C00FF', pointBorderColor: '#8C00FF', backgroundColor: '#8C00FF', tension: 0.3, pointRadius: 2 }
                 ]
             },
             options: getChartOptions(labels, 'Primary Indices')

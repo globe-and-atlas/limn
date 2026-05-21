@@ -215,9 +215,9 @@
     <!-- NOVELTY LEGEND -->
     <div style="background: rgba(0, 210, 255, 0.05); border: 1px solid rgba(0, 210, 255, 0.2); border-radius: 8px; padding: 20px; margin: 30px 0;">
         <h2 style="margin-top: 0; border-bottom: none; color: #00D2FF;">The Novelty Distinction (✧ / ✧✧)</h2>
-        <p style="font-size: 0.95em; margin-bottom: 10px;">Indices marked with <strong>✧</strong> are novel spectral
-            composites developed specifically for this platform. They combine established band physics in configurations
-            not found in the general literature — original engineering applied to a unique detection problem.</p>
+        <p style="font-size: 0.95em; margin-bottom: 10px;">Indices marked with <strong>✧</strong> are original composites
+            developed by Daniel Bally (2025–2026) specifically for produced water detection in the Permian Basin.
+            They combine established band physics in configurations not found in the general remote sensing literature.</p>
         <p style="font-size: 0.95em; color: #f1c40f; margin-bottom: 0;">Indices marked with <strong>✧✧</strong> represent
             formulations with legitimate academic paper candidacy: either a genuinely new detection mechanism, a novel
             multi-gate architecture with no published equivalent for this application, or a fusion approach that solves
@@ -273,7 +273,7 @@
                 BSI). Because severe hypersaline spills and standing oil appear spectrally "smooth" like water, we
                 lowered the mask to -0.3 to prevent high-severity detections from being clipped.</li>
             <li><strong>SWIR Triple-Lock Offsets:</strong> PWI enforces calibrated offsets — Salinity (NDSI floor: 0.03), Hydrocarbons (HCAI floor: 0.05), and Heavy Metals (HMRI floor: 1.1) — tuned against confirmed spill records to sit just above the Permian ambient mineral baseline. Original thresholds (0.10 / 0.30 / 2.0) produced 0% detection; the current values yield 81.5% on TRRC sites.</li>
-            <li><strong>Dry Brine Mode (APEX + HPWI):</strong> Permian Basin bare caliche has NDWI = −0.39 to −0.51 (B11 >> B03), which zeros the wet-mode optical smoothness proxy in both APEX and HPWI. A parallel dry path fires when NDWI &lt; −0.30 AND NDSI &gt; 0.05 AND BSI &gt; 0.10. The result is <code>max(wet_score, dry_score)</code> — preserving all liquid detections while recovering dry/evaporated salt crust sites.</li>
+            <li><strong>Dry Brine Mode (PWOI + HPWI):</strong> Permian Basin bare caliche has NDWI = −0.39 to −0.51 (B11 >> B03), which zeros the wet-mode optical smoothness proxy in both PWOI and HPWI. A parallel dry path fires when NDWI &lt; −0.30 AND NDSI &gt; 0.05 AND BSI &gt; 0.10. The result is <code>max(wet_score, dry_score)</code> — preserving all liquid detections while recovering dry/evaporated salt crust sites.</li>
         </ul>
     </div>
 
@@ -286,14 +286,14 @@
         field-validation datasets to fully substantiate the novelty claim.</p>
 
     <div class="index-card">
-        <h3><span>APEX-ANOMALY Super-Composite ✧✧</span>
+        <h3><span>PWOI — Produced Water Optical Index ✧✧</span>
             <span class="temporal-badge temporal-live">Live / Deep Fusion</span>
             <span class="formula fusion-badge">Optical Smoothness × Moisture+Brine → SAR Coincidence (Deep)</span>
         </h3>
         <p><strong>The Gap:</strong> Identifying industrial spills in complex terrain produces "look-alike" false
             positives from shadows, bright soil, or dry salt ponds. No single-source optical index can reliably separate
             chemical moisture from physical surface texture across varied lighting and weather conditions.</p>
-        <p><strong>The Innovation:</strong> APEX is the platform's <em>broad-spectrum anomaly net</em>. It uses a
+        <p><strong>The Innovation:</strong> PWOI is the platform's <em>broad-spectrum anomaly net</em>. It uses a
             surface smoothness proxy — the ratio <code>(B03 − B11) / (B03 + B11)</code>, an NDWI-like value that mirrors
             how specularly smooth liquid surfaces suppress SAR VH backscatter — cross-referenced against a combined
             moisture+brine score. A pixel is only flagged if it simultaneously exhibits optical smoothness <em>and</em>
@@ -305,16 +305,16 @@
         <p><strong>Validation (2026-03-28):</strong> 77.8% detection on 27 TRRC confirmed spill sites; 87.5% on 8 GPS-verified sourced sites; 86% on major spills (&gt;500 BBL). Pre-dry-brine-mode baseline was 29.6%.</p>
 
         <p style="border-top: 1px solid rgba(255,255,255,0.08); padding-top: 16px; margin-top: 8px;">
-            <strong>APEX vs. HPWI — When to Use Each</strong>
+            <strong>PWOI vs. HPWI — When to Use Each</strong>
         </p>
-        <p>APEX and HPWI produce visually similar outputs because both use the B03/B11 optical smoothness ratio in
+        <p>PWOI and HPWI produce visually similar outputs because both use the B03/B11 optical smoothness ratio in
             standard mode. The critical difference is in what chemical evidence they require before firing:</p>
 
         <table class="comparison-table">
             <thead>
                 <tr>
                     <th>Property</th>
-                    <th>APEX</th>
+                    <th>PWOI</th>
                     <th>HPWI</th>
                 </tr>
             </thead>
@@ -340,7 +340,7 @@
                     <td>—</td>
                 </tr>
                 <tr>
-                    <td><strong>What HPWI fires on that APEX doesn't</strong></td>
+                    <td><strong>What HPWI fires on that PWOI doesn't</strong></td>
                     <td>—</td>
                     <td>Mature spills with full triple-lock chemistry confirmed</td>
                 </tr>
@@ -352,7 +352,7 @@
                 <tr>
                     <td><strong>Recommended workflow</strong></td>
                     <td>Run first to identify candidate areas</td>
-                    <td>Run second to confirm APEX detections as produced water</td>
+                    <td>Run second to confirm PWOI detections as produced water</td>
                 </tr>
                 <tr>
                     <td><strong>False positives include</strong></td>
@@ -361,9 +361,9 @@
                 </tr>
             </tbody>
         </table>
-        <p><strong>Practical workflow:</strong> Use APEX to scan the AOI for anything anomalous — any optically smooth,
+        <p><strong>Practical workflow:</strong> Use PWOI to scan the AOI for anything anomalous — any optically smooth,
             chemically active pixel. Then switch to HPWI (or HPWI Deep Fusion) on candidate sites to confirm whether
-            the chemistry qualifies as produced water. A detection that appears on APEX but not HPWI is worth
+            the chemistry qualifies as produced water. A detection that appears on PWOI but not HPWI is worth
             investigating as a fresh or mild anomaly. A detection that appears on both is a high-confidence spill
             indicator.</p>
     </div>
@@ -383,7 +383,7 @@
             (<code>pow(pwi_base × 50, 1.2)</code>) amplifies confirmed detections while suppressing marginal
             signals.<sup><a href="#fn1">1</a></sup><sup><a href="#fn2">2</a></sup><sup><a href="#fn22">22</a></sup></p>
         <p><strong>Threshold Calibration Note:</strong> Original thresholds (NDSI 0.10, HCAI 0.30, HMRI 2.0 — standard literature values) produced 0% detection on 32 TRRC sites in the 2026-03-08 baseline run. Root cause: TRRC parcel centroid coordinates offset the sample bbox over mixed caliche + vegetation pixels, depressing all three signals simultaneously. Thresholds were lowered and the hard BSI gate (<code>if bsi &lt;= 0.01 → pwi = 0</code>) was replaced with a soft weight (floor 0.3) to tolerate centroid-offset sampling.</p>
-        <p><strong>Validation (2026-03-28):</strong> 81.5% detection on 27 TRRC confirmed spill sites (threshold 0.01), mean score 0.741. APEX detects major spills (&gt;500 BBL) at 86%. The triple-gate AND architecture is now substantiated against a real confirmed-spill dataset.</p>
+        <p><strong>Validation (2026-03-28):</strong> 81.5% detection on 27 TRRC confirmed spill sites (threshold 0.01), mean score 0.741. PWOI detects major spills (&gt;500 BBL) at 86%. The triple-gate AND architecture is now substantiated against a real confirmed-spill dataset.</p>
     </div>
 
 
@@ -406,8 +406,8 @@
             simultaneously carry the chemical fingerprint of produced water <em>and</em> the physical
             surface smoothness of standing fluid.<sup><a href="#fn4">4</a></sup><sup><a
                     href="#fn17">17</a></sup><sup><a href="#fn31">31</a></sup></p>
-        <p><strong>Dry Brine Mode:</strong> Same parallel path as APEX — fires when NDWI &lt; −0.30 AND NDSI &gt; 0.05 AND BSI &gt; 0.10. Formula: <code>(NDSI − 0.04) × min(1, BSI × 3.5) × 14</code>. Score takes <code>max(wet, dry)</code>. This recovered the 52 percentage-point detection gap on dry evaporated brine sites.</p>
-        <p><strong>Validation (2026-03-28):</strong> 66.7% on 27 TRRC sites. Pre-dry-brine-mode baseline was 14.8%. See the APEX entry above for a direct APEX vs. HPWI workflow comparison.</p>
+        <p><strong>Dry Brine Mode:</strong> Same parallel path as PWOI — fires when NDWI &lt; −0.30 AND NDSI &gt; 0.05 AND BSI &gt; 0.10. Formula: <code>(NDSI − 0.04) × min(1, BSI × 3.5) × 14</code>. Score takes <code>max(wet, dry)</code>. This recovered the 52 percentage-point detection gap on dry evaporated brine sites.</p>
+        <p><strong>Validation (2026-03-28):</strong> 66.7% on 27 TRRC sites. Pre-dry-brine-mode baseline was 14.8%. See the PWOI entry above for a direct PWOI vs. HPWI workflow comparison.</p>
     </div>
 
     <div class="index-card">
@@ -530,7 +530,7 @@
     </div>
 
     <div class="index-card">
-        <h3><span>Evaporite Halo Composite (EHC)</span> <span class="temporal-badge temporal-0-3m">0-3M</span>
+        <h3><span>Evaporite Halo Composite (EHC) ✧</span> <span class="temporal-badge temporal-0-3m">0-3M</span>
             <span class="formula">RGB [NDOI, BSI, NDSI]</span></h3>
         <p><strong>Mechanisms &amp; Utility:</strong> A custom RGB false-color proxy designed to visually isolate
             the spatial morphology of a high-pressure blowout. Produced water spills evaporate concentrically, leaving
@@ -542,7 +542,7 @@
     </div>
 
     <div class="index-card">
-        <h3><span>Anoxic Oxidation Index (AOI)</span> <span class="temporal-badge temporal-0-6m">0-6M</span>
+        <h3><span>Anoxic Oxidation Index (AOI) ✧</span> <span class="temporal-badge temporal-0-6m">0-6M</span>
             <span class="formula">(B04/B02) × (B11/B12)</span></h3>
         <p><strong>Mechanisms &amp; Utility:</strong> Deep formation water is severely oxygen-starved and saturated
             with dissolved iron and sulfides. When brought to the surface during a frac hit or spill, these minerals
@@ -552,7 +552,7 @@
     </div>
 
     <div class="index-card">
-        <h3><span>Ferrugination-Brine Composite (FBC)</span> <span class="temporal-badge temporal-3-12m">3-12M</span>
+        <h3><span>Ferrugination-Brine Composite (FBC) ✧</span> <span class="temporal-badge temporal-3-12m">3-12M</span>
             <span class="formula fusion-badge">(B04/B02) × NDSI × (1 − NDVI)</span>
         </h3>
         <p><strong>Mechanisms &amp; Utility:</strong> Deep Permian produced water is rich in ferrous iron (Fe²⁺). When

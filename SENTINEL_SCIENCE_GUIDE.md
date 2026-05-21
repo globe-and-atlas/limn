@@ -4,7 +4,7 @@
 
 *Prepared from full codebase analysis of `/sentinel-explorer`. Designed for NotebookLM ingestion and self-directed learning.*
 
-**Authorship note:** The standard spectral indices in this guide (NDVI, SAVI, NDWI, NDMI, MSI, BSI, NDSI, HCAI, HMRI, NDOI, CRSI) are established methods with literature citations in Section 18. The custom composite indices — including APEX (the Bally Index), PWI, HPWI, FBC, VCBI, LBI, TRI, BPI, VSI, REAI, EHC, AOI, SCRI, CMA, PHI, and HMI — are original work developed by **Daniel Bally** (2025–2026) specifically for produced water detection in the Permian Basin. These composites have no prior published equivalents. See Section 18 for the full attribution entry.
+**Authorship note:** The standard spectral indices in this guide (NDVI, SAVI, NDWI, NDMI, MSI, BSI, NDSI, HCAI, HMRI, NDOI, CRSI) are established methods with literature citations in Section 18. The custom composite indices — including PWOI, PWI, HPWI, FBC, VCBI, LBI, TRI, BPI, VSI, REAI, EHC, AOI, SCRI, CMA, PHI, and HMI — are original work developed by **Daniel Bally** (2025–2026) specifically for produced water detection in the Permian Basin. These composites have no prior published equivalents. See Section 18 for the full attribution entry.
 
 ---
 
@@ -19,7 +19,7 @@
 7. [Spectral Indices — The Science](#7-spectral-indices--the-science)
 8. [The Full Index Library (43 Indices)](#8-the-full-index-library-43-indices)
 9. [The Produced Water Index (PWI) — Deep Dive](#9-the-produced-water-index-pwi--deep-dive)
-10. [APEX: The Anomaly Super-Composite](#10-apex-the-anomaly-super-composite)
+10. [PWOI: Produced Water Optical Index](#10-pwoi-produced-water-optical-index)
 11. [HPWI: The Hybrid Optical Index](#11-hpwi-the-hybrid-optical-index)
 12. [SAR Indices: Sentinel-1 Processing](#12-sar-indices-sentinel-1-processing)
 13. [Multi-Temporal Analysis](#13-multi-temporal-analysis)
@@ -370,7 +370,7 @@ The normalized difference `(B11 - B12) / (B11 + B12)`:
 - **Bands:** B03 (Green, 560nm), B11 (SWIR1, 1610nm)
 - **Physical basis:** Liquid water reflects green light and absorbs SWIR strongly. Vegetation and soil do the opposite. Positive NDWI = open water body or saturated soil. Negative NDWI = dry surface.
 - **Note:** The original McFeeters (1996) NDWI uses B03/B08 (Green/NIR). The Gao (1996) variant using Green/SWIR is more sensitive to canopy water content and is what this app uses (called "wetness index").
-- **Important for this app:** On dry Permian Basin soil, NDWI is typically very negative (−0.39 to −0.51) because B11 >> B03. This is the key insight behind the APEX dry brine mode — standard wetness detection fails in desert environments.
+- **Important for this app:** On dry Permian Basin soil, NDWI is typically very negative (−0.39 to −0.51) because B11 >> B03. This is the key insight behind the PWOI dry brine mode — standard wetness detection fails in desert environments.
 
 #### NDMI — Normalized Difference Moisture Index
 - **Formula:** `(B8A - B11) / (B8A + B11)`
@@ -563,56 +563,56 @@ Water bodies, vegetation, and clouds all have BSI well below the mask threshold.
 
 ---
 
-## 10. APEX Anomaly Index: The Anomaly Super-Composite
+## 10. PWOI: Produced Water Optical Index
 
-**APEX** (Anomaly Proximity EXpression), also called the **Bally Index**, is an original composite developed by Daniel Bally (2025–2026). It serves as a Sentinel-2 **optical proxy for what SAR would measure**: detecting abnormally smooth surfaces consistent with liquid brine pooling or dried salt crusts using only optical bands — no SAR required.
+**PWOI** (Produced Water Optical Index) is an original composite developed by Daniel Bally (2025–2026). It serves as a Sentinel-2 **optical proxy for what SAR would measure**: detecting abnormally smooth surfaces consistent with liquid brine pooling or dried salt crusts using only optical bands — no SAR required.
 
-The key innovation is the **dry brine mode** (Section 10.3), which resolved the fundamental detection failure in desert environments where standard NDWI-based indices collapse to near-zero. Adding this mode increased APEX detection from 29.6% to 77.8% on 27 TRRC validation sites — a result not achievable with any prior published index applied to arid-environment brine detection.
+The key innovation is the **dry brine mode** (Section 10.3), which resolved the fundamental detection failure in desert environments where standard NDWI-based indices collapse to near-zero. Adding this mode increased PWOI detection from 29.6% to 77.8% on 27 TRRC validation sites — a result not achievable with any prior published index applied to arid-environment brine detection.
 
 ### 10.1 The Core Physics
 
-SAR measures surface roughness via backscatter: smooth surfaces (water, brine) scatter radar energy away and return very little to the satellite (low backscatter). APEX recreates this concept optically using a different physical principle: **specular reflection**.
+SAR measures surface roughness via backscatter: smooth surfaces (water, brine) scatter radar energy away and return very little to the satellite (low backscatter). PWOI recreates this concept optically using a different physical principle: **specular reflection**.
 
 Very smooth surfaces (mirror-like) cause sunlight to reflect away from the satellite at a specular angle, making the surface appear darker than surrounding terrain in NIR/SWIR bands. Meanwhile, green wavelengths (B03) have slightly different behavior with smooth liquid surfaces. The ratio `(B03 - B11) / (B03 + B11)` — essentially the NDWI formula — produces a "smoothness proxy."
 
 ### 10.2 Wet Mode (Active Liquid Brine)
 
 ```
-apex_oval = (B03 - B11) / (B03 + B11)     # optical smoothness
-radar_proxy = clamp((apex_oval + 0.3) / 0.6, 0, 1.2)
+pwoi_oval = (B03 - B11) / (B03 + B11)     # optical smoothness
+radar_proxy = clamp((pwoi_oval + 0.3) / 0.6, 0, 1.2)
 brine_boost = max(0, NDSI) × 0.4
-moisture = apex_oval + 0.3 + brine_boost
+moisture = pwoi_oval + 0.3 + brine_boost
 
 if radar_proxy > 0.7 AND moisture > 0.45:
-    apex = radar_proxy × 0.4 + moisture × 0.6 + 0.25   # boosted
+    pwoi = radar_proxy × 0.4 + moisture × 0.6 + 0.25   # boosted
 else:
-    apex = radar_proxy × 0.3 + moisture × 0.7
+    pwoi = radar_proxy × 0.3 + moisture × 0.7
 ```
 
-**The problem:** In dry Permian Basin desert, NDWI is typically very negative (−0.4 to −0.5). B11 dominates B03 because the arid soil has strong SWIR and minimal green reflectance. This drives `apex_oval` deeply negative, collapsing the wet-mode score to zero — even where dry brine salt crust exists.
+**The problem:** In dry Permian Basin desert, NDWI is typically very negative (−0.4 to −0.5). B11 dominates B03 because the arid soil has strong SWIR and minimal green reflectance. This drives `pwoi_oval` deeply negative, collapsing the wet-mode score to zero — even where dry brine salt crust exists.
 
 ### 10.3 Dry Mode (Evaporated Salt Crust)
 
 To handle the common case where brine has evaporated and left a dry salt crust:
 ```
 if NDWI < -0.30 AND NDSI > 0.05 AND BSI > 0.10:
-    apex_dry = clamp((NDSI - 0.04) × min(1, BSI × N) × scale, 0, 1)
-    apex = max(apex_wet, apex_dry)   # take whichever is higher
+    pwoi_dry = clamp((NDSI - 0.04) × min(1, BSI × N) × scale, 0, 1)
+    pwoi = max(pwoi_wet, pwoi_dry)   # take whichever is higher
 ```
 
 The dry mode fires when: surface is dry (very negative NDWI), BUT salinity is elevated (NDSI > 0.05), AND surface is bare (BSI > 0.10). This covers the majority of Permian Basin post-spill scenarios.
 
-**Adding the dry brine mode increased APEX detection from 29.6% to 77.8%** on 27 TRRC validation sites.
+**Adding the dry brine mode increased PWOI detection from 29.6% to 77.8%** on 27 TRRC validation sites.
 
 ### 10.4 Temporal Persistence
 
-APEX detects salt crusts that can persist for **months to years** after the initial spill — unlike moisture-dependent indices that fade as the liquid dries. This makes it valuable for detecting **historical contamination** in the cumulative MAX mode.
+PWOI detects salt crusts that can persist for **months to years** after the initial spill — unlike moisture-dependent indices that fade as the liquid dries. This makes it valuable for detecting **historical contamination** in the cumulative MAX mode.
 
 ---
 
 ## 11. HPWI: The Hybrid Optical Index
 
-HPWI (Hybrid Produced Water Index) is the second major composite, designed to **cross-validate APEX**. While APEX focuses on surface smoothness/physical characteristics, HPWI focuses on **chemical optical signatures** of dissolved minerals and organics.
+HPWI (Hybrid Produced Water Index) is the second major composite, designed to **cross-validate PWOI**. While PWOI focuses on surface smoothness/physical characteristics, HPWI focuses on **chemical optical signatures** of dissolved minerals and organics.
 
 ### 11.1 The Four-Component Formula
 
@@ -634,13 +634,13 @@ hpwi_wet = clamp(chem_signal × norm_smooth × 6.0, 0, 1)
 
 ### 11.2 Dry Mode and Validation
 
-Like APEX, HPWI includes a dry brine pathway:
+Like PWOI, HPWI includes a dry brine pathway:
 ```
 hpwi_dry = clamp((NDSI - 0.04) × min(1, BSI × 3.5) × 14.0, 0, 1)
 hpwi = max(hpwi_wet, hpwi_dry)
 ```
 
-**Validated performance: 66.7% on 27 TRRC sites** (lower than PWI's 81.5% and APEX's 77.8%, but provides independent confirmation when all three agree).
+**Validated performance: 66.7% on 27 TRRC sites** (lower than PWI's 81.5% and PWOI's 77.8%, but provides independent confirmation when all three agree).
 
 ---
 
@@ -750,7 +750,7 @@ The Statistics API scans query historical data in **5-day intervals** (matching 
 
 The anomaly detection algorithm then flags dates where any of the primary spill indices exceed threshold:
 ```javascript
-if (pwi > 0.10 || hpwi > 0.05 || apex > 0.05 ||
+if (pwi > 0.10 || hpwi > 0.05 || pwoi > 0.05 ||
     lbi > 0.05 || bpi > 0.05 || tri > 0.05 ||
     (ndmi > 0.35 && ndwi < 0.1)) {
     anomalousDates.push(dateStr);
@@ -901,7 +901,7 @@ function evaluatePixel(sample) {
         default: [
             pwi_value,    // B0
             hpwi_value,   // B1
-            apex_value,   // B2
+            pwoi_value,   // B2
             ndmi_value,   // B3
             ndvi_value,   // B4
             lbi_value,    // B5
@@ -927,7 +927,7 @@ As of 2026-03-28, validated against 27 TRRC confirmed spill sites + 8 GPS-source
 | Index | Detection Rate (27 TRRC sites) | Detection Rate (8 Verified Sites) | Notes |
 |-------|-------------------------------|----------------------------------|-------|
 | PWI | **81.5%** | ~85% | Best overall; threshold 0.01 |
-| APEX | **77.8%** | **87.5%** | Better on large spills (>500 BBL) |
+| PWOI | **77.8%** | **87.5%** | Better on large spills (>500 BBL) |
 | HPWI | 66.7% | ~75% | Better cross-validator than standalone |
 | Multi-Index Consensus | ~89% | ~94% | Best accuracy when 2+ indices agree |
 
@@ -965,7 +965,7 @@ The following indices have no prior published equivalents. They were designed, i
 
 | Index | Full Name | Year |
 |---|---|---|
-| **APEX (Bally Index)** | Anomaly Proximity EXpression — optical SAR proxy, dry brine mode | 2026 |
+| **PWOI** | Produced Water Optical Index — optical SAR proxy, dry brine mode | 2026 |
 | **PWI** | Produced Water Index — three-way AND gate (brine × hydrocarbons × heavy metals) | 2025 |
 | **HPWI** | Hybrid Produced Water Index — chemical × smoothness cross-validator | 2026 |
 | **FBC** | Ferrugination-Brine Composite — iron oxidation × brine gate | 2026 |

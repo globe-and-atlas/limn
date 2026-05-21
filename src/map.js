@@ -218,7 +218,7 @@ export function getScriptContent(config, activeIndex, isDiff, isCumulative = fal
             bands = ['VV', 'VH'];
         }
 
-        if (activeIndex === 'apex') {
+        if (activeIndex === 'pwoi') {
             logic = `(function() {
                 let sum = sample.B03 + sample.B11;
                 let oVal = sum === 0 ? 0 : (sample.B03 - sample.B11) / sum;
@@ -408,7 +408,7 @@ export function getWMSLayer(state, config, timeStr, isDiff, overrideIndex = null
     }
 
     let queryTime = timeStr;
-    if ((activeIdx === 'hpwi' || activeIdx === 'apex') && !timeStr.includes('/')) {
+    if ((activeIdx === 'hpwi' || activeIdx === 'pwoi') && !timeStr.includes('/')) {
         let dateObj = new Date(timeStr);
         let pastObj = new Date(dateObj);
         pastObj.setDate(pastObj.getDate() - 30);
@@ -416,7 +416,7 @@ export function getWMSLayer(state, config, timeStr, isDiff, overrideIndex = null
     }
 
     // HPWI/APEX use a 30-day window — relax cloud cover filter so more scenes are eligible
-    const maxcc = (activeIdx === 'hpwi' || activeIdx === 'apex') ? 60 : 20;
+    const maxcc = (activeIdx === 'hpwi' || activeIdx === 'pwoi') ? 60 : 20;
 
     const layer = new RateLimitedWMS(SH_WMS_URL, {
         layers: wmsLayerParam,

@@ -193,12 +193,9 @@
                         <div class="index-grid" role="group" aria-label="Spill detection indices">
                             <!-- Primary Target Indices — ordered by PW detection effectiveness -->
                             <!-- Primary Detection Tools -->
-                            <button class="index-btn idx-apex" data-index="apex" data-tooltip="S2-only super-composite. Uses optical band ratios as proxies for SAR surface smoothness — does not use actual Sentinel-1 data.">
-                                <div class="tag-container">
-                                    <span class="premium-tag">APEX-ANOMALY</span>
-                                </div>
-                                <span class="index-short">APX</span>
-                                <span class="index-full index-full-bold">SUPER-COMPOSITE</span>
+                            <button class="index-btn idx-pwoi" data-index="pwoi" data-tooltip="S2-only optical index. Uses optical band ratios (B03/B11) as proxies for SAR surface smoothness to detect brine — no Sentinel-1 required.">
+                                <span class="index-short">PWOI</span>
+                                <span class="index-full index-full-bold">Produced Water Optical Index</span>
                             </button>
                             <button class="index-btn idx-hpwi" data-index="hpwi" data-tooltip="S2-only composite. Uses optical surface smoothness as a proxy for SAR confirmation — does not use actual Sentinel-1 data.">
                                 <span class="index-short">HPWI</span>

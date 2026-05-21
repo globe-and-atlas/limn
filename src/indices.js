@@ -268,8 +268,8 @@ export const INDICES = {
   return [(sample.B8A - sample.B11) / sum];
 `
     },
-    apex: {
-        name: "APEX Anomaly Index",
+    pwoi: {
+        name: "PWOI — Produced Water Optical Index",
         sensor: "Sentinel-2 L2A",
         min: 0,
         max: 1,
@@ -1271,7 +1271,7 @@ function evaluatePixel(sample) {
 export const HIGHLIGHT_THRESHOLDS = {
     pwi:  0.10,   // Produced Water Composite — scan flags > 0.10
     hpwi: 0.05,   // Hot-Pixel PW Index — scan flags > 0.05
-    apex: 0.05,   // APEX Super-Composite — scan flags > 0.05
+    pwoi: 0.05,   // PWOI Produced Water Optical Index — scan flags > 0.05
     fbc:  0.10,   // Forensic Brine Composite — scan flags > 0.1
     lbi:  0.08,   // Proxy for leachate/brine
     ndmi: 0.35,   // Normalized Diff Moisture — anomaly when high + dry
@@ -1299,7 +1299,7 @@ export const CHART_COLORS = {
     tc: '#FFFFFF', fc: '#FF0000', si: '#00FFFF', csi: '#8B4513',
     hmri: '#808080', ndoi: '#000000', crsi: '#FF5555', aoi: '#5555FF',
     ehc: '#333333', reai: '#FF0055', vcbi: '#AA0000', cma: '#AA88AA',
-    phi: '#FF00FF', hmi: '#444444', apex: '#8C00FF'
+    phi: '#FF00FF', hmi: '#444444', pwoi: '#8C00FF'
 };
 
 export function getHighlightScript(indexKey, hexColor, chartValue, includeContext = false, activeBasin = 'permian') {
