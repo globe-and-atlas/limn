@@ -212,17 +212,18 @@
         hydrocarbon releases. Below is the comprehensive scientific justification for each spectral index utilized in
         this engine.</p>
 
-    <!-- NOVELTY LEGEND -->
+    <!-- CUSTOM INDEX LEGEND -->
     <div style="background: rgba(0, 210, 255, 0.05); border: 1px solid rgba(0, 210, 255, 0.2); border-radius: 8px; padding: 20px; margin: 30px 0;">
-        <h2 style="margin-top: 0; border-bottom: none; color: #00D2FF;">The Novelty Distinction (✧ / ✧✧)</h2>
-        <p style="font-size: 0.95em; margin-bottom: 10px;">Indices marked with <strong>✧</strong> are original composites
-            developed by Daniel Bally (2025–2026) specifically for produced water detection in the Permian Basin.
-            They combine established band physics in configurations not found in the general remote sensing literature.</p>
-        <p style="font-size: 0.95em; color: #f1c40f; margin-bottom: 0;">Indices marked with <strong>✧✧</strong> represent
-            formulations with legitimate academic paper candidacy: either a genuinely new detection mechanism, a novel
-            multi-gate architecture with no published equivalent for this application, or a fusion approach that solves
-            a previously unaddressed problem in oilfield remote sensing. These require field-validation datasets to
-            fully substantiate the claim.</p>
+        <h2 style="margin-top: 0; border-bottom: none; color: #00D2FF;">Novelty &amp; Attribution (✧ / ✧✧)</h2>
+        <p style="font-size: 0.95em; margin-bottom: 10px;">Indices marked <strong>✧</strong> are original composites
+            engineered by <strong>Daniel Bally (2025–2026)</strong> for produced water detection in the Permian Basin.
+            Indices marked <strong>✧✧</strong> are the primary validated composites and are candidates for formal
+            academic publication.</p>
+        <p style="font-size: 0.95em; margin-bottom: 0;"><strong>How originality works here:</strong> The component
+            band ratios each ✧ index draws on (NDSI, HCAI, HMRI, BSI, NDWI, etc.) have established physics and prior
+            literature. The <em>composite architectures</em> — the multi-gate AND logic, dry brine detection mode,
+            Permian Basin calibration offsets, and the specific combinations of signals — are original engineering with
+            no published equivalent. A novel recipe is original even when the ingredients are common.</p>
     </div>
 
     <!-- ADVANCED DATA -->
@@ -278,22 +279,22 @@
     </div>
 
     <!-- ══════════════════════════════════════════════════════
-         SECTION 1: ✧✧ ACADEMIC PAPER CANDIDATES
+         SECTION 1: VALIDATED PRODUCED WATER COMPOSITES
          ══════════════════════════════════════════════════════ -->
-    <h2>1. Academic Paper Candidates ✧✧</h2>
-    <p style="color: var(--text-dim); font-size: 0.9em; margin-top: -10px;">These indices combine established spectral
-        physics in architectures with no published equivalent for oilfield produced water detection. Both require
-        field-validation datasets to fully substantiate the novelty claim.</p>
+    <h2>1. Validated Produced Water Composites</h2>
+    <p style="color: var(--text-dim); font-size: 0.9em; margin-top: -10px;">Original composite indices by Daniel Bally
+        (2025–2026). Each combines established spectral physics in novel multi-gate architectures purpose-built for
+        oilfield produced water detection, validated against TRRC-confirmed spill sites in the Permian Basin.</p>
 
     <div class="index-card">
-        <h3><span>PWOI — Produced Water Optical Index ✧✧</span>
+        <h3><span>PWOI — Produced Water Optical Index</span>
             <span class="temporal-badge temporal-live">Live / Deep Fusion</span>
             <span class="formula fusion-badge">Optical Smoothness × Moisture+Brine → SAR Coincidence (Deep)</span>
         </h3>
         <p><strong>The Gap:</strong> Identifying industrial spills in complex terrain produces "look-alike" false
             positives from shadows, bright soil, or dry salt ponds. No single-source optical index can reliably separate
             chemical moisture from physical surface texture across varied lighting and weather conditions.</p>
-        <p><strong>The Innovation:</strong> PWOI is the platform's <em>broad-spectrum anomaly net</em>. It uses a
+        <p><strong>The Implementation:</strong> PWOI is the platform's <em>broad-spectrum anomaly net</em>. It uses a
             surface smoothness proxy — the ratio <code>(B03 − B11) / (B03 + B11)</code>, an NDWI-like value that mirrors
             how specularly smooth liquid surfaces suppress SAR VH backscatter — cross-referenced against a combined
             moisture+brine score. A pixel is only flagged if it simultaneously exhibits optical smoothness <em>and</em>
@@ -369,16 +370,16 @@
     </div>
 
     <div class="index-card">
-        <h3><span>Produced Water Index (PWI) ✧✧</span> <span class="temporal-badge temporal-0-3m">0-3M</span> <span
+        <h3><span>Produced Water Index (PWI)</span> <span class="temporal-badge temporal-0-3m">0-3M</span> <span
                 class="formula pwi-badge">Restrictive Triple-Gate Engine</span></h3>
         <p><strong>The Gap:</strong> Permian Basin "desert noise" from bright caliche sands often mimics salt crusts.
             Standard indices cannot distinguish natural minerals from hazardous industrial spills because they test for
             only one chemical signature at a time.</p>
-        <p><strong>The Innovation:</strong> PWI is a restrictive "AND GATE" engine requiring the simultaneous elevation
+        <p><strong>The Implementation:</strong> PWI is a restrictive "AND GATE" engine requiring the simultaneous elevation
             of three independent chemical signatures: <strong>Salinity</strong> (NDSI floor: 0.03),
-            <strong>Hydrocarbons</strong> (HCAI floor: 0.05, scale ×5), and <strong>Heavy Metals</strong> (HMRI floor: 1.1, scale ×3). No
-            published index applies all three simultaneously as a triple-lock composite specifically for oilfield
-            produced water. The multiplicative gating means a strong signal on one component cannot compensate for a
+            <strong>Hydrocarbons</strong> (HCAI floor: 0.05, scale ×5), and <strong>Heavy Metals</strong> (HMRI floor: 1.1, scale ×3).
+            The Sentinel Explorer implementation applies all three simultaneously as a triple-lock composite for
+            oilfield produced water. The multiplicative gating means a strong signal on one component cannot compensate for a
             missing signal on another — all three must be present. A power scaling
             (<code>pow(pwi_base × 50, 1.2)</code>) amplifies confirmed detections while suppressing marginal
             signals.<sup><a href="#fn1">1</a></sup><sup><a href="#fn2">2</a></sup><sup><a href="#fn22">22</a></sup></p>
@@ -388,16 +389,15 @@
 
 
     <!-- ══════════════════════════════════════════════════════
-         SECTION 2: ✧ NOVEL COMPOSITES & APPLIED INDICES
+         SECTION 2: CUSTOM COMPOSITES & APPLIED INDICES
          ══════════════════════════════════════════════════════ -->
-    <h2>2. Novel Composites & Applied Indices ✧</h2>
-    <p style="color: var(--text-dim); font-size: 0.9em; margin-top: -10px;">These indices are original engineering —
-        novel combinations of established band physics calibrated to the specific spectral environment of oilfield
-        contamination. The underlying mechanisms are documented in the literature; the specific composites and
-        calibrations for this application are not.</p>
+    <h2>2. Custom Composites & Applied Indices</h2>
+    <p style="color: var(--text-dim); font-size: 0.9em; margin-top: -10px;">Original composite indices by Daniel Bally
+        (2025–2026). These combine established spectral band physics in novel architectures calibrated for produced water
+        detection across varied spill states — active liquid, dry evaporite, and legacy residue.</p>
 
     <div class="index-card">
-        <h3><span>Hydro-Optical Spill Index (HPWI) ✧</span> <span class="temporal-badge temporal-0-3m">0-3M</span>
+        <h3><span>Hydro-Optical Spill Index (HPWI)</span> <span class="temporal-badge temporal-0-3m">0-3M</span>
             <span class="formula fusion-badge">PWI × Smoothness (Optical / SAR)</span></h3>
         <p><strong>Mechanisms &amp; Utility:</strong> The platform's highest-precision confirmation engine. In standard
             mode, HPWI combines an optical blue/SWIR contrast index (NDOI: <code>(B02 − B12) / (B02 + B12)</code>) sensitive to dissolved mineral ions in brine, a brine boost from NDSI, and the surface smoothness proxy
@@ -411,7 +411,7 @@
     </div>
 
     <div class="index-card">
-        <h3><span>Liquid Brine Index (LBI) ✧</span> <span class="temporal-badge temporal-0-3m">0-3M</span>
+        <h3><span>Liquid Brine Index (LBI)</span> <span class="temporal-badge temporal-0-3m">0-3M</span>
             <span class="formula">NDSI × NDWI × (1 − NDVI) × BSI</span></h3>
         <p><strong>Mechanisms &amp; Utility:</strong> Captures actively standing pools of hazardous produced water
             rather than legacy residues. LBI enforces four simultaneous gates: a brine chemical signature (NDSI), a
@@ -427,7 +427,7 @@
     </div>
 
     <div class="index-card">
-        <h3><span>Vegetation Stress Index (VSI) ✧</span> <span class="temporal-badge temporal-3-24m">3-24M</span>
+        <h3><span>Vegetation Stress Index (VSI)</span> <span class="temporal-badge temporal-3-24m">3-24M</span>
             <span class="formula">NDSI × RedEdgeDelta × MSI</span></h3>
         <p><strong>The Gap:</strong> Traditional vegetation indices (NDVI) only detect death or severe chlorosis. In
             produced water spills, vegetation often remains visibly green while undergoing internal physiological stress
@@ -437,14 +437,14 @@
             with SWIR moisture stress (<code>B11 / B8A</code>) and chemical salinity (NDSI). The triplet combination
             is calibrated to detect physiological stress in Permian rangeland vegetation 2–3 months before visible
             wilting.<sup><a href="#fn6">6</a></sup><sup><a href="#fn15">15</a></sup><sup><a href="#fn20">20</a></sup></p>
-        <p><strong>Novelty note:</strong> The red-edge shift as a salinity stress indicator is well-documented in
-            precision agriculture (Allbed 2014, Scudiero 2014). The novelty here is the specific triplet assembly and
-            calibration for the oilfield produced water context, not the underlying band physics. This is applied
-            engineering, not new spectral science.</p>
+        <p><strong>Attribution note:</strong> Vegetation stress indices and red-edge salinity-stress methods are
+            well-documented in precision agriculture (Allbed 2014, Scudiero 2014). The Sentinel Explorer contribution
+            is the local triplet assembly and calibration for the oilfield produced water context, not the underlying
+            band physics or the general VSI concept.</p>
     </div>
 
     <div class="index-card">
-        <h3><span>Salt Crust Roughness Index (SCRI) ✧</span> <span class="temporal-badge temporal-3mplus">3M+</span>
+        <h3><span>Salt Crust Roughness Index (SCRI)</span> <span class="temporal-badge temporal-3mplus">3M+</span>
             <span class="formula">SAR VH Backscatter + VH/VV Ratio</span>
         </h3>
         <p><strong>The Gap:</strong> Optical salinity indices (NDSI) are blinded by clouds, dust, and smoke, and cannot
@@ -462,7 +462,7 @@
     </div>
 
     <div class="index-card">
-        <h3><span>Brine-Pavement Index (BPI) ✧</span> <span class="temporal-badge temporal-live">Live</span>
+        <h3><span>Brine-Pavement Index (BPI)</span> <span class="temporal-badge temporal-live">Live</span>
             <span class="formula">NDSI × HCAI × BSI</span></h3>
         <p><strong>Mechanisms &amp; Utility:</strong> Optimized for detecting leaks on caliche pads and lease roads —
             the most common spill scenario at the wellhead level. BPI enforces three gates simultaneously: brine
@@ -476,7 +476,7 @@
     </div>
 
     <div class="index-card">
-        <h3><span>Toxic Residue Index (TRI) ✧</span> <span class="temporal-badge temporal-6mplus">6M+</span>
+        <h3><span>Toxic Residue Index (TRI)</span> <span class="temporal-badge temporal-6mplus">6M+</span>
             <span class="formula">NDSI × HMRI × AOI</span></h3>
         <p><strong>Mechanisms &amp; Utility:</strong> A forensic tool for identifying historical spill footprints where
             liquid is no longer present. TRI combines three post-evaporation residue signatures: salt chemistry (NDSI),
@@ -490,7 +490,7 @@
     </div>
 
     <div class="index-card">
-        <h3><span>Petro-Hydrocarbon Index (PHI) ✧</span> <span class="temporal-badge temporal-0-6m">0-6M</span>
+        <h3><span>Petro-Hydrocarbon Index (PHI)</span> <span class="temporal-badge temporal-0-6m">0-6M</span>
             <span class="formula">NDSI × (B11/B12) × HCAI</span></h3>
         <p><strong>Mechanisms &amp; Utility:</strong> Isolates oily brine specifically — distinguishing co-contaminated
             produced water from clean runoff or pure salt. PHI gates on three co-occurring signals: salinity (NDSI),
@@ -501,7 +501,7 @@
     </div>
 
     <div class="index-card">
-        <h3><span>Clay-Mineral Alteration (CMA) ✧</span> <span class="temporal-badge temporal-persistent">Persistent</span>
+        <h3><span>Clay-Mineral Alteration (CMA)</span> <span class="temporal-badge temporal-persistent">Persistent</span>
             <span class="formula">NDSI × (B11/B12) × (B04/B02)</span></h3>
         <p><strong>Mechanisms &amp; Utility:</strong> A forensic index targeting the chemical modification of clay
             lattices by produced water residues. Highly saline formation water (TDS &gt;100,000 mg/L) replaces
@@ -516,7 +516,7 @@
     </div>
 
     <div class="index-card">
-        <h3><span>Heavy Metal Interaction (HMI) ✧</span> <span class="temporal-badge temporal-12mplus">12M+</span>
+        <h3><span>Heavy Metal Interaction (HMI)</span> <span class="temporal-badge temporal-12mplus">12M+</span>
             <span class="formula">(B03/B02) × (B11/B12)</span></h3>
         <p><strong>Mechanisms &amp; Utility:</strong> Targets Barium and Strontium proxies — the dominant dissolved
             solids in Permian produced water. Heavy metal precipitation shifts the Green/Blue visible ratio (B03/B02)
@@ -530,7 +530,7 @@
     </div>
 
     <div class="index-card">
-        <h3><span>Evaporite Halo Composite (EHC) ✧</span> <span class="temporal-badge temporal-0-3m">0-3M</span>
+        <h3><span>Evaporite Halo Composite (EHC)</span> <span class="temporal-badge temporal-0-3m">0-3M</span>
             <span class="formula">RGB [NDOI, BSI, NDSI]</span></h3>
         <p><strong>Mechanisms &amp; Utility:</strong> A custom RGB false-color proxy designed to visually isolate
             the spatial morphology of a high-pressure blowout. Produced water spills evaporate concentrically, leaving
@@ -542,7 +542,7 @@
     </div>
 
     <div class="index-card">
-        <h3><span>Anoxic Oxidation Index (AOI) ✧</span> <span class="temporal-badge temporal-0-6m">0-6M</span>
+        <h3><span>Anoxic Oxidation Index (AOI)</span> <span class="temporal-badge temporal-0-6m">0-6M</span>
             <span class="formula">(B04/B02) × (B11/B12)</span></h3>
         <p><strong>Mechanisms &amp; Utility:</strong> Deep formation water is severely oxygen-starved and saturated
             with dissolved iron and sulfides. When brought to the surface during a frac hit or spill, these minerals
@@ -552,7 +552,7 @@
     </div>
 
     <div class="index-card">
-        <h3><span>Ferrugination-Brine Composite (FBC) ✧</span> <span class="temporal-badge temporal-3-12m">3-12M</span>
+        <h3><span>Ferrugination-Brine Composite (FBC)</span> <span class="temporal-badge temporal-3-12m">3-12M</span>
             <span class="formula fusion-badge">(B04/B02) × NDSI × (1 − NDVI)</span>
         </h3>
         <p><strong>Mechanisms &amp; Utility:</strong> Deep Permian produced water is rich in ferrous iron (Fe²⁺). When
@@ -629,7 +629,7 @@
     </div>
 
     <div class="index-card">
-        <h3><span>Red Edge Alteration Index (REAI) ✧</span> <span class="temporal-badge temporal-3-12m">3-12M</span>
+        <h3><span>Red Edge Alteration Index (REAI)</span> <span class="temporal-badge temporal-3-12m">3-12M</span>
             <span class="formula fusion-badge">(B06/B05) × NDSI</span>
         </h3>
         <p><strong>Mechanisms &amp; Utility:</strong> Exploits Sentinel-2's dedicated Red Edge bands (B05=705nm,
@@ -644,7 +644,7 @@
     </div>
 
     <div class="index-card">
-        <h3><span>Vegetation-Confirmed Brine Index (VCBI) ✧</span>
+        <h3><span>Vegetation-Confirmed Brine Index (VCBI)</span>
             <span class="temporal-badge temporal-6-24m">6-24M</span>
             <span class="formula fusion-badge">max(0, −CRSI) × NDSI</span></h3>
         <p><strong>Mechanisms &amp; Utility:</strong> Targets the off-pad migration front — the leading edge of a

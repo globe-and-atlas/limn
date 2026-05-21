@@ -4,7 +4,7 @@
 
 *Prepared from full codebase analysis of `/sentinel-explorer`. Designed for NotebookLM ingestion and self-directed learning.*
 
-**Authorship note:** The standard spectral indices in this guide (NDVI, SAVI, NDWI, NDMI, MSI, BSI, NDSI, HCAI, HMRI, NDOI, CRSI) are established methods with literature citations in Section 18. The custom composite indices — including PWOI, PWI, HPWI, FBC, VCBI, LBI, TRI, BPI, VSI, REAI, EHC, AOI, SCRI, CMA, PHI, and HMI — are original work developed by **Daniel Bally** (2025–2026) specifically for produced water detection in the Permian Basin. These composites have no prior published equivalents. See Section 18 for the full attribution entry.
+**Authorship note:** The standard spectral indices in this guide (NDVI, SAVI, NDWI, NDMI, MSI, BSI, NDSI, HCAI, HMRI, NDOI, CRSI) are established methods with full literature citations in Section 18. The custom composite indices — PWOI, PWI, HPWI, FBC, VCBI, LBI, TRI, BPI, VSI, REAI, EHC, AOI, SCRI, CMA, PHI, and HMI — are original work by **Daniel Bally (2025–2026)**. The component band ratios each composite builds on (NDSI, HCAI, HMRI, NDWI, BSI, etc.) have established physics and prior literature; the composite architectures themselves — including the multi-gate AND logic, dry brine detection mode, Permian Basin calibration offsets, and specific signal combinations — have no published equivalent and are original engineering.
 
 ---
 
@@ -565,9 +565,9 @@ Water bodies, vegetation, and clouds all have BSI well below the mask threshold.
 
 ## 10. PWOI: Produced Water Optical Index
 
-**PWOI** (Produced Water Optical Index) is an original composite developed by Daniel Bally (2025–2026). It serves as a Sentinel-2 **optical proxy for what SAR would measure**: detecting abnormally smooth surfaces consistent with liquid brine pooling or dried salt crusts using only optical bands — no SAR required.
+**PWOI** (Produced Water Optical Index) is a Sentinel Explorer composite calibration. It serves as a Sentinel-2 **optical proxy for what SAR would measure**: detecting abnormally smooth surfaces consistent with liquid brine pooling or dried salt crusts using only optical bands — no SAR required.
 
-The key innovation is the **dry brine mode** (Section 10.3), which resolved the fundamental detection failure in desert environments where standard NDWI-based indices collapse to near-zero. Adding this mode increased PWOI detection from 29.6% to 77.8% on 27 TRRC validation sites — a result not achievable with any prior published index applied to arid-environment brine detection.
+The key local implementation change is the **dry brine mode** (Section 10.3), which resolved the fundamental detection failure in desert environments where standard NDWI-based indices collapse to near-zero. Adding this mode increased PWOI detection from 29.6% to 77.8% on 27 TRRC validation sites in this project's validation run.
 
 ### 10.1 The Core Physics
 
@@ -959,9 +959,9 @@ All indices in this application are grounded in published remote sensing science
 
 ---
 
-### Original Work — Novel Composite Indices
+### Sentinel Explorer Composite Calibrations
 
-The following indices have no prior published equivalents. They were designed, implemented, and validated by Daniel Bally (Spring, Texas) between 2025 and 2026 as part of the Sentinel Explorer project. All are calibrated specifically for Permian Basin arid-desert conditions and produced water geochemistry.
+The following indices are Sentinel Explorer implementations and calibrations assembled for Permian Basin arid-desert conditions and produced water geochemistry. Many names, acronyms, formulas, and component methods have prior public use in remote sensing or environmental literature, so this table documents the project implementation rather than a claim that the underlying index concept was invented here.
 
 | Index | Full Name | Year |
 |---|---|---|
@@ -975,14 +975,14 @@ The following indices have no prior published equivalents. They were designed, i
 | **BPI** | Brine-Pavement Index — pad-level integrity monitoring on caliche surfaces | 2026 |
 | **VSI** | Vegetation Stress Index — sub-lethal brine toxicity in surviving desert scrub | 2026 |
 | **REAI** | Red Edge Alteration Index — early iron staining via B05/B06 red-edge bands | 2026 |
-| **EHC** | Evaporite Halo Composite — custom RGB false-color for blowout geometry | 2026 |
+| **EHC** | Evaporite Halo Composite — RGB false-color for blowout geometry | 2026 |
 | **AOI** | Anoxic Oxidation Index — iron redox state signature from formation water | 2026 |
 | **SCRI** | Salt Crust Roughness Index — SAR-based mechanical confirmation of salt crust | 2026 |
 | **CMA** | Clay-Mineral Alteration — clay lattice disruption by produced water residues | 2026 |
 | **PHI** | Petro-Hydrocarbon Index — oily brine vs. clean runoff via SWIR shoulder | 2026 |
 | **HMI** | Heavy Metal Interaction — barium/strontium precipitation via green shift + SWIR | 2026 |
 
-If referencing these indices in publications or derivative work, please attribute: *Bally, D. (2025–2026). Custom composite indices for produced water detection, Sentinel Explorer. Permian Basin, TX/NM.*
+If referencing these indices in publications or derivative work, cite the specific Sentinel Explorer implementation and validation context rather than describing the acronym, display name, or component formula as an original invention.
 
 ---
 
