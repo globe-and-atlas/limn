@@ -4,6 +4,8 @@
 
 *Prepared from full codebase analysis of `/sentinel-explorer`. Designed for NotebookLM ingestion and self-directed learning.*
 
+**Authorship note:** The standard spectral indices in this guide (NDVI, SAVI, NDWI, NDMI, MSI, BSI, NDSI, HCAI, HMRI, NDOI, CRSI) are established methods with literature citations in Section 18. The custom composite indices — including APEX (the Bally Index), PWI, HPWI, FBC, VCBI, LBI, TRI, BPI, VSI, REAI, EHC, AOI, SCRI, CMA, PHI, and HMI — are original work developed by **Daniel Bally** (2025–2026) specifically for produced water detection in the Permian Basin. These composites have no prior published equivalents. See Section 18 for the full attribution entry.
+
 ---
 
 ## Table of Contents
@@ -561,9 +563,11 @@ Water bodies, vegetation, and clouds all have BSI well below the mask threshold.
 
 ---
 
-## 10. APEX: The Anomaly Super-Composite
+## 10. APEX — The Bally Index: The Anomaly Super-Composite
 
-APEX (Anomaly Composite) is a surface smoothness-based index that serves as a Sentinel-2 **optical proxy for what SAR would measure**: it detects abnormally smooth surfaces consistent with liquid brine pooling or dried salt crusts.
+**APEX** (Anomaly Proximity EXpression), also called the **Bally Index**, is an original composite developed by Daniel Bally (2025–2026). It serves as a Sentinel-2 **optical proxy for what SAR would measure**: detecting abnormally smooth surfaces consistent with liquid brine pooling or dried salt crusts using only optical bands — no SAR required.
+
+The key innovation is the **dry brine mode** (Section 10.3), which resolved the fundamental detection failure in desert environments where standard NDWI-based indices collapse to near-zero. Adding this mode increased APEX detection from 29.6% to 77.8% on 27 TRRC validation sites — a result not achievable with any prior published index applied to arid-environment brine detection.
 
 ### 10.1 The Core Physics
 
@@ -952,6 +956,33 @@ All indices in this application are grounded in published remote sensing science
 8. **Choe, E. et al. (2008)** — "Mapping of heavy metal pollution in stream sediments using combined geochemistry, field spectroscopy, and hyperspectral remote sensing" — *Remote Sensing of Environment* — **HMRI (Heavy Metal Reflectance Index)**
 
 9. **Dekker, A.G. et al. (2001)** — "Analytical algorithms for lake water quality" — *Applied Optics* — **NDOI (optical water quality)**
+
+---
+
+### Original Work — Novel Composite Indices
+
+The following indices have no prior published equivalents. They were designed, implemented, and validated by Daniel Bally (Spring, Texas) between 2025 and 2026 as part of the Sentinel Explorer project. All are calibrated specifically for Permian Basin arid-desert conditions and produced water geochemistry.
+
+| Index | Full Name | Year |
+|---|---|---|
+| **APEX (Bally Index)** | Anomaly Proximity EXpression — optical SAR proxy, dry brine mode | 2026 |
+| **PWI** | Produced Water Index — three-way AND gate (brine × hydrocarbons × heavy metals) | 2025 |
+| **HPWI** | Hybrid Produced Water Index — chemical × smoothness cross-validator | 2026 |
+| **FBC** | Ferrugination-Brine Composite — iron oxidation × brine gate | 2026 |
+| **VCBI** | Vegetation-Confirmed Brine Index — inverted CRSI × brine, leading-edge migration | 2026 |
+| **LBI** | Liquid Brine Index — active standing brine pool detection | 2026 |
+| **TRI** | Toxic Residue Index — forensic mineral scab after brine evaporation | 2026 |
+| **BPI** | Brine-Pavement Index — pad-level integrity monitoring on caliche surfaces | 2026 |
+| **VSI** | Vegetation Stress Index — sub-lethal brine toxicity in surviving desert scrub | 2026 |
+| **REAI** | Red Edge Alteration Index — early iron staining via B05/B06 red-edge bands | 2026 |
+| **EHC** | Evaporite Halo Composite — custom RGB false-color for blowout geometry | 2026 |
+| **AOI** | Anoxic Oxidation Index — iron redox state signature from formation water | 2026 |
+| **SCRI** | Salt Crust Roughness Index — SAR-based mechanical confirmation of salt crust | 2026 |
+| **CMA** | Clay-Mineral Alteration — clay lattice disruption by produced water residues | 2026 |
+| **PHI** | Petro-Hydrocarbon Index — oily brine vs. clean runoff via SWIR shoulder | 2026 |
+| **HMI** | Heavy Metal Interaction — barium/strontium precipitation via green shift + SWIR | 2026 |
+
+If referencing these indices in publications or derivative work, please attribute: *Bally, D. (2025–2026). Custom composite indices for produced water detection, Sentinel Explorer. Permian Basin, TX/NM.*
 
 ---
 
