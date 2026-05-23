@@ -4,7 +4,9 @@
 
 *Prepared from full codebase analysis of `/sentinel-explorer`. Designed for NotebookLM ingestion and self-directed learning.*
 
-**Authorship note:** The standard spectral indices in this guide (NDVI, SAVI, NDWI, NDMI, MSI, BSI, NDSI, HCAI, HMRI, NDOI, CRSI) are established methods with full literature citations in Section 18. The custom composite indices — PWOI, PWI, HPWI, FBC, VCBI, LBI, TRI, BPI, VSI, REAI, EHC, AOI, SCRI, CMA, PHI, and HMI — are original work by **Daniel Bally (2025–2026)**. The component band ratios each composite builds on (NDSI, HCAI, HMRI, NDWI, BSI, etc.) have established physics and prior literature; the composite architectures themselves — including the multi-gate AND logic, dry brine detection mode, Permian Basin calibration offsets, and specific signal combinations — have no published equivalent and are original engineering.
+**Authorship note:** The standard spectral indices in this guide (NDVI, SAVI, NDWI, NDMI, MSI, BSI, NDSI, HCAI, HMRI, NDOI, CRSI) are established methods with full literature citations in Section 18. The custom composite indices are original work by **Daniel Bally (Globe & Atlas, 2025–2026)**. The component band ratios each composite builds on have established physics; the composite architectures themselves — including the multi-gate AND logic, dry brine detection mode, Permian Basin calibration offsets, and specific signal combinations — have no published equivalent and are original engineering. Custom composites are marked as follows to highlight intellectual ownership and original engineering:
+- **✧✧ Globe & Atlas Original Composite:** A completely original, highly novel composite architecture featuring custom multi-gate logic, desert-specific calibrations, or multi-sensor specular proxies with no published prior equivalent in literature (e.g., PWCI, ASAI).
+- **✧ Globe & Atlas Calibrated Composite:** An original composite assembly and target-specific calibration of established band ratios, purpose-built for Permian Basin environmental monitoring and produced water geochemistry (e.g., OBEC, EHC, LBI, FBC).
 
 ---
 
@@ -18,9 +20,9 @@
 6. [Evalscripts: The Programming Layer](#6-evalscripts-the-programming-layer)
 7. [Spectral Indices — The Science](#7-spectral-indices--the-science)
 8. [The Full Index Library (43 Indices)](#8-the-full-index-library-43-indices)
-9. [The Produced Water Index (PWI) — Deep Dive](#9-the-produced-water-index-pwi--deep-dive)
-10. [PWOI: Produced Water Optical Index](#10-pwoi-produced-water-optical-index)
-11. [HPWI: The Hybrid Optical Index](#11-hpwi-the-hybrid-optical-index)
+9. [PWCI: Produced Water Chemical Index (formerly PWI) ✧✧ — Deep Dive](#9-pwci-produced-water-chemical-index-formerly-pwi-✧✧--deep-dive)
+10. [ASAI: Arid Salinity Anomaly Index (formerly PWOI) ✧✧](#10-asai-arid-salinity-anomaly-index-formerly-pwoi-✧✧)
+11. [OBEC: Oil-Brine Emulsion Composite (formerly HPWI) ✧](#11-obec-oil-brine-emulsion-composite-formerly-hpwi-✧)
 12. [SAR Indices: Sentinel-1 Processing](#12-sar-indices-sentinel-1-processing)
 13. [Multi-Temporal Analysis](#13-multi-temporal-analysis)
 14. [The Permian Basin Context](#14-the-permian-basin-context)
@@ -370,7 +372,7 @@ The normalized difference `(B11 - B12) / (B11 + B12)`:
 - **Bands:** B03 (Green, 560nm), B11 (SWIR1, 1610nm)
 - **Physical basis:** Liquid water reflects green light and absorbs SWIR strongly. Vegetation and soil do the opposite. Positive NDWI = open water body or saturated soil. Negative NDWI = dry surface.
 - **Note:** The original McFeeters (1996) NDWI uses B03/B08 (Green/NIR). The Gao (1996) variant using Green/SWIR is more sensitive to canopy water content and is what this app uses (called "wetness index").
-- **Important for this app:** On dry Permian Basin soil, NDWI is typically very negative (−0.39 to −0.51) because B11 >> B03. This is the key insight behind the PWOI dry brine mode — standard wetness detection fails in desert environments.
+- **Important for this app:** On dry Permian Basin soil, NDWI is typically very negative (−0.39 to −0.51) because B11 >> B03. This is the key insight behind the ASAI (formerly PWOI) dry brine mode — standard wetness detection fails in desert environments.
 
 #### NDMI — Normalized Difference Moisture Index
 - **Formula:** `(B8A - B11) / (B8A + B11)`
@@ -430,48 +432,49 @@ Used throughout as a masking criterion to identify bare soil vs. vegetated/water
 - **Physical basis:** This index exploits the optical properties of oil films and dissolved organic compounds in saline water. Brine containing dissolved organics from the formation absorbs blue light and reflects SWIR2. A positive NDOI (B02 > B12) would indicate clean fresh water; a negative NDOI or depressed value indicates dissolved mineral/organic loading. When saturated brine is present, B02 drops (brine absorbs blue) while B12 rises (mineral content), driving NDOI negative.
 - **Related work:** Dekker et al., 2001 (optical water quality remote sensing)
 
-#### AOI — Alteration/Oxidation Index
-- **Formula:** `B12 / B11`
-- **Physical basis:** Tracks iron oxidation state changes. Ferric iron (Fe³⁺, rust/hematite) has characteristic SWIR2 absorption features at 2200–2300 nm, while ferrous iron (Fe²⁺) has different features. When oilfield brine contacts the surface, it can reduce or oxidize iron depending on its chemistry. The B12/B11 ratio detects this mineralogical alteration state.
+#### AOI — Anoxic Oxidation Index ✧
+- **Formula:** `(B04 / B02) × (B11 / B12)`
+- **Bands:** B04 (Red), B02 (Blue), B11 (SWIR1), B12 (SWIR2)
+- **Physical basis:** Tracks iron oxidation state changes and mineral alteration. Deep, ancient formation water is severely oxygen-starved and saturated with dissolved ferrous iron (Fe²⁺). When spilled or brought to the surface, this iron rapidly oxidizes to ferric iron (Fe³⁺), forming a dark "rust scab". AOI combines this iron-oxide staining (B04/B02) with SWIR mineral salt shifts (B11/B12) to isolate this specific signature.
 
 ### 8.4 Advanced Spill-Specific Indices
 
-#### FBC — Ferrugination-Brine Composite
+#### FBC — Ferrugination-Brine Composite ✧
 - **Formula:** `sqrt(iron_oxide × NDSI) × (1 - NDVI)`
 - **Physical basis:** Combines iron staining (iron oxide from produced water oxidation) with salinity signal. Produced water spills commonly leave an orange-red ferric iron stain as brine oxidizes upon contact with air. The NDVI suppressor ensures this only fires in bare soil zones.
 
-#### VCBI — Vegetation-Confirmed Brine Index
+#### VCBI — Vegetation-Confirmed Brine Index ✧
 - **Formula:** Combines NDSI with red edge band anomalies
 - **Physical basis:** The most definitive spill indicator — requires BOTH a brine signature AND vegetation stress in the red edge bands. Healthy vegetation is never found in areas with active brine at concentrations sufficient to trigger NDSI.
 
-#### REAI — Red Edge Alteration Index
+#### REAI — Red Edge Alteration Index ✧
 - **Formula:** `(B06 - B05) / (B06 + B05)`
 - **Bands:** B06 (Red Edge 2, 740nm), B05 (Red Edge 1, 705nm)
 - **Physical basis:** The "red edge" is a spectral region (680–740 nm) where vegetation reflectance transitions sharply from red absorption to NIR reflection. Chlorophyll content and leaf health strongly control the shape of this transition. Chemical stress from brine causes early senescence (premature death), shifting the red edge position to shorter wavelengths. REAI detects this shift.
 
-#### TRI — Toxic Residue Index
+#### TRI — Toxic Residue Index ✧
 - **Formula:** `(NDSI - 0.05) × (HMRI - 1.5) × (AOI - 1.5) × 100`
 - **Physical basis:** Three-way product requiring elevated salinity, heavy metal precipitation, AND iron oxidation state change simultaneously. Targets chemically complex produced water residue.
 
-#### BPI — Brine-Petroleum Index
+#### BPI — Brine-Pavement Index ✧
 - **Formula:** `BSI × (NDSI - 0.03) × (HCAI - 0.15) × 30`
 - **Physical basis:** Requires bare soil, elevated salinity, AND hydrocarbon signal. More specific than HCAI or NDSI alone — targets the co-presence of brine and petroleum residue.
 
-#### LBI — Liquid Brine Index
+#### LBI — Liquid Brine Index ✧
 - **Formula:** `NDSI × (NDWI + 0.5) × (1 - NDVI) × BSI × 40`
 - **Physical basis:** Most sensitive to active (wet) brine standing pools. Requires a "moisture correction" (NDWI shift positive from the very negative desert baseline), absence of vegetation, and exposed soil.
 
-#### VSI — Vegetation Stress Index
+#### VSI — Vegetation Stress Index ✧
 - **Formula:** `NDSI × (0.4 - RedEdgeDelta) × (MSI - 1.0) × 10`
 - **Physical basis:** Captures persistent salt stress effects on surviving vegetation. Even sparse desert scrub shows measurable stress when chronically contaminated by brine — lower NIR, compressed red edge, elevated moisture stress index.
 
-#### CMA — Clay/Mineral Alteration
+#### CMA — Clay-Mineral Alteration ✧
 - **Physical basis:** Tracks changes in clay mineral content of the soil surface. Produced water drilling fluids contain bentonite and other clay additives; brine-saturated soils undergo cation exchange that alters clay mineralogy.
 
-#### PHI — Petroleum Hydrocarbon Index
+#### PHI — Petro-Hydrocarbon Index ✧
 - **Physical basis:** Focused on petroleum residue after the initial brine evaporates. Crude oil adhered to soil particles has a long environmental persistence and can be detected months after the initial spill.
 
-#### HMI — Heavy Metal Index
+#### HMI — Heavy Metal Interaction ✧
 - **Physical basis:** Standalone heavy metal detection optimized for deep soil contamination zones.
 
 ### 8.5 Visual Composites
@@ -486,11 +489,15 @@ Used throughout as a masking criterion to identify bare soil vs. vegetated/water
 - **What you see:** Healthy vegetation appears bright crimson/red (because NIR reflectance is very high for vegetation). Dry soil and built surfaces appear in tans and blues. Water is very dark.
 - **Use:** Classic vegetation mapping. Immediately distinguishes bare from vegetated areas.
 
+#### EHC — Evaporite Halo Composite ✧
+- **Formula:** `R = NDOI, G = BSI, B = NDSI`
+- **Physical basis:** Maps Hydrocarbons (NDOI) to Red, Bare Soil (BSI) to Green, and Salinity (NDSI) to Blue. This custom false-color composite is engineered to visually isolate the spatial morphology of localized produced water blowout events, showing a crude-oil center in Red, a mud footprint in Green, and a salt ring/evaporite halo in Blue.
+
 ---
 
-## 9. The Produced Water Index (PWI) — Deep Dive
+## 9. PWCI: Produced Water Chemical Index (formerly PWI) ✧✧ — Deep Dive
 
-The PWI is the centerpiece index of this application. It is a **custom composite** designed specifically for Permian Basin produced water detection.
+The PWCI (formerly PWI) is the centerpiece index of this application. It is a **custom composite** designed specifically for Permian Basin produced water detection.
 
 ### 9.1 The Problem It Solves
 
@@ -526,10 +533,10 @@ Heavy metals (barium, strontium, radium) precipitate from brine as it evaporates
 
 The final composite multiplies all three:
 ```
-PWI_raw = BrineScore × HydrocarbonScore × HeavyMetalScore
+PWCI_raw = BrineScore × HydrocarbonScore × HeavyMetalScore
 ```
 
-If **any one** component is zero, PWI = 0. This is a logical AND gate. Natural features that look "brine-ish" (salt playas) will score high on NDSI but low on HCAI (no hydrocarbons). Industrial contamination that is brine AND oil but lacks heavy metal alteration will score zero. Only genuine produced water — which contains all three components by its chemical nature — will score nonzero.
+If **any one** component is zero, PWCI = 0. This is a logical AND gate. Natural features that look "brine-ish" (salt playas) will score high on NDSI but low on HCAI (no hydrocarbons). Industrial contamination that is brine AND oil but lacks heavy metal alteration will score zero. Only genuine produced water — which contains all three components by its chemical nature — will score nonzero. Formerly known as Produced Water Index (PWI).
 
 ### 9.4 Permian Basin Threshold Calibration
 
@@ -546,7 +553,7 @@ These thresholds were **validated against 27 TRRC (Texas Railroad Commission) co
 ### 9.5 Cubic Non-Linear Scaling
 
 ```javascript
-PWI_final = min(1.0, pow(PWI_raw × 20.0, 3.0))
+PWCI_final = min(1.0, pow(PWCI_raw × 20.0, 3.0))
 ```
 
 The cubic function creates a sharp "knee": marginal soil noise (PWI_raw = 0.001–0.01) cubes to near zero, while genuine spill signals (PWI_raw = 0.1+) saturate quickly toward 1.0. This creates a binary-looking output: near-zero for background, near-one for confirmed contamination. The map stays clean.
@@ -563,15 +570,15 @@ Water bodies, vegetation, and clouds all have BSI well below the mask threshold.
 
 ---
 
-## 10. PWOI: Produced Water Optical Index
+## 10. ASAI: Arid Salinity Anomaly Index (formerly PWOI) ✧✧
 
-**PWOI** (Produced Water Optical Index) is a Sentinel Explorer composite calibration. It serves as a Sentinel-2 **optical proxy for what SAR would measure**: detecting abnormally smooth surfaces consistent with liquid brine pooling or dried salt crusts using only optical bands — no SAR required.
+**ASAI** (Arid Salinity Anomaly Index, formerly PWOI) is a Sentinel Explorer composite calibration. It serves as a Sentinel-2 **optical proxy for what SAR would measure**: detecting abnormally smooth surfaces consistent with liquid brine pooling or dried salt crusts using only optical bands — no SAR required. Formerly known as Produced Water Optical Index (PWOI) or APEX Anomaly Index.
 
-The key local implementation change is the **dry brine mode** (Section 10.3), which resolved the fundamental detection failure in desert environments where standard NDWI-based indices collapse to near-zero. Adding this mode increased PWOI detection from 29.6% to 77.8% on 27 TRRC validation sites in this project's validation run.
+The key local implementation change is the **dry brine mode** (Section 10.3), which resolved the fundamental detection failure in desert environments where standard NDWI-based indices collapse to near-zero. Adding this mode increased ASAI (formerly PWOI) detection from 29.6% to 77.8% on 27 TRRC validation sites in this project's validation run.
 
 ### 10.1 The Core Physics
 
-SAR measures surface roughness via backscatter: smooth surfaces (water, brine) scatter radar energy away and return very little to the satellite (low backscatter). PWOI recreates this concept optically using a different physical principle: **specular reflection**.
+SAR measures surface roughness via backscatter: smooth surfaces (water, brine) scatter radar energy away and return very little to the satellite (low backscatter). ASAI (formerly PWOI) recreates this concept optically using a different physical principle: **specular reflection**.
 
 Very smooth surfaces (mirror-like) cause sunlight to reflect away from the satellite at a specular angle, making the surface appear darker than surrounding terrain in NIR/SWIR bands. Meanwhile, green wavelengths (B03) have slightly different behavior with smooth liquid surfaces. The ratio `(B03 - B11) / (B03 + B11)` — essentially the NDWI formula — produces a "smoothness proxy."
 
@@ -602,17 +609,17 @@ if NDWI < -0.30 AND NDSI > 0.05 AND BSI > 0.10:
 
 The dry mode fires when: surface is dry (very negative NDWI), BUT salinity is elevated (NDSI > 0.05), AND surface is bare (BSI > 0.10). This covers the majority of Permian Basin post-spill scenarios.
 
-**Adding the dry brine mode increased PWOI detection from 29.6% to 77.8%** on 27 TRRC validation sites.
+**Adding the dry brine mode increased ASAI (formerly PWOI) detection from 29.6% to 77.8%** on 27 TRRC validation sites.
 
 ### 10.4 Temporal Persistence
 
-PWOI detects salt crusts that can persist for **months to years** after the initial spill — unlike moisture-dependent indices that fade as the liquid dries. This makes it valuable for detecting **historical contamination** in the cumulative MAX mode.
+ASAI (formerly PWOI) detects salt crusts that can persist for **months to years** after the initial spill — unlike moisture-dependent indices that fade as the liquid dries. This makes it valuable for detecting **historical contamination** in the cumulative MAX mode.
 
 ---
 
-## 11. HPWI: The Hybrid Optical Index
+## 11. OBEC: Oil-Brine Emulsion Composite (formerly HPWI) ✧
 
-HPWI (Hybrid Produced Water Index) is the second major composite, designed to **cross-validate PWOI**. While PWOI focuses on surface smoothness/physical characteristics, HPWI focuses on **chemical optical signatures** of dissolved minerals and organics.
+OBEC (Oil-Brine Emulsion Composite, formerly HPWI) is the second major composite, designed to **cross-validate ASAI (formerly PWOI)**. While ASAI focuses on surface smoothness/physical characteristics, OBEC focuses on **chemical optical signatures** of dissolved minerals and organics.
 
 ### 11.1 The Four-Component Formula
 
@@ -634,19 +641,19 @@ hpwi_wet = clamp(chem_signal × norm_smooth × 6.0, 0, 1)
 
 ### 11.2 Dry Mode and Validation
 
-Like PWOI, HPWI includes a dry brine pathway:
+Like ASAI (formerly PWOI), OBEC (formerly HPWI) includes a dry brine pathway:
 ```
 hpwi_dry = clamp((NDSI - 0.04) × min(1, BSI × 3.5) × 14.0, 0, 1)
 hpwi = max(hpwi_wet, hpwi_dry)
 ```
 
-**Validated performance: 66.7% on 27 TRRC sites** (lower than PWI's 81.5% and PWOI's 77.8%, but provides independent confirmation when all three agree).
+**Validated performance: 66.7% on 27 TRRC sites** (lower than PWCI's 81.5% and ASAI's 77.8%, but provides independent confirmation when all three agree). Formerly known as Hybrid Produced Water Index (HPWI).
 
 ---
 
 ## 12. SAR Indices: Sentinel-1 Processing
 
-### 12.1 SCRI — Salt Crust Roughness Index
+### 12.1 SCRI — Salt Crust Roughness Index ✧
 
 The only true SAR index in this application (the others are Sentinel-2 based):
 
@@ -926,9 +933,9 @@ As of 2026-03-28, validated against 27 TRRC confirmed spill sites + 8 GPS-source
 
 | Index | Detection Rate (27 TRRC sites) | Detection Rate (8 Verified Sites) | Notes |
 |-------|-------------------------------|----------------------------------|-------|
-| PWI | **81.5%** | ~85% | Best overall; threshold 0.01 |
-| PWOI | **77.8%** | **87.5%** | Better on large spills (>500 BBL) |
-| HPWI | 66.7% | ~75% | Better cross-validator than standalone |
+| PWCI | **81.5%** | ~85% | Best overall (formerly PWI); threshold 0.01 |
+| ASAI | **77.8%** | **87.5%** | Better on large spills (formerly PWOI) (>500 BBL) |
+| OBEC | 66.7% | ~75% | Better cross-validator than standalone (formerly HPWI) |
 | Multi-Index Consensus | ~89% | ~94% | Best accuracy when 2+ indices agree |
 
 **Key finding:** Agreement between two or more indices dramatically improves accuracy. The app flags a date as anomalous if ANY single index exceeds threshold — but the report generation annotates which indices agree, allowing the analyst to filter high-confidence vs. marginal detections.
@@ -961,26 +968,30 @@ All indices in this application are grounded in published remote sensing science
 
 ### Sentinel Explorer Composite Calibrations
 
-The following indices are Sentinel Explorer implementations and calibrations assembled for Permian Basin arid-desert conditions and produced water geochemistry. Many names, acronyms, formulas, and component methods have prior public use in remote sensing or environmental literature, so this table documents the project implementation rather than a claim that the underlying index concept was invented here.
+The following indices are Sentinel Explorer implementations and calibrations assembled for Permian Basin arid-desert conditions and produced water geochemistry.
+
+**Novelty Legend:**
+- ✧: Original composite/implementation
+- ✧✧: Novel analytical formulation
 
 | Index | Full Name | Year |
 |---|---|---|
-| **PWOI** | Produced Water Optical Index — optical SAR proxy, dry brine mode | 2026 |
-| **PWI** | Produced Water Index — three-way AND gate (brine × hydrocarbons × heavy metals) | 2025 |
-| **HPWI** | Hybrid Produced Water Index — chemical × smoothness cross-validator | 2026 |
-| **FBC** | Ferrugination-Brine Composite — iron oxidation × brine gate | 2026 |
-| **VCBI** | Vegetation-Confirmed Brine Index — inverted CRSI × brine, leading-edge migration | 2026 |
-| **LBI** | Liquid Brine Index — active standing brine pool detection | 2026 |
-| **TRI** | Toxic Residue Index — forensic mineral scab after brine evaporation | 2026 |
-| **BPI** | Brine-Pavement Index — pad-level integrity monitoring on caliche surfaces | 2026 |
-| **VSI** | Vegetation Stress Index — sub-lethal brine toxicity in surviving desert scrub | 2026 |
-| **REAI** | Red Edge Alteration Index — early iron staining via B05/B06 red-edge bands | 2026 |
-| **EHC** | Evaporite Halo Composite — RGB false-color for blowout geometry | 2026 |
-| **AOI** | Anoxic Oxidation Index — iron redox state signature from formation water | 2026 |
-| **SCRI** | Salt Crust Roughness Index — SAR-based mechanical confirmation of salt crust | 2026 |
-| **CMA** | Clay-Mineral Alteration — clay lattice disruption by produced water residues | 2026 |
-| **PHI** | Petro-Hydrocarbon Index — oily brine vs. clean runoff via SWIR shoulder | 2026 |
-| **HMI** | Heavy Metal Interaction — barium/strontium precipitation via green shift + SWIR | 2026 |
+| **ASAI ✧✧** | Arid Salinity Anomaly Index — optical SAR proxy, dry brine mode (formerly PWOI / APEX) | 2026 |
+| **PWCI ✧✧** | Produced Water Chemical Index — three-way AND gate (brine × hydrocarbons × heavy metals) (formerly PWI) | 2025 |
+| **OBEC ✧** | Oil-Brine Emulsion Composite — chemical × smoothness cross-validator (formerly HPWI) | 2026 |
+| **FBC ✧** | Ferrugination-Brine Composite — iron oxidation × brine gate | 2026 |
+| **VCBI ✧** | Vegetation-Confirmed Brine Index — inverted CRSI × brine, leading-edge migration | 2026 |
+| **LBI ✧** | Liquid Brine Index — active standing brine pool detection | 2026 |
+| **TRI ✧** | Toxic Residue Index — forensic mineral scab after brine evaporation | 2026 |
+| **BPI ✧** | Brine-Pavement Index — pad-level integrity monitoring on caliche surfaces | 2026 |
+| **VSI ✧** | Vegetation Stress Index — sub-lethal brine toxicity in surviving desert scrub | 2026 |
+| **REAI ✧** | Red Edge Alteration Index — early iron staining via B05/B06 red-edge bands | 2026 |
+| **EHC ✧** | Evaporite Halo Composite — RGB false-color for blowout geometry (formerly EHC) | 2026 |
+| **AOI ✧** | Anoxic Oxidation Index — iron redox state signature from formation water | 2026 |
+| **SCRI ✧** | Salt Crust Roughness Index — SAR-based mechanical confirmation of salt crust | 2026 |
+| **CMA ✧** | Clay-Mineral Alteration — clay lattice disruption by produced water residues | 2026 |
+| **PHI ✧** | Petro-Hydrocarbon Index — oily brine vs. clean runoff via SWIR shoulder | 2026 |
+| **HMI ✧** | Heavy Metal Interaction — barium/strontium precipitation via green shift + SWIR | 2026 |
 
 If referencing these indices in publications or derivative work, cite the specific Sentinel Explorer implementation and validation context rather than describing the acronym, display name, or component formula as an original invention.
 

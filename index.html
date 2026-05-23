@@ -4,7 +4,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sentinel Explorer | Well-Pad Analysis</title>
+    <title>Sentinel Explorer | Globe & Atlas Environmental Intelligence</title>
+    
+    <meta name="description" content="Globe & Atlas Sentinel Explorer is a professional satellite screening platform for detecting produced water anomalies, oil-brine emulsions, and evaporite blowouts in the Permian Basin.">
+    <meta name="author" content="Daniel Bally (Globe & Atlas)">
+
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Sentinel Explorer | Globe & Atlas Environmental Intelligence">
+    <meta property="og:description" content="Advanced multi-spectral and SAR satellite screening for produced water spills, calibrated for dry desert caliche soils.">
+    <meta property="og:url" content="https://explorer.globeandatlas.com">
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><circle cx=%2250%22 cy=%2250%22 r=%2240%22 fill=%22%23111111%22 stroke=%22%2300D2FF%22 stroke-width=%228%22/><circle cx=%2250%22 cy=%2250%22 r=%2215%22 fill=%22%2300D2FF%22/></svg>">
 
     <!-- Fonts -->
     <script>
@@ -133,14 +145,15 @@
                 <div class="brand">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <circle cx="12" cy="12" r="10" stroke="#00D2FF" stroke-width="2" opacity="0.8" />
-                        <path d="M12 6V18M6 12H18" stroke="#00D2FF" stroke-width="2" stroke-linecap="round" />
-                        <circle cx="12" cy="12" r="3" fill="#00D2FF" />
+                        <path d="M12 2C12 2 16 6 16 12C16 18 12 22 12 22C12 22 8 18 8 12C8 6 12 2 12 2Z" stroke="#00D2FF" stroke-width="1.5" stroke-linejoin="round"/>
+                        <path d="M2 12H22" stroke="#00D2FF" stroke-width="1.5"/>
+                        <circle cx="12" cy="12" r="3" fill="#8C00FF" />
                     </svg>
                     <div>
-                        <h1>SENTINEL EXPLORER <span id="app-version-badge" class="version-badge">v48 · 2026-03-28</span>
+                        <h1>SENTINEL EXPLORER <span id="app-version-badge" class="version-badge">v48</span>
                         </h1>
                         <div class="subtitle-row">
-                            <h2>Well-Pad Environmental Analysis</h2>
+                            <h2>Globe & Atlas · Arid Environmental Screening</h2>
                             <a href="help.html" target="_blank" class="tool-btn help-link" aria-label="Open science documentation">
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                     stroke-width="2">
@@ -193,17 +206,17 @@
                         <div class="index-grid" role="group" aria-label="Spill detection indices">
                             <!-- Primary Target Indices — ordered by PW detection effectiveness -->
                             <!-- Primary Detection Tools -->
-                            <button class="index-btn idx-pwoi" data-index="pwoi" data-tooltip="S2-only optical index. Uses optical band ratios (B03/B11) as proxies for SAR surface smoothness to detect brine — no Sentinel-1 required.">
-                                <span class="index-short">PWOI</span>
-                                <span class="index-full index-full-bold">Produced Water Optical Index</span>
+                            <button class="index-btn idx-pwoi" data-index="pwoi" data-tooltip="ASAI — Arid Salinity Anomaly Index (formerly PWOI / APEX). S2-only optical index. Uses optical band ratios (B03/B11) as proxies for specular surface smoothness to detect dry salt crusts or active brine — no Sentinel-1 required.">
+                                <span class="index-short">ASAI</span>
+                                <span class="index-full index-full-bold">Arid Salinity Anomaly Index (formerly PWOI)</span>
                             </button>
-                            <button class="index-btn idx-hpwi" data-index="hpwi" data-tooltip="S2-only composite. Uses optical surface smoothness as a proxy for SAR confirmation — does not use actual Sentinel-1 data.">
-                                <span class="index-short">HPWI</span>
-                                <span class="index-full index-full-bold">Brine + Smoothness Index</span>
+                            <button class="index-btn idx-hpwi" data-index="hpwi" data-tooltip="OBEC — Oil-Brine Emulsion Composite (formerly HPWI). S2-only composite calibration. Fuses specular surface smoothness with chemical oil and brine signatures to validate liquid emulsion pooling — does not use actual Sentinel-1 data.">
+                                <span class="index-short">OBEC</span>
+                                <span class="index-full index-full-bold">Oil-Brine Emulsion Composite (formerly HPWI)</span>
                             </button>
-                            <button class="index-btn idx-pwi" data-index="pwi" data-tooltip="Produced Water Index. Specifically tuned to the spectral signature of brine and oil-field liquids.">
-                                <span class="index-short">PWI</span>
-                                <span class="index-full">Produced Water Composite</span>
+                            <button class="index-btn idx-pwi" data-index="pwi" data-tooltip="PWCI — Produced Water Chemical Index (formerly PWI). Requires co-located salinity, hydrocarbon, and heavy metal chemical signatures to suppress caliche soil background noise.">
+                                <span class="index-short">PWCI</span>
+                                <span class="index-full index-full-bold">Produced Water Chemical Index (formerly PWI)</span>
                             </button>
                             <button class="index-btn idx-lbi" data-index="lbi" data-tooltip="Liquid Brine Index. High sensitivity to salinity-induced spectral changes in desert environments.">
                                 <span class="index-short">LBI</span>
@@ -277,9 +290,9 @@
                                 <span class="index-short">CRSI</span>
                                 <span class="index-full">Salt Stress / Mortality</span>
                             </button>
-                            <button class="index-btn idx-ehc" data-index="ehc">
+                            <button class="index-btn idx-ehc" data-index="ehc" data-tooltip="EHC — Evaporite Halo Composite (formerly Evaporite Halo / Visual). Custom RGB false-color proxy designed to visually isolate blowout spatial morphology (oil center, mud footprint, salt ring).">
                                 <span class="index-short">EHC</span>
-                                <span class="index-full">Evaporite Halo</span>
+                                <span class="index-full index-full-bold">Evaporite Halo Composite (formerly EHC)</span>
                             </button>
                         </div>
                     </div>
@@ -415,7 +428,7 @@
 
 
                         <div class="fusion-item fusion-deep">
-                            <label for="toggle-deep-fusion">📡 Radar Confirmation (HPWI &amp; PWOI)</label>
+                            <label for="toggle-deep-fusion">📡 Radar Confirmation (OBEC &amp; ASAI)</label>
                             <input type="checkbox" id="toggle-deep-fusion">
                             <div class="fusion-item-desc">Replaces optical smoothness proxy with true Sentinel-1 SAR backscatter. Requires an S1 overpass within 30 days. Near-zero false positives; goes silent if no radar data is available.</div>
                         </div>
@@ -503,7 +516,13 @@
                 </div>
             </div>
 
-
+            <!-- Sidebar Footer with Disclaimer Link -->
+            <div style="margin-top: auto; padding: 20px 0 10px 0; border-top: 1px solid rgba(255,255,255,0.08); display: flex; justify-content: space-between; align-items: center; font-size: 0.8em; color: var(--text-dim); font-family: 'Instrument Sans', sans-serif;">
+                <span>© 2026 Globe & Atlas</span>
+                <button class="disclaimer-trigger-btn" style="background: none; border: none; color: #00D2FF; cursor: pointer; font-size: inherit; padding: 0; text-decoration: underline; font-family: inherit;" onclick="document.getElementById('disclaimer-modal').style.display='flex'">
+                    Disclaimer & Terms
+                </button>
+            </div>
 
         </aside>
 
@@ -598,7 +617,7 @@
 
                     <div class="report-metrics report-panel-box" id="report-scanned-anomalies-panel">
                         <h4 class="report-panel-title report-panel-title--orange">
-                            1-Year Scan: Hazardous Events (PWI Index)</h4>
+                            1-Year Scan: Hazardous Events (PWCI Index)</h4>
                         <div id="scanned-anomalies-list" class="anomaly-grid">
                             <!-- Populated via JS with Screenshots -->
                         </div>
@@ -715,6 +734,27 @@
             }, true);
         })();
     </script>
+    <!-- Disclaimer Modal Overlay -->
+    <div id="disclaimer-modal" class="modal-overlay" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 100000; justify-content: center; align-items: center; padding: 20px;">
+        <div class="modal-content glass-panel" style="max-width: 500px; width: 100%; background: #111; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 25px; box-shadow: 0 10px 40px rgba(0,0,0,0.8); font-family: 'Instrument Sans', sans-serif;">
+            <h3 style="color: #00D2FF; margin-top: 0; font-size: 1.3em; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; font-weight: 600;">Disclaimer & Terms of Use</h3>
+            <p style="font-size: 0.9em; line-height: 1.6; color: #ccc; margin-bottom: 12px;">
+                <strong>Screening Purposes Only:</strong> Sentinel Explorer is a preliminary environmental screening tool developed by Globe & Atlas. It utilizes raw multi-spectral surface reflectance data from the Copernicus Sentinel-2 satellites and synthetic aperture radar (SAR) from Sentinel-1.
+            </p>
+            <p style="font-size: 0.9em; line-height: 1.6; color: #ccc; margin-bottom: 12px;">
+                <strong>No Regulatory Determination:</strong> Spectral index anomalies, high-confidence flags, and trend detections indicate local soil and mineral alterations consistent with produced water chemistry. They do <em>not</em> constitute a definitive regulatory or legal determination of environmental contamination. 
+            </p>
+            <p style="font-size: 0.9em; line-height: 1.6; color: #ccc; margin-bottom: 15px;">
+                <strong>Ground-Truth Required:</strong> Satellite readings represent surface-level indicators. A definitive assessment of produced water spills, localized blowouts, or legacy caliche degradation requires professional on-site ground-truth investigation and chemical soil analysis.
+            </p>
+            <div style="text-align: right;">
+                <button class="tool-btn" style="background: #8C00FF; color: white; padding: 8px 20px; border: none; border-radius: 4px; cursor: pointer; font-weight: 600; font-size: 0.9em;" onclick="document.getElementById('disclaimer-modal').style.display='none'">
+                    I UNDERSTAND
+                </button>
+            </div>
+        </div>
+    </div>
+
 </body>
 
 </html>

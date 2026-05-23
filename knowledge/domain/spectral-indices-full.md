@@ -203,17 +203,17 @@ The application relies on Sentinel-2 Level-2A surface reflectance data. Specific
     // Scaled to a Lavender -> Purple -> Magenta palette
     ```
 
-### 2.11 Produced Water Index (PWI)
-
-* **Formula**: `NDSI × HCAI × HMRI` (with calibrated Permian Basin thresholds and soft BSI weight)
-* **Scientific Logic**: Produced water is a mixture of saline brine, residual hydrocarbons, and heavy metals. This composite requires a positive signature across all three chemical proxies to register. Thresholds were lowered from original values after validation showed 0% detection with the original AND-gate: (a) centroid-offset bboxes put pixels over mixed caliche, lowering BSI near zero; (b) HCAI and HMRI thresholds were both too high for Permian Basin soil background.
-* **Validation performance (2026-03-28):** 81.5% on 27 TRRC sites (threshold 0.01), mean score 0.741. APEX 86% on major spills (>500 BBL).
-* **Citation/Basis**: Custom composite index combining foundational logic from *Metternicht & Zinck (2003)*, *Kühn et al. (2004)*, and *Choe et al. (2008)*, calibrated for Permian Basin background albedo.
-* **Calibrated thresholds (current)**:
-  * NDSI offset: `0.03` (was 0.10)
-  * HCAI offset: `0.05`, scale `5.0` (was 0.30, scale 2.0)
-  * HMRI offset: `1.1`, scale `3.0` (was 2.0, scale 2.0)
-  * BSI weight: soft floor at 0.3 (was hard gate — any BSI ≤ 0.01 zeroed the full score)
+### 2.11 PWCI — Produced Water Chemical Index (formerly PWI)
+ 
+ * **Formula**: `NDSI × HCAI × HMRI` (with calibrated Permian Basin thresholds and soft BSI weight)
+ * **Scientific Logic**: Produced water is a mixture of saline brine, residual hydrocarbons, and heavy metals. This composite requires a positive signature across all three chemical proxies to register. Thresholds were lowered from original values after validation showed 0% detection with the original AND-gate: (a) centroid-offset bboxes put pixels over mixed caliche, lowering BSI near zero; (b) HCAI and HMRI thresholds were both too high for Permian Basin soil background. Formerly known as Produced Water Index (PWI).
+ * **Validation performance (2026-03-28):** 81.5% on 27 TRRC sites (threshold 0.01), mean score 0.741. ASAI (formerly PWOI) 86% on major spills (>500 BBL).
+ * **Citation/Basis**: Custom composite index combining foundational logic from *Metternicht & Zinck (2003)*, *Kühn et al. (2004)*, and *Choe et al. (2008)*, calibrated for Permian Basin background albedo.
+ * **Calibrated thresholds (current)**:
+   * NDSI offset: `0.03` (was 0.10)
+   * HCAI offset: `0.05`, scale `5.0` (was 0.30, scale 2.0)
+   * HMRI offset: `1.1`, scale `3.0` (was 2.0, scale 2.0)
+   * BSI weight: soft floor at 0.3 (was hard gate — any BSI ≤ 0.01 zeroed the full score)
 * **Sentinel Hub Evalscript**:
 
     ```javascript
@@ -232,7 +232,7 @@ The application relies on Sentinel-2 Level-2A surface reflectance data. Specific
     let hcaiScore = Math.max(0, (hcai - 0.05) * 5);
     let hmriScore = Math.max(0, (hmri - 1.1) * 3);
 
-    // 3. Multiplication AND Gate (if any is zero, PWI is zero)
+    // 3. Multiplication AND Gate (if any is zero, PWCI is zero)
     let pwi = brineScore * hcaiScore * hmriScore;
     
     // 4. Cubic scaling — marginal soil leakage cubes to ~0 while real spills hit 1.0
@@ -240,14 +240,14 @@ The application relies on Sentinel-2 Level-2A surface reflectance data. Specific
     // Mapped to a Transparent -> Cyan -> Magenta -> Neon Yellow palette
     ```
 
-### 2.12 APEX Anomaly Super-Composite
-
-* **Purpose**: Detects surface smoothness anomalies consistent with liquid brine pooling or thin saline crusts. Acts as an S2-optical proxy for SAR surface roughness. Two complementary modes cover both wet and dry brine signatures.
-* **Satellites**: Sentinel-2 (S2-only WMS proxy; deep S1+S2 fusion blocked by Sentinel Hub WMS for multi-datasource evalscripts)
-* **Bands Used**: B03 (Green, 560 nm), B11 (SWIR1, 1610 nm), B12 (SWIR2, 2190 nm)
-* **Validation performance (2026-03-28)**: 77.8% on 27 TRRC sites; 87.5% on 8 verified sourced sites. Up from 29.6% before dry brine mode was added.
-
-**Wet mode** (fires when B03 > B11, i.e. NDWI > 0 — liquid/moist brine or standing water):
+### 2.12 ASAI — Arid Salinity Anomaly Index (formerly PWOI / APEX)
+ 
+ * **Purpose**: Detects surface smoothness anomalies consistent with liquid brine pooling or thin saline crusts. Acts as an S2-optical proxy for SAR surface roughness (formerly known as Produced Water Optical Index (PWOI) or APEX Anomaly Super-Composite). Two complementary modes cover both wet and dry brine signatures.
+ * **Satellites**: Sentinel-2 (S2-only WMS proxy; deep S1+S2 fusion blocked by Sentinel Hub WMS for multi-datasource evalscripts)
+ * **Bands Used**: B03 (Green, 560 nm), B11 (SWIR1, 1610 nm), B12 (SWIR2, 2190 nm)
+ * **Validation performance (2026-03-28)**: 77.8% on 27 TRRC sites; 87.5% on 8 verified sourced sites. Up from 29.6% before dry brine mode was added.
+ 
+ **Wet mode** (fires when B03 > B11, i.e. NDWI > 0 — liquid/moist brine or standing water):
 ```
 apex_oval = (B03 - B11) / (B03 + B11)      # optical smoothness proxy
 radar_proxy = clamp((apex_oval + 0.3) / 0.6, 0, 1.2)
@@ -265,18 +265,18 @@ apex_dry = clamp((NDSI − 0.04) × min(1, BSI × N) × scale, 0, 1)
 apex = max(apex_wet, apex_dry)   # complementary, not replacing
 ```
 
-**Root cause documented (2026-03-28):** Dry Permian Basin soil has NDWI = −0.39 to −0.51 (B11 >> B03). This drives `norm_smooth` to 0, zeroing the wet-mode score entirely. Only standing water bodies (e.g. Lake Boehmer) produced positive NDWI. Dry brine mode was added as a parallel path to capture evaporated/dried brine salt crusts.
-
-* **Citation/Basis**: Surface smoothness proxy adapted from SAR dielectric theory. Brine detection via dual-SWIR from *Metternicht & Zinck, 2003*.
+**Root cause documented (2026-03-28):** Dry Permian Basin soil has NDWI = −0.39 to −0.51 (B11 >> B03). This drives `norm_smooth` to 0, zeroing the wet-mode score entirely. Only standing water bodies (e.g. Lake Boehmer) produced positive NDWI. Dry brine mode was added as a parallel path to capture evaporated/dried brine salt crusts. Formerly known as Produced Water Optical Index (PWOI) or APEX Anomaly Index.
+ 
+ * **Citation/Basis**: Surface smoothness proxy adapted from SAR dielectric theory. Brine detection via dual-SWIR from *Metternicht & Zinck, 2003*.
 
 ---
 
-### 2.13 HPWI — Hydro-Optical Produced Water Index
-
-* **Purpose**: Composite optical detection of produced water using optical blue/SWIR contrast (NDOI), brine signature (NDSI), and surface smoothness (NDWI-derived). Designed as a cross-validation pairing with APEX — both must agree for high-confidence detection.
-* **Satellites**: Sentinel-2 (S2-only WMS proxy; same multi-datasource WMS restriction as APEX)
-* **Bands Used**: B02 (Blue, 490 nm), B03 (Green, 560 nm), B11 (SWIR1, 1610 nm), B12 (SWIR2, 2190 nm), B04 (Red, 665 nm), B08 (NIR, 842 nm)
-* **Validation performance (2026-03-28)**: 66.7% on 27 TRRC sites. Up from 14.8% before dry brine mode.
+### 2.13 OBEC — Oil-Brine Emulsion Composite (formerly HPWI)
+ 
+ * **Purpose**: Composite optical detection of produced water using optical blue/SWIR contrast (NDOI), brine signature (NDSI), and surface smoothness (NDWI-derived). Designed as a cross-validation pairing with ASAI (formerly APEX/PWOI) — both must agree for high-confidence detection.
+ * **Satellites**: Sentinel-2 (S2-only WMS proxy; same multi-datasource WMS restriction as ASAI)
+ * **Bands Used**: B02 (Blue, 490 nm), B03 (Green, 560 nm), B11 (SWIR1, 1610 nm), B12 (SWIR2, 2190 nm), B04 (Red, 665 nm), B08 (NIR, 842 nm)
+ * **Validation performance (2026-03-28)**: 66.7% on 27 TRRC sites. Up from 14.8% before dry brine mode.
 
 **Formula:**
 ```
@@ -290,21 +290,21 @@ norm_smooth = clamp((smoothness + 0.3) / 0.6, 0, 1)
 hpwi_wet = clamp(chem_signal × norm_smooth × 6.0, 0, 1)
 ```
 
-**Dry brine mode** (same trigger condition as APEX: NDWI < −0.30 AND NDSI > 0.05 AND BSI > 0.10):
+**Dry brine mode** (same trigger condition as ASAI: NDWI < −0.30 AND NDSI > 0.05 AND BSI > 0.10):
 ```
 hpwi_dry = clamp((NDSI − 0.04) × min(1, BSI × 3.5) × 14.0, 0, 1)
 hpwi = max(hpwi_wet, hpwi_dry)
 ```
-
-**Design rationale:** NDOI (blue/SWIR2) is sensitive to dissolved mineral ion opacity — brine strongly attenuates blue compared to clean dry soil. Combined with `norm_smooth` as a liquid-surface proxy, this separates brine from dry caliche under normal conditions. The dry brine mode handles the common Permian Basin case where evaporated salt crust leaves no liquid signal.
-
-* **Citation/Basis**: NDOI derived from optical water quality research (*Dekker et al., 2001*). Smoothness proxy adapted from SAR texture theory.
+ 
+ **Design rationale:** NDOI (blue/SWIR2) is sensitive to dissolved mineral ion opacity — brine strongly attenuates blue compared to clean dry soil. Combined with `norm_smooth` as a liquid-surface proxy, this separates brine from dry caliche under normal conditions. The dry brine mode handles the common Permian Basin case where evaporated salt crust leaves no liquid signal. Formerly known as Hybrid Produced Water Index (HPWI).
+ 
+ * **Citation/Basis**: NDOI derived from optical water quality research (*Dekker et al., 2001*). Smoothness proxy adapted from SAR texture theory.
 
 ---
 
 ### 2.14 Supporting Suite Indices (FBC, LBI, VSI, BPI, TRI)
 
-These indices supplement APEX/HPWI and are computed in the FIS 1-year scan. They are mathematical proxies — intended for visual trend reference and cross-validation, not standalone detection.
+These indices supplement ASAI/OBEC and are computed in the FIS 1-year scan. They are mathematical proxies — intended for visual trend reference and cross-validation, not standalone detection.
 
 | Index | Full Name | Formula Summary | Primary Signal |
 |-------|-----------|-----------------|----------------|

@@ -466,9 +466,10 @@ function bindEvents() {
                         infoIcon.innerHTML = '&#9432;'; // ⓘ icon
                         topContainer.appendChild(infoIcon);
                     }
-                    // Move tooltip from button to icon
-                    infoIcon.setAttribute('data-tooltip', `<strong>${cfg.name}</strong><br>${cfg.info}`);
-                    btn.removeAttribute('data-tooltip');
+                    // Keep or set tooltip on both the button itself and the info icon for maximum hover accessibility
+                    const tooltipText = btn.getAttribute('data-tooltip') || `<strong>${cfg.name}</strong><br>${cfg.info}`;
+                    btn.setAttribute('data-tooltip', tooltipText);
+                    infoIcon.setAttribute('data-tooltip', tooltipText);
                     
                     // Prevent button click when clicking info icon
                     infoIcon.onclick = (e) => e.stopPropagation();
@@ -1082,10 +1083,10 @@ function evaluatePixel(sample) {
             data: {
                 labels: labels,
                 datasets: [
-                    { label: 'HPWI', data: dataset.hpwi, borderColor: '#f1c40f', pointBackgroundColor: '#f1c40f', pointBorderColor: '#f1c40f', backgroundColor: '#f1c40f', tension: 0.3, pointRadius: 2 },
-                    { label: 'PWI', data: dataset.pwi, borderColor: '#00D2FF', pointBackgroundColor: '#00D2FF', pointBorderColor: '#00D2FF', backgroundColor: '#00D2FF', tension: 0.3, pointRadius: 2 },
+                    { label: 'OBEC', data: dataset.hpwi, borderColor: '#f1c40f', pointBackgroundColor: '#f1c40f', pointBorderColor: '#f1c40f', backgroundColor: '#f1c40f', tension: 0.3, pointRadius: 2 },
+                    { label: 'PWCI', data: dataset.pwi, borderColor: '#00D2FF', pointBackgroundColor: '#00D2FF', pointBorderColor: '#00D2FF', backgroundColor: '#00D2FF', tension: 0.3, pointRadius: 2 },
                     { label: 'LBI', data: dataset.lbi, borderColor: '#00D2FF', pointBackgroundColor: '#00D2FF', pointBorderColor: '#00D2FF', backgroundColor: '#00D2FF', borderDash: [2, 2], tension: 0.3, pointRadius: 2 },
-                    { label: 'PWOI', data: dataset.pwoi, borderColor: '#8C00FF', pointBackgroundColor: '#8C00FF', pointBorderColor: '#8C00FF', backgroundColor: '#8C00FF', tension: 0.3, pointRadius: 2 }
+                    { label: 'ASAI', data: dataset.pwoi, borderColor: '#8C00FF', pointBackgroundColor: '#8C00FF', pointBorderColor: '#8C00FF', backgroundColor: '#8C00FF', tension: 0.3, pointRadius: 2 }
                 ]
             },
             options: getChartOptions(labels, 'Primary Indices')

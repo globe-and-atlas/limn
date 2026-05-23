@@ -11,3 +11,8 @@ config.js
 app-config.js
 config-v1.js
 
+
+# nightly-swarm auto-added
+venv/
+*.pyc
+__pycache__/

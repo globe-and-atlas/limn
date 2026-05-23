@@ -15,11 +15,11 @@ See `highlightAnomalies()` and `probeAcquisitions()` in the codebase.
 
 ## WMS Layer Parameter for Fusion Scripts
 
-Multi-source S1+S2 scripts (APEX, HPWI) must use `layers: 'AGRICULTURE'` in the WMS request, not a sensor-specific layer. Sending `'SENTINEL-2-L2A'` with a multi-datasource evalscript returns HTTP 400. The `getWMSLayer()` function handles this via the `sensor === 'S1/S2 Fusion'` check.
+Multi-source S1+S2 scripts (ASAI, OBEC, formerly APEX/PWOI and HPWI respectively) must use `layers: 'AGRICULTURE'` in the WMS request, not a sensor-specific layer. Sending `'SENTINEL-2-L2A'` with a multi-datasource evalscript returns HTTP 400. The `getWMSLayer()` function handles this via the `sensor === 'S1/S2 Fusion'` check.
 
 ## Cumulative Mode Excludes Deep Fusion
 
-`genCumulativeEvalscript` generates a single-datasource ORBIT script. Wrapping HPWI or APEX in it would produce a broken script. Both are excluded from the cumulative branch with `activeIndex !== 'hpwi' && activeIndex !== 'apex'`.
+`genCumulativeEvalscript` generates a single-datasource ORBIT script. Wrapping HPWI or APEX in it would produce a broken script. Both are excluded from the cumulative branch with `activeIndex !== 'hpwi' && activeIndex !== 'apex'` (corresponding to OBEC and ASAI/APEX).
 
 ## Comment Stripping Regex
 
@@ -41,13 +41,13 @@ The CDSE access token is cached in `cachedAccessToken` at module level. Multiple
 
 The 1-year AOI scan only computes PWI, HPWI, FBC, NDMI, NDWI, SAVI via the Statistics API (6 bands). The VSI, SCRI, TRI, BPI values shown in the secondary chart are mathematical proxies derived from those 6. They are approximations intended for visual trend reference, not precise index values.
 
-## NDWI Dry-Soil Trap (APEX + HPWI)
+## NDWI Dry-Soil Trap (ASAI + OBEC)
 
-Permian Basin bare caliche has B11 >> B03, yielding NDWI = −0.39 to −0.51. Both APEX and HPWI use `smoothness = (B03 − B11) / (B03 + B11)` as a liquid-surface proxy. When NDWI is this negative, `norm_smooth = clamp((smoothness + 0.3) / 0.6) = 0`, which zeros the entire composite score. This caused 29.6% / 14.8% detection pre-fix for APEX / HPWI respectively on dry Permian spill sites.
+Permian Basin bare caliche has B11 >> B03, yielding NDWI = −0.39 to −0.51. Both ASAI (formerly PWOI / APEX) and OBEC (formerly HPWI) use `smoothness = (B03 − B11) / (B03 + B11)` as a liquid-surface proxy. When NDWI is this negative, `norm_smooth = clamp((smoothness + 0.3) / 0.6) = 0`, which zeros the entire composite score. This caused 29.6% / 14.8% detection pre-fix for ASAI / OBEC respectively on dry Permian spill sites.
 
 **Fix (2026-03-28):** Dry brine mode — parallel formula path gated on `NDWI < −0.30 AND NDSI > 0.05 AND BSI > 0.10`. Takes `max(wet_score, dry_score)`.
 
-**Risk:** NDSI > 0.05 can fire on naturally high-NDSI caliche outcrops with no spill. Need control sites (non-spill bare caliche) to characterize false positive rate before relying on APEX/HPWI dry-mode scores alone.
+**Risk:** NDSI > 0.05 can fire on naturally high-NDSI caliche outcrops with no spill. Need control sites (non-spill bare caliche) to characterize false positive rate before relying on ASAI/OBEC dry-mode scores alone.
 
 ## Apache-Balmorhea Date Window
 

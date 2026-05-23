@@ -10,9 +10,9 @@ Optional: `diffscript` (overrides diff mode evalscript), `fisBands` (for Statist
 
 | Key | Name | Bands | Sensor | Detection Rate | Notes |
 |-----|------|-------|--------|----------------|-------|
-| `apex` | APEX-ANOMALY Super-Composite | B03, B11, B12 | S2 (WMS proxy) | 77.8% (TRRC), 87.5% (verified) | Dry brine mode added 2026-03-28; was 29.6% |
-| `hpwi` | Hydro-Optical Produced Water Index | B02, B03, B04, B08, B11, B12 | S2 (WMS proxy) | 66.7% (TRRC) | Dry brine mode added 2026-03-28; was 14.8% |
-| `pwi` | Produced Water Index | B02-B12 | Sentinel-2 | 81.5% (TRRC) | Lowered thresholds 2026-03-28; was 0% |
+| `pwoi` | ASAI — Arid Salinity Anomaly Index (formerly PWOI / APEX) | B03, B11, B12 | S2 (WMS proxy) | 77.8% (TRRC), 87.5% (verified) | Dry brine mode added 2026-03-28; was 29.6% |
+| `hpwi` | OBEC — Oil-Brine Emulsion Composite (formerly HPWI) | B02, B03, B04, B08, B11, B12 | S2 (WMS proxy) | 66.7% (TRRC) | Dry brine mode added 2026-03-28; was 14.8% |
+| `pwi` | PWCI — Produced Water Chemical Index (formerly PWI) | B02-B12 | Sentinel-2 | 81.5% (TRRC) | Lowered thresholds 2026-03-28; was 0% |
 | `lbi` | Liquid Brine Index | B03, B08, B11, B12 | Sentinel-2 | 63.0% (TRRC) | NDSI × (NDWI+0.5) × (1−NDVI) × BSI |
 | `fbc` | Iron-Brine Composite | B02-B12 | Sentinel-2 | 66.7% (TRRC) | Fe³⁺ staining proxy; reference index |
 | `vsi` | Vegetation Stress Index | B05, B07, B8A, B11 | Sentinel-2 | 74.1% (TRRC) | NDSI × RedEdge delta × MSI |
@@ -21,9 +21,9 @@ Optional: `diffscript` (overrides diff mode evalscript), `fisBands` (for Statist
 
 **All detection rates from 2026-03-28 run, threshold=0.01, n=27 TRRC sites.**
 
-### Dry Brine Mode (APEX + HPWI)
+### Dry Brine Mode (ASAI + OBEC)
 
-Permian Basin soil has NDWI = −0.39 to −0.51 (B11 >> B03 in bare arid caliche). This drives `norm_smooth` to 0 in both APEX and HPWI wet-mode formulas, silencing detection for all dry/evaporated spill sites. Added parallel dry brine path triggered when:
+Permian Basin soil has NDWI = −0.39 to −0.51 (B11 >> B03 in bare arid caliche). This drives `norm_smooth` to 0 in both ASAI (formerly PWOI / APEX) and OBEC (formerly HPWI) wet-mode formulas, silencing detection for all dry/evaporated spill sites. Added parallel dry brine path triggered when:
 - NDWI < −0.30 (confirming dry bare soil)
 - NDSI > 0.05 (elevated salt signature)
 - BSI > 0.10 (bare soil, no vegetation)
@@ -45,7 +45,7 @@ Placeholders injected at render time: `__BSI_MASK__`, `__BSI_OFFSET__`, `__NDWI_
 |-----------|--------|-----|
 | `genEvalscript(bands, logic)` | Single-date, single-source | Standard indices |
 | `genDiffEvalscript(bands, calcLogic)` | Two-date ORBIT diff heatmap | Compare → Diff mode |
-| `genDeepFusionEvalscript(bands, logic)` | Multi-source S1+S2 ORBIT | HPWI, APEX |
+| `genDeepFusionEvalscript(bands, logic)` | Multi-source S1+S2 ORBIT | OBEC, ASAI (formerly HPWI, APEX/PWOI) |
 | `genCumulativeEvalscript(bands, logic, palette)` | Multi-date ORBIT MAX | Compare → Cumulative mode |
 
 ## VISUAL_FILTER and DETECTION_SENSITIVITY

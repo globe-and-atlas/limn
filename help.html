@@ -235,7 +235,7 @@
             Sentinel-2 gap with Landsat 8/9 captures.
         </p>
         <p style="font-size: 0.95em; margin-bottom: 0;"><strong>Deep Spectral Fusion:</strong> A multi-source engine
-            that cross-verifies restrictive chemical signatures (PWI) against physical surface smoothness (S1 SAR
+            that cross-verifies restrictive chemical signatures (PWCI, formerly PWI) against physical surface smoothness (S1 SAR
             Backscatter). This mode is the gold-standard for eliminating false positives from dry salt ponds or
             mineral-rich soils.</p>
     </div>
@@ -273,8 +273,8 @@
             <li><strong>BSI Mask Relaxation (-0.3):</strong> Standard soil masks (BSI) reject water bodies (negative
                 BSI). Because severe hypersaline spills and standing oil appear spectrally "smooth" like water, we
                 lowered the mask to -0.3 to prevent high-severity detections from being clipped.</li>
-            <li><strong>SWIR Triple-Lock Offsets:</strong> PWI enforces calibrated offsets — Salinity (NDSI floor: 0.03), Hydrocarbons (HCAI floor: 0.05), and Heavy Metals (HMRI floor: 1.1) — tuned against confirmed spill records to sit just above the Permian ambient mineral baseline. Original thresholds (0.10 / 0.30 / 2.0) produced 0% detection; the current values yield 81.5% on TRRC sites.</li>
-            <li><strong>Dry Brine Mode (PWOI + HPWI):</strong> Permian Basin bare caliche has NDWI = −0.39 to −0.51 (B11 >> B03), which zeros the wet-mode optical smoothness proxy in both PWOI and HPWI. A parallel dry path fires when NDWI &lt; −0.30 AND NDSI &gt; 0.05 AND BSI &gt; 0.10. The result is <code>max(wet_score, dry_score)</code> — preserving all liquid detections while recovering dry/evaporated salt crust sites.</li>
+            <li><strong>SWIR Triple-Lock Offsets:</strong> PWCI (formerly PWI) enforces calibrated offsets — Salinity (NDSI floor: 0.03), Hydrocarbons (HCAI floor: 0.05), and Heavy Metals (HMRI floor: 1.1) — tuned against confirmed spill records to sit just above the Permian ambient mineral baseline. Original thresholds (0.10 / 0.30 / 2.0) produced 0% detection; the current values yield 81.5% on TRRC sites.</li>
+            <li><strong>Dry Brine Mode (ASAI + OBEC):</strong> Permian Basin bare caliche has NDWI = −0.39 to −0.51 (B11 >> B03), which zeros the wet-mode optical smoothness proxy in both ASAI (formerly PWOI) and OBEC (formerly HPWI). A parallel dry path fires when NDWI &lt; −0.30 AND NDSI &gt; 0.05 AND BSI &gt; 0.10. The result is <code>max(wet_score, dry_score)</code> — preserving all liquid detections while recovering dry/evaporated salt crust sites.</li>
         </ul>
     </div>
 
@@ -282,41 +282,43 @@
          SECTION 1: VALIDATED PRODUCED WATER COMPOSITES
          ══════════════════════════════════════════════════════ -->
     <h2>1. Validated Produced Water Composites</h2>
-    <p style="color: var(--text-dim); font-size: 0.9em; margin-top: -10px;">Original composite indices by Daniel Bally
-        (2025–2026). Each combines established spectral physics in novel multi-gate architectures purpose-built for
-        oilfield produced water detection, validated against TRRC-confirmed spill sites in the Permian Basin.</p>
+    <p style="color: var(--text-dim); font-size: 0.9em; margin-top: -10px; line-height: 1.5;">Original custom composite architectures and Permian Basin calibrations by <strong>Daniel Bally (Globe & Atlas, 2025–2026)</strong>. Standard spectral indicators have full literature citations in Section 3; custom G&A composites are marked as follows to highlight intellectual ownership and original engineering:
+        <br>
+        <span style="color: #00D2FF; font-weight: 600;">✧✧ Globe & Atlas Original Composite:</span> A completely original, highly novel composite architecture featuring custom multi-gate logic, desert-specific calibrations, or multi-sensor specular proxies with no published prior equivalent.
+        <br>
+        <span style="color: #8C00FF; font-weight: 600;">✧ Globe & Atlas Calibrated Composite:</span> An original composite assembly and target-specific calibration of established band ratios, purpose-built for Permian Basin oilfield geochemistry.</p>
 
     <div class="index-card">
-        <h3><span>PWOI — Produced Water Optical Index</span>
+        <h3><span>ASAI — Arid Salinity Anomaly Index (formerly PWOI / APEX) ✧✧</span>
             <span class="temporal-badge temporal-live">Live / Deep Fusion</span>
             <span class="formula fusion-badge">Optical Smoothness × Moisture+Brine → SAR Coincidence (Deep)</span>
         </h3>
         <p><strong>The Gap:</strong> Identifying industrial spills in complex terrain produces "look-alike" false
             positives from shadows, bright soil, or dry salt ponds. No single-source optical index can reliably separate
             chemical moisture from physical surface texture across varied lighting and weather conditions.</p>
-        <p><strong>The Implementation:</strong> PWOI is the platform's <em>broad-spectrum anomaly net</em>. It uses a
+        <p><strong>The Implementation:</strong> ASAI (formerly PWOI) is the platform's <em>broad-spectrum anomaly net</em>. It uses a
             surface smoothness proxy — the ratio <code>(B03 − B11) / (B03 + B11)</code>, an NDWI-like value that mirrors
             how specularly smooth liquid surfaces suppress SAR VH backscatter — cross-referenced against a combined
             moisture+brine score. A pixel is only flagged if it simultaneously exhibits optical smoothness <em>and</em>
             elevated chemical moisture, with a non-linear boost for high-confidence coincidence. In
             <strong>Deep Fusion mode</strong>, the optical smoothness proxy is replaced with true Sentinel-1 SAR VH
-            backscatter, achieving genuine radar-optical coincidence detection.<sup><a href="#fn4">4</a></sup><sup><a
+            backscatter, achieving genuine radar-optical coincidence detection. Formerly known as Produced Water Optical Index (PWOI) or APEX Anomaly Index.<sup><a href="#fn4">4</a></sup><sup><a
                     href="#fn18">18</a></sup><sup><a href="#fn31">31</a></sup></p>
         <p><strong>Dry Brine Mode:</strong> The wet-mode formula zeros on dry Permian Basin bare soil (NDWI = −0.39 to −0.51), which was the root cause of pre-fix 29.6% detection. A parallel dry path — <code>(NDSI − 0.04) × min(1, BSI × N) × scale</code> — fires when NDWI &lt; −0.30 AND NDSI &gt; 0.05 AND BSI &gt; 0.10, recovering evaporated salt crust signatures. Score takes <code>max(wet, dry)</code> to preserve standing-water detections.</p>
         <p><strong>Validation (2026-03-28):</strong> 77.8% detection on 27 TRRC confirmed spill sites; 87.5% on 8 GPS-verified sourced sites; 86% on major spills (&gt;500 BBL). Pre-dry-brine-mode baseline was 29.6%.</p>
 
         <p style="border-top: 1px solid rgba(255,255,255,0.08); padding-top: 16px; margin-top: 8px;">
-            <strong>PWOI vs. HPWI — When to Use Each</strong>
+            <strong>ASAI vs. OBEC — When to Use Each</strong>
         </p>
-        <p>PWOI and HPWI produce visually similar outputs because both use the B03/B11 optical smoothness ratio in
+        <p>ASAI and OBEC produce visually similar outputs because both use the B03/B11 optical smoothness ratio in
             standard mode. The critical difference is in what chemical evidence they require before firing:</p>
 
         <table class="comparison-table">
             <thead>
                 <tr>
                     <th>Property</th>
-                    <th>PWOI</th>
-                    <th>HPWI</th>
+                    <th>ASAI (formerly PWOI)</th>
+                    <th>OBEC (formerly HPWI)</th>
                 </tr>
             </thead>
             <tbody>
@@ -336,12 +338,12 @@
                     <td>Higher specificity — fewer detections, but more confirmed</td>
                 </tr>
                 <tr>
-                    <td><strong>What it fires on that HPWI doesn't</strong></td>
+                    <td><strong>What it fires on that OBEC doesn't</strong></td>
                     <td>Fresh water, mild brine, early-stage spills where the full chemical triplet hasn't developed</td>
                     <td>—</td>
                 </tr>
                 <tr>
-                    <td><strong>What HPWI fires on that PWOI doesn't</strong></td>
+                    <td><strong>What OBEC fires on that ASAI doesn't</strong></td>
                     <td>—</td>
                     <td>Mature spills with full triple-lock chemistry confirmed</td>
                 </tr>
@@ -353,7 +355,7 @@
                 <tr>
                     <td><strong>Recommended workflow</strong></td>
                     <td>Run first to identify candidate areas</td>
-                    <td>Run second to confirm PWOI detections as produced water</td>
+                    <td>Run second to confirm ASAI detections as produced water</td>
                 </tr>
                 <tr>
                     <td><strong>False positives include</strong></td>
@@ -362,29 +364,29 @@
                 </tr>
             </tbody>
         </table>
-        <p><strong>Practical workflow:</strong> Use PWOI to scan the AOI for anything anomalous — any optically smooth,
-            chemically active pixel. Then switch to HPWI (or HPWI Deep Fusion) on candidate sites to confirm whether
-            the chemistry qualifies as produced water. A detection that appears on PWOI but not HPWI is worth
+        <p><strong>Practical workflow:</strong> Use ASAI to scan the AOI for anything anomalous — any optically smooth,
+            chemically active pixel. Then switch to OBEC (or OBEC Deep Fusion) on candidate sites to confirm whether
+            the chemistry qualifies as produced water. A detection that appears on ASAI but not OBEC is worth
             investigating as a fresh or mild anomaly. A detection that appears on both is a high-confidence spill
             indicator.</p>
     </div>
 
     <div class="index-card">
-        <h3><span>Produced Water Index (PWI)</span> <span class="temporal-badge temporal-0-3m">0-3M</span> <span
+        <h3><span>PWCI — Produced Water Chemical Index (formerly PWI) ✧✧</span> <span class="temporal-badge temporal-0-3m">0-3M</span> <span
                 class="formula pwi-badge">Restrictive Triple-Gate Engine</span></h3>
         <p><strong>The Gap:</strong> Permian Basin "desert noise" from bright caliche sands often mimics salt crusts.
             Standard indices cannot distinguish natural minerals from hazardous industrial spills because they test for
             only one chemical signature at a time.</p>
-        <p><strong>The Implementation:</strong> PWI is a restrictive "AND GATE" engine requiring the simultaneous elevation
+        <p><strong>The Implementation:</strong> PWCI (formerly PWI) is a restrictive "AND GATE" engine requiring the simultaneous elevation
             of three independent chemical signatures: <strong>Salinity</strong> (NDSI floor: 0.03),
             <strong>Hydrocarbons</strong> (HCAI floor: 0.05, scale ×5), and <strong>Heavy Metals</strong> (HMRI floor: 1.1, scale ×3).
             The Sentinel Explorer implementation applies all three simultaneously as a triple-lock composite for
             oilfield produced water. The multiplicative gating means a strong signal on one component cannot compensate for a
             missing signal on another — all three must be present. A power scaling
             (<code>pow(pwi_base × 50, 1.2)</code>) amplifies confirmed detections while suppressing marginal
-            signals.<sup><a href="#fn1">1</a></sup><sup><a href="#fn2">2</a></sup><sup><a href="#fn22">22</a></sup></p>
+            signals. Formerly known as Produced Water Index (PWI).<sup><a href="#fn1">1</a></sup><sup><a href="#fn2">2</a></sup><sup><a href="#fn22">22</a></sup></p>
         <p><strong>Threshold Calibration Note:</strong> Original thresholds (NDSI 0.10, HCAI 0.30, HMRI 2.0 — standard literature values) produced 0% detection on 32 TRRC sites in the 2026-03-08 baseline run. Root cause: TRRC parcel centroid coordinates offset the sample bbox over mixed caliche + vegetation pixels, depressing all three signals simultaneously. Thresholds were lowered and the hard BSI gate (<code>if bsi &lt;= 0.01 → pwi = 0</code>) was replaced with a soft weight (floor 0.3) to tolerate centroid-offset sampling.</p>
-        <p><strong>Validation (2026-03-28):</strong> 81.5% detection on 27 TRRC confirmed spill sites (threshold 0.01), mean score 0.741. PWOI detects major spills (&gt;500 BBL) at 86%. The triple-gate AND architecture is now substantiated against a real confirmed-spill dataset.</p>
+        <p><strong>Validation (2026-03-28):</strong> 81.5% detection on 27 TRRC confirmed spill sites (threshold 0.01), mean score 0.741. ASAI detects major spills (&gt;500 BBL) at 86%. The triple-gate AND architecture is now substantiated against a real confirmed-spill dataset.</p>
     </div>
 
 
@@ -397,21 +399,21 @@
         detection across varied spill states — active liquid, dry evaporite, and legacy residue.</p>
 
     <div class="index-card">
-        <h3><span>Hydro-Optical Spill Index (HPWI)</span> <span class="temporal-badge temporal-0-3m">0-3M</span>
-            <span class="formula fusion-badge">PWI × Smoothness (Optical / SAR)</span></h3>
+        <h3><span>OBEC — Oil-Brine Emulsion Composite (formerly HPWI) ✧</span> <span class="temporal-badge temporal-0-3m">0-3M</span>
+            <span class="formula fusion-badge">PWCI × Smoothness (Optical / SAR)</span></h3>
         <p><strong>Mechanisms &amp; Utility:</strong> The platform's highest-precision confirmation engine. In standard
-            mode, HPWI combines an optical blue/SWIR contrast index (NDOI: <code>(B02 − B12) / (B02 + B12)</code>) sensitive to dissolved mineral ions in brine, a brine boost from NDSI, and the surface smoothness proxy
+            mode, OBEC (formerly HPWI) combines an optical blue/SWIR contrast index (NDOI: <code>(B02 − B12) / (B02 + B12)</code>) sensitive to dissolved mineral ions in brine, a brine boost from NDSI, and the surface smoothness proxy
             (<code>(B03 − B11) / (B03 + B11)</code>) as a liquid-surface gate. In <strong>Deep Spectral Fusion</strong> mode, the optical proxy
             is replaced by true Sentinel-1 SAR VH backscatter, achieving genuine dual-source confirmation: a pixel must
             simultaneously carry the chemical fingerprint of produced water <em>and</em> the physical
-            surface smoothness of standing fluid.<sup><a href="#fn4">4</a></sup><sup><a
+            surface smoothness of standing fluid. Formerly known as Hybrid Produced Water Index (HPWI).<sup><a href="#fn4">4</a></sup><sup><a
                     href="#fn17">17</a></sup><sup><a href="#fn31">31</a></sup></p>
-        <p><strong>Dry Brine Mode:</strong> Same parallel path as PWOI — fires when NDWI &lt; −0.30 AND NDSI &gt; 0.05 AND BSI &gt; 0.10. Formula: <code>(NDSI − 0.04) × min(1, BSI × 3.5) × 14</code>. Score takes <code>max(wet, dry)</code>. This recovered the 52 percentage-point detection gap on dry evaporated brine sites.</p>
-        <p><strong>Validation (2026-03-28):</strong> 66.7% on 27 TRRC sites. Pre-dry-brine-mode baseline was 14.8%. See the PWOI entry above for a direct PWOI vs. HPWI workflow comparison.</p>
+        <p><strong>Dry Brine Mode:</strong> Same parallel path as ASAI — fires when NDWI &lt; −0.30 AND NDSI &gt; 0.05 AND BSI &gt; 0.10. Formula: <code>(NDSI − 0.04) × min(1, BSI × 3.5) × 14</code>. Score takes <code>max(wet, dry)</code>. This recovered the 52 percentage-point detection gap on dry evaporated brine sites.</p>
+        <p><strong>Validation (2026-03-28):</strong> 66.7% on 27 TRRC sites. Pre-dry-brine-mode baseline was 14.8%. See the ASAI entry above for a direct ASAI vs. OBEC workflow comparison.</p>
     </div>
 
     <div class="index-card">
-        <h3><span>Liquid Brine Index (LBI)</span> <span class="temporal-badge temporal-0-3m">0-3M</span>
+        <h3><span>Liquid Brine Index (LBI) ✧</span> <span class="temporal-badge temporal-0-3m">0-3M</span>
             <span class="formula">NDSI × NDWI × (1 − NDVI) × BSI</span></h3>
         <p><strong>Mechanisms &amp; Utility:</strong> Captures actively standing pools of hazardous produced water
             rather than legacy residues. LBI enforces four simultaneous gates: a brine chemical signature (NDSI), a
@@ -427,7 +429,7 @@
     </div>
 
     <div class="index-card">
-        <h3><span>Vegetation Stress Index (VSI)</span> <span class="temporal-badge temporal-3-24m">3-24M</span>
+        <h3><span>Vegetation Stress Index (VSI) ✧</span> <span class="temporal-badge temporal-3-24m">3-24M</span>
             <span class="formula">NDSI × RedEdgeDelta × MSI</span></h3>
         <p><strong>The Gap:</strong> Traditional vegetation indices (NDVI) only detect death or severe chlorosis. In
             produced water spills, vegetation often remains visibly green while undergoing internal physiological stress
@@ -444,7 +446,7 @@
     </div>
 
     <div class="index-card">
-        <h3><span>Salt Crust Roughness Index (SCRI)</span> <span class="temporal-badge temporal-3mplus">3M+</span>
+        <h3><span>Salt Crust Roughness Index (SCRI) ✧</span> <span class="temporal-badge temporal-3mplus">3M+</span>
             <span class="formula">SAR VH Backscatter + VH/VV Ratio</span>
         </h3>
         <p><strong>The Gap:</strong> Optical salinity indices (NDSI) are blinded by clouds, dust, and smoke, and cannot
@@ -462,7 +464,7 @@
     </div>
 
     <div class="index-card">
-        <h3><span>Brine-Pavement Index (BPI)</span> <span class="temporal-badge temporal-live">Live</span>
+        <h3><span>Brine-Pavement Index (BPI) ✧</span> <span class="temporal-badge temporal-live">Live</span>
             <span class="formula">NDSI × HCAI × BSI</span></h3>
         <p><strong>Mechanisms &amp; Utility:</strong> Optimized for detecting leaks on caliche pads and lease roads —
             the most common spill scenario at the wellhead level. BPI enforces three gates simultaneously: brine
@@ -476,7 +478,7 @@
     </div>
 
     <div class="index-card">
-        <h3><span>Toxic Residue Index (TRI)</span> <span class="temporal-badge temporal-6mplus">6M+</span>
+        <h3><span>Toxic Residue Index (TRI) ✧</span> <span class="temporal-badge temporal-6mplus">6M+</span>
             <span class="formula">NDSI × HMRI × AOI</span></h3>
         <p><strong>Mechanisms &amp; Utility:</strong> A forensic tool for identifying historical spill footprints where
             liquid is no longer present. TRI combines three post-evaporation residue signatures: salt chemistry (NDSI),
@@ -490,7 +492,7 @@
     </div>
 
     <div class="index-card">
-        <h3><span>Petro-Hydrocarbon Index (PHI)</span> <span class="temporal-badge temporal-0-6m">0-6M</span>
+        <h3><span>Petro-Hydrocarbon Index (PHI) ✧</span> <span class="temporal-badge temporal-0-6m">0-6M</span>
             <span class="formula">NDSI × (B11/B12) × HCAI</span></h3>
         <p><strong>Mechanisms &amp; Utility:</strong> Isolates oily brine specifically — distinguishing co-contaminated
             produced water from clean runoff or pure salt. PHI gates on three co-occurring signals: salinity (NDSI),
@@ -501,7 +503,7 @@
     </div>
 
     <div class="index-card">
-        <h3><span>Clay-Mineral Alteration (CMA)</span> <span class="temporal-badge temporal-persistent">Persistent</span>
+        <h3><span>Clay-Mineral Alteration (CMA) ✧</span> <span class="temporal-badge temporal-persistent">Persistent</span>
             <span class="formula">NDSI × (B11/B12) × (B04/B02)</span></h3>
         <p><strong>Mechanisms &amp; Utility:</strong> A forensic index targeting the chemical modification of clay
             lattices by produced water residues. Highly saline formation water (TDS &gt;100,000 mg/L) replaces
@@ -516,7 +518,7 @@
     </div>
 
     <div class="index-card">
-        <h3><span>Heavy Metal Interaction (HMI)</span> <span class="temporal-badge temporal-12mplus">12M+</span>
+        <h3><span>Heavy Metal Interaction (HMI) ✧</span> <span class="temporal-badge temporal-12mplus">12M+</span>
             <span class="formula">(B03/B02) × (B11/B12)</span></h3>
         <p><strong>Mechanisms &amp; Utility:</strong> Targets Barium and Strontium proxies — the dominant dissolved
             solids in Permian produced water. Heavy metal precipitation shifts the Green/Blue visible ratio (B03/B02)
@@ -530,7 +532,7 @@
     </div>
 
     <div class="index-card">
-        <h3><span>Evaporite Halo Composite (EHC)</span> <span class="temporal-badge temporal-0-3m">0-3M</span>
+        <h3><span>Evaporite Halo Composite (EHC) ✧</span> <span class="temporal-badge temporal-0-3m">0-3M</span>
             <span class="formula">RGB [NDOI, BSI, NDSI]</span></h3>
         <p><strong>Mechanisms &amp; Utility:</strong> A custom RGB false-color proxy designed to visually isolate
             the spatial morphology of a high-pressure blowout. Produced water spills evaporate concentrically, leaving
@@ -542,7 +544,7 @@
     </div>
 
     <div class="index-card">
-        <h3><span>Anoxic Oxidation Index (AOI)</span> <span class="temporal-badge temporal-0-6m">0-6M</span>
+        <h3><span>Anoxic Oxidation Index (AOI) ✧</span> <span class="temporal-badge temporal-0-6m">0-6M</span>
             <span class="formula">(B04/B02) × (B11/B12)</span></h3>
         <p><strong>Mechanisms &amp; Utility:</strong> Deep formation water is severely oxygen-starved and saturated
             with dissolved iron and sulfides. When brought to the surface during a frac hit or spill, these minerals
@@ -552,7 +554,7 @@
     </div>
 
     <div class="index-card">
-        <h3><span>Ferrugination-Brine Composite (FBC)</span> <span class="temporal-badge temporal-3-12m">3-12M</span>
+        <h3><span>Ferrugination-Brine Composite (FBC) ✧</span> <span class="temporal-badge temporal-3-12m">3-12M</span>
             <span class="formula fusion-badge">(B04/B02) × NDSI × (1 − NDVI)</span>
         </h3>
         <p><strong>Mechanisms &amp; Utility:</strong> Deep Permian produced water is rich in ferrous iron (Fe²⁺). When
@@ -629,7 +631,7 @@
     </div>
 
     <div class="index-card">
-        <h3><span>Red Edge Alteration Index (REAI)</span> <span class="temporal-badge temporal-3-12m">3-12M</span>
+        <h3><span>Red Edge Alteration Index (REAI) ✧</span> <span class="temporal-badge temporal-3-12m">3-12M</span>
             <span class="formula fusion-badge">(B06/B05) × NDSI</span>
         </h3>
         <p><strong>Mechanisms &amp; Utility:</strong> Exploits Sentinel-2's dedicated Red Edge bands (B05=705nm,
@@ -644,7 +646,7 @@
     </div>
 
     <div class="index-card">
-        <h3><span>Vegetation-Confirmed Brine Index (VCBI)</span>
+        <h3><span>Vegetation-Confirmed Brine Index (VCBI) ✧</span>
             <span class="temporal-badge temporal-6-24m">6-24M</span>
             <span class="formula fusion-badge">max(0, −CRSI) × NDSI</span></h3>
         <p><strong>Mechanisms &amp; Utility:</strong> Targets the off-pad migration front — the leading edge of a

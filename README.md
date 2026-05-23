@@ -15,7 +15,7 @@ Built on free Copernicus satellite data (Sentinel-2 optical + Sentinel-1 SAR), i
 - **Scans an area of interest** with the Statistics API — draw a polygon, get an anomaly timeline across 8 indices simultaneously
 - **Bookmarks 18 TRRC-confirmed spill sites** across the Permian Basin as verified test locations
 
-The centerpiece indices — PWI, PWOI, and HPWI — were validated against 27 Texas Railroad Commission confirmed produced water spill sites. Multi-index consensus detection reaches ~89% accuracy.
+The centerpiece indices — PWCI (formerly PWI), ASAI (formerly PWOI), and OBEC (formerly HPWI) — were validated against 27 Texas Railroad Commission confirmed produced water spill sites. Multi-index consensus detection reaches ~89% accuracy.
 
 ---
 
@@ -91,22 +91,22 @@ All calibration values are injected as JavaScript constants into evalscripts at 
 
 | Index | Focus | Validated |
 |---|---|---|
-| PWI — Produced Water Index | Three-way AND gate: brine × hydrocarbons × heavy metals | 81.5% on 27 TRRC sites |
-| PWOI — Produced Water Optical Index | Optical SAR proxy: surface smoothness + dry brine mode | 77.8% (87.5% on 8 GPS-verified) |
-| HPWI — Hybrid Produced Water Index | Chemical signal × surface smoothness cross-validator | 66.7% |
-| FBC — Ferrugination-Brine Composite | Iron oxidation × brine co-location | — |
-| VCBI — Vegetation-Confirmed Brine Index | Brine-kill zone leading edge detection | — |
-| LBI — Liquid Brine Index | Active standing brine pools | — |
-| TRI — Toxic Residue Index | Forensic mineral scab after evaporation | — |
-| BPI — Brine-Pavement Index | Pad-level integrity monitoring | — |
-| VSI — Vegetation Stress Index | Sub-lethal brine stress in surviving vegetation | — |
-| REAI — Red Edge Alteration Index | Early iron staining via B05/B06 red-edge bands | — |
-| EHC — Evaporite Halo Composite | RGB false-color for blowout geometry | — |
-| AOI — Anoxic Oxidation Index | Iron state change signature | — |
-| SCRI — Salt Crust Roughness Index | SAR-based salt crust confirmation (Sentinel-1) | — |
-| CMA — Clay-Mineral Alteration | Clay lattice disruption by produced water | — |
-| PHI — Petro-Hydrocarbon Index | Oily brine vs. clean runoff | — |
-| HMI — Heavy Metal Interaction | Barium/strontium precipitation proxy | — |
+| PWCI ✧✧ — Produced Water Chemical Index | Three-way AND gate: brine × hydrocarbons × heavy metals (formerly PWI) | 81.5% on 27 TRRC sites |
+| ASAI ✧✧ — Arid Salinity Anomaly Index | Optical SAR proxy: surface smoothness + dry brine mode (formerly PWOI / APEX) | 77.8% (87.5% on 8 GPS-verified) |
+| OBEC ✧ — Oil-Brine Emulsion Composite | Chemical signal × surface smoothness cross-validator (formerly HPWI) | 66.7% |
+| FBC ✧ — Ferrugination-Brine Composite | Iron oxidation × brine co-location | — |
+| VCBI ✧ — Vegetation-Confirmed Brine Index | Brine-kill zone leading edge detection | — |
+| LBI ✧ — Liquid Brine Index | Active standing brine pools | — |
+| TRI ✧ — Toxic Residue Index | Forensic mineral scab after evaporation | — |
+| BPI ✧ — Brine-Pavement Index | Pad-level integrity monitoring | — |
+| VSI ✧ — Vegetation Stress Index | Sub-lethal brine stress in surviving vegetation | — |
+| REAI ✧ — Red Edge Alteration Index | Early iron staining via B05/B06 red-edge bands | — |
+| EHC ✧ — Evaporite Halo Composite | RGB false-color for blowout geometry (formerly EHC) | — |
+| AOI ✧ — Anoxic Oxidation Index | Iron state change signature | — |
+| SCRI ✧ — Salt Crust Roughness Index | SAR-based salt crust confirmation (Sentinel-1) | — |
+| CMA ✧ — Clay-Mineral Alteration | Clay lattice disruption by produced water | — |
+| PHI ✧ — Petro-Hydrocarbon Index | Oily brine vs. clean runoff | — |
+| HMI ✧ — Heavy Metal Interaction | Barium/strontium precipitation proxy | — |
 
 See [SENTINEL_SCIENCE_GUIDE.md](SENTINEL_SCIENCE_GUIDE.md) for the full scientific reference including formulae, physical basis, band-by-band rationale, and validation methodology.
 

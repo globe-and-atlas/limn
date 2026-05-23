@@ -197,7 +197,7 @@ export const PALETTE_TRI = "[[0, 26, 10, 0], [0.3, 128, 64, 0], [0.7, 153, 51, 2
 export const PALETTE_BPI = "[[0, 34, 34, 34], [0.3, 68, 68, 68], [0.7, 0, 255, 255], [1, 255, 255, 0]]";
 export const PALETTE_VSI = "[[0, 0, 85, 0], [0.3, 255, 255, 0], [0.7, 255, 136, 0], [1, 255, 0, 0]]";
 export const PALETTE_CMA = "[[0, 68, 34, 0], [0.3, 136, 68, 0], [0.7, 170, 136, 170], [1, 255, 255, 255]]";
-export const PALETTE_APEX = "[[0.0, 0, 0, 0], [0.1, 30, 0, 80], [0.3, 0, 80, 255], [0.6, 140, 0, 255], [1.0, 255, 255, 255]]";
+export const PALETTE_APEX = "[[0, 0, 0, 0.0], [0.1, 0, 255, 255, 1.0], [0.5, 255, 0, 255, 1.0], [1, 140, 0, 255, 1.0]]";
 export const PALETTE_PHI = "[[0, 0, 0, 0], [0.3, 51, 51, 51], [0.7, 102, 51, 0], [1, 255, 204, 0]]";
 export const PALETTE_HMI = "[[0, 0, 17, 0], [0.3, 0, 68, 0], [0.7, 0, 255, 187], [1, 255, 255, 255]]";
 export const PALETTE_SCRI = "[[0, 0, 0, 0], [0.2, 75, 0, 130], [0.6, 231, 76, 60], [1, 241, 196, 15]]";
@@ -269,14 +269,14 @@ export const INDICES = {
 `
     },
     pwoi: {
-        name: "PWOI — Produced Water Optical Index",
+        name: "ASAI — Arid Salinity Anomaly Index (formerly PWOI / APEX)",
         sensor: "Sentinel-2 L2A",
         min: 0,
         max: 1,
-        gradient: 'linear-gradient(to right, #000, #1E0050, #0050FF, #8C00FF, #FFF)',
-        formula: "S2 Smoothness Proxy × Moisture+Brine Signature",
-        info: "Sentinel Explorer composite calibration. Uses optical surface smoothness (B03/B11 ratio) as a proxy for SAR low-backscatter, cross-referenced with moisture and brine signatures, plus a dry-brine mode that fires when NDWI is deeply negative but NDSI is elevated — covering evaporated salt crusts invisible to standard wetness indices. All bands Sentinel-2 only; no SAR required. Validated at 77.8% detection on 27 TRRC confirmed spill sites.",
-        diffLabels: ["Low Confidence", "PWOI Anomaly"],
+        gradient: 'linear-gradient(to right, #000000, #00FFFF, #FF00FF, #8C00FF)',
+        formula: "Specular Smoothness Proxy × Salinity/Crust Signature",
+        info: "Sentinel Explorer / Globe & Atlas composite calibration. Uses optical surface smoothness (B03/B11 ratio) as a proxy for specular surface reflectance, cross-referenced with salinity indicators, plus a dry-brine mode that fires when NDWI is deeply negative but NDSI is elevated — mapping dry evaporated salt crusts in arid environments without requiring active radar data. Formerly known as Produced Water Optical Index (PWOI) or APEX Anomaly Index.",
+        diffLabels: ["Stable (No Detection)", "Salinity Anomaly Detected"],
         // WMS-compatible S2-only evalscript (optical proxy for radar smoothness)
         evalscript: genEvalscript(['B03', 'B11', 'B12'], `
   // Optical proxy for SAR surface smoothness:
@@ -640,13 +640,13 @@ export const INDICES = {
 `
     },
     ehc: {
-        name: 'Evaporite Halo (Visual)',
+        name: 'EHC — Evaporite Halo Composite (formerly Evaporite Halo / Visual)',
         sensor: 'Sentinel-2 L2A',
         temporal: '0-3M',
         min: 'False Color RGB', max: '',
         gradient: 'linear-gradient(to right, #ff0000, #00ff00, #0000ff)',
         formula: 'R=NDOI, G=BSI, B=NDSI',
-        info: 'Sentinel Explorer false-color composite calibration. Maps NDOI → Red (oil center), BSI → Green (mud footprint), NDSI → Blue (crystallized salt ring) to highlight the geometry of a blowout event. Diagnostic for distinguishing a contained spill from a spreading plume at a glance.',
+        info: 'Sentinel Explorer / Globe & Atlas false-color composite calibration. Maps NDOI → Red (oil center), BSI → Green (mud footprint), NDSI → Blue (crystallized salt ring) to visually isolate the spatial morphology of blowout events (blowout morphology view). Useful for distinguishing localized anomalies from expanding plumes. Formerly known as Evaporite Halo / Visual composite.',
         diffLabels: ['N/A', 'N/A'],
         evalscript: `//VERSION=3
             function setup() {
@@ -683,14 +683,14 @@ export const INDICES = {
         fisLogic: `return [0];` // Complex RGB indices don't chart well
     },
     hpwi: {
-        name: 'Hybrid Produced Water Index (HPWI)',
+        name: 'OBEC — Oil-Brine Emulsion Composite (formerly HPWI)',
         sensor: 'Sentinel-2 L2A',
         temporal: '0-3M',
-        min: 'Background', max: 'Confirmed Liquid Spill',
+        min: 'Background', max: 'Liquid Emulsion',
         gradient: 'linear-gradient(to right, #000000, #00FFFF, #FF00FF, #CCFF00)',
-        formula: 'Chemical Signal (NDOI+NDSI) × S2 Surface Smoothness Proxy',
-        info: 'Sentinel Explorer composite calibration. Combines hydrocarbon/brine chemical signatures (NDOI + NDSI) with an optical surface smoothness proxy (B03/B11 ratio) that approximates what SAR VH dampening would confirm. Designed as an independent cross-validator for PWOI/PWI — when all three agree, multi-index consensus accuracy reaches ~89%. All bands Sentinel-2 only.',
-        diffLabels: ['Stable (No Detection)', 'Spill Anomaly Detected'],
+        formula: 'Chemical Signal (NDOI + NDSI) × Specular Smoothness Proxy',
+        info: 'Sentinel Explorer / Globe & Atlas composite calibration. Fuses hydrocarbon/brine chemical signatures (NDOI + NDSI) with an optical surface smoothness proxy (B03/B11 ratio) that approximates specular surface reflectance. Designed as a physical-chemical consensus validator for PWCI/ASAI. All bands Sentinel-2 only. Formerly known as Hybrid Produced Water Index (HPWI).',
+        diffLabels: ['Stable (No Detection)', 'Emulsion Anomaly Detected'],
         evalscript: genEvalscript(['B02', 'B03', 'B11', 'B12'], `
   if (sample.dataMask === 0) return [0,0,0,0];
 
@@ -885,14 +885,14 @@ export const INDICES = {
 `
     },
     pwi: {
-        name: 'Produced Water Index (PWI)',
+        name: 'PWCI — Produced Water Chemical Index (formerly PWI)',
         sensor: 'Sentinel-2 L2A',
         temporal: '0-3M',
-        min: 'Background', max: 'Confirmed Spill',
+        min: 'Background', max: 'Chemical Anomaly',
         gradient: 'linear-gradient(to right, #000000, #00FFFF, #FF00FF, #CCFF00)',
         formula: '(NDSI - 0.05) * (HCAI - 0.20) * (HMRI - 1.5) [Balanced Recovery]',
-        info: 'Sentinel Explorer composite calibration. Requires simultaneous elevation of Salinity (NDSI), Hydrocarbons (HCAI), and Heavy Metals (HMRI) — a three-way AND gate that rejects false positives from natural evaporite deposits, irrigation, and well pad construction. Cubic scaling suppresses background noise while preserving genuine plume signals. Validated at 81.5% detection on 27 TRRC confirmed spill sites.',
-        diffLabels: ['Stable (No Detection)', 'Spill Anomaly Detected'],
+        info: 'Sentinel Explorer / Globe & Atlas composite calibration. Requires simultaneous elevation of Salinity (NDSI), Hydrocarbons (HCAI), and Heavy Metals (HMRI) — a three-way AND gate that suppresses caliche background noise and construction anomalies. Cubic scaling suppresses marginal noise while isolating high-confidence chemical anomalies. Formerly known as Produced Water Index (PWI).',
+        diffLabels: ['Stable (No Detection)', 'Chemical Anomaly Detected'],
         evalscript: genEvalscript(['B02', 'B03', 'B04', 'B08', 'B11', 'B12'], `
   // 1. Bare Soil Index (BSI) -- URBAN / WATER / VEG MASK
   let bsiTop = (sample.B11 + sample.B04) - (sample.B08 + sample.B02);
