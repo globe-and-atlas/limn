@@ -15,7 +15,7 @@ Built on free Copernicus satellite data (Sentinel-2 optical + Sentinel-1 SAR), i
 - **Scans an area of interest** with the Statistics API — draw a polygon, get an anomaly timeline across 8 indices simultaneously
 - **Bookmarks 18 TRRC-confirmed spill sites** across the Permian Basin as verified test locations
 
-The centerpiece indices — PWI, APEX (Bally Index), and HPWI — were validated against 27 Texas Railroad Commission confirmed produced water spill sites. Multi-index consensus detection reaches ~89% accuracy.
+The centerpiece indices — PWI, PWOI, and HPWI — were validated against 27 Texas Railroad Commission confirmed produced water spill sites. Multi-index consensus detection reaches ~89% accuracy.
 
 ---
 
@@ -87,12 +87,12 @@ All calibration values are injected as JavaScript constants into evalscripts at 
 
 **Established indices (with literature citations):** NDVI, SAVI, NDWI (Gao variant), NDMI, MSI, BSI, NDSI/SI, CSI, HCAI, HMRI, NDOI, CRSI
 
-**Custom composites — original work (Bally, 2025–2026):**
+**Sentinel Explorer composites and calibrations:**
 
 | Index | Focus | Validated |
 |---|---|---|
 | PWI — Produced Water Index | Three-way AND gate: brine × hydrocarbons × heavy metals | 81.5% on 27 TRRC sites |
-| APEX — Bally Index | Optical SAR proxy: surface smoothness + dry brine mode | 77.8% (87.5% on 8 GPS-verified) |
+| PWOI — Produced Water Optical Index | Optical SAR proxy: surface smoothness + dry brine mode | 77.8% (87.5% on 8 GPS-verified) |
 | HPWI — Hybrid Produced Water Index | Chemical signal × surface smoothness cross-validator | 66.7% |
 | FBC — Ferrugination-Brine Composite | Iron oxidation × brine co-location | — |
 | VCBI — Vegetation-Confirmed Brine Index | Brine-kill zone leading edge detection | — |

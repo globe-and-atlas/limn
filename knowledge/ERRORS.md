@@ -1,5 +1,25 @@
 # Error Log
 
+## 2026-05-20: Test Harness Missing `puppeteer-core` — OPEN
+
+- **Deterministic error**: `node tests/test.js` fails before running browser assertions with `Error: Cannot find module 'puppeteer-core'`.
+- **Cause**: The repository currently has no `package.json`, no `package-lock.json`, and no local `node_modules/puppeteer-core` dependency, but `tests/test.js` starts with `require('puppeteer-core')`.
+- **Impact**: The project test command listed in `AGENTS.md` cannot run in this checkout until the Node test dependency is installed or vendored via project package metadata.
+- **Fix status**: Not fixed in this pass; no dependency was added because the current task only changes documentation/authorship claims.
+- **Graduated to**: pending dependency/package-management decision.
+
+## 2026-05-20: Additional Node Test Harness Drift — OPEN
+
+- **Deterministic error**: `node tests/test_fetch.js` fails before execution with `Error: Cannot find module 'node-fetch'`.
+- **Cause**: The repository has no package metadata installing `node-fetch`, but the test imports it directly.
+- **Impact**: Fetch/auth test cannot run in this checkout.
+- **Fix status**: Not fixed in this pass.
+
+- **Deterministic error**: `node tests/test_pwi.js` fails with `ENOENT: no such file or directory, open 'app.js'`.
+- **Cause**: The test expects a root-level `app.js`, but the current app code lives under `src/app.js`.
+- **Impact**: PWI formula test is stale relative to the refactored file layout.
+- **Fix status**: Not fixed in this pass.
+
 ## 2026-03-17: Cold-Eyes Review Findings — RESOLVED
 
 ### Critical (Fixed)

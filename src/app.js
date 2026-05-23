@@ -846,7 +846,7 @@ function bindEvents() {
             startDate.setUTCFullYear(startDate.getUTCFullYear() - 1); // 1 Year lookback
 
             // 2. Setup Evalscript
-            // The scanner checks: PWI, HPWI, APEX (primary spill composites) and NDMI, NDWI, SAVI (env)
+            // The scanner checks: PWI, HPWI, PWOI (primary spill composites) and NDMI, NDWI, SAVI (env)
             const cal = CALIBRATION_PRESETS[state.activeBasin || 'permian'];
             const pwiLogic = INDICES.pwi.fisLogic
                 .replace(/__BSI_MASK__/g, cal.bsiMask)
@@ -892,7 +892,7 @@ function evaluatePixel(sample) {
   let smooth = sumSmooth === 0 ? 0 : Math.max(0, Math.min(1, ((sample.B03 - sample.B11)/sumSmooth + 0.3) / 0.6));
   let val_hpwi = Math.min(1, chemSignal * smooth * 6.0);
 
-  // B2: APEX — optical proxy composite (reuses sumSmooth and ndsiSum from shared intermediates)
+  // B2: PWOI — optical proxy composite (reuses sumSmooth and ndsiSum from shared intermediates)
   let apexOVal = sumSmooth === 0 ? 0 : (sample.B03 - sample.B11) / sumSmooth;
   let apexRadarProxy = Math.max(0, Math.min(1.2, (apexOVal + 0.3) / 0.6));
   let apexBrineBoost = ndsiSum === 0 ? 0 : Math.max(0, (sample.B11 - sample.B12) / ndsiSum) * 0.4;
