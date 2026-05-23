@@ -52,3 +52,6 @@ Status: Completed. Updated `index.html` tooltips and button labels, `src/indices
 - 2026-05-23 18:23 — commit: docs: update SESSION.md checkpoint | knowledge/SESSION.md
 - 2026-05-23 18:30 — checkpoint: resolved dynamic old name leaks (PWI/HPWI/PWOI) in charts.js tooltips and gallery badges; updated style.css to map .idx-apex styles to .idx-pwoi to restore premium CSS styles; fixed report.js metadata bug mapping cfg.math to cfg.formula; updated and expanded SPILL_BOOKMARKS in app.js with 9 high-precision exact GPS coordinate calibration targets including Lake Boehmer and Balmorhea. | src/app.js,src/indices.js,src/charts.js,src/report.js,style.css
 
+- 2026-05-23 18:27 — commit: feat: fix dynamic slate renames, restore ASAI style, and add high-precision bookmarks | knowledge/SESSION.md,src/app.js,src/charts.js,src/indices.js,src/report.js
+- 2026-05-23 18:32 — checkpoint: forced Single Date mode activation when spill bookmarks are clicked, ensuring imagery dates sync accurately and prevent blank/incorrect compare-view renders. | src/app.js,knowledge/SESSION.md
+

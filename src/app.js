@@ -597,7 +597,18 @@ function bindEvents() {
                 document.querySelectorAll('.spill-bookmark-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
 
-                applyIndex();
+                // Switch to single mode if not already active to ensure accurate results
+                if (state.mode !== 'single') {
+                    const mSing = document.getElementById('mode-single');
+                    if (mSing) {
+                        mSing.click();
+                    } else {
+                        state.mode = 'single';
+                        applyIndex();
+                    }
+                } else {
+                    applyIndex();
+                }
                 setTimeout(() => probeAcquisitions(), 1600);
             });
             spillList.appendChild(btn);
