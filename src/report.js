@@ -319,7 +319,7 @@ export async function generateReport() {
         document.getElementById('report-date-run').innerText = new Date().toLocaleString();
         document.getElementById('report-aoi-bounds').innerText = bounds.toBBoxString();
         document.getElementById('report-index-name').innerText = cfg.name;
-        document.getElementById('report-math').innerText = cfg.math;
+        document.getElementById('report-math').innerText = cfg.formula || cfg.math || '';
         document.getElementById('report-info').innerText = cfg.info;
 
         const dateRangeText = (window.state.mode === 'compare') 

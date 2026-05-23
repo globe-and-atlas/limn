@@ -1278,18 +1278,18 @@ option.opt-fusion {
     to { background-position: 200% center; }
 }
 
-.index-btn.idx-apex .index-short {
+.index-btn.idx-pwoi .index-short {
     color: #FF00FF;
     text-shadow: 0 0 8px rgba(255, 0, 255, 0.4);
 }
 
-.index-btn.idx-apex {
+.index-btn.idx-pwoi {
     border: 1px solid rgba(255, 0, 255, 0.2);
     --idx-gradient: linear-gradient(to right, #300030, #0088ff, #ffffff);
 }
 
-.index-btn.idx-apex:hover,
-.index-btn.idx-apex.active {
+.index-btn.idx-pwoi:hover,
+.index-btn.idx-pwoi.active {
     border-color: #FF00FF !important;
     background: linear-gradient(135deg, rgba(48, 0, 48, 0.9), rgba(0, 136, 255, 0.3)) !important;
     box-shadow: 0 0 15px rgba(255, 0, 255, 0.2), inset 0 0 10px rgba(255, 0, 255, 0.1);

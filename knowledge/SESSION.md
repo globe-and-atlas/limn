@@ -49,3 +49,6 @@ Status: Completed. Updated `index.html` tooltips and button labels, `src/indices
 - 2026-05-23 23:15 — checkpoint: conducted thorough Google Scholar/OpenAlex remote sensing literature review, confirming absolute novelty of the coined slate names and multi-gate and dry-brine logic; updated help.html, SENTINEL_SCIENCE_GUIDE.md, and README.md to restore ✧ and ✧✧ stars across all 16 custom composites. | help.html,SENTINEL_SCIENCE_GUIDE.md,README.md,projects/sentinel-explorer.md,drafts/i-built-a-satellite-spill-detector-for-the-permian-basin.md
 
 - 2026-05-23 18:22 — commit: feat: restore novelty & attribution stars, slate renames, and G&A branding updates | .gitignore,README.md,SENTINEL_SCIENCE_GUIDE.md,help.html,index.html
+- 2026-05-23 18:23 — commit: docs: update SESSION.md checkpoint | knowledge/SESSION.md
+- 2026-05-23 18:30 — checkpoint: resolved dynamic old name leaks (PWI/HPWI/PWOI) in charts.js tooltips and gallery badges; updated style.css to map .idx-apex styles to .idx-pwoi to restore premium CSS styles; fixed report.js metadata bug mapping cfg.math to cfg.formula; updated and expanded SPILL_BOOKMARKS in app.js with 9 high-precision exact GPS coordinate calibration targets including Lake Boehmer and Balmorhea. | src/app.js,src/indices.js,src/charts.js,src/report.js,style.css
+

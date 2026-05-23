@@ -1,4 +1,4 @@
-import { INDICES, CHART_COLORS, getHighlightScript } from './indices.js';
+import { INDICES, CHART_COLORS, getHighlightScript, getShortIndexName } from './indices.js';
 
 // Configuration (should ideally come from a shared config module, but for now we'll define it here if not available)
 const SH_WMS_URL = 'https://sh.dataspace.copernicus.eu/ogc/wms/959ea2c5-5892-4b36-82b3-76e6bdb93c8a';
@@ -114,7 +114,7 @@ export function detectPeakAnomaly(imgUrl, bounds) {
 
                 window.state.hoverMarker.bindTooltip(`
                     <div style="font-family: 'JetBrains Mono', monospace; font-size: 10px;">
-                        <strong style="color: ${markerColor}; text-shadow: 0 0 4px rgba(0,0,0,0.8);">${indexKey.toUpperCase()} PEAK</strong><br/>
+                        <strong style="color: ${markerColor}; text-shadow: 0 0 4px rgba(0,0,0,0.8);">${getShortIndexName(indexKey)} PEAK</strong><br/>
                         DATE: ${date}<br/>
                         LAT: ${peak.lat.toFixed(5)}<br/>
                         LNG: ${peak.lng.toFixed(5)}<br/>
@@ -202,7 +202,7 @@ export function detectPeakAnomaly(imgUrl, bounds) {
             const url = buildHighlightUrl(date, renderIndex, bounds, renderColor, undefined, true);
             
             item.innerHTML = `
-                <div class="thumbnail-badge" style="color: ${renderColor}">${renderIndex.toUpperCase()} ANOMALY</div>
+                <div class="thumbnail-badge" style="color: ${renderColor}">${getShortIndexName(renderIndex)} ANOMALY</div>
                 <div class="thumbnail-img-wrapper">
                     <img src="${url}" class="thumbnail-img" alt="${date}" loading="lazy">
                 </div>

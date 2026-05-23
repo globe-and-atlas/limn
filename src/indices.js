@@ -1384,3 +1384,34 @@ function evaluatePixel(sample) {
   }
 }`;
 }
+
+export function getShortIndexName(indexKey) {
+    if (!indexKey) return '';
+    const mapping = {
+        pwi: 'PWCI',
+        hpwi: 'OBEC',
+        pwoi: 'ASAI',
+        ehc: 'EHC',
+        ndvi: 'NDVI',
+        savi: 'SAVI',
+        ndmi: 'NDMI',
+        ndwi: 'NDWI',
+        ndsi: 'NDSI',
+        bsi: 'BSI',
+        lbi: 'LBI',
+        fbc: 'FBC',
+        vsi: 'VSI',
+        scri: 'SCRI',
+        tri: 'TRI',
+        bpi: 'BPI',
+        phi: 'PHI',
+        cma: 'CMA',
+        hmi: 'HMI',
+        vcbi: 'VCBI',
+        reai: 'REAI',
+        aoi: 'AOI',
+        tc: 'True Color',
+        fc: 'False Color'
+    };
+    return mapping[indexKey.toLowerCase()] || indexKey.toUpperCase();
+}
