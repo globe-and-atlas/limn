@@ -12,7 +12,7 @@
 | `ui.js` | `showToast`, `switchTab`, `updateUI`, global keydown listener | — |
 | `charts.js` | Hover highlight, peak detection, thumbnail gallery, `buildHighlightUrl` | `indices.js` |
 | `report.js` | HTML export, `generateReport`, `initRrcSpillOverlay`, `probeAcquisitions` | `auth.js`, `indices.js`, `map.js`, `ui.js` |
-| `app.js` | Orchestrator: state, event bindings, date selectors, scan AOI, chart render | all of the above |
+| `app.js` | Orchestrator: state, event bindings, date selectors, scan AOI, chart render, triple layout modes | all of the above |
 
 ## State Object (`state` in app.js / `window.state` globally)
 
@@ -62,6 +62,8 @@ Functions/objects explicitly exposed to `window` for cross-module access:
 - `window.downloadHTMLReport` — called from HTML `onclick` (ES module can't be inlined)
 - `window.aoiDrawnItem` — drawn Leaflet layer (accessed by report.js)
 - `window.reportChartInst`, `window.primaryChartInst`, `window.secondaryChartInst` — Chart.js instances
+- `window.renderFocusedTriage` — orchestrates Focused Triage cards and filters
+- `window.renderCommandConsole` — drives search input queries and tag filtering in Command HUD
 
 ## Deep Fusion Scripts (HPWI, APEX)
 
@@ -69,3 +71,13 @@ These use `genDeepFusionEvalscript()` which generates a multi-datasource Sentine
 
 1. **Always use a date range** — single-day requests return 0 scenes for ORBIT mosaicking. Both HPWI and APEX expand to a 30-day window in `getWMSLayer()`.
 2. **Don't wrap in `genCumulativeEvalscript`** — that wrapper is single-source only. Both are excluded from the cumulative branch in `getScriptContent()`.
+
+## UI Layout Modes & Sidebar Switching
+
+To manage the high density of 30+ custom composites, the sidebar implements **3 distinct, client-side dynamic layout panes** swapped seamlessly with zero map reloads or state losses:
+
+1. **Suite Grid (`suite-grid`)**: The default vertical tabbed selector layout showing all spectral indexes, chart panels, diagnostic settings, and download controls.
+2. **Focused Triage (`focused-triage`)**: A wizard-like task-oriented panel featuring 5 critical environmental cards (*🚨 Produced Water & Spills*, *🔥 Wildfire & Landslide*, *💧 Freshwater & Algae*, *❄️ Permafrost & Arctic*, *🏙️ Urban Heat & Albedo*). Clicking a triage card instantly sets the primary diagnostic index, flies the map to calibration coordinate targets, locks date options to single date mode, and renders isolated thematic bookmarks.
+3. **Command Console (`command-console`)**: A sleek search HUD with interactive tags (`#Water`, `#Vegetation`, `#Soil`, `#Mining`, `#Thermal`, `#OilGas`). Users can type queries matching index names, formulas, sensors, or descriptions to filter the matching tools in real-time, accompanied by targeted bookmark listings.
+
+Visual transitions between panes are managed via hardware-accelerated CSS transforms (`translateY`) and `opacity` overrides in `style.css` for absolute premium responsiveness.

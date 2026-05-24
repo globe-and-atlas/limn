@@ -1,5 +1,33 @@
 # Task: Sentinel Explorer Novelty Claims Review
 
+## Follow-on Objective — Sentinel-2 Index Discovery
+
+Discover and rank new Sentinel-2-only indices/composites for Limn that are more than renamed existing formulas: each candidate should target an economically valuable or public-benefit environmental condition, compare against prior literature, and define what Globe & Atlas could defensibly claim.
+
+## Validation Contract — Sentinel-2 Index Discovery
+
+- [x] Each proposed candidate names one environmental condition or decision problem.
+- [x] Each proposed candidate includes a Sentinel-2-only formula or composite recipe.
+- [x] Each proposed candidate identifies the relevant existing literature family it improves on or recombines.
+- [x] Each proposed candidate states a claimable novelty angle without asserting unverified first-in-history status.
+- [x] Candidates are ranked by combined wealth potential and public-benefit potential.
+- [x] The final report distinguishes strong candidates from speculative candidates.
+- [x] The final report lists sources used for prior-art comparison.
+
+## Progress Log — Sentinel-2 Index Discovery
+
+### 2026-05-24 — Research started
+- Loaded Limn instructions, session state, directives, prior novelty review, and validation summary.
+- Target directives: `directives/pwi_spec.md`, `directives/spill_validation_sop.md`.
+- Intended execution scripts: none for this literature pass.
+- Expected output artifact: ranked findings in chat.
+- Safety: no secret-bearing config files will be read or exposed.
+
+### 2026-05-24 — First ranked research pass completed
+- Produced a broad Sentinel-2 candidate list spanning methane, water quality, mining/tailings, agriculture, wildfire, landslides, forestry, plastics, landfill contamination, urban heat vulnerability, peatlands, snow algae, and industrial dust.
+- No execution scripts were run.
+- Output artifact: chat report.
+
 ## Objective
 
 Review the help page and index library so only truly original Sentinel Explorer composites carry Bally/original-work attribution.

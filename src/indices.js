@@ -197,11 +197,30 @@ export const PALETTE_TRI = "[[0, 26, 10, 0], [0.3, 128, 64, 0], [0.7, 153, 51, 2
 export const PALETTE_BPI = "[[0, 34, 34, 34], [0.3, 68, 68, 68], [0.7, 0, 255, 255], [1, 255, 255, 0]]";
 export const PALETTE_VSI = "[[0, 0, 85, 0], [0.3, 255, 255, 0], [0.7, 255, 136, 0], [1, 255, 0, 0]]";
 export const PALETTE_CMA = "[[0, 68, 34, 0], [0.3, 136, 68, 0], [0.7, 170, 136, 170], [1, 255, 255, 255]]";
-export const PALETTE_APEX = "[[0, 0, 0, 0.0], [0.3, 0, 255, 255, 0.0], [0.45, 0, 255, 255, 1.0], [0.72, 255, 0, 255, 1.0], [1, 140, 0, 255, 1.0]]";
+export const PALETTE_APEX = "[[0, 0, 0, 0, 0.0], [0.45, 0, 0, 0, 0.0], [0.55, 0, 220, 255, 1.0], [0.75, 255, 0, 255, 1.0], [1, 140, 0, 255, 1.0]]"; // Trans until 0.45 → Cyan → Magenta → Purple
 export const PALETTE_PHI = "[[0, 0, 0, 0], [0.3, 51, 51, 51], [0.7, 102, 51, 0], [1, 255, 204, 0]]";
 export const PALETTE_HMI = "[[0, 0, 17, 0], [0.3, 0, 68, 0], [0.7, 0, 255, 187], [1, 255, 255, 255]]";
 export const PALETTE_SCRI = "[[0, 0, 0, 0], [0.2, 75, 0, 130], [0.6, 231, 76, 60], [1, 241, 196, 15]]";
 export const PALETTE_MSI_INV = "[[0, 212, 106, 36], [0.5, 239, 216, 122], [1, 28, 133, 166]]";
+
+export const PALETTE_POST_FIRE = "[[0.0, 21, 17, 14], [0.3, 139, 107, 66], [0.6, 217, 134, 79], [0.85, 230, 180, 80], [1.0, 226, 102, 90]]";
+export const PALETTE_WATER_BLOOM = "[[0.0, 13, 34, 39], [0.3, 111, 201, 220], [0.6, 142, 207, 128], [0.85, 230, 180, 80], [1.0, 226, 102, 90]]";
+export const PALETTE_PLASTIC = "[[0.0, 13, 23, 27], [0.5, 111, 201, 220], [1.0, 246, 242, 232]]";
+export const PALETTE_PERMAFROST = "[[0.0, 17, 16, 24], [0.3, 111, 201, 220], [0.6, 182, 149, 232], [0.85, 217, 134, 79], [1.0, 226, 102, 90]]";
+export const PALETTE_SHELTER = "[[0.0, 24, 21, 21], [0.3, 142, 207, 128], [0.6, 230, 180, 80], [0.85, 217, 134, 79], [1.0, 226, 102, 90]]";
+export const PALETTE_LEACHATE = "[[0.0, 18, 23, 15], [0.3, 142, 207, 128], [0.6, 230, 180, 80], [0.85, 217, 134, 79], [1.0, 226, 102, 90]]";
+export const PALETTE_ACID_MINE = "[[0.0, 17, 20, 24], [0.3, 230, 180, 80], [0.6, 217, 134, 79], [1.0, 226, 102, 90]]";
+export const PALETTE_FUEL = "[[0.0, 19, 23, 15], [0.3, 142, 207, 128], [0.6, 230, 180, 80], [0.85, 217, 134, 79], [1.0, 226, 102, 90]]";
+export const PALETTE_WETLAND = "[[0.0, 13, 29, 29], [0.3, 111, 201, 220], [0.6, 142, 207, 128], [0.85, 230, 180, 80], [1.0, 226, 102, 90]]";
+export const PALETTE_SILT = "[[0.0, 13, 23, 32], [0.3, 111, 201, 220], [0.6, 188, 174, 101], [0.85, 217, 134, 79], [1.0, 226, 102, 90]]";
+export const PALETTE_SCUM = "[[0.0, 13, 34, 39], [0.3, 111, 201, 220], [0.6, 142, 207, 128], [0.85, 230, 180, 80], [1.0, 226, 102, 90]]";
+export const PALETTE_RIVER_SHOCK = "[[0.0, 16, 20, 24], [0.3, 111, 201, 220], [0.6, 230, 180, 80], [0.85, 217, 134, 79], [1.0, 226, 102, 90]]";
+export const PALETTE_LFG = "[[0.0, 21, 22, 15], [0.3, 142, 207, 128], [0.6, 230, 180, 80], [0.85, 200, 127, 79], [1.0, 226, 102, 90]]";
+export const PALETTE_SEWAGE = "[[0.0, 21, 19, 15], [0.3, 111, 201, 220], [0.6, 142, 207, 128], [0.85, 169, 161, 92], [1.0, 226, 102, 90]]";
+export const PALETTE_CATCHMENT = "[[0.0, 18, 29, 29], [0.3, 111, 201, 220], [0.6, 142, 207, 128], [0.85, 230, 180, 80], [1.0, 226, 102, 90]]";
+export const PALETTE_REFUGE = "[[0.0, 22, 23, 15], [0.3, 142, 207, 128], [0.6, 230, 180, 80], [0.85, 217, 134, 79], [1.0, 226, 102, 90]]";
+export const PALETTE_EROSION = "[[0.0, 23, 19, 15], [0.3, 111, 201, 220], [0.6, 188, 174, 101], [0.85, 217, 134, 79], [1.0, 226, 102, 90]]";
+export const PALETTE_HEAT_VULN = "[[0.0, 24, 21, 21], [0.3, 111, 201, 220], [0.6, 230, 180, 80], [0.85, 217, 134, 79], [1.0, 226, 102, 90]]";
 
 export const INDICES = {
     tc: {
@@ -273,7 +292,7 @@ export const INDICES = {
         sensor: "Sentinel-2 L2A",
         min: 0,
         max: 1,
-        gradient: 'linear-gradient(to right, transparent 30%, #00FFFF 45%, #FF00FF 72%, #8C00FF 100%)',
+        gradient: 'linear-gradient(to right, transparent 55%, #00DCFF 55%, #FF00FF 75%, #8C00FF 100%)',
         formula: "Specular Smoothness Proxy × Salinity/Crust Signature",
         info: "Globe & Atlas · Limn composite calibration. Uses optical surface smoothness (B03/B11 ratio) as a proxy for specular surface reflectance, cross-referenced with salinity indicators, plus a dry-brine mode that fires when NDWI is deeply negative but NDSI is elevated — mapping dry evaporated salt crusts in arid environments without requiring active radar data. Formerly known as Produced Water Optical Index (PWOI) or APEX Anomaly Index.",
         diffLabels: ["Stable (No Detection)", "Salinity Anomaly Detected"],
@@ -296,7 +315,6 @@ export const INDICES = {
       : (radarProxy * 0.3) + (moisture * 0.7);
 
   let finalVal = Math.min(Math.max(fusion, 0), 1);
-  if (typeof VISUAL_FILTER !== 'undefined' && finalVal < VISUAL_FILTER) return [0,0,0,0];
   ${colorBlend('finalVal', PALETTE_APEX)}
 `),
         // Note: No deepEvalscript for PWOI — WMS cannot handle multi-datasource S1+S2 format.
@@ -1264,6 +1282,498 @@ function evaluatePixel(sample) {
   // Return the backscatter intensity directly for statistical trending
   return [sample.VV];
 `
+    },
+    // --- 18 CIVIC & ECOLOGICAL COMPOSITES ---
+    bhdfsi: {
+        name: 'Burnt Hillside Debris-Flow Susceptibility Index (BH-DFSI)',
+        sensor: 'Sentinel-2 L2A',
+        temporal: 'Persistent',
+        min: 'Safe Slope', max: 'High Runout Risk',
+        gradient: 'linear-gradient(to right, #15110e, #8b6b42, #d9864f, #e6b450, #e2665a)',
+        formula: 'Burn Severity × Bare Slope Gain × Canopy Root Loss',
+        info: 'Pyro-hydrological hazard triage. Combines burn severity (dNBR proxy), exposed soils (BSI), and green canopy loss (NDVI decline) to map steep slopes vulnerable to rainfall-triggered debris flows and mudslides after wildfires.',
+        diffLabels: ['Slope Recovery', 'Escalating Landslide Risk'],
+        evalscript: genEvalscript(['B02', 'B04', 'B08', 'B11', 'B12'], `
+  if (sample.dataMask === 0) return [0,0,0,0];
+  let nbr = (sample.B08 - sample.B12) / (sample.B08 + sample.B12);
+  let bsi = ((sample.B11 + sample.B04) - (sample.B08 + sample.B02)) / ((sample.B11 + sample.B04) + (sample.B08 + sample.B02));
+  let ndvi = (sample.B08 - sample.B04) / (sample.B08 + sample.B04);
+  let score = Math.max(0, 0.15 - nbr) * Math.max(0, bsi + 0.1) * Math.max(0, 0.35 - ndvi);
+  let mapped = Math.min(1.0, score * 12.0);
+  ${colorBlend('mapped', PALETTE_POST_FIRE)}
+`),
+        fisBands: ['B02', 'B04', 'B08', 'B11', 'B12'],
+        fisLogic: `
+  let nbr = (sample.B08 - sample.B12) / (sample.B08 + sample.B12);
+  let bsi = ((sample.B11 + sample.B04) - (sample.B08 + sample.B02)) / ((sample.B11 + sample.B04) + (sample.B08 + sample.B02));
+  let ndvi = (sample.B08 - sample.B04) / (sample.B08 + sample.B04);
+  return [Math.max(0, 0.15 - nbr) * Math.max(0, bsi + 0.1) * Math.max(0, 0.35 - ndvi)];
+`
+    },
+    peti: {
+        name: 'Phycocyanin Eutrophication Toxicity Index (PETI)',
+        sensor: 'Sentinel-2 L2A',
+        temporal: 'Live',
+        min: 'Clean Water', max: 'Toxic Bloom Risk',
+        gradient: 'linear-gradient(to right, #0d2227, #6fc9dc, #8ecf80, #e6b450, #e2665a)',
+        formula: 'Water Mask × Red Edge Bloom Slope × Chlorophyll Excess',
+        info: 'Virtual phycocyanin decision proxy. Over water pixels, uses red and red-edge spectral slope to isolate phycocyanin-like signature of heavy cyanobacteria blooms without requiring a dedicated phycocyanin sensor band.',
+        diffLabels: ['Water Clears', 'Bloom Proliferation'],
+        evalscript: genEvalscript(['B03', 'B04', 'B05', 'B06', 'B11'], `
+  if (sample.dataMask === 0) return [0,0,0,0];
+  let ndci = (sample.B05 - sample.B04) / (sample.B05 + sample.B04);
+  let redEdgeSlope = (sample.B06 - sample.B04) / Math.max(sample.B06 + sample.B04, 0.001);
+  let water = sample.B03 > sample.B11 ? 1.0 : 0.0;
+  let score = water * ndci * redEdgeSlope;
+  let mapped = Math.min(1.0, Math.max(0, score) * 8.0);
+  ${colorBlend('mapped', PALETTE_WATER_BLOOM)}
+`),
+        fisBands: ['B03', 'B04', 'B05', 'B06', 'B11'],
+        fisLogic: `
+  let ndci = (sample.B05 - sample.B04) / (sample.B05 + sample.B04);
+  let redEdgeSlope = (sample.B06 - sample.B04) / Math.max(sample.B06 + sample.B04, 0.001);
+  let water = sample.B03 > sample.B11 ? 1.0 : 0.0;
+  return [Math.max(0, water * ndci * redEdgeSlope)];
+`
+    },
+    mppdi: {
+        name: 'Marine Plastisphere & Polymer Differentiation Index (MP-PDI)',
+        sensor: 'Sentinel-2 L2A',
+        temporal: 'Live',
+        min: 'Clean Water', max: 'Plastic/Debris Anomaly',
+        gradient: 'linear-gradient(to right, #0d171b, #6fc9dc, #f6f2e8)',
+        formula: 'Water Mask × Floating Debris FDI × Veg Reject',
+        info: 'Floating marine debris screening. Highlights polymer-like floating debris and plastics on the ocean surface while utilizing explicit rejection gates for false positives like Sargassum and organic foam.',
+        diffLabels: ['Debris Dispersal', 'Debris Accumulation'],
+        evalscript: genEvalscript(['B03', 'B04', 'B06', 'B08', 'B11'], `
+  if (sample.dataMask === 0) return [0,0,0,0];
+  let fdi = sample.B08 - (sample.B06 + (sample.B11 - sample.B06) * 0.5);
+  let ndvi = (sample.B08 - sample.B04) / (sample.B08 + sample.B04);
+  let vegReject = 1.0 - Math.max(0.0, ndvi);
+  let water = sample.B03 > sample.B11 ? 1.0 : 0.0;
+  let score = water * Math.max(0.0, fdi) * vegReject;
+  let mapped = Math.min(1.0, score * 15.0);
+  ${colorBlend('mapped', PALETTE_PLASTIC)}
+`),
+        fisBands: ['B03', 'B04', 'B06', 'B08', 'B11'],
+        fisLogic: `
+  let fdi = sample.B08 - (sample.B06 + (sample.B11 - sample.B06) * 0.5);
+  let ndvi = (sample.B08 - sample.B04) / (sample.B08 + sample.B04);
+  let vegReject = 1.0 - Math.max(0.0, ndvi);
+  let water = sample.B03 > sample.B11 ? 1.0 : 0.0;
+  return [water * Math.max(0.0, fdi) * vegReject];
+`
+    },
+    ttapi: {
+        name: 'Thermokarst Thaw & Anoxic Peat Index (TT-API)',
+        sensor: 'Sentinel-2 L2A',
+        temporal: 'Persistent',
+        min: 'Stable Tundra', max: 'Thaw-Risk Anomaly',
+        gradient: 'linear-gradient(to right, #111018, #6fc9dc, #b695e8, #d9864f, #e2665a)',
+        formula: 'Bare Soil Index × Wet Peat Darkening (NDMI × low Blue)',
+        info: 'Arctic permafrost carbon risk mapping. Targets the collapse of tundra edges and expansion of wet, anoxic peatlands consistent with thermokarst slumping in high-latitude regions.',
+        diffLabels: ['Tundra Stabilization', 'Thaw Expansion'],
+        evalscript: genEvalscript(['B02', 'B04', 'B08', 'B11', 'B8A'], `
+  if (sample.dataMask === 0) return [0,0,0,0];
+  let ndmi = (sample.B8A - sample.B11) / (sample.B8A + sample.B11);
+  let bsi = ((sample.B11 + sample.B04) - (sample.B08 + sample.B02)) / ((sample.B11 + sample.B04) + (sample.B08 + sample.B02));
+  let darkWet = Math.max(0.0, ndmi) * Math.max(0.0, 0.25 - sample.B02);
+  let score = Math.max(0, bsi + 0.15) * darkWet;
+  let mapped = Math.min(1.0, score * 18.0);
+  ${colorBlend('mapped', PALETTE_PERMAFROST)}
+`),
+        fisBands: ['B02', 'B04', 'B08', 'B11', 'B8A'],
+        fisLogic: `
+  let ndmi = (sample.B8A - sample.B11) / (sample.B8A + sample.B11);
+  let bsi = ((sample.B11 + sample.B04) - (sample.B08 + sample.B02)) / ((sample.B11 + sample.B04) + (sample.B08 + sample.B02));
+  let darkWet = Math.max(0.0, ndmi) * Math.max(0.0, 0.25 - sample.B02);
+  return [Math.max(0, bsi + 0.15) * darkWet];
+`
+    },
+    ecaci: {
+        name: 'Evapotranspirative Canopy & Asphalt Contrast Index (EC-ACI)',
+        sensor: 'Sentinel-2 L2A',
+        temporal: 'Persistent',
+        min: 'Cool Shelter', max: 'Extreme Urban Heat',
+        gradient: 'linear-gradient(to right, #181515, #8ecf80, #e6b450, #d9864f, #e2665a)',
+        formula: 'Impervious NDBI × Shade/Canopy Deficit × Dry Soil MSI',
+        info: 'Urban microclimate shelter screening. Contrasts evapotranspirative tree canopy presence against dry, dark asphalt exposure at 10m scale to identify neighborhoods lacking vital cooling corridors.',
+        diffLabels: ['Shelter Expansion', 'Heat Vulnerability Gain'],
+        evalscript: genEvalscript(['B04', 'B08', 'B11', 'B8A'], `
+  if (sample.dataMask === 0) return [0,0,0,0];
+  let ndbi = (sample.B11 - sample.B08) / (sample.B11 + sample.B08);
+  let ndmi = (sample.B8A - sample.B11) / (sample.B8A + sample.B11);
+  let ndvi = (sample.B08 - sample.B04) / (sample.B08 + sample.B04);
+  let canopyAbsence = Math.max(0.0, 0.5 - ndvi);
+  let score = Math.max(0.0, ndbi) * canopyAbsence * Math.max(0.0, 0.2 - ndmi);
+  let mapped = Math.min(1.0, score * 15.0);
+  ${colorBlend('mapped', PALETTE_SHELTER)}
+`),
+        fisBands: ['B04', 'B08', 'B11', 'B8A'],
+        fisLogic: `
+  let ndbi = (sample.B11 - sample.B08) / (sample.B11 + sample.B08);
+  let ndmi = (sample.B8A - sample.B11) / (sample.B8A + sample.B11);
+  let ndvi = (sample.B08 - sample.B04) / (sample.B08 + sample.B04);
+  let canopyAbsence = Math.max(0.0, 0.5 - ndvi);
+  return [Math.max(0.0, ndbi) * canopyAbsence * Math.max(0.0, 0.2 - ndmi)];
+`
+    },
+    lrdvsi: {
+        name: 'Landfill Leachate & Runoff Degradation Vegetation Index (LRD-VSI)',
+        sensor: 'Sentinel-2 L2A',
+        temporal: 'Persistent',
+        min: 'Healthy Boundary', max: 'Leachate Runoff Stress',
+        gradient: 'linear-gradient(to right, #12170f, #8ecf80, #e6b450, #d9864f, #e2665a)',
+        formula: 'Red Edge Vitality Loss × Canopy Moisture Loss × Chlorosis',
+        info: 'Wastewater vegetation stress tracking. Screens for chlorosis (loss of chlorophyll greenness) and desiccation (moisture decline) immediately downslope of landfill boundaries where chemical runoff may impact vegetation.',
+        diffLabels: ['Vegetation Recovery', 'Leachate Stress Gain'],
+        evalscript: genEvalscript(['B03', 'B04', 'B05', 'B8A', 'B11'], `
+  if (sample.dataMask === 0) return [0,0,0,0];
+  let ndre = (sample.B8A - sample.B05) / (sample.B8A + sample.B05);
+  let ndmi = (sample.B8A - sample.B11) / (sample.B8A + sample.B11);
+  let chlorosis = Math.max(0.0, sample.B03 - sample.B04);
+  let score = Math.max(0.0, 0.3 - ndre) * Math.max(0.0, 0.2 - ndmi) * chlorosis;
+  let mapped = Math.min(1.0, score * 25.0);
+  ${colorBlend('mapped', PALETTE_LEACHATE)}
+`),
+        fisBands: ['B03', 'B04', 'B05', 'B8A', 'B11'],
+        fisLogic: `
+  let ndre = (sample.B8A - sample.B05) / (sample.B8A + sample.B05);
+  let ndmi = (sample.B8A - sample.B11) / (sample.B8A + sample.B11);
+  let chlorosis = Math.max(0.0, sample.B03 - sample.B04);
+  return [Math.max(0.0, 0.3 - ndre) * Math.max(0.0, 0.2 - ndmi) * chlorosis];
+`
+    },
+    tdrasi: {
+        name: 'Tailings Dam Runout & Acid Silt Index (TDR-ASI)',
+        sensor: 'Sentinel-2 L2A',
+        temporal: 'Persistent',
+        min: 'Background', max: 'Acid Silt/Iron Anomaly',
+        gradient: 'linear-gradient(to right, #111418, #e6b450, #d9864f, #e2665a)',
+        formula: 'Ferric Orange (Red/Blue) × Suspended Silt × SWIR Sulfate',
+        info: 'Mining runout monitoring. Targets ferric iron orange staining, heavy suspended silts, and sulfate/clay spectral signatures in drainage pathways downslope of active mining dams.',
+        diffLabels: ['Plume Clearance', 'Active Runout Event'],
+        evalscript: genEvalscript(['B02', 'B03', 'B04', 'B11', 'B12'], `
+  if (sample.dataMask === 0 || sample.B02 === 0) return [0,0,0,0];
+  let ferric = sample.B04 / sample.B02;
+  let silt = (sample.B04 - sample.B03) / (sample.B04 + sample.B03);
+  let swirSulfate = sample.B11 / Math.max(sample.B12, 0.001);
+  let score = Math.max(0.0, ferric - 1.2) * Math.max(0.0, silt) * swirSulfate;
+  let mapped = Math.min(1.0, score * 6.0);
+  ${colorBlend('mapped', PALETTE_ACID_MINE)}
+`),
+        fisBands: ['B02', 'B03', 'B04', 'B11', 'B12'],
+        fisLogic: `
+  if (sample.B02 === 0) return [0];
+  let ferric = sample.B04 / sample.B02;
+  let silt = (sample.B04 - sample.B03) / (sample.B04 + sample.B03);
+  let swirSulfate = sample.B11 / Math.max(sample.B12, 0.001);
+  return [Math.max(0.0, ferric - 1.2) * Math.max(0.0, silt) * swirSulfate];
+`
+    },
+    sfeii: {
+        name: 'Wildfire Fuel Hazard & Canopy Dehydration Index (SF-EII)',
+        sensor: 'Sentinel-2 L2A',
+        temporal: 'Persistent',
+        min: 'Low Fuel Risk', max: 'Tinderbox / Dehydrated',
+        gradient: 'linear-gradient(to right, #13170f, #8ecf80, #e6b450, #d9864f, #e2665a)',
+        formula: 'Biomass Load (NDVI) × Canopy Moisture Loss × Red Edge Stress',
+        info: 'Pre-wildfire fuel hazard mapping. Identifies zones with dense, dry, tinderbox vegetation where structural fuel load is fully intact but canopy water is critically low, suggesting rapid ignition readiness.',
+        diffLabels: ['Fuel De-escalation', 'Fuel Drying / Critical Stress'],
+        evalscript: genEvalscript(['B04', 'B05', 'B08', 'B8A', 'B11'], `
+  if (sample.dataMask === 0) return [0,0,0,0];
+  let ndvi = (sample.B08 - sample.B04) / (sample.B08 + sample.B04);
+  let ndmi = (sample.B8A - sample.B11) / (sample.B8A + sample.B11);
+  let ndre = (sample.B8A - sample.B05) / (sample.B8A + sample.B05);
+  let fuel = Math.max(0.0, ndvi - 0.35);
+  let score = fuel * Math.max(0, 0.3 - ndmi) * Math.max(0, 0.3 - ndre);
+  let mapped = Math.min(1.0, score * 15.0);
+  ${colorBlend('mapped', PALETTE_FUEL)}
+`),
+        fisBands: ['B04', 'B05', 'B08', 'B8A', 'B11'],
+        fisLogic: `
+  let ndvi = (sample.B08 - sample.B04) / (sample.B08 + sample.B04);
+  let ndmi = (sample.B8A - sample.B11) / (sample.B8A + sample.B11);
+  let ndre = (sample.B8A - sample.B05) / (sample.B8A + sample.B05);
+  let fuel = Math.max(0.0, ndvi - 0.35);
+  return [fuel * Math.max(0, 0.3 - ndmi) * Math.max(0, 0.3 - ndre)];
+`
+    },
+    wdacsi: {
+        name: 'Wetland Encroachment & Agricultural Intrusion Composite (WDA-CSI)',
+        sensor: 'Sentinel-2 L2A',
+        temporal: 'Persistent',
+        min: 'Stable Hydrology', max: 'Intrusion Pressure',
+        gradient: 'linear-gradient(to right, #0d1d1d, #6fc9dc, #8ecf80, #e6b450, #e2665a)',
+        formula: 'Wetland Water Loss × Crop Nitrogen-Green Spike × Bare Drainage Line',
+        info: 'Protected wetland conflict screening. Identifies agricultural drainage canals and nitrogen-rich crop encroachment directly breaching protected wetland ecosystems.',
+        diffLabels: ['Wetland Recovery', 'Encroachment Pressure Gain'],
+        evalscript: genEvalscript(['B02', 'B03', 'B04', 'B08', 'B11'], `
+  if (sample.dataMask === 0) return [0,0,0,0];
+  let ndvi = (sample.B08 - sample.B04) / (sample.B08 + sample.B04);
+  let mndwi = (sample.B03 - sample.B11) / (sample.B03 + sample.B11);
+  let bsi = ((sample.B11 + sample.B04) - (sample.B08 + sample.B02)) / ((sample.B11 + sample.B04) + (sample.B08 + sample.B02));
+  let cropSpike = Math.max(0.0, ndvi - 0.25);
+  let score = Math.max(0, 0.3 - mndwi) * cropSpike * Math.max(0.0, bsi);
+  let mapped = Math.min(1.0, score * 12.0);
+  ${colorBlend('mapped', PALETTE_WETLAND)}
+`),
+        fisBands: ['B02', 'B03', 'B04', 'B08', 'B11'],
+        fisLogic: `
+  let ndvi = (sample.B08 - sample.B04) / (sample.B08 + sample.B04);
+  let mndwi = (sample.B03 - sample.B11) / (sample.B03 + sample.B11);
+  let bsi = ((sample.B11 + sample.B04) - (sample.B08 + sample.B02)) / ((sample.B11 + sample.B04) + (sample.B08 + sample.B02));
+  let cropSpike = Math.max(0.0, ndvi - 0.25);
+  return [Math.max(0, 0.3 - mndwi) * cropSpike * Math.max(0.0, bsi)];
+`
+    },
+    cduai: {
+        name: 'Coastal Dredging & Marine Siltation Plume Index (CD-UAI)',
+        sensor: 'Sentinel-2 L2A',
+        temporal: 'Live',
+        min: 'Clear Water', max: 'Dense Silt Plume',
+        gradient: 'linear-gradient(to right, #0d1720, #6fc9dc, #bcae65, #d9864f, #e2665a)',
+        formula: 'Shallow Water Mask × Green-Red Silt Plume × SWIR Cloud Reject',
+        info: 'Coastal plume tracking. Captures dredging-induced sediment suspension and river-borne runoff plumes adjacent to sensitive benthic systems (reefs, seagrasses) while filtering clouds.',
+        diffLabels: ['Water Clears', 'Plume Expansion'],
+        evalscript: genEvalscript(['B02', 'B03', 'B04', 'B11'], `
+  if (sample.dataMask === 0) return [0,0,0,0];
+  let ndti = (sample.B04 - sample.B03) / (sample.B04 + sample.B03);
+  let shallowWater = sample.B02 > sample.B11 ? 1.0 : 0.0;
+  let cloudReject = 1.0 - Math.max(0.0, sample.B11 - 0.12);
+  let score = shallowWater * Math.max(0.0, ndti) * cloudReject;
+  let mapped = Math.min(1.0, score * 15.0);
+  ${colorBlend('mapped', PALETTE_SILT)}
+`),
+        fisBands: ['B02', 'B03', 'B04', 'B11'],
+        fisLogic: `
+  let ndti = (sample.B04 - sample.B03) / (sample.B04 + sample.B03);
+  let shallowWater = sample.B02 > sample.B11 ? 1.0 : 0.0;
+  let cloudReject = 1.0 - Math.max(0.0, sample.B11 - 0.12);
+  return [shallowWater * Math.max(0.0, ndti) * cloudReject];
+`
+    },
+    csrc: {
+        name: 'Cyanotoxin Scum Risk Composite (CSRC)',
+        sensor: 'Sentinel-2 L2A',
+        temporal: 'Live',
+        min: 'Clean Water', max: 'Surface Scum Risk',
+        gradient: 'linear-gradient(to right, #0d2227, #6fc9dc, #8ecf80, #e6b450, #e2665a)',
+        formula: 'Water Mask × Chlorophyll NDCI × NIR Scum Boost × Confounder Reject',
+        info: 'Small-water public health triage. Combines cyanobacteria chlorophyll response (NDCI) with an active NIR floating-scum boost, while filtering out heavy inorganic turbidity and land.',
+        diffLabels: ['Scum Clears', 'Scum Accumulation'],
+        evalscript: genEvalscript(['B03', 'B04', 'B05', 'B08', 'B11'], `
+  if (sample.dataMask === 0) return [0,0,0,0];
+  let ndci = (sample.B05 - sample.B04) / (sample.B05 + sample.B04);
+  let water = sample.B03 > sample.B11 ? 1.0 : 0.0;
+  let scum = Math.max(0.0, sample.B08 - sample.B04);
+  let turbidityReject = 1.0 - Math.min(1.0, Math.max(0.0, sample.B04 - sample.B03) * 4.0);
+  let score = water * ndci * scum * turbidityReject;
+  let mapped = Math.min(1.0, score * 20.0);
+  ${colorBlend('mapped', PALETTE_SCUM)}
+`),
+        fisBands: ['B03', 'B04', 'B05', 'B08', 'B11'],
+        fisLogic: `
+  let ndci = (sample.B05 - sample.B04) / (sample.B05 + sample.B04);
+  let water = sample.B03 > sample.B11 ? 1.0 : 0.0;
+  let scum = Math.max(0.0, sample.B08 - sample.B04);
+  let turbidityReject = 1.0 - Math.min(1.0, Math.max(0.0, sample.B04 - sample.B03) * 4.0);
+  return [water * ndci * scum * turbidityReject];
+`
+    },
+    trsi: {
+        name: 'Tailings River Shock Index (TRSI)',
+        sensor: 'Sentinel-2 L2A',
+        temporal: 'Live',
+        min: 'Background', max: 'Chemical Turbidity Shock',
+        gradient: 'linear-gradient(to right, #101418, #6fc9dc, #e6b450, #d9864f, #e2665a)',
+        formula: 'Water Mask × Turbidity Shock (NDTI) × Ferric Color Shift',
+        info: 'Mining emergency screening. Designed as an alarm to detect downstream chemical-looking river shock following tailings dam collapses or wastewater spills, contrasting mine-colored runoff from clean baseline.',
+        diffLabels: ['River Clears', 'Discharge Shock Gain'],
+        evalscript: genEvalscript(['B02', 'B03', 'B04', 'B11'], `
+  if (sample.dataMask === 0) return [0,0,0,0];
+  let ndti = (sample.B04 - sample.B03) / (sample.B04 + sample.B03);
+  let ferric = sample.B04 / Math.max(sample.B02, 0.001);
+  let water = sample.B03 > sample.B11 ? 1.0 : 0.0;
+  let shock = Math.max(0.0, ndti - 0.05);
+  let score = water * shock * Math.max(0.0, ferric - 1.3);
+  let mapped = Math.min(1.0, score * 12.0);
+  ${colorBlend('mapped', PALETTE_RIVER_SHOCK)}
+`),
+        fisBands: ['B02', 'B03', 'B04', 'B11'],
+        fisLogic: `
+  let ndti = (sample.B04 - sample.B03) / (sample.B04 + sample.B03);
+  let ferric = sample.B04 / Math.max(sample.B02, 0.001);
+  let water = sample.B03 > sample.B11 ? 1.0 : 0.0;
+  let shock = Math.max(0.0, ndti - 0.05);
+  return [water * shock * Math.max(0.0, ferric - 1.3)];
+`
+    },
+    lfgvi: {
+        name: 'Landfill Gas Vegetation Intrusion Index (LFGVI)',
+        sensor: 'Sentinel-2 L2A',
+        temporal: 'Persistent',
+        min: 'Stable Boundary', max: 'Intrusive Stress Anomaly',
+        gradient: 'linear-gradient(to right, #15160f, #8ecf80, #e6b450, #c87f4f, #e2665a)',
+        formula: 'Radial Red-Edge Decline × Canopy Moisture Loss × Chlorosis',
+        info: 'Radial screening tool for identifying early stress or dying vegetation in rings surrounding known landfill borders, consistent with subsurface landfill gas migration.',
+        diffLabels: ['Boundary Recovery', 'Escalating Gas/Leachate Stress'],
+        evalscript: genEvalscript(['B03', 'B04', 'B05', 'B8A', 'B11'], `
+  if (sample.dataMask === 0) return [0,0,0,0];
+  let ndre = (sample.B8A - sample.B05) / (sample.B8A + sample.B05);
+  let ndmi = (sample.B8A - sample.B11) / (sample.B8A + sample.B11);
+  let chlorosis = Math.max(0.0, sample.B03 - sample.B04);
+  let stress = Math.max(0.0, 0.35 - ndre) * Math.max(0.0, 0.2 - ndmi);
+  let score = stress * chlorosis;
+  let mapped = Math.min(1.0, score * 25.0);
+  ${colorBlend('mapped', PALETTE_LFG)}
+`),
+        fisBands: ['B03', 'B04', 'B05', 'B8A', 'B11'],
+        fisLogic: `
+  let ndre = (sample.B8A - sample.B05) / (sample.B8A + sample.B05);
+  let ndmi = (sample.B8A - sample.B11) / (sample.B8A + sample.B11);
+  let chlorosis = Math.max(0.0, sample.B03 - sample.B04);
+  let stress = Math.max(0.0, 0.35 - ndre) * Math.max(0.0, 0.2 - ndmi);
+  return [stress * chlorosis];
+`
+    },
+    swri: {
+        name: 'Sewage-Water Release Index (SWRI)',
+        sensor: 'Sentinel-2 L2A',
+        temporal: 'Live',
+        min: 'Background', max: 'Suspicious Discharge Anomaly',
+        gradient: 'linear-gradient(to right, #15130f, #6fc9dc, #8ecf80, #a9a15c, #e2665a)',
+        formula: 'Water Mask × Turbidity Shock × Organic Bloom Proxy',
+        info: 'Civic sanitation screening. Isolates suspicious wastewater or sewer overflow releases in urban channels and canals, differentiating them from clean or ordinary muddy runoff.',
+        diffLabels: ['Plume Dispersal', 'Active Sewage Discharge'],
+        evalscript: genEvalscript(['B03', 'B04', 'B05', 'B11'], `
+  if (sample.dataMask === 0) return [0,0,0,0];
+  let ndti = (sample.B04 - sample.B03) / (sample.B04 + sample.B03);
+  let organic = Math.max(0.0, (sample.B05 - sample.B04) / (sample.B05 + sample.B04));
+  let water = sample.B03 > sample.B11 ? 1.0 : 0.0;
+  let shock = Math.max(0.0, ndti - 0.05);
+  let score = water * shock * organic;
+  let mapped = Math.min(1.0, score * 15.0);
+  ${colorBlend('mapped', PALETTE_SEWAGE)}
+`),
+        fisBands: ['B03', 'B04', 'B05', 'B11'],
+        fisLogic: `
+  let ndti = (sample.B04 - sample.B03) / (sample.B04 + sample.B03);
+  let organic = Math.max(0.0, (sample.B05 - sample.B04) / (sample.B05 + sample.B04));
+  let water = sample.B03 > sample.B11 ? 1.0 : 0.0;
+  let shock = Math.max(0.0, ndti - 0.05);
+  return [water * shock * organic];
+`
+    },
+    dwci: {
+        name: 'Drinking Water Catchment Injury Index (DWCI)',
+        sensor: 'Sentinel-2 L2A',
+        temporal: 'Persistent',
+        min: 'Healthy Catchment', max: 'Catchment Vulnerability',
+        gradient: 'linear-gradient(to right, #121d1d, #6fc9dc, #8ecf80, #e6b450, #e2665a)',
+        formula: 'Catchment Bare Soil (BSI) × Riparian Loss × Reservoir Turbidity',
+        info: 'Source water protection. Links upstream landscape damage (forest fire scars, stripping, road erosion) directly to downstream reservoir turbidity increases to flag water-utility vulnerability.',
+        diffLabels: ['Catchment Stabilization', 'Vulnerability Escalation'],
+        evalscript: genEvalscript(['B02', 'B03', 'B04', 'B08', 'B11'], `
+  if (sample.dataMask === 0) return [0,0,0,0];
+  let bsi = ((sample.B11 + sample.B04) - (sample.B08 + sample.B02)) / ((sample.B11 + sample.B04) + (sample.B08 + sample.B02));
+  let ndvi = (sample.B08 - sample.B04) / (sample.B08 + sample.B04);
+  let ndti = (sample.B04 - sample.B03) / (sample.B04 + sample.B03);
+  let score = Math.max(0.0, bsi + 0.1) * Math.max(0.0, 0.4 - ndvi) * Math.max(0.0, ndti);
+  let mapped = Math.min(1.0, score * 20.0);
+  ${colorBlend('mapped', PALETTE_CATCHMENT)}
+`),
+        fisBands: ['B02', 'B03', 'B04', 'B08', 'B11'],
+        fisLogic: `
+  let bsi = ((sample.B11 + sample.B04) - (sample.B08 + sample.B02)) / ((sample.B11 + sample.B04) + (sample.B08 + sample.B02));
+  let ndvi = (sample.B08 - sample.B04) / (sample.B08 + sample.B04);
+  let ndti = (sample.B04 - sample.B03) / (sample.B04 + sample.B03);
+  return [Math.max(0.0, bsi + 0.1) * Math.max(0.0, 0.4 - ndvi) * Math.max(0.0, ndti)];
+`
+    },
+    rrfi: {
+        name: 'Riparian Refuge Failure Index (RRFI)',
+        sensor: 'Sentinel-2 L2A',
+        temporal: 'Persistent',
+        min: 'Stable Refuge', max: 'Ecological Collapse',
+        gradient: 'linear-gradient(to right, #16170f, #8ecf80, #e6b450, #d9864f, #e2665a)',
+        formula: 'Riparian Canopy Moisture loss × Channel Water loss × Bare Bank Growth',
+        info: 'Drought ecology monitoring. Memorable warning score mapping the structural failure of riverbank vegetation refuges during extreme heat and channel water contraction.',
+        diffLabels: ['Riparian Recovery', 'Riparian Refuge Stress'],
+        evalscript: genEvalscript(['B03', 'B04', 'B05', 'B8A', 'B11'], `
+  if (sample.dataMask === 0) return [0,0,0,0];
+  let ndmi = (sample.B8A - sample.B11) / (sample.B8A + sample.B11);
+  let ndre = (sample.B8A - sample.B05) / (sample.B8A + sample.B05);
+  let mndwi = (sample.B03 - sample.B11) / (sample.B03 + sample.B11);
+  let bsi = ((sample.B11 + sample.B04) - (sample.B08 + sample.B02)) / ((sample.B11 + sample.B04) + (sample.B08 + sample.B02));
+  let score = Math.max(0, 0.3 - ndmi) * Math.max(0, 0.3 - ndre) * Math.max(0, 0.3 - mndwi) * Math.max(0, bsi + 0.1);
+  let mapped = Math.min(1.0, score * 30.0);
+  ${colorBlend('mapped', PALETTE_REFUGE)}
+`),
+        fisBands: ['B03', 'B04', 'B05', 'B8A', 'B11'],
+        fisLogic: `
+  let ndmi = (sample.B8A - sample.B11) / (sample.B8A + sample.B11);
+  let ndre = (sample.B8A - sample.B05) / (sample.B8A + sample.B05);
+  let mndwi = (sample.B03 - sample.B11) / (sample.B03 + sample.B11);
+  let bsi = ((sample.B11 + sample.B04) - (sample.B08 + sample.B02)) / ((sample.B11 + sample.B04) + (sample.B08 + sample.B02));
+  return [Math.max(0, 0.3 - ndmi) * Math.max(0, 0.3 - ndre) * Math.max(0, 0.3 - mndwi) * Math.max(0, bsi + 0.1)];
+`
+    },
+    epdi: {
+        name: 'Erosion Pulse Delivery Index (EPDI)',
+        sensor: 'Sentinel-2 L2A',
+        temporal: 'Persistent',
+        min: 'Background', max: 'Active Sediment Delivery',
+        gradient: 'linear-gradient(to right, #17130f, #6fc9dc, #bcae65, #d9864f, #e2665a)',
+        formula: 'Slope Disturbance (BSI) × Downstream Channel Turbidity',
+        info: 'Storm sediment delivery tracking. Links newly exposed bare slopes directly to downstream river suspended sediment pulses to map dynamic storm runoff linkages.',
+        diffLabels: ['Sediment Clearance', 'Active Sediment Pulse'],
+        evalscript: genEvalscript(['B02', 'B03', 'B04', 'B08', 'B11'], `
+  if (sample.dataMask === 0) return [0,0,0,0];
+  let bsi = ((sample.B11 + sample.B04) - (sample.B08 + sample.B02)) / ((sample.B11 + sample.B04) + (sample.B08 + sample.B02));
+  let ndti = (sample.B04 - sample.B03) / (sample.B04 + sample.B03);
+  let ndvi = (sample.B08 - sample.B04) / (sample.B08 + sample.B04);
+  let riparianBreak = Math.max(0.0, 0.5 - ndvi);
+  let score = Math.max(0, bsi + 0.1) * Math.max(0, ndti) * riparianBreak;
+  let mapped = Math.min(1.0, score * 20.0);
+  ${colorBlend('mapped', PALETTE_EROSION)}
+`),
+        fisBands: ['B02', 'B03', 'B04', 'B08', 'B11'],
+        fisLogic: `
+  let bsi = ((sample.B11 + sample.B04) - (sample.B08 + sample.B02)) / ((sample.B11 + sample.B04) + (sample.B08 + sample.B02));
+  let ndti = (sample.B04 - sample.B03) / (sample.B04 + sample.B03);
+  let ndvi = (sample.B08 - sample.B04) / (sample.B08 + sample.B04);
+  let riparianBreak = Math.max(0.0, 0.5 - ndvi);
+  return [Math.max(0, bsi + 0.1) * Math.max(0, ndti) * riparianBreak];
+`
+    },
+    hsai: {
+        name: 'Heat-Shelter Absence Index (HSAI)',
+        sensor: 'Sentinel-2 L2A',
+        temporal: 'Persistent',
+        min: 'Adequate Shelter', max: 'Severe Shelter Absence',
+        gradient: 'linear-gradient(to right, #181515, #6fc9dc, #e6b450, #d9864f, #e2665a)',
+        formula: 'Impervious NDBI × Shade/Canopy Deficit × Canopy Moisture Stress',
+        info: 'Urban vulnerability mapping. Highlights areas of critical urban vulnerability where absolute shade is absent, concrete exposure is high, and surviving vegetation is moisture-stressed.',
+        diffLabels: ['Shelter Expansion', 'Vulnerability Gain'],
+        evalscript: genEvalscript(['B04', 'B08', 'B11', 'B8A'], `
+  if (sample.dataMask === 0) return [0,0,0,0];
+  let ndbi = (sample.B11 - sample.B08) / (sample.B11 + sample.B08);
+  let ndvi = (sample.B08 - sample.B04) / (sample.B08 + sample.B04);
+  let msi = sample.B11 / Math.max(sample.B8A, 0.001);
+  let shadeAbsence = Math.max(0.0, 0.45 - ndvi);
+  let score = Math.max(0.0, ndbi) * shadeAbsence * Math.max(0.0, msi - 1.0);
+  let mapped = Math.min(1.0, score * 15.0);
+  ${colorBlend('mapped', PALETTE_HEAT_VULN)}
+`),
+        fisBands: ['B04', 'B08', 'B11', 'B8A'],
+        fisLogic: `
+  let ndbi = (sample.B11 - sample.B08) / (sample.B11 + sample.B08);
+  let ndvi = (sample.B08 - sample.B04) / (sample.B08 + sample.B04);
+  let msi = sample.B11 / Math.max(sample.B8A, 0.001);
+  let shadeAbsence = Math.max(0.0, 0.45 - ndvi);
+  return [Math.max(0.0, ndbi) * shadeAbsence * Math.max(0.0, msi - 1.0)];
+`
     }
 };
 
@@ -1288,7 +1798,25 @@ export const HIGHLIGHT_THRESHOLDS = {
     vsi:  0.10,   // Proxy
     scri: 0.10,   // Proxy
     tri:  0.08,   // Proxy
-    bpi:  0.08    // Proxy
+    bpi:  0.08,    // Proxy
+    bhdfsi: 0.10,
+    peti: 0.08,
+    mppdi: 0.08,
+    ttapi: 0.10,
+    ecaci: 0.08,
+    lrdvsi: 0.08,
+    tdrasi: 0.10,
+    sfeii: 0.08,
+    wdacsi: 0.08,
+    cduai: 0.08,
+    csrc: 0.08,
+    trsi: 0.08,
+    lfgvi: 0.08,
+    swri: 0.08,
+    dwci: 0.08,
+    rrfi: 0.08,
+    epdi: 0.08,
+    hsai: 0.08
 };
 
 export const CHART_COLORS = {
@@ -1299,7 +1827,12 @@ export const CHART_COLORS = {
     tc: '#FFFFFF', fc: '#FF0000', si: '#00FFFF', csi: '#8B4513',
     hmri: '#808080', ndoi: '#000000', crsi: '#FF5555', aoi: '#5555FF',
     ehc: '#333333', reai: '#FF0055', vcbi: '#AA0000', cma: '#AA88AA',
-    phi: '#FF00FF', hmi: '#444444', pwoi: '#8C00FF'
+    phi: '#FF00FF', hmi: '#444444', pwoi: '#8C00FF',
+    bhdfsi: '#d9864f', peti: '#8ecf80', mppdi: '#6fc9dc', ttapi: '#b695e8',
+    ecaci: '#e6b450', lrdvsi: '#a8cf73', tdrasi: '#e2665a', sfeii: '#e6b450',
+    wdacsi: '#6fc9dc', cduai: '#6fc9dc', csrc: '#8ecf80', trsi: '#e2665a',
+    lfgvi: '#e6b450', swri: '#6fc9dc', dwci: '#88bde6', rrfi: '#a8cf73',
+    epdi: '#d9864f', hsai: '#e2665a'
 };
 
 export function getHighlightScript(indexKey, hexColor, chartValue, includeContext = false, activeBasin = 'permian') {
@@ -1411,7 +1944,25 @@ export function getShortIndexName(indexKey) {
         reai: 'REAI',
         aoi: 'AOI',
         tc: 'True Color',
-        fc: 'False Color'
+        fc: 'False Color',
+        bhdfsi: 'BH-DFSI',
+        peti: 'PETI',
+        mppdi: 'MP-PDI',
+        ttapi: 'TT-API',
+        ecaci: 'EC-ACI',
+        lrdvsi: 'LR-DVSI',
+        tdrasi: 'TD-RASI',
+        sfeii: 'SFEII',
+        wdacsi: 'WDA-CSI',
+        cduai: 'CD-UAI',
+        csrc: 'CSRC',
+        trsi: 'TRSI',
+        lfgvi: 'LFG-VI',
+        swri: 'SWRI',
+        dwci: 'DWCI',
+        rrfi: 'RRFI',
+        epdi: 'EPDI',
+        hsai: 'HSAI'
     };
     return mapping[indexKey.toLowerCase()] || indexKey.toUpperCase();
 }

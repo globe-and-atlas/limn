@@ -637,6 +637,176 @@
             boundary.<sup><a href="#fn6">6</a></sup><sup><a href="#fn1">1</a></sup></p>
     </div>
 
+    <!-- ══════════════════════════════════════════════════════
+         SECTION 2.5: CIVIC ATLAS & ECOLOGICAL COMPOSITES
+         ══════════════════════════════════════════════════════ -->
+    <h2>2.5. Civic & Ecological Composites (Civic Atlas)</h2>
+    <p style="color: var(--text-dim); font-size: 0.9em; margin-top: -10px; line-height: 1.5;">
+        Conceived, designed, and calibrated by <strong>Daniel Bally (Globe &amp; Atlas, 2025–2026)</strong> for public-good environmental screening and localized emergency triage. Each composite combines multi-gate Sentinel-2 L2A optical and structural indicators to isolate localized ecological hazards. Complete authorship boundaries, claim strengths, ownable IP details, and prior art limitations are documented below for each composite to support defensible scientific publication.
+    </p>
+
+    <div class="index-card">
+        <h3><span>BH-DFSI — Burnt Hillside Debris-Flow Susceptibility Index ✧</span>
+            <span class="temporal-badge temporal-persistent">Persistent</span>
+            <span class="formula fusion-badge">Burn Severity × Bare Slope Gain × Canopy Root Loss</span>
+        </h3>
+        <p><strong>Mechanisms &amp; Utility:</strong> Pyro-hydrological hazard triage. Combines burn severity (dNBR proxy), exposed soils (BSI), and green canopy loss (NDVI decline) to map steep slopes vulnerable to rainfall-triggered debris flows and mudslides after wildfires.</p>
+        <p><strong>Authorship &amp; IP Boundary:</strong> <em>Strong workflow claim (High strength).</em> You can claim BH-DFSI as your named post-fire debris-flow triage workflow that combines burn severity change, bare-slope gain, root/canopy loss, drainage context, and rainfall-readiness into one civic inspection score. Prior art includes NBR/dNBR (Key &amp; Benson, 2006) and BSI (Rikimaru et al., 2002). The novelty is the packaged decision logic and civic triage framing, not the individual spectral ingredients.</p>
+    </div>
+
+    <div class="index-card">
+        <h3><span>PETI — Phycocyanin Eutrophication Toxicity Index ✧</span>
+            <span class="temporal-badge temporal-live">Live</span>
+            <span class="formula fusion-badge">Water Mask × Red Edge Bloom Slope × Chlorophyll Excess</span>
+        </h3>
+        <p><strong>Mechanisms &amp; Utility:</strong> Virtual phycocyanin decision proxy. Over water pixels, uses red and red-edge spectral slope to isolate phycocyanin-like signature of heavy cyanobacteria blooms without requiring a dedicated phycocyanin sensor band.</p>
+        <p><strong>Authorship &amp; IP Boundary:</strong> <em>Careful proxy claim (Medium strength).</em> You can claim PETI as your Sentinel-2 virtual-phycocyanin decision proxy that uses red/red-edge behavior with turbidity and persistence gates for freshwater bloom triage. Prior art includes NDCI (Mishra &amp; Mishra, 2012) and general red-edge algal bloom science. The authorship sits in the honest proxy framing and gate logic for sensors without a true phycocyanin band.</p>
+    </div>
+
+    <div class="index-card">
+        <h3><span>MP-PDI — Marine Plastisphere &amp; Polymer Differentiation Index ✧</span>
+            <span class="temporal-badge temporal-live">Live</span>
+            <span class="formula fusion-badge">Water Mask × Floating Debris FDI × Veg Reject</span>
+        </h3>
+        <p><strong>Mechanisms &amp; Utility:</strong> Floating marine debris screening. Highlights polymer-like floating debris and plastics on the ocean surface while utilizing explicit rejection gates for false positives like Sargassum and organic foam.</p>
+        <p><strong>Authorship &amp; IP Boundary:</strong> <em>Strong rejection-gate claim (High strength).</em> You can claim MP-PDI as your polymer-selective floating-debris screening workflow that pairs debris brightness with explicit Sargassum, vegetation, foam, and turbidity rejection gates. Prior art includes FDI (Biermann et al., 2020) and general plastic marine litter remote sensing. The claimable piece is the operational differentiation workflow: polymer-like debris versus common floating false positives.</p>
+    </div>
+
+    <div class="index-card">
+        <h3><span>TT-API — Thermokarst Thaw &amp; Anoxic Peat Index ✧</span>
+            <span class="temporal-badge temporal-persistent">Persistent</span>
+            <span class="formula fusion-badge">Bare Soil Index × Wet Peat Darkening (NDMI × low Blue)</span>
+        </h3>
+        <p><strong>Mechanisms &amp; Utility:</strong> Arctic permafrost carbon risk mapping. Targets the collapse of tundra edges and expansion of wet, anoxic peatlands consistent with thermokarst slumping in high-latitude regions.</p>
+        <p><strong>Authorship &amp; IP Boundary:</strong> <em>Distinct synthesis claim (Medium-High strength).</em> You can claim TT-API as your named Sentinel-2 triage composite linking thaw exposure, wet anoxic peat darkening, vegetation-edge collapse, and expansion behavior. Prior art includes general Arctic permafrost spectral monitoring. The defensible authorship is the combined anoxic-peat thaw-risk framing, especially the refusal to call it methane retrieval.</p>
+    </div>
+
+    <div class="index-card">
+        <h3><span>EC-ACI — Evapotranspirative Canopy &amp; Asphalt Contrast Index ✧</span>
+            <span class="temporal-badge temporal-persistent">Persistent</span>
+            <span class="formula fusion-badge">Impervious NDBI × Shade/Canopy Deficit × Dry Soil MSI</span>
+        </h3>
+        <p><strong>Mechanisms &amp; Utility:</strong> Urban microclimate shelter screening. Contrasts evapotranspirative tree canopy presence against dry, dark asphalt exposure at 10m scale to identify neighborhoods lacking vital cooling corridors.</p>
+        <p><strong>Authorship &amp; IP Boundary:</strong> <em>Framing claim (Medium strength).</em> You can claim EC-ACI as your optical microclimate-shelter contrast score for comparing evapotranspirative canopy presence against dry impervious exposure. Prior art includes NDBI and urban heat island (UHI) remote sensing. Urban heat remote sensing is crowded; your authorship is the 10 m shelter-contrast interpretation and communication layer.</p>
+    </div>
+
+    <div class="index-card">
+        <h3><span>LRD-VSI — Landfill Leachate &amp; Runoff Degradation Vegetation Index ✧</span>
+            <span class="temporal-badge temporal-persistent">Persistent</span>
+            <span class="formula fusion-badge">Red Edge Vitality Loss × Canopy Moisture Loss × Chlorosis</span>
+        </h3>
+        <p><strong>Mechanisms &amp; Utility:</strong> Wastewater vegetation stress tracking. Screens for chlorosis (loss of chlorophyll greenness) and desiccation (moisture decline) immediately downslope of landfill boundaries where chemical runoff may impact vegetation.</p>
+        <p><strong>Authorship &amp; IP Boundary:</strong> <em>Strong boundary-zone claim (High strength).</em> You can claim LRD-VSI as your landfill boundary/downstream vegetation-stress workflow focused on chlorosis, moisture loss, red-edge stress, and persistence near waste sites. Prior art includes general landfill boundary soil and vegetation studies. Do not claim that Sentinel-2 confirms leachate chemistry, detects landfill gas directly, or invents vegetation stress remote sensing. The authorship is the waste-boundary decision product and its explicit caution around causation.</p>
+    </div>
+
+    <div class="index-card">
+        <h3><span>TDR-ASI — Tailings Dam Runout &amp; Acid Silt Index ✧</span>
+            <span class="temporal-badge temporal-persistent">Persistent</span>
+            <span class="formula fusion-badge">Ferric Orange (Red/Blue) × Suspended Silt × SWIR Sulfate</span>
+        </h3>
+        <p><strong>Mechanisms &amp; Utility:</strong> Mining runout monitoring. Targets ferric iron orange staining, heavy suspended silts, and sulfate/clay spectral signatures in drainage pathways downslope of active mining dams.</p>
+        <p><strong>Authorship &amp; IP Boundary:</strong> <em>Operational runout claim (Medium-High strength).</em> You can claim TDR-ASI as your mine-runout acid-silt triage composite that scores ferric color, silt behavior, SWIR mineral/mud context, and downstream persistence. Prior art includes acid mine drainage (AMD) mineral mapping. The claimable move is packaging established spectral signals into a runout-path emergency-screening score.</p>
+    </div>
+
+    <div class="index-card">
+        <h3><span>SF-EII — Wildfire Fuel Hazard &amp; Canopy Dehydration Index ✧</span>
+            <span class="temporal-badge temporal-persistent">Persistent</span>
+            <span class="formula fusion-badge">Biomass Load (NDVI) × Canopy Moisture Loss × Red Edge Stress</span>
+        </h3>
+        <p><strong>Mechanisms &amp; Utility:</strong> Pre-wildfire fuel hazard mapping. Identifies zones with dense, dry, tinderbox vegetation where structural fuel load is fully intact but canopy water is critically low, suggesting rapid ignition readiness.</p>
+        <p><strong>Authorship &amp; IP Boundary:</strong> <em>Framing claim (Medium strength).</em> You can claim SF-EII as your tinderbox-style fuel condition workflow: biomass still present, canopy moisture falling, red-edge vitality weakening, and fuel continuity intact. Prior art includes co-seismic landslide mapping and fuel moisture indices. Do not claim wildfire prediction, live fuel moisture invention, or fire-behavior modeling. The field is mature; your authorship is the plain-language fuel-readiness composite and conservative interpretation.</p>
+    </div>
+
+    <div class="index-card">
+        <h3><span>WDA-CSI — Wetland Encroachment &amp; Agricultural Intrusion Composite ✧</span>
+            <span class="temporal-badge temporal-persistent">Persistent</span>
+            <span class="formula fusion-badge">Wetland Water Loss × Crop Nitrogen-Green Spike × Bare Drainage Line</span>
+        </h3>
+        <p><strong>Mechanisms &amp; Utility:</strong> Protected wetland conflict screening. Identifies agricultural drainage canals and nitrogen-rich crop encroachment directly breaching protected wetland ecosystems.</p>
+        <p><strong>Authorship &amp; IP Boundary:</strong> <em>Decision-framing claim (Medium strength).</em> You can claim WDA-CSI as your wetland-edge conflict composite for screening drainage, water loss, crop-green spikes, bare disturbance, and peat-disturbance pressure. Prior art includes wetland classification and agricultural encroachment mapping. The novelty is the intrusion-pressure decision frame rather than a static land-cover class.</p>
+    </div>
+
+    <div class="index-card">
+        <h3><span>CD-UAI — Coastal Dredging &amp; Marine Siltation Plume Index ✧</span>
+            <span class="temporal-badge temporal-live">Live</span>
+            <span class="formula fusion-badge">Shallow Water Mask × Green-Red Silt Plume × SWIR Cloud Reject</span>
+        </h3>
+        <p><strong>Mechanisms &amp; Utility:</strong> Coastal plume tracking. Captures dredging-induced sediment suspension and river-borne runoff plumes adjacent to sensitive benthic systems (reefs, seagrasses) while filtering clouds.</p>
+        <p><strong>Authorship &amp; IP Boundary:</strong> <em>Applied triage claim (Medium strength).</em> You can claim CD-UAI as your reef-proximal siltation triage workflow with shallow-water, cloud/land, deep-water, and benthic-context rejection gates. Prior art includes marine particulate optical remote sensing and dredging plume studies. The crowded prior art makes the safe claim an applied sensitive-habitat screening workflow.</p>
+    </div>
+
+    <div class="index-card">
+        <h3><span>CSRC — Cyanotoxin Scum Risk Composite ✧✧</span>
+            <span class="temporal-badge temporal-live">Live</span>
+            <span class="formula fusion-badge">Water Mask × Chlorophyll NDCI × NIR Scum Boost × Confounder Reject</span>
+        </h3>
+        <p><strong>Mechanisms &amp; Utility:</strong> Small-water public health triage. Combines cyanobacteria chlorophyll response (NDCI) with an active NIR floating-scum boost, while filtering out heavy inorganic turbidity and land.</p>
+        <p><strong>Authorship &amp; IP Boundary:</strong> <em>Most ownable public-health claim (Very High strength).</em> You can claim CSRC as your small-water cyanotoxin scum-risk workflow: NDCI plus NIR scum boost, turbidity rejection, floating-vegetation rejection, and persistence for under-monitored ponds, lakes, and reservoirs. Prior art includes standard NDCI (Mishra &amp; Mishra, 2012) and cyanobacteria remote sensing. Do not claim toxin measurement, first chlorophyll index, first HAB mapping method, or proof of cyanotoxins from Sentinel-2 alone. This is one of the strongest authorship claims because the public-health decision product is narrow, memorable, and underserved at small-water scale.</p>
+    </div>
+
+    <div class="index-card">
+        <h3><span>TRSI — Tailings River Shock Index ✧✧</span>
+            <span class="temporal-badge temporal-live">Live</span>
+            <span class="formula fusion-badge">Water Mask × Turbidity Shock (NDTI) × Ferric Color Shift</span>
+        </h3>
+        <p><strong>Mechanisms &amp; Utility:</strong> Mining emergency screening. Designed as an alarm to detect downstream chemical-looking river shock following tailings dam collapses or wastewater spills, contrasting mine-colored runoff from clean baseline.</p>
+        <p><strong>Authorship &amp; IP Boundary:</strong> <em>Most ownable emergency-screening claim (Very High strength).</em> You can claim TRSI as your downstream tailings river-shock workflow combining turbidity jump, ferric color shift, mine proximity, and persistence into an emergency screening signal. Prior art includes river turbidity mapping. Do not claim definitive chemical identification, invention of turbidity mapping, or automated attribution of a mine as the cause. The strength is the decision product: a reusable, transparent river-shock alarm for journalists, NGOs, regulators, and communities.</p>
+    </div>
+
+    <div class="index-card">
+        <h3><span>LFGVI — Landfill Gas Vegetation Intrusion Index ✧✧</span>
+            <span class="temporal-badge temporal-persistent">Persistent</span>
+            <span class="formula fusion-badge">Radial Red-Edge Decline × Canopy Moisture Loss × Chlorosis</span>
+        </h3>
+        <p><strong>Mechanisms &amp; Utility:</strong> Radial screening tool for identifying early stress or dying vegetation in rings surrounding known landfill borders, consistent with subsurface landfill gas migration.</p>
+        <p><strong>Authorship &amp; IP Boundary:</strong> <em>Most ownable boundary-pattern claim (Very High strength).</em> You can claim LFGVI as your radial landfill-boundary vegetation intrusion workflow using red-edge stress, moisture loss, chlorosis, and ring-pattern scoring around known landfill boundaries. Prior art includes landfill border vegetation stress studies. Do not claim direct methane detection, proof of gas migration, or invention of vegetation stress monitoring. The claim is unusually specific: a modern Sentinel-2 boundary-ring decision product for neglected local environmental health.</p>
+    </div>
+
+    <div class="index-card">
+        <h3><span>SWRI — Sewage-Water Release Index ✧✧</span>
+            <span class="temporal-badge temporal-live">Live</span>
+            <span class="formula fusion-badge">Water Mask × Turbidity Shock × Organic Bloom Proxy</span>
+        </h3>
+        <p><strong>Mechanisms &amp; Utility:</strong> Civic sanitation screening. Isolates suspicious wastewater or sewer overflow releases in urban channels and canals, differentiating them from clean or ordinary muddy runoff.</p>
+        <p><strong>Authorship &amp; IP Boundary:</strong> <em>Most ownable sanitation claim (Very High strength).</em> You can claim SWRI as your sewage-water release screening workflow that separates suspicious urban-channel discharge behavior from ordinary muddy water using turbidity shock, organic bloom proxy, context, and persistence gates. Prior art includes sewage-specific optical indicators. Differentiate sewage behavior from muddy water. Do not claim biochemical confirmation of sewage, pathogen detection, or first water-quality index from Sentinel-2. Sewage-specific optical screening is less standardized than generic turbidity or chlorophyll work, making the named decision workflow strongly claimable.</p>
+    </div>
+
+    <div class="index-card">
+        <h3><span>DWCI — Drinking Water Catchment Injury Index ✧</span>
+            <span class="temporal-badge temporal-persistent">Persistent</span>
+            <span class="formula fusion-badge">Catchment Bare Soil (BSI) × Riparian Loss × Reservoir Turbidity</span>
+        </h3>
+        <p><strong>Mechanisms &amp; Utility:</strong> Source water protection. Links upstream landscape damage (forest fire scars, stripping, road erosion) directly to downstream reservoir turbidity increases to flag water-utility vulnerability.</p>
+        <p><strong>Authorship &amp; IP Boundary:</strong> <em>Strong civic decision claim (High strength).</em> You can claim DWCI as your source-water catchment injury workflow linking upstream bare-soil change, riparian loss, reservoir turbidity, and runoff-path context for small utilities and public-health triage. Prior art includes watershed monitoring and turbidity retrieval. Do not claim invention of watershed monitoring, turbidity retrieval, or treatment-plant risk modeling. The authorship is the source-to-reservoir decision linkage and the civic use case, not the individual layers.</p>
+    </div>
+
+    <div class="index-card">
+        <h3><span>RRFI — Riparian Refuge Failure Index ✧</span>
+            <span class="temporal-badge temporal-persistent">Persistent</span>
+            <span class="formula fusion-badge">Riparian Canopy Moisture loss × Channel Water loss × Bare Bank Growth</span>
+        </h3>
+        <p><strong>Mechanisms &amp; Utility:</strong> Drought ecology monitoring. Memorable warning score mapping the structural failure of riverbank vegetation refuges during extreme heat and channel water contraction.</p>
+        <p><strong>Authorship &amp; IP Boundary:</strong> <em>Strong ecological framing claim (High strength).</em> You can claim RRFI as your riparian refuge failure concept: a named ecological warning score for drought collapse of riverbank vegetation, channel water, and bare-bank protection. Prior art includes riparian vegetation mapping and drought indices. Do not claim invention of riparian vegetation monitoring, drought indices, or fish/refuge ecology. The phrase and decision frame are memorable and defensible because they focus on life-support function rather than generic vegetation health.</p>
+    </div>
+
+    <div class="index-card">
+        <h3><span>EPDI — Erosion Pulse Delivery Index ✧</span>
+            <span class="temporal-badge temporal-persistent">Persistent</span>
+            <span class="formula fusion-badge">Slope Disturbance (BSI) × Downstream Channel Turbidity</span>
+        </h3>
+        <p><strong>Mechanisms &amp; Utility:</strong> Storm sediment delivery tracking. Links newly exposed bare slopes directly to downstream river suspended sediment pulses to map dynamic storm runoff linkages.</p>
+        <p><strong>Authorship &amp; IP Boundary:</strong> <em>Strong source-to-delivery claim (High strength).</em> You can claim EPDI as your erosion pulse delivery workflow linking newly exposed slopes to downstream sediment pulses and persistence after storms. Prior art includes bare soil mapping and sediment transport studies. Do not claim invention of erosion mapping, bare-soil indices, or turbidity indices. The claimable part is the delivery chain: source disturbance plus actual downstream expression.</p>
+    </div>
+
+    <div class="index-card">
+        <h3><span>HSAI — Heat-Shelter Absence Index ✧</span>
+            <span class="temporal-badge temporal-persistent">Persistent</span>
+            <span class="formula fusion-badge">Impervious NDBI × Shade/Canopy Deficit × Canopy Moisture Stress</span>
+        </h3>
+        <p><strong>Mechanisms &amp; Utility:</strong> Urban vulnerability mapping. Highlights areas of critical urban vulnerability where absolute shade is absent, concrete exposure is high, and surviving vegetation is moisture-stressed.</p>
+        <p><strong>Authorship &amp; IP Boundary:</strong> <em>Honest vulnerability claim (Medium-High strength).</em> You can claim HSAI as your optical heat-shelter absence score for shade, canopy, surface dryness, imperviousness, and park-access context. Prior art includes albedo and canopy drought indexes. Do not claim retrieved air or surface temperature, heat index, or thermal remote sensing from Sentinel-2. The honesty makes it stronger: it claims vulnerability and shelter absence, not heat measurement.</p>
+    </div>
+
 
     <!-- ══════════════════════════════════════════════════════
          SECTION 3: CORE CHEMICAL DETECTORS

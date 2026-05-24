@@ -8,16 +8,18 @@
 - **Fix status**: Not fixed in this pass; no dependency was added because the current task only changes documentation/authorship claims.
 - **Graduated to**: pending dependency/package-management decision.
 
+## 2026-05-24: Node Test Harness Path Drift — RESOLVED
+
+- **Deterministic error**: `node tests/test_pwi.js` and `node tests/test_evalscript.js` fail with `ENOENT: no such file or directory, open 'app.js'`.
+- **Cause**: Both tests expected a root-level `app.js`, but the app code has been refactored under `src/app.js`.
+- **Impact**: PWI formula test and evalscript compiler test were broken.
+- **Fix status**: RESOLVED. Corrected the path in both scripts to `src/app.js`. For `test_evalscript.js`, also redirected the output to `src/test_evalscript_runner.mjs` and engineered `src/mocks.mjs` to allow native ESM test execution under Node.js without reference errors.
+
 ## 2026-05-20: Additional Node Test Harness Drift — OPEN
 
 - **Deterministic error**: `node tests/test_fetch.js` fails before execution with `Error: Cannot find module 'node-fetch'`.
 - **Cause**: The repository has no package metadata installing `node-fetch`, but the test imports it directly.
 - **Impact**: Fetch/auth test cannot run in this checkout.
-- **Fix status**: Not fixed in this pass.
-
-- **Deterministic error**: `node tests/test_pwi.js` fails with `ENOENT: no such file or directory, open 'app.js'`.
-- **Cause**: The test expects a root-level `app.js`, but the current app code lives under `src/app.js`.
-- **Impact**: PWI formula test is stale relative to the refactored file layout.
 - **Fix status**: Not fixed in this pass.
 
 ## 2026-03-17: Cold-Eyes Review Findings — RESOLVED

@@ -186,9 +186,19 @@
                 </div>
             </section>
 
-            <!-- Sidebar Navigation Tabs -->
-            <nav class="sidebar-tabs">
-                <button class="tab-btn active" data-tab="detection">DETECTION</button>
+            <!-- UI Layout View Switcher -->
+            <div class="ui-mode-selector" role="tablist" aria-label="UI Layout View Selector">
+                <button class="ui-mode-btn" data-layout="suite-grid" role="tab" aria-selected="false">Suite Grid</button>
+                <button class="ui-mode-btn active" data-layout="focused-triage" role="tab" aria-selected="true">Focused Triage</button>
+                <button class="ui-mode-btn" data-layout="command-console" role="tab" aria-selected="false">Command Console</button>
+            </div>
+
+            <!-- UI Layout Pane 1: Suite Grid (Original) -->
+            <div id="layout-pane-suite-grid" class="ui-layout-pane" style="display: none;">
+                <!-- Sidebar Navigation Tabs -->
+                <nav class="sidebar-tabs">
+                    <button class="tab-btn active" data-tab="detection">DETECTION</button>
+                    <button class="tab-btn" data-tab="civic">CIVIC ATLAS</button>
                 <button class="tab-btn" data-tab="analysis">ANALYSIS</button>
                 <button class="tab-btn" data-tab="ground">GROUND</button>
                 <button class="tab-btn" data-tab="settings">SETTINGS</button>
@@ -357,6 +367,38 @@
                     </div>
                 </div>
 
+                <!-- Tab: Civic Atlas -->
+                <div id="tab-civic" class="tab-pane">
+                    <div class="index-suite-container suite-primary">
+                        <h3>Civic &amp; Ecological Composites</h3>
+                        <div id="civic-composite-list" class="index-grid flex-column">
+                            <!-- Populated dynamically by JS -->
+                        </div>
+                    </div>
+
+                    <!-- Authorship & Prior Art Boundary Card -->
+                    <div id="authorship-card" class="authorship-card glass-panel" style="display: none;">
+                        <div class="authorship-header">
+                            <span class="authorship-badge">Authorship Boundary</span>
+                            <h4 id="authorship-title">Composite Name</h4>
+                        </div>
+                        <div class="authorship-body">
+                            <div class="authorship-row">
+                                <span class="authorship-label">IP Ownability:</span>
+                                <span id="authorship-claim-status" class="claim-badge">High</span>
+                            </div>
+                            <div class="authorship-row flex-column mt-2" style="margin-top: 8px;">
+                                <span class="authorship-label">Defensible Scope (What You Own):</span>
+                                <p id="authorship-ownable-details" class="authorship-text" style="color: #ccc; margin-top: 4px; font-size: 11px;"></p>
+                            </div>
+                            <div class="authorship-row flex-column mt-2" style="margin-top: 8px;">
+                                <span class="authorship-label">Prior Art Boundary:</span>
+                                <p id="authorship-prior-art" class="authorship-text" style="color: #999; margin-top: 4px; font-size: 11px;"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <!-- Tab 2: Analysis -->
                 <div id="tab-analysis" class="tab-pane">
                     <section class="control-group" id="temporal-controls">
@@ -503,6 +545,122 @@
                             </div>
                         </div>
                     </section>
+                </div>
+            </div> <!-- End of tab-content-container -->
+            </div> <!-- End of layout-pane-suite-grid -->
+
+            <!-- UI Layout Pane 2: Focused Triage (Thematic Wizard) -->
+            <div id="layout-pane-focused-triage" class="ui-layout-pane active" style="display: flex;">
+                <div class="triage-container">
+                    <h3>Thematic Triage Wizard</h3>
+                    <p class="triage-subtitle">Select an objective to isolate tools and targets</p>
+                    
+                    <div class="triage-grid">
+                        <!-- Triage Card 1: Produced Water & Oilfield Leaks -->
+                        <div class="triage-card" data-triage="oilfield-spill">
+                            <div class="triage-card-header">
+                                <span class="triage-icon">🚨</span>
+                                <h4>Produced Water &amp; Spills</h4>
+                            </div>
+                            <p>Detect active brine wetting, dry salt crusts, pad runoff, hydrocarbon mixing, and vegetation exposure in oilfields.</p>
+                            <div class="triage-tags">
+                                <span class="triage-tag-pill" data-index="pwi" data-tooltip="<strong>PWCI — Produced Water Chemical Index</strong><br>A three-way logical AND consensus composite. Requires elevated salinity, hydrocarbons, and heavy metals to suppress bare soil and playa false positives. Calibrated for Permian desert environments.">PWCI</span>
+                                <span class="triage-tag-pill" data-index="pwoi" data-tooltip="<strong>ASAI — Arid Salinity Anomaly Index</strong><br>High-sensitivity dry-brine logic model. Fuses salinity shifts (NDSI) with soil brightness (BSI) to isolate salt crusts in dry bare desert soils.">ASAI</span>
+                                <span class="triage-tag-pill" data-index="hpwi" data-tooltip="<strong>OBEC — Oil-Brine Emulsion Composite</strong><br>Physical-chemical consensus composite. Fuses chemical signatures with a visible specular surface smoothness proxy to detect active pooling emulsions.">OBEC</span>
+                                <span class="triage-tag-pill" data-index="lbi" data-tooltip="<strong>LBI — Liquid Brine Index</strong><br>High-precision ratio tracker with maximum sensitivity to liquid salinity changes and evaporation signatures.">LBI</span>
+                            </div>
+                        </div>
+
+                        <!-- Triage Card 2: Wildfire & Landslide -->
+                        <div class="triage-card" data-triage="wildfire-hazard">
+                            <div class="triage-card-header">
+                                <span class="triage-icon">🔥</span>
+                                <h4>Wildfire &amp; Landslide</h4>
+                            </div>
+                            <p>Triage steep burned slopes vulnerable to debris-flows, track vegetation fuel loads, and map seismic/landslide scars.</p>
+                            <div class="triage-tags">
+                                <span class="triage-tag-pill" data-index="bhdfsi" data-tooltip="<strong>BH-DFSI — Burn-Height Debris Flow Susceptibility Index</strong><br>Maps burn severity scars and matches steep slopes highly vulnerable to post-fire debris flows and mudslides.">BH-DFSI</span>
+                                <span class="triage-tag-pill" data-index="sfeii" data-tooltip="<strong>SF-EII — Slope-Failure Erosion Index</strong><br>Identifies active erosion and structural soil cohesion loss on seismic scars and steep gradients.">SF-EII</span>
+                            </div>
+                        </div>
+
+                        <!-- Triage Card 3: Water Quality -->
+                        <div class="triage-card" data-triage="water-quality">
+                            <div class="triage-card-header">
+                                <span class="triage-icon">💧</span>
+                                <h4>Freshwater &amp; Algae</h4>
+                            </div>
+                            <p>Identify toxic algae cyanobacteria, chlorophyll concentrations, coastal silt plumes, and suspicious sewage releases.</p>
+                            <div class="triage-tags">
+                                <span class="triage-tag-pill" data-index="peti" data-tooltip="<strong>PETI — Phytoplankton Eutrophication Tracking Index</strong><br>High sensitivity to toxic green cyanobacteria and chlorophyll concentrations.">PETI</span>
+                                <span class="triage-tag-pill" data-index="csrc" data-tooltip="<strong>CSRC — Cyanotoxin Scum Risk Composite</strong><br>Exposes dense blue-green algal blooms, water stagnation, and surface scum build-ups.">CSRC</span>
+                                <span class="triage-tag-pill" data-index="swri" data-tooltip="<strong>SWRI — Sewage-Water Release Index</strong><br>Tracks organic nitrogen and phosphorous loading, signaling potential municipal wastewater leaks.">SWRI</span>
+                                <span class="triage-tag-pill" data-index="cduai" data-tooltip="<strong>CD-UAI — Coastal Dredging Urban Aquatics Index</strong><br>Highlights marine silt plumes, coastal dredging runoff, and aquatic turbidity.">CD-UAI</span>
+                            </div>
+                        </div>
+
+                        <!-- Triage Card 4: Cryosphere/Peat -->
+                        <div class="triage-card" data-triage="cryosphere-peat">
+                            <div class="triage-card-header">
+                                <span class="triage-icon">❄️</span>
+                                <h4>Permafrost &amp; Arctic</h4>
+                            </div>
+                            <p>Map thermokarst slump edges, anoxic peatlands, methane-release risk surfaces, and brush greening trends.</p>
+                            <div class="triage-tags">
+                                <span class="triage-tag-pill" data-index="ttapi" data-tooltip="<strong>TT-API — Thermokarst Tundra Anoxic Peat Index</strong><br>Identifies active slump slumping, wet peatlands, and high-risk methane emissions.">TT-API</span>
+                                <span class="triage-tag-pill" data-index="trsi" data-tooltip="<strong>TRSI — Tundra-Regrowth Shrub Index</strong><br>Tracks high-latitude vegetative greening, brush encroachment, and melting margins.">TRSI</span>
+                            </div>
+                        </div>
+
+                        <!-- Triage Card 5: Urban Albedo -->
+                        <div class="triage-card" data-triage="urban-albedo">
+                            <div class="triage-card-header">
+                                <span class="triage-icon">🏙️</span>
+                                <h4>Urban Heat &amp; Albedo</h4>
+                            </div>
+                            <p>Identify critical heat stress vulnerability, dry dark asphalt exposure, and map 10m microclimate canopy gaps.</p>
+                            <div class="triage-tags">
+                                <span class="triage-tag-pill" data-index="ecaci" data-tooltip="<strong>EC-ACI — Evaporative Canopy Urban Heat Index</strong><br>Highlights asphalt solar absorption, concrete heat storage, and microclimate canopy deficits.">EC-ACI</span>
+                                <span class="triage-tag-pill" data-index="hsai" data-tooltip="<strong>HSAI — High-Resolution Solar Albedo Index</strong><br>Maps solar reflectivity baselines, identifying dark heat-retaining urban surfaces at 10m.">HSAI</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- UI Layout Pane 3: Command Console (Search/Tag HUD) -->
+            <div id="layout-pane-command-console" class="ui-layout-pane">
+                <div class="hud-container">
+                    <h3>Command HUD</h3>
+                    <p class="hud-subtitle">Search or filter by category tags</p>
+                    
+                    <div class="hud-search-box">
+                        <input type="text" id="hud-search-input" class="search-input" placeholder="Search indices or formulas..." aria-label="Search index collection">
+                        <button id="btn-clear-hud-search" class="clear-search-btn">×</button>
+                    </div>
+
+                    <div class="hud-tag-filters" role="group" aria-label="Filter by category">
+                        <button class="hud-tag-pill" data-tag="water">#Water</button>
+                        <button class="hud-tag-pill" data-tag="vegetation">#Vegetation</button>
+                        <button class="hud-tag-pill" data-tag="soil">#Soil</button>
+                        <button class="hud-tag-pill" data-tag="mining">#Mining</button>
+                        <button class="hud-tag-pill" data-tag="thermal">#Thermal</button>
+                        <button class="hud-tag-pill" data-tag="oilgas">#OilGas</button>
+                    </div>
+
+                    <div class="hud-results-group">
+                        <h4>Matching Indices</h4>
+                        <div id="hud-index-results" class="index-grid flex-column">
+                            <!-- Populated dynamically by JS -->
+                        </div>
+                    </div>
+
+                    <div class="hud-results-group hud-bookmarks-group" style="display: none;">
+                        <h4>Matching Bookmarks</h4>
+                        <div id="hud-bookmark-results" class="spill-bookmark-list">
+                            <!-- Populated dynamically by JS -->
+                        </div>
+                    </div>
                 </div>
             </div>
 

@@ -3,6 +3,8 @@
    ========================================================================== */
 
 import { getCDSEToken } from './auth.js';
+import { verifiedBookmarks } from './verifiedBookmarks.js';
+import { authorshipClaims } from './authorshipClaims.js';
 import { 
     INDICES, 
     CALIBRATION_PRESETS, 
@@ -226,6 +228,44 @@ window.downloadHTMLReport = downloadHTMLReport;
 
 function updateUI() {
     updateUIDelegate(state, INDICES);
+    
+    // Geochemical Basin & Sensitivity Calibration UI Isolation
+    const SPILL_INDEX_KEYS = ['pwi', 'pwoi', 'hpwi', 'lbi', 'fbc', 'reai', 'vcbi', 'aoi', 'cma', 'hmi', 'phi', 'tri', 'bpi'];
+    const isSpillIndex = SPILL_INDEX_KEYS.includes(state.activeIndex);
+    
+    const settingsContainers = document.querySelectorAll('#tab-settings .control-group');
+    settingsContainers.forEach(container => {
+        // Exclude opacity control from calibration isolation
+        if (container.classList.contains('op-control')) return;
+        
+        const select = container.querySelector('select');
+        const slider = container.querySelector('input[type="range"]');
+        
+        if (!isSpillIndex) {
+            container.style.opacity = '0.4';
+            container.style.pointerEvents = 'none';
+            container.style.position = 'relative';
+            
+            // Add a clean overlay message if not already present
+            let msgOverlay = container.querySelector('.calibration-overlay-msg');
+            if (!msgOverlay) {
+                msgOverlay = document.createElement('div');
+                msgOverlay.className = 'calibration-overlay-msg';
+                msgOverlay.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:rgba(10,11,20,0.45);color:var(--text-muted);font-size:9px;font-family:var(--font-mono);text-transform:uppercase;letter-spacing:0.05em;pointer-events:all;cursor:not-allowed;text-align:center;padding:0 12px;z-index:10;';
+                msgOverlay.innerText = 'Spill Calibration Inactive';
+                container.appendChild(msgOverlay);
+            }
+            if (select) select.disabled = true;
+            if (slider) slider.disabled = true;
+        } else {
+            container.style.opacity = '1';
+            container.style.pointerEvents = 'all';
+            const msgOverlay = container.querySelector('.calibration-overlay-msg');
+            if (msgOverlay) msgOverlay.remove();
+            if (select) select.disabled = false;
+            if (slider) slider.disabled = false;
+        }
+    });
 }
 window.updateUI = updateUI;
 
@@ -288,6 +328,175 @@ window.state = state;
 window.CONFIG = Object.assign(window.CONFIG || {}, internalAppConfig);
 window.ALL_DATES = ALL_DATES;
 window.MONTHS = MONTHS;
+
+// ── Civic Atlas & Authorship Helpers ─────────────────
+export function updateAuthorshipCard(indexKey) {
+    const card = document.getElementById('authorship-card');
+    const title = document.getElementById('authorship-title');
+    const claimStatus = document.getElementById('authorship-claim-status');
+    const ownable = document.getElementById('authorship-ownable-details');
+    const priorArt = document.getElementById('authorship-prior-art');
+
+    if (!card) return;
+
+    const claimData = authorshipClaims[indexKey];
+    if (!claimData) {
+        card.style.display = 'none';
+        return;
+    }
+
+    card.style.display = 'block';
+    if (title) title.textContent = INDICES[indexKey].name;
+    if (claimStatus) {
+        claimStatus.textContent = claimData.strength;
+        claimStatus.className = 'claim-badge ' + (claimData.strength.toLowerCase().includes('very high') || claimData.strength.toLowerCase().includes('high') ? 'claim-badge--ownable' : 'claim-badge--shared');
+    }
+    if (ownable) ownable.textContent = claimData.claim;
+    if (priorArt) priorArt.textContent = claimData.doNotClaim + ' ' + claimData.why;
+}
+window.updateAuthorshipCard = updateAuthorshipCard;
+
+export function renderSpillBookmarks(indexKey = state.activeIndex) {
+    const spillList = document.getElementById('spill-bookmark-list');
+    if (!spillList) return;
+    spillList.innerHTML = '';
+
+    const isCivic = [
+        'bhdfsi', 'peti', 'mppdi', 'ttapi', 'ecaci', 'lrdvsi', 
+        'tdrasi', 'sfeii', 'wdacsi', 'cduai', 'csrc', 'trsi', 
+        'lfgvi', 'swri', 'dwci', 'rrfi', 'epdi', 'hsai'
+    ].includes(indexKey);
+
+    const bookmarks = isCivic ? (verifiedBookmarks[indexKey] || []) : SPILL_BOOKMARKS;
+
+    // Update section title & disclaimer conditionally
+    const sectionTitle = document.querySelector('.spill-bookmarks-section h3');
+    const sectionDisclaimer = document.querySelector('.spill-disclaimer');
+    if (isCivic) {
+        if (sectionTitle) sectionTitle.textContent = 'Curated Calibration Events';
+        if (sectionDisclaimer) sectionDisclaimer.textContent = 'Global scientific validation scenarios';
+    } else {
+        if (sectionTitle) sectionTitle.textContent = 'Confirmed Spill Sites';
+        if (sectionDisclaimer) sectionDisclaimer.textContent = 'TRRC/NMED confirmed · coordinates approximate';
+    }
+
+    bookmarks.forEach(spill => {
+        const btn = document.createElement('button');
+        btn.className = 'spill-bookmark-btn';
+        btn.dataset.spillId = spill.id || spill.label.replace(/\s+/g, '-').toLowerCase();
+        
+        let tooltipText = '';
+        if (isCivic) {
+            tooltipText = `<strong>${spill.label}</strong><br>${spill.note}<br><br>📅 ${spill.date}<br>📡 ${spill.sourceLabel}`;
+        } else {
+            tooltipText = `<strong>${spill.label}</strong><br>${spill.note}<br><br>📅 ${spill.displayDate} &nbsp;|&nbsp; 📦 ${spill.volume}<br>📡 ${spill.source}<br>⚠ Coords: ${spill.confidence}`;
+        }
+        btn.setAttribute('data-tooltip', tooltipText);
+        
+        const displayDate = isCivic ? spill.date : spill.displayDate;
+        btn.innerHTML = `<span class="spill-name">${spill.label}</span><span class="spill-date-tag">${displayDate}</span>`;
+        
+        btn.addEventListener('click', () => {
+            // Find closest date in ALL_DATES
+            const targetStr = spill.date; // e.g. "2018-01-09"
+            const target = new Date(targetStr).getTime();
+            let closestIdx = 0, minDiff = Infinity;
+            ALL_DATES.forEach((d, i) => {
+                const diff = Math.abs(new Date(d.value).getTime() - target);
+                if (diff < minDiff) { minDiff = diff; closestIdx = i; }
+            });
+
+            // Set date
+            state.monthIndex = closestIdx;
+            const dateSingleEl = document.getElementById('date-single');
+            if (dateSingleEl) dateSingleEl.value = closestIdx.toString();
+
+            // Fly to location
+            document.getElementById('disp-lat').innerText = spill.lat.toFixed(4) + '°';
+            document.getElementById('disp-lng').innerText = spill.lng.toFixed(4) + '°';
+            state.map.flyTo([spill.lat, spill.lng], spill.zoom, { duration: 1.5 });
+
+            // Deselect preset location buttons and spill buttons
+            document.querySelectorAll('.loc-btn').forEach(b => b.classList.remove('active'));
+            document.querySelectorAll('.spill-bookmark-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            // Force single date mode on bookmark click for instant cloud-free imagery
+            if (state.mode !== 'single') {
+                const mSing = document.getElementById('mode-single');
+                if (mSing) {
+                    mSing.click();
+                } else {
+                    state.mode = 'single';
+                    applyIndex();
+                }
+            } else {
+                applyIndex();
+            }
+            setTimeout(() => probeAcquisitions(), 1600);
+        });
+        spillList.appendChild(btn);
+    });
+}
+window.renderSpillBookmarks = renderSpillBookmarks;
+
+export function renderCivicComposites() {
+    const listContainer = document.getElementById('civic-composite-list');
+    if (!listContainer) return;
+    listContainer.innerHTML = '';
+
+    const civicKeys = [
+        'bhdfsi', 'peti', 'mppdi', 'ttapi', 'ecaci', 'lrdvsi', 
+        'tdrasi', 'sfeii', 'wdacsi', 'cduai', 'csrc', 'trsi', 
+        'lfgvi', 'swri', 'dwci', 'rrfi', 'epdi', 'hsai'
+    ];
+
+    civicKeys.forEach(idxKey => {
+        const cfg = INDICES[idxKey];
+        if (!cfg) return;
+
+        const btn = document.createElement('button');
+        btn.className = 'index-btn flex-column';
+        btn.dataset.index = idxKey;
+        btn.style.width = '100%';
+        btn.style.textAlign = 'left';
+        btn.style.padding = '12px 16px';
+        btn.style.marginBottom = '8px';
+        btn.style.display = 'flex';
+        btn.style.flexDirection = 'column';
+        btn.style.gap = '4px';
+
+        // Tooltip
+        const tooltipText = `<strong>${cfg.name}</strong><br>${cfg.info}`;
+        btn.setAttribute('data-tooltip', tooltipText);
+
+        btn.innerHTML = `
+            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                <span class="index-short" style="font-weight: 700; font-size: 13px; color: var(--accent-blue);">${idxKey.toUpperCase()}</span>
+                <span class="temporal-badge temporal-${cfg.temporal.toLowerCase().replace(/ /g, '-').replace(/\//g, '-').replace(/\+/g, 'plus')}" style="font-size: 9px;">${cfg.temporal}</span>
+            </div>
+            <span class="index-full" style="font-size: 11px; font-weight: 500; color: #fff; opacity: 0.95;">${cfg.name}</span>
+            <span style="font-size: 10px; color: var(--text-dim); font-family: var(--font-mono);">${cfg.formula}</span>
+        `;
+
+        btn.addEventListener('click', (e) => {
+            document.querySelectorAll('.index-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            state.activeIndex = idxKey;
+            
+            // Render Dynamic Bookmarks for this civic composite
+            renderSpillBookmarks(idxKey);
+            
+            // Update Authorship Card
+            updateAuthorshipCard(idxKey);
+            
+            applyIndex();
+        });
+
+        listContainer.appendChild(btn);
+    });
+}
+window.renderCivicComposites = renderCivicComposites;
 
 // ── INIT ───────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
@@ -376,6 +585,8 @@ document.addEventListener('DOMContentLoaded', () => {
     bindEvents();
 
     // Initial Data Load
+    renderCivicComposites();
+    renderSpillBookmarks(state.activeIndex);
     applyIndex();
     probeAcquisitions();
 
@@ -534,6 +745,13 @@ function bindEvents() {
             target.classList.add('active');
             target.setAttribute('aria-checked', 'true');
             state.activeIndex = target.dataset.index;
+            
+            // Render Dynamic Bookmarks for this standard index
+            renderSpillBookmarks(state.activeIndex);
+            
+            // Hide/Update Authorship Card for standard indices
+            updateAuthorshipCard(state.activeIndex);
+            
             applyIndex();
         });
     });
@@ -563,56 +781,7 @@ function bindEvents() {
         });
     });
 
-    // Spill Bookmarks — build list and wire clicks
-    const spillList = document.getElementById('spill-bookmark-list');
-    if (spillList) {
-        SPILL_BOOKMARKS.forEach(spill => {
-            const btn = document.createElement('button');
-            btn.className = 'spill-bookmark-btn';
-            btn.dataset.spillId = spill.id;
-            btn.setAttribute('data-tooltip', `<strong>${spill.label}</strong><br>${spill.note}<br><br>📅 ${spill.displayDate} &nbsp;|&nbsp; 📦 ${spill.volume}<br>📡 ${spill.source}<br>⚠ Coords: ${spill.confidence}`);
-            btn.innerHTML = `<span class="spill-name">${spill.label}</span><span class="spill-date-tag">${spill.displayDate}</span>`;
-            btn.addEventListener('click', () => {
-                // Find closest date in ALL_DATES
-                const target = new Date(spill.date).getTime();
-                let closestIdx = 0, minDiff = Infinity;
-                ALL_DATES.forEach((d, i) => {
-                    const diff = Math.abs(new Date(d.value).getTime() - target);
-                    if (diff < minDiff) { minDiff = diff; closestIdx = i; }
-                });
-
-                // Set date
-                state.monthIndex = closestIdx;
-                const dateSingleEl = document.getElementById('date-single');
-                if (dateSingleEl) dateSingleEl.value = closestIdx.toString();
-
-                // Fly to location
-                document.getElementById('disp-lat').innerText = spill.lat.toFixed(4) + '°';
-                document.getElementById('disp-lng').innerText = spill.lng.toFixed(4) + '°';
-                state.map.flyTo([spill.lat, spill.lng], spill.zoom, { duration: 1.5 });
-
-                // Deselect preset location buttons
-                document.querySelectorAll('.loc-btn').forEach(b => b.classList.remove('active'));
-                document.querySelectorAll('.spill-bookmark-btn').forEach(b => b.classList.remove('active'));
-                btn.classList.add('active');
-
-                // Switch to single mode if not already active to ensure accurate results
-                if (state.mode !== 'single') {
-                    const mSing = document.getElementById('mode-single');
-                    if (mSing) {
-                        mSing.click();
-                    } else {
-                        state.mode = 'single';
-                        applyIndex();
-                    }
-                } else {
-                    applyIndex();
-                }
-                setTimeout(() => probeAcquisitions(), 1600);
-            });
-            spillList.appendChild(btn);
-        });
-    }
+    // Spill Bookmarks are now rendered dynamically based on selected index
 
     // Custom Location Search
     const searchBtn = document.getElementById('btn-search-loc');
@@ -1300,9 +1469,11 @@ function evaluatePixel(sample) {
                 let allBands = [...new Set([...idx.fisBands, ...extraBands])];
                 let bandsStr = allBands.map(b => `'${b}'`).join(', ');
                 const isSar = state.activeIndex === 's1_sar';
+                const isSpill = ['pwi', 'pwoi', 'hpwi', 'lbi', 'fbc', 'reai', 'vcbi', 'aoi', 'cma', 'hmi', 'phi', 'tri', 'bpi'].includes(state.activeIndex);
+                const activeSensitivity = isSpill ? (state.sensitivity || 0) : 0;
 
                 const fisScript = `//VERSION=3
-const DETECTION_SENSITIVITY = ${state.sensitivity / 100};
+const DETECTION_SENSITIVITY = ${activeSensitivity / 100};
 function setup() {
   return {
     input: [${bandsStr}, "dataMask"],
@@ -2271,7 +2442,346 @@ function evaluatePixel(sample) {
         document.getElementById('report-modal').style.display = 'none';
     });
 
+    // UI Layout Mode Switcher Bindings
+    const uiModeBtns = document.querySelectorAll('.ui-mode-btn');
+    const uiLayoutPanes = document.querySelectorAll('.ui-layout-pane');
+    
+    uiModeBtns.forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const targetLayout = e.currentTarget.dataset.layout;
+            
+            // Toggle active button state
+            uiModeBtns.forEach(b => {
+                const isActive = b.dataset.layout === targetLayout;
+                b.classList.toggle('active', isActive);
+                b.setAttribute('aria-selected', isActive ? 'true' : 'false');
+            });
+            
+            // Toggle active pane visibility
+            uiLayoutPanes.forEach(pane => {
+                if (pane.id === `layout-pane-${targetLayout}`) {
+                    pane.style.display = 'flex';
+                    void pane.offsetWidth; // Force reflow
+                    pane.classList.add('active');
+                } else {
+                    pane.classList.remove('active');
+                    pane.style.display = 'none';
+                }
+            });
+
+            // Trigger specific layout activation
+            if (targetLayout === 'focused-triage') {
+                renderFocusedTriage();
+            } else if (targetLayout === 'command-console') {
+                renderCommandConsole();
+            }
+        });
+    });
+
+    // Initialize the default layout pane on load
+    renderFocusedTriage();
+
 }
+
+
+export function renderFocusedTriage() {
+    const triageCards = document.querySelectorAll('.triage-card');
+    
+    function activateIndex(indexKey, card) {
+        state.activeIndex = indexKey;
+        
+        // Highlight active index button in original suite list
+        document.querySelectorAll('.index-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.index === indexKey);
+        });
+        
+        // Highlight the active pill inside the card
+        card.querySelectorAll('.triage-tag-pill').forEach(pill => {
+            pill.classList.toggle('active', pill.dataset.index === indexKey);
+        });
+        
+        // Render bookmarks for this selected index
+        renderSpillBookmarks(indexKey);
+        
+        // Fly to the first bookmark if available
+        const bookmarks = [
+            'bhdfsi', 'peti', 'mppdi', 'ttapi', 'ecaci', 'lrdvsi', 
+            'tdrasi', 'sfeii', 'wdacsi', 'cduai', 'csrc', 'trsi', 
+            'lfgvi', 'swri', 'dwci', 'rrfi', 'epdi', 'hsai', 'pwci', 'pwoi', 'hpwi', 'lbi'
+        ].includes(indexKey) ? (verifiedBookmarks[indexKey] || []) : SPILL_BOOKMARKS;
+        
+        if (bookmarks.length > 0) {
+            const targetB = bookmarks[0];
+            
+            // Fly map
+            state.map.flyTo([targetB.lat, targetB.lng], targetB.zoom, { duration: 1.5 });
+            document.getElementById('disp-lat').innerText = targetB.lat.toFixed(4) + '°';
+            document.getElementById('disp-lng').innerText = targetB.lng.toFixed(4) + '°';
+            
+            // Set date single value
+            const targetTime = new Date(targetB.date || targetB.displayDate).getTime();
+            let closestIdx = 0, minDiff = Infinity;
+            ALL_DATES.forEach((d, i) => {
+                const diff = Math.abs(new Date(d.value).getTime() - targetTime);
+                if (diff < minDiff) { minDiff = diff; closestIdx = i; }
+            });
+            state.monthIndex = closestIdx;
+            const dSingle = document.getElementById('date-single');
+            if (dSingle) dSingle.value = closestIdx.toString();
+        }
+        
+        // Force single date mode on triage selection for instant cloud-free imagery
+        if (state.mode !== 'single') {
+            const mSing = document.getElementById('mode-single');
+            if (mSing) mSing.click();
+        } else {
+            applyIndex();
+        }
+        setTimeout(() => probeAcquisitions(), 1600);
+    }
+
+    triageCards.forEach(card => {
+        // Remove existing listener to prevent duplicate bindings by replacing the node
+        const newCard = card.cloneNode(true);
+        card.parentNode.replaceChild(newCard, card);
+        
+        // Find default primary index for this card
+        const triageType = newCard.dataset.triage;
+        let defaultIndex = 'pwoi'; // Default fallback
+        if (triageType === 'oilfield-spill') {
+            defaultIndex = 'pwi'; // PWCI default index
+        } else if (triageType === 'wildfire-hazard') {
+            defaultIndex = 'bhdfsi';
+        } else if (triageType === 'water-quality') {
+            defaultIndex = 'peti';
+        } else if (triageType === 'cryosphere-peat') {
+            defaultIndex = 'ttapi';
+        } else if (triageType === 'urban-albedo') {
+            defaultIndex = 'ecaci';
+        }
+
+        // Add event listener to the card itself
+        newCard.addEventListener('click', (e) => {
+            // If the user clicked on a specific pill, we handle it separately in the pill click
+            if (e.target.classList.contains('triage-tag-pill')) {
+                return;
+            }
+            
+            // Clear other active cards
+            const currentActiveCards = document.querySelectorAll('.triage-card');
+            currentActiveCards.forEach(c => {
+                c.classList.remove('active');
+                c.querySelectorAll('.triage-tag-pill').forEach(p => p.classList.remove('active'));
+            });
+            newCard.classList.add('active');
+            
+            activateIndex(defaultIndex, newCard);
+        });
+
+        // Add event listeners to individual tag pills inside this card
+        const tagPills = newCard.querySelectorAll('.triage-tag-pill');
+        tagPills.forEach(pill => {
+            pill.addEventListener('click', (e) => {
+                e.stopPropagation(); // Prevent card level click event from refiring default
+                
+                // Clear other active cards and make this card active
+                const currentActiveCards = document.querySelectorAll('.triage-card');
+                currentActiveCards.forEach(c => {
+                    c.classList.remove('active');
+                    c.querySelectorAll('.triage-tag-pill').forEach(p => p.classList.remove('active'));
+                });
+                newCard.classList.add('active');
+                
+                const indexKey = pill.dataset.index;
+                activateIndex(indexKey, newCard);
+            });
+        });
+    });
+}
+window.renderFocusedTriage = renderFocusedTriage;
+
+export function renderCommandConsole() {
+    const searchInput = document.getElementById('hud-search-input');
+    const clearBtn = document.getElementById('btn-clear-hud-search');
+    const tagPills = document.querySelectorAll('.hud-tag-pill');
+    const resultsContainer = document.getElementById('hud-index-results');
+    const bookmarkResults = document.getElementById('hud-bookmark-results');
+    const bookmarkGroup = document.querySelector('.hud-bookmarks-group');
+    
+    let activeTag = null;
+    let searchQuery = '';
+    
+    // Tag categories map
+    const tagMap = {
+        water: ['peti', 'mppdi', 'cduai', 'csrc', 'trsi', 'swri', 'dwci', 'rrfi', 'epdi', 'lbi', 'ndwi'],
+        vegetation: ['vsi', 'sfeii', 'lrdvsi', 'lfgvi', 'rrfi', 'ndvi', 'vcbi'],
+        soil: ['bhdfsi', 'ttapi', 'tdrasi', 'wdacsi', 'bpi', 'cma', 'bsi', 'reai', 'aoi', 'fbc'],
+        mining: ['tdrasi', 'trsi', 'scri'],
+        thermal: ['ecaci', 'hsai'],
+        oilgas: ['pwci', 'pwoi', 'hpwi', 'lbi', 'bpi', 'tri', 'phi', 'cma', 'hmi', 'ehc', 'aoi', 'fbc', 'reai', 'vcbi']
+    };
+
+    function updateHUDResults() {
+        resultsContainer.innerHTML = '';
+        bookmarkResults.innerHTML = '';
+        bookmarkGroup.style.display = 'none';
+
+        // Filter indices
+        const matches = Object.keys(INDICES).filter(key => {
+            const idx = INDICES[key];
+            if (key === 'none') return false;
+            
+            // Tag filtering
+            if (activeTag && (!tagMap[activeTag] || !tagMap[activeTag].includes(key))) {
+                return false;
+            }
+            
+            // Text search filtering
+            if (searchQuery) {
+                const q = searchQuery.toLowerCase();
+                const nameMatch = idx.name.toLowerCase().includes(q);
+                const formulaMatch = idx.formula.toLowerCase().includes(q);
+                const infoMatch = idx.info ? idx.info.toLowerCase().includes(q) : false;
+                const shortMatch = key.toLowerCase().includes(q);
+                if (!nameMatch && !formulaMatch && !infoMatch && !shortMatch) return false;
+            }
+            
+            return true;
+        });
+
+        // Render matching index buttons
+        matches.forEach(key => {
+            const idx = INDICES[key];
+            const btn = document.createElement('button');
+            btn.className = `index-btn idx-${key}`;
+            if (state.activeIndex === key) btn.classList.add('active');
+            
+            btn.innerHTML = `
+                <span class="index-short">${key.toUpperCase()}</span>
+                <span class="index-full index-full-bold">${idx.name.split(' (')[0]}</span>
+            `;
+            
+            btn.addEventListener('click', () => {
+                state.activeIndex = key;
+                document.querySelectorAll('#hud-index-results .index-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                
+                // Keep original index buttons in sync
+                document.querySelectorAll('.index-btn').forEach(b => {
+                    b.classList.toggle('active', b.dataset.index === key);
+                });
+                
+                applyIndex();
+                updateAuthorshipCard(key);
+                renderSpillBookmarks(key);
+                
+                // Show matching bookmarks for this selected index in the HUD
+                renderHUDBookmarks(key);
+            });
+            resultsContainer.appendChild(btn);
+        });
+
+        if (matches.length === 0) {
+            resultsContainer.innerHTML = `<div style="color:var(--text-dim);font-size:11px;padding:12px;">No matching indices found.</div>`;
+        }
+        
+        // Render bookmarks for the active index if it's in the results
+        if (state.activeIndex && matches.includes(state.activeIndex)) {
+            renderHUDBookmarks(state.activeIndex);
+        }
+    }
+
+    function renderHUDBookmarks(indexKey) {
+        bookmarkResults.innerHTML = '';
+        const isCivic = [
+            'bhdfsi', 'peti', 'mppdi', 'ttapi', 'ecaci', 'lrdvsi', 
+            'tdrasi', 'sfeii', 'wdacsi', 'cduai', 'csrc', 'trsi', 
+            'lfgvi', 'swri', 'dwci', 'rrfi', 'epdi', 'hsai'
+        ].includes(indexKey);
+        
+        const bookmarks = isCivic ? (verifiedBookmarks[indexKey] || []) : SPILL_BOOKMARKS;
+        
+        if (bookmarks.length > 0) {
+            bookmarkGroup.style.display = 'block';
+            bookmarks.forEach(spill => {
+                const btn = document.createElement('button');
+                btn.className = 'spill-bookmark-btn';
+                const displayDate = isCivic ? spill.date : spill.displayDate;
+                btn.innerHTML = `<span class="spill-name">${spill.label}</span><span class="spill-date-tag">${displayDate}</span>`;
+                
+                btn.addEventListener('click', () => {
+                    const targetStr = spill.date || spill.displayDate;
+                    const target = new Date(targetStr).getTime();
+                    let closestIdx = 0, minDiff = Infinity;
+                    ALL_DATES.forEach((d, i) => {
+                        const diff = Math.abs(new Date(d.value).getTime() - target);
+                        if (diff < minDiff) { minDiff = diff; closestIdx = i; }
+                    });
+                    
+                    state.monthIndex = closestIdx;
+                    const dateSingleEl = document.getElementById('date-single');
+                    if (dateSingleEl) dateSingleEl.value = closestIdx.toString();
+                    
+                    document.getElementById('disp-lat').innerText = spill.lat.toFixed(4) + '°';
+                    document.getElementById('disp-lng').innerText = spill.lng.toFixed(4) + '°';
+                    state.map.flyTo([spill.lat, spill.lng], spill.zoom, { duration: 1.5 });
+                    
+                    document.querySelectorAll('#hud-bookmark-results .spill-bookmark-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    
+                    if (state.mode !== 'single') {
+                        const mSing = document.getElementById('mode-single');
+                        if (mSing) mSing.click();
+                    } else {
+                        applyIndex();
+                    }
+                    setTimeout(() => probeAcquisitions(), 1600);
+                });
+                bookmarkResults.appendChild(btn);
+            });
+        }
+    }
+
+    // Set up search listener
+    searchInput.addEventListener('input', (e) => {
+        searchQuery = e.target.value;
+        if (clearBtn) clearBtn.style.display = searchQuery ? 'block' : 'none';
+        updateHUDResults();
+    });
+
+    if (clearBtn) {
+        clearBtn.addEventListener('click', () => {
+            searchInput.value = '';
+            searchQuery = '';
+            clearBtn.style.display = 'none';
+            updateHUDResults();
+        });
+    }
+
+    // Set up tag filters
+    tagPills.forEach(pill => {
+        // Remove existing listener
+        const newPill = pill.cloneNode(true);
+        pill.parentNode.replaceChild(newPill, pill);
+        
+        newPill.addEventListener('click', () => {
+            const tag = newPill.dataset.tag;
+            if (activeTag === tag) {
+                activeTag = null; // Toggle off
+                newPill.classList.remove('active');
+            } else {
+                activeTag = tag;
+                document.querySelectorAll('.hud-tag-pill').forEach(p => p.classList.remove('active'));
+                newPill.classList.add('active');
+            }
+            updateHUDResults();
+        });
+    });
+
+    // Run initial population
+    updateHUDResults();
+}
+window.renderCommandConsole = renderCommandConsole;
 
 
 // NOTE: downloadHTMLReport, initRrcSpillOverlay, probeAcquisitions → see report.js

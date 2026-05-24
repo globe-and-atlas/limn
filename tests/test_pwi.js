@@ -1,6 +1,6 @@
 const fs = require('fs');
 
-const appJs = fs.readFileSync('app.js', 'utf8');
+const appJs = fs.readFileSync('src/app.js', 'utf8');
 
 // We need to strip out things like window.document that node doesn't have 
 // Just grabbing the exact definitions needed:

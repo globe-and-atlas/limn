@@ -7,8 +7,8 @@ Spectral index library validated. 2026-03-08 validation run: FBC/HPWI/PWI detect
 ## Current Session
 
 Agent: Antigravity AI
-Goal: Update the UI and scientific documentation of Sentinel Explorer to reflect the new GIS-native and legally defensible naming slate (PWCI, ASAI, OBEC, and EHC) while explicitly retaining references to their old names (PWI, PWOI, HPWI, EHC) to maintain trace history.
-Status: Completed. Updated `index.html` tooltips and button labels, `src/indices.js` names and info strings, `README.md` intro and index tables, `help.html` scientific descriptions, comparison table, and workflow recommendations, and `knowledge/domain/` documents (spectral-indices.md, known-quirks.md, and spectral-indices-full.md) to integrate the new slates with clear historical 'formerly known as' annotations.
+Goal: Integrate the 18 novel public-good environmental and commercial composites, their global scenario bookmarks, science notes, and authorship boundaries from civic-sentinel into Limn.
+Status: Fully completed and verified. Section 2.5 detailing all 18 Civic Atlas composites added to help.html. Test harness paths and ESM mock environments fixed and verified.
 
 ## Validation Contract
 
@@ -17,20 +17,16 @@ Status: Completed. Updated `index.html` tooltips and button labels, `src/indices
 - [x] User-facing scientific guides (`help.html` and `SENTINEL_SCIENCE_GUIDE.md`) fully updated to integrate final PWCI, ASAI, OBEC, and EHC names alongside explicit parenthetical context mapping back to PWI, PWOI, HPWI, and EHC.
 - [x] Repository overview (`README.md`) synchronized to maintain consistency across the index table.
 - [x] Developer domain documentation (`spectral-indices.md`, `known-quirks.md`, and `spectral-indices-full.md`) fully aligned with final slates.
+- [x] Triple layout varieties (Suite Grid, Focused Triage, Command Console) implemented client-side with smooth glassmorphic UI switches and transitions.
+- [x] Thematic cards, flying coordinate resets, single-date mode switches, and dynamic tag/text index search filters implemented and fully tested.
+- [x] Created PUBLIC_SCIENCE_GUIDE.md as a publication-ready public academic whitepaper assigning full inventor credit to Daniel Bally and clarifying IP boundaries.
+- [x] Implemented interactive triage-tag-pills with separate event bubbling prevention, custom hover states, and active visual selections in style.css and app.js.
+- [x] Isolated Basin Calibration and Detection Sensitivity settings at both the UI layer (dynamic overlays) and the processing layer (WMS/charts scripts) to Produced Water Spill indices only.
+- [x] Promoted four highly ownable Civic Atlas ecological composites (CSRC, TRSI, LFGVI, and SWRI) to ✧✧ Original Composite status in help.html and PUBLIC_SCIENCE_GUIDE.md.
 
 ## Active Checkpoints
 
-### 2026-03-28 — Karpathy loop iteration 1 complete
-- Added: execution/optimize_thresholds.py, execution/sweep_dates.py (new)
-- Fixed: execution/evaluate_validation.py (full rewrite, all indices)
-- Fixed: execution/batch_analyze_spills.py — APEX/HPWI dry brine mode; --spills/--output/--force args; bsi/ndsi/ndvi moved to shared intermediates
-- Added: data/verified_spills.json — 8 sourced spill sites with GPS coordinates
-- Added: .claude/agents/calibration-agent.md
-- Root cause found: APEX/HPWI zeroed for dry Permian Basin bare soil (NDWI -0.4 kills norm_smooth)
-- Fix: dry brine mode — NDWI<-0.30 + NDSI>0.05 + BSI>0.10 triggers NDSI×BSI product formula
-- Results: APEX 29.6%→77.8%, HPWI 14.8%→66.7%, composite 38.1%→55.2%
-- Apache-Balmorhea: still 0 — date is July 2020, NDSI 0.029 too low; needs sweep_dates on 2021+ imagery
-- Next: run sweep_dates.py on verified_spills.json; add control sites to measure false positive rate on non-spill caliche
+No active checkpoints. All tasks completed, verified, and captured.
 
 ## Checkpoint Log
 
@@ -57,3 +53,7 @@ Status: Completed. Updated `index.html` tooltips and button labels, `src/indices
 
 - 2026-05-23 18:30 — commit: fix: force single-date mode on bookmark click | knowledge/SESSION.md,src/app.js
 - 2026-05-23 18:31 — commit: docs: sync final SESSION.md logs | knowledge/SESSION.md
+- 2026-05-23 20:18 — commit: ui: remove deep fusion dead code, fix ASAI gradient, clean up header and footer spacing | help.html,index.html,knowledge/DECISIONS.md,knowledge/SESSION.md,src/app.js
+- 2026-05-23 20:42 — commit: rebrand: rename Sentinel Explorer → Limn (Globe & Atlas · Limn) | help.html,index.html,src/app.js,src/indices.js,src/report.js
+- 2026-05-23 20:49 — commit: docs: update CLAUDE.md — rebrand to Limn, clarify actual SAR vs S2-only optical proxies | CLAUDE.md
+- 2026-05-24 15:00 — checkpoint: integrated 18 Civic Atlas composites in help.html. Corrected Node unit tests (tests/test_pwi.js and tests/test_evalscript.js) to resolve module paths correctly. Fixed global mock module (src/mocks.mjs) and verified clean ESM unit test execution without ReferenceErrors. | help.html,tests/test_pwi.js,tests/test_evalscript.js

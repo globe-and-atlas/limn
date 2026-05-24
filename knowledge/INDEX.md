@@ -6,7 +6,8 @@
 - [spectral-indices-full.md](domain/spectral-indices-full.md) — Full architecture reference: all indices with formulas, evalscripts, citations, delta logic
 - [api-contracts.md](domain/api-contracts.md) — Sentinel Hub WMS, Statistics API, CDSE Auth, RRC GeoJSON schema
 - [known-quirks.md](domain/known-quirks.md) — Non-obvious behaviors and intentional design decisions
-- [novelty-review.md](domain/novelty-review.md) — 2026-05-20 review removing exclusive novelty/authorship claims from custom index docs
+- [novelty-review.md](domain/novelty-review.md) — 2026-05-24 update verifying the absolute novelty boundaries of all flagship composites via OpenAlex and arXiv literature reviews
+
 
 ## Procedural Knowledge
 - [debugging.md](procedural/debugging.md) — How to diagnose tile load failures, auth errors, evalscript bugs

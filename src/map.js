@@ -25,6 +25,24 @@ import {
     PALETTE_MSI_INV,
     PALETTE_LBI,
     PALETTE_APEX,
+    PALETTE_POST_FIRE,
+    PALETTE_WATER_BLOOM,
+    PALETTE_PLASTIC,
+    PALETTE_PERMAFROST,
+    PALETTE_SHELTER,
+    PALETTE_LEACHATE,
+    PALETTE_ACID_MINE,
+    PALETTE_FUEL,
+    PALETTE_WETLAND,
+    PALETTE_SILT,
+    PALETTE_SCUM,
+    PALETTE_RIVER_SHOCK,
+    PALETTE_LFG,
+    PALETTE_SEWAGE,
+    PALETTE_CATCHMENT,
+    PALETTE_REFUGE,
+    PALETTE_EROSION,
+    PALETTE_HEAT_VULN,
     INDICES
 } from './indices.js';
 
@@ -54,8 +72,13 @@ export function getScriptContent(config, activeIndex, isDiff, isCumulative = fal
     if (!cfg) return '';
     let scriptContent = cfg.evalscript;
 
+    // Isolate Permian Basin calibration to Produced Water Spill indices only
+    const SPILL_INDEX_KEYS = ['pwi', 'pwoi', 'hpwi', 'lbi', 'fbc', 'reai', 'vcbi', 'aoi', 'cma', 'hmi', 'phi', 'tri', 'bpi'];
+    const isSpill = SPILL_INDEX_KEYS.includes(activeIndex);
+    const activeBasin = isSpill ? (state.activeBasin || 'permian') : 'standard';
+
     // Apply Dynamic Calibration Placeholders
-    const cal = CALIBRATION_PRESETS[state.activeBasin || 'permian'];
+    const cal = CALIBRATION_PRESETS[activeBasin];
     scriptContent = scriptContent
         .replace(/__BSI_MASK__/g, cal.bsiMask)
         .replace(/__BSI_OFFSET__/g, cal.bsiOffset)
@@ -228,6 +251,47 @@ export function getScriptContent(config, activeIndex, isDiff, isCumulative = fal
             bands = ['B03', 'B11', 'B12'];
         }
 
+        const civicKeys = [
+            'bhdfsi', 'peti', 'mppdi', 'ttapi', 'ecaci', 'lrdvsi', 
+            'tdrasi', 'sfeii', 'wdacsi', 'cduai', 'csrc', 'trsi', 
+            'lfgvi', 'swri', 'dwci', 'rrfi', 'epdi', 'hsai'
+        ];
+        if (civicKeys.includes(activeIndex)) {
+            let palMap = {
+                bhdfsi: [PALETTE_POST_FIRE, 12.0],
+                peti: [PALETTE_WATER_BLOOM, 8.0],
+                mppdi: [PALETTE_PLASTIC, 15.0],
+                ttapi: [PALETTE_PERMAFROST, 18.0],
+                ecaci: [PALETTE_SHELTER, 14.0],
+                lrdvsi: [PALETTE_LEACHATE, 15.0],
+                tdrasi: [PALETTE_ACID_MINE, 12.0],
+                sfeii: [PALETTE_FUEL, 12.0],
+                wdacsi: [PALETTE_WETLAND, 15.0],
+                cduai: [PALETTE_SILT, 14.0],
+                csrc: [PALETTE_SCUM, 10.0],
+                trsi: [PALETTE_RIVER_SHOCK, 15.0],
+                lfgvi: [PALETTE_LFG, 15.0],
+                swri: [PALETTE_SEWAGE, 12.0],
+                dwci: [PALETTE_CATCHMENT, 12.0],
+                rrfi: [PALETTE_REFUGE, 15.0],
+                epdi: [PALETTE_EROSION, 15.0],
+                hsai: [PALETTE_HEAT_VULN, 14.0]
+            };
+            const [pal, scale] = palMap[activeIndex];
+            palette = pal;
+            bands = cfg.fisBands || ['B04', 'B03', 'B02'];
+            
+            let innerLogic = cfg.fisLogic;
+            if (innerLogic.includes('return [')) {
+                innerLogic = innerLogic.replace(/return\s+\[([\s\S]*?)\];/, `return ($1) * ${scale.toFixed(1)};`);
+            } else if (innerLogic.includes('return ')) {
+                innerLogic = innerLogic.replace(/return\s+([\s\S]*?);/, `return ($1) * ${scale.toFixed(1)};`);
+            }
+            logic = `(function() {
+                ${innerLogic}
+            })()`;
+        }
+
         if (activeIndex !== 'hpwi') {
             if (logic === '') {
                 // No cumulative logic defined for this index — fall back to standard evalscript
@@ -285,7 +349,34 @@ function evaluatePixel(samples) {
             else if (activeIndex === 'tc') calc = '(sample.B04*2)';
             else if (activeIndex === 'fc') calc = '(sample.B08*2)';
 
-            let bands = ['B04', 'B03', 'B02'];
+            const civicKeys = [
+                'bhdfsi', 'peti', 'mppdi', 'ttapi', 'ecaci', 'lrdvsi', 
+                'tdrasi', 'sfeii', 'wdacsi', 'cduai', 'csrc', 'trsi', 
+                'lfgvi', 'swri', 'dwci', 'rrfi', 'epdi', 'hsai'
+            ];
+            if (civicKeys.includes(activeIndex)) {
+                let scaleMap = {
+                    bhdfsi: 12.0, peti: 8.0, mppdi: 15.0, ttapi: 18.0,
+                    ecaci: 14.0, lrdvsi: 15.0, tdrasi: 12.0, sfeii: 12.0,
+                    wdacsi: 15.0, cduai: 14.0, csrc: 10.0, trsi: 15.0,
+                    lfgvi: 15.0, swri: 12.0, dwci: 12.0, rrfi: 15.0,
+                    epdi: 15.0, hsai: 14.0
+                };
+                const scale = scaleMap[activeIndex];
+                
+                let innerLogic = cfg.fisLogic;
+                if (innerLogic.includes('return [')) {
+                    innerLogic = innerLogic.replace(/return\s+\[([\s\S]*?)\];/, `return ($1) * ${scale.toFixed(1)};`);
+                } else if (innerLogic.includes('return ')) {
+                    innerLogic = innerLogic.replace(/return\s+([\s\S]*?);/, `return ($1) * ${scale.toFixed(1)};`);
+                }
+                
+                calc = `((function() {
+                    ${innerLogic}
+                })())`;
+            }
+
+            let bands = cfg.fisBands || ['B04', 'B03', 'B02'];
             if (activeIndex === 'ndmi') bands = ['B8A', 'B11'];
             if (activeIndex === 'ndwi') bands = ['B03', 'B11'];
             if (activeIndex === 'ndvi' || activeIndex === 'savi') bands = ['B08', 'B04'];
@@ -313,7 +404,13 @@ function evaluatePixel(samples) {
     }
 
     if (activeIndex === 'hpwi' && isDiff) scriptContent = cfg.evalscript;
-    const filterInject = `//VERSION=3\nconst VISUAL_FILTER = ${state.visualFilter};\nconst DETECTION_SENSITIVITY = ${state.sensitivity / 100};`;
+    
+    // Isolate detection sensitivity to Produced Water Spill indices only
+    const SPILL_INDEX_KEYS = ['pwi', 'pwoi', 'hpwi', 'lbi', 'fbc', 'reai', 'vcbi', 'aoi', 'cma', 'hmi', 'phi', 'tri', 'bpi'];
+    const isSpill = SPILL_INDEX_KEYS.includes(activeIndex);
+    const activeSensitivity = isSpill ? (state.sensitivity || 0) : 0;
+    
+    const filterInject = `//VERSION=3\nconst VISUAL_FILTER = ${state.visualFilter};\nconst DETECTION_SENSITIVITY = ${activeSensitivity / 100};`;
     return filterInject + "\n" + scriptContent.replace('//VERSION=3', '');
 }
 
