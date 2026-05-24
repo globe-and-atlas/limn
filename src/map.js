@@ -406,8 +406,6 @@ function evaluatePixel(samples) {
     if (activeIndex === 'hpwi' && isDiff) scriptContent = cfg.evalscript;
     
     // Isolate detection sensitivity to Produced Water Spill indices only
-    const SPILL_INDEX_KEYS = ['pwi', 'pwoi', 'hpwi', 'lbi', 'fbc', 'reai', 'vcbi', 'aoi', 'cma', 'hmi', 'phi', 'tri', 'bpi'];
-    const isSpill = SPILL_INDEX_KEYS.includes(activeIndex);
     const activeSensitivity = isSpill ? (state.sensitivity || 0) : 0;
     
     const filterInject = `//VERSION=3\nconst VISUAL_FILTER = ${state.visualFilter};\nconst DETECTION_SENSITIVITY = ${activeSensitivity / 100};`;
