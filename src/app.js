@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Sentinel Explorer - Core Logic (ES Module Entry Point)
+   Limn - Core Logic (ES Module Entry Point)
    ========================================================================== */
 
 import { getCDSEToken } from './auth.js';

@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Sentinel Explorer – Index Definitions & Evalscript Utilities
+   Limn – Index Definitions & Evalscript Utilities
    Extracted from app.js for modularity
    ========================================================================== */
 
@@ -275,7 +275,7 @@ export const INDICES = {
         max: 1,
         gradient: 'linear-gradient(to right, transparent 30%, #00FFFF 45%, #FF00FF 72%, #8C00FF 100%)',
         formula: "Specular Smoothness Proxy × Salinity/Crust Signature",
-        info: "Sentinel Explorer / Globe & Atlas composite calibration. Uses optical surface smoothness (B03/B11 ratio) as a proxy for specular surface reflectance, cross-referenced with salinity indicators, plus a dry-brine mode that fires when NDWI is deeply negative but NDSI is elevated — mapping dry evaporated salt crusts in arid environments without requiring active radar data. Formerly known as Produced Water Optical Index (PWOI) or APEX Anomaly Index.",
+        info: "Globe & Atlas · Limn composite calibration. Uses optical surface smoothness (B03/B11 ratio) as a proxy for specular surface reflectance, cross-referenced with salinity indicators, plus a dry-brine mode that fires when NDWI is deeply negative but NDSI is elevated — mapping dry evaporated salt crusts in arid environments without requiring active radar data. Formerly known as Produced Water Optical Index (PWOI) or APEX Anomaly Index.",
         diffLabels: ["Stable (No Detection)", "Salinity Anomaly Detected"],
         // WMS-compatible S2-only evalscript (optical proxy for radar smoothness)
         evalscript: genEvalscript(['B03', 'B11', 'B12'], `
@@ -613,7 +613,7 @@ export const INDICES = {
         min: 'Background', max: 'Oxidized Minerals',
         gradient: 'linear-gradient(to right, #2c3e50, #8e44ad, #c0392b)',
         formula: '(B04 / B02) * (B11 / B12)',
-        info: 'Sentinel Explorer composite calibration. Detects the chemical signature of deep-earth formation water oxidizing on the surface. Combines an iron oxide ratio (B04/B02) with a hydrocarbon absorption ratio (B11/B12) to identify the dark rust surface alteration characteristic of produced water spills.',
+        info: 'Globe & Atlas · Limn composite calibration. Detects the chemical signature of deep-earth formation water oxidizing on the surface. Combines an iron oxide ratio (B04/B02) with a hydrocarbon absorption ratio (B11/B12) to identify the dark rust surface alteration characteristic of produced water spills.',
         diffLabels: ['Less Oxidation', 'Extreme Oxidation'],
         evalscript: genEvalscript(['B02', 'B04', 'B11', 'B12'], `
   if(sample.B02 === 0 || sample.B12 === 0) return [0,0,0,0];
@@ -646,7 +646,7 @@ export const INDICES = {
         min: 'False Color RGB', max: '',
         gradient: 'linear-gradient(to right, #ff0000, #00ff00, #0000ff)',
         formula: 'R=NDOI, G=BSI, B=NDSI',
-        info: 'Sentinel Explorer / Globe & Atlas false-color composite calibration. Maps NDOI → Red (oil center), BSI → Green (mud footprint), NDSI → Blue (crystallized salt ring) to visually isolate the spatial morphology of blowout events (blowout morphology view). Useful for distinguishing localized anomalies from expanding plumes. Formerly known as Evaporite Halo / Visual composite.',
+        info: 'Globe & Atlas · Limn false-color composite calibration. Maps NDOI → Red (oil center), BSI → Green (mud footprint), NDSI → Blue (crystallized salt ring) to visually isolate the spatial morphology of blowout events (blowout morphology view). Useful for distinguishing localized anomalies from expanding plumes. Formerly known as Evaporite Halo / Visual composite.',
         diffLabels: ['N/A', 'N/A'],
         evalscript: `//VERSION=3
             function setup() {
@@ -689,7 +689,7 @@ export const INDICES = {
         min: 'Background', max: 'Liquid Emulsion',
         gradient: 'linear-gradient(to right, #000000, #00FFFF, #FF00FF, #CCFF00)',
         formula: 'Chemical Signal (NDOI + NDSI) × Specular Smoothness Proxy',
-        info: 'Sentinel Explorer / Globe & Atlas composite calibration. Fuses hydrocarbon/brine chemical signatures (NDOI + NDSI) with an optical surface smoothness proxy (B03/B11 ratio) that approximates specular surface reflectance. Designed as a physical-chemical consensus validator for PWCI/ASAI. All bands Sentinel-2 only. Formerly known as Hybrid Produced Water Index (HPWI).',
+        info: 'Globe & Atlas · Limn composite calibration. Fuses hydrocarbon/brine chemical signatures (NDOI + NDSI) with an optical surface smoothness proxy (B03/B11 ratio) that approximates specular surface reflectance. Designed as a physical-chemical consensus validator for PWCI/ASAI. All bands Sentinel-2 only. Formerly known as Hybrid Produced Water Index (HPWI).',
         diffLabels: ['Stable (No Detection)', 'Emulsion Anomaly Detected'],
         evalscript: genEvalscript(['B02', 'B03', 'B11', 'B12'], `
   if (sample.dataMask === 0) return [0,0,0,0];
@@ -746,7 +746,7 @@ export const INDICES = {
         min: 'Background', max: 'Iron+Brine Alteration',
         gradient: 'linear-gradient(to right, #1a0800, #8B2500, #D4581A, #FFB347)',
         formula: 'sqrt(ironScore × brineScore) × (1 − NDVI)',
-        info: 'Sentinel Explorer composite calibration. Targets the iron oxidation signature associated with produced water spills: deep Permian brine is rich in ferrous iron (Fe²⁺); when surfaced it oxidizes to ferric iron (Fe³⁺), creating rust-brown staining detectable via the Red/Blue ratio. Both the iron gate (B04/B02 > 1.4) and the brine gate (NDSI > 0.02) must fire simultaneously. The vegetation gate (1−NDVI) restricts detection to bare-ground pixels.',
+        info: 'Globe & Atlas · Limn composite calibration. Targets the iron oxidation signature associated with produced water spills: deep Permian brine is rich in ferrous iron (Fe²⁺); when surfaced it oxidizes to ferric iron (Fe³⁺), creating rust-brown staining detectable via the Red/Blue ratio. Both the iron gate (B04/B02 > 1.4) and the brine gate (NDSI > 0.02) must fire simultaneously. The vegetation gate (1−NDVI) restricts detection to bare-ground pixels.',
         diffLabels: ['Less Alteration', 'Active Iron+Brine Event'],
         evalscript: genEvalscript(['B02', 'B03', 'B04', 'B08', 'B11', 'B12'], `
   if (sample.dataMask === 0 || sample.B02 === 0) return [0,0,0,0];
@@ -800,7 +800,7 @@ export const INDICES = {
         min: 'Background', max: 'Ferric Mineral + Brine',
         gradient: 'linear-gradient(to right, #0d1a2e, #2e5c8a, #c47a1e, #e8c44a)',
         formula: '(B06 / B05) × NDSI',
-        info: 'Sentinel Explorer composite calibration. Uses Sentinel-2\'s dedicated Red Edge bands (B05=705nm, B06=740nm). Over bare disturbed soil, a B06/B05 ratio exceeding ~1.10 indicates ferric mineral enrichment (goethite, hematite) from produced water iron precipitation — multiplied by NDSI to confirm co-located brine chemistry. Particularly sensitive to subtle early-stage iron staining invisible to standard visible/SWIR indices.',
+        info: 'Globe & Atlas · Limn composite calibration. Uses Sentinel-2\'s dedicated Red Edge bands (B05=705nm, B06=740nm). Over bare disturbed soil, a B06/B05 ratio exceeding ~1.10 indicates ferric mineral enrichment (goethite, hematite) from produced water iron precipitation — multiplied by NDSI to confirm co-located brine chemistry. Particularly sensitive to subtle early-stage iron staining invisible to standard visible/SWIR indices.',
         diffLabels: ['No Alteration', 'Ferric + Brine Signal'],
         evalscript: genEvalscript(['B05', 'B06', 'B11', 'B12'], `
   if (sample.dataMask === 0 || sample.B05 === 0) return [0,0,0,0];
@@ -843,7 +843,7 @@ export const INDICES = {
         min: 'No Stress', max: 'Brine-Kill Zone',
         gradient: 'linear-gradient(to right, #0a2010, #1a6030, #c8a000, #e05010)',
         formula: 'max(0, −CRSI) × NDSI',
-        info: 'Sentinel Explorer composite calibration. Targets the off-pad migration front where produced water is actively killing surrounding brush. CRSI measures osmotic shock on vegetation; as chloride concentrations rise, CRSI collapses and goes negative. Multiplied by NDSI (brine chemistry), the index catches pixels where vegetation is simultaneously dying AND salt chemistry is measurable — the leading edge of a spill that may not yet show a strong chemical signature at its origin.',
+        info: 'Globe & Atlas · Limn composite calibration. Targets the off-pad migration front where produced water is actively killing surrounding brush. CRSI measures osmotic shock on vegetation; as chloride concentrations rise, CRSI collapses and goes negative. Multiplied by NDSI (brine chemistry), the index catches pixels where vegetation is simultaneously dying AND salt chemistry is measurable — the leading edge of a spill that may not yet show a strong chemical signature at its origin.',
         diffLabels: ['Recovery / Less Stress', 'Active Brine-Kill'],
         evalscript: genEvalscript(['B02', 'B03', 'B04', 'B08', 'B11', 'B12'], `
   if (sample.dataMask === 0) return [0,0,0,0];
@@ -891,7 +891,7 @@ export const INDICES = {
         min: 'Background', max: 'Chemical Anomaly',
         gradient: 'linear-gradient(to right, #000000, #00FFFF, #FF00FF, #CCFF00)',
         formula: '(NDSI - 0.05) * (HCAI - 0.20) * (HMRI - 1.5) [Balanced Recovery]',
-        info: 'Sentinel Explorer / Globe & Atlas composite calibration. Requires simultaneous elevation of Salinity (NDSI), Hydrocarbons (HCAI), and Heavy Metals (HMRI) — a three-way AND gate that suppresses caliche background noise and construction anomalies. Cubic scaling suppresses marginal noise while isolating high-confidence chemical anomalies. Formerly known as Produced Water Index (PWI).',
+        info: 'Globe & Atlas · Limn composite calibration. Requires simultaneous elevation of Salinity (NDSI), Hydrocarbons (HCAI), and Heavy Metals (HMRI) — a three-way AND gate that suppresses caliche background noise and construction anomalies. Cubic scaling suppresses marginal noise while isolating high-confidence chemical anomalies. Formerly known as Produced Water Index (PWI).',
         diffLabels: ['Stable (No Detection)', 'Chemical Anomaly Detected'],
         evalscript: genEvalscript(['B02', 'B03', 'B04', 'B08', 'B11', 'B12'], `
   // 1. Bare Soil Index (BSI) -- URBAN / WATER / VEG MASK
@@ -955,7 +955,7 @@ export const INDICES = {
         min: 'Background', max: 'Standing Brine Pool',
         gradient: 'linear-gradient(to right, #000000, #0055ff, #00d2ff, #ffffff)',
         formula: 'NDSI * NDWI * (1 - NDVI)',
-        info: 'Sentinel Explorer composite calibration. Captures standing pools of hazardous produced water. Requires a brine chemical signature (NDSI), a standing water proxy (NDWI adjusted for the very negative desert baseline), and the absence of vegetation (1−NDVI). Filters out legacy dry residues — focuses on active liquid releases.',
+        info: 'Globe & Atlas · Limn composite calibration. Captures standing pools of hazardous produced water. Requires a brine chemical signature (NDSI), a standing water proxy (NDWI adjusted for the very negative desert baseline), and the absence of vegetation (1−NDVI). Filters out legacy dry residues — focuses on active liquid releases.',
         diffLabels: ['Receding Liquid', 'New Pooling Event'],
         evalscript: genEvalscript(['B02', 'B03', 'B04', 'B08', 'B11', 'B12'], `
   let ndsiSum = sample.B11 + sample.B12;
@@ -1000,7 +1000,7 @@ export const INDICES = {
         min: 'Background', max: 'Toxic Mineral Scab',
         gradient: 'linear-gradient(to right, #1a0a00, #804000, #9933ff, #ff00ff)',
         formula: 'NDSI * HMRI * AOI',
-        info: 'Sentinel Explorer composite calibration. Forensic tool for identifying historical spill footprints where liquid is no longer present. Detects the mineral "scab" left by produced water after evaporation — combining salt chemistry (NDSI), heavy metal precipitation (HMRI), and anoxic iron oxidation (AOI) in a three-way product gate.',
+        info: 'Globe & Atlas · Limn composite calibration. Forensic tool for identifying historical spill footprints where liquid is no longer present. Detects the mineral "scab" left by produced water after evaporation — combining salt chemistry (NDSI), heavy metal precipitation (HMRI), and anoxic iron oxidation (AOI) in a three-way product gate.',
         diffLabels: ['Residue Degradation', 'New Mineral Staining'],
         evalscript: genEvalscript(['B02', 'B03', 'B04', 'B11', 'B12'], `
   let ndsiSum = sample.B11 + sample.B12;
@@ -1035,7 +1035,7 @@ export const INDICES = {
         min: 'Clean Surface', max: 'Contaminated Pavement',
         gradient: 'linear-gradient(to right, #222222, #444444, #00FFFF, #FFFF00)',
         formula: 'NDSI * HCAI * BSI',
-        info: 'Sentinel Explorer composite calibration. Optimized for detecting leaks on caliche pads and lease roads — the primary tool for pad-level integrity monitoring. Requires brine (NDSI) and hydrocarbon (HCAI) signals co-located on a bare/compacted surface (BSI gate). Distinguishes pad pinhole leaks from off-pad vegetation kill zones.',
+        info: 'Globe & Atlas · Limn composite calibration. Optimized for detecting leaks on caliche pads and lease roads — the primary tool for pad-level integrity monitoring. Requires brine (NDSI) and hydrocarbon (HCAI) signals co-located on a bare/compacted surface (BSI gate). Distinguishes pad pinhole leaks from off-pad vegetation kill zones.',
         diffLabels: ['Surface Recovery', 'Active Pad Pinhole'],
         evalscript: genEvalscript(['B02', 'B04', 'B08', 'B11', 'B12'], `
   let bsiTop = (sample.B11 + sample.B04) - (sample.B08 + sample.B02);
@@ -1074,7 +1074,7 @@ export const INDICES = {
         min: 'Healthy', max: 'Metal/Brine Stress',
         gradient: 'linear-gradient(to right, #005500, #FFFF00, #FF8800, #FF0000)',
         formula: 'NDSI * RedEdgeDelta * MSI',
-        info: 'Sentinel Explorer composite calibration. Detects the physiological impact of produced water before vegetation death — sub-lethal brine toxicity in surviving desert scrub. Uses Red-Edge blue-shifts (B07/B05) and SWIR/NIR moisture stress (B11/B8A) co-located with a salinity signature (NDSI). Earlier warning than VCBI, which requires vegetation mortality.',
+        info: 'Globe & Atlas · Limn composite calibration. Detects the physiological impact of produced water before vegetation death — sub-lethal brine toxicity in surviving desert scrub. Uses Red-Edge blue-shifts (B07/B05) and SWIR/NIR moisture stress (B11/B8A) co-located with a salinity signature (NDSI). Earlier warning than VCBI, which requires vegetation mortality.',
         diffLabels: ['Stress Alleviation', 'Escalating Toxicity'],
         evalscript: genEvalscript(['B05', 'B07', 'B11', 'B12', 'B8A'], `
   let ndsi = (sample.B11 + sample.B12) === 0 ? 0 : (sample.B11 - sample.B12) / (sample.B11 + sample.B12);
@@ -1106,7 +1106,7 @@ export const INDICES = {
         min: 'Native Soil', max: 'Chemical Alteration',
         gradient: 'linear-gradient(to right, #442200, #884400, #AA88AA, #FFFFFF)',
         formula: 'NDSI * (B11/B12) * (B04/B02)',
-        info: 'Sentinel Explorer composite calibration. Forensic index targeting the chemical modification of clay lattices by produced water residues. Uses SWIR-1/SWIR-2 ratios to isolate salt-clay interactions and visible Red/Blue ratios for iron-oxidation signatures. Persistent indicator — clay lattice disruption survives long after surface brine has evaporated.',
+        info: 'Globe & Atlas · Limn composite calibration. Forensic index targeting the chemical modification of clay lattices by produced water residues. Uses SWIR-1/SWIR-2 ratios to isolate salt-clay interactions and visible Red/Blue ratios for iron-oxidation signatures. Persistent indicator — clay lattice disruption survives long after surface brine has evaporated.',
         diffLabels: ['Naturalization', 'Chemical Staining'],
         evalscript: genEvalscript(['B02', 'B04', 'B11', 'B12'], `
   let ndsi = (sample.B11 + sample.B12) === 0 ? 0 : (sample.B11 - sample.B12) / (sample.B11 + sample.B12);
@@ -1138,7 +1138,7 @@ export const INDICES = {
         min: 'Background', max: 'Hydrocarbon Rich',
         gradient: 'linear-gradient(to right, #000000, #333333, #663300, #FFCC00)',
         formula: 'NDSI * (B11/B12) * HCAI',
-        info: 'Sentinel Explorer composite calibration. Isolates oily brine from clean runoff by combining the SWIR absorption shoulder of petroleum hydrocarbons (B11/B12 ratio), HCAI hydrocarbon signal, and NDSI salinity — a three-factor gate that separates oilfield produced water from natural saline seeps or irrigation drainage.',
+        info: 'Globe & Atlas · Limn composite calibration. Isolates oily brine from clean runoff by combining the SWIR absorption shoulder of petroleum hydrocarbons (B11/B12 ratio), HCAI hydrocarbon signal, and NDSI salinity — a three-factor gate that separates oilfield produced water from natural saline seeps or irrigation drainage.',
         diffLabels: ['Oil Degradation', 'New Oil/Brine Event'],
         evalscript: genEvalscript(['B04', 'B11', 'B12'], `
   let ndsi = (sample.B11 + sample.B12) === 0 ? 0 : (sample.B11 - sample.B12) / (sample.B11 + sample.B12);
@@ -1170,7 +1170,7 @@ export const INDICES = {
         min: 'Clean', max: 'Metal-Salt PPT',
         gradient: 'linear-gradient(to right, #001100, #004400, #00FFBB, #FFFFFF)',
         formula: '(B03/B02) * (B11/B12)',
-        info: 'Sentinel Explorer composite calibration. Targets Barium and Strontium precipitation from produced water — heavy metals that settle into soil as brine evaporates. Uses green-reflectance shifts (B03/B02) caused by metal toxicity suppressing organic matter, combined with mineral salt precipitation signatures (B11/B12). Persistent for 12+ months after initial spill.',
+        info: 'Globe & Atlas · Limn composite calibration. Targets Barium and Strontium precipitation from produced water — heavy metals that settle into soil as brine evaporates. Uses green-reflectance shifts (B03/B02) caused by metal toxicity suppressing organic matter, combined with mineral salt precipitation signatures (B11/B12). Persistent for 12+ months after initial spill.',
         diffLabels: ['Site Detoxification', 'Metal Accumulation'],
         evalscript: genEvalscript(['B02', 'B03', 'B11', 'B12'], `
   let greenShift = sample.B02 === 0 ? 0 : sample.B03 / sample.B02;
@@ -1200,7 +1200,7 @@ export const INDICES = {
         min: 'Background', max: 'Salt Crust Confirmed',
         gradient: 'linear-gradient(to right, #000000, #4b0082, #e74c3c, #f1c40f)',
         formula: 'log10(VH) + Salt_Proxy',
-        info: 'Sentinel Explorer SAR-based composite calibration. Leverages the characteristic backscatter signature of salt crystallization on the soil surface: low VH (smooth surface, no volume scattering) combined with elevated VH relative to background. Penetrates dust, smoke, and cloud — provides mechanical verification of chemical salinity signatures seen in optical indices.',
+        info: 'Globe & Atlas · Limn SAR-based composite calibration. Leverages the characteristic backscatter signature of salt crystallization on the soil surface: low VH (smooth surface, no volume scattering) combined with elevated VH relative to background. Penetrates dust, smoke, and cloud — provides mechanical verification of chemical salinity signatures seen in optical indices.',
         diffLabels: ['Smoothing / Naturalization', 'New Salt Roughness'],
         evalscript: `//VERSION=3
 function setup() {

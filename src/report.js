@@ -1,5 +1,5 @@
 /* ==========================================================================
-   Sentinel Explorer – Report Generation, HTML Export, RRC Overlay, Probe
+   Limn – Report Generation, HTML Export, RRC Overlay, Probe
    Extracted from app.js for modularity
    ========================================================================== */
 
@@ -250,7 +250,7 @@ export async function downloadHTMLReport() {
 </head>
 <body>
     <div class="container">
-        <h1>Sentinel Explorer Report</h1>
+        <h1>Limn Report</h1>
         
         <div class="meta-box">
             <p><strong>Generated:</strong> ${runDate}</p>

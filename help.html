@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sentinel Explorer | Science & Documentation</title>
+    <title>Limn | Science & Documentation</title>
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap"
         rel="stylesheet">
@@ -207,7 +207,7 @@
     <h1>SCIENCE & DOCUMENTATION</h1>
     <div class="subtitle">Defensible Spectral Algorithms for Environmental Remediation — Validated 2026-03-28</div>
 
-    <p>The Sentinel Explorer platform leverages advanced remote sensing workflows derived from peer-reviewed academic
+    <p>The Limn platform leverages advanced remote sensing workflows derived from peer-reviewed academic
         literature to detect, classify, and track environmental anomalies—specifically produced water spills and
         hydrocarbon releases. Below is the comprehensive scientific justification for each spectral index utilized in
         this engine.</p>
@@ -358,7 +358,7 @@
         <p><strong>The Implementation:</strong> PWCI (formerly PWI) is a restrictive "AND GATE" engine requiring the simultaneous elevation
             of three independent chemical signatures: <strong>Salinity</strong> (NDSI floor: 0.03),
             <strong>Hydrocarbons</strong> (HCAI floor: 0.05, scale ×5), and <strong>Heavy Metals</strong> (HMRI floor: 1.1, scale ×3).
-            The Sentinel Explorer implementation applies all three simultaneously as a triple-lock composite for
+            The Limn implementation applies all three simultaneously as a triple-lock composite for
             oilfield produced water. The multiplicative gating means a strong signal on one component cannot compensate for a
             missing signal on another — all three must be present. A power scaling
             (<code>pow(pwi_base × 50, 1.2)</code>) amplifies confirmed detections while suppressing marginal
@@ -416,7 +416,7 @@
             is calibrated to detect physiological stress in Permian rangeland vegetation 2–3 months before visible
             wilting.<sup><a href="#fn6">6</a></sup><sup><a href="#fn15">15</a></sup><sup><a href="#fn20">20</a></sup></p>
         <p><strong>Attribution note:</strong> Vegetation stress indices and red-edge salinity-stress methods are
-            well-documented in precision agriculture (Allbed 2014, Scudiero 2014). The Sentinel Explorer contribution
+            well-documented in precision agriculture (Allbed 2014, Scudiero 2014). The Limn contribution
             is the local triplet assembly and calibration for the oilfield produced water context, not the underlying
             band physics or the general VSI concept.</p>
     </div>

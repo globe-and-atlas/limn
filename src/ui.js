@@ -1,5 +1,5 @@
 /**
- * Sentinel Explorer - UI Management Module
+ * Limn - UI Management Module
  * Handles toasts, tab switching, and modal states.
  */
 
