@@ -54,11 +54,6 @@ export function getScriptContent(config, activeIndex, isDiff, isCumulative = fal
     if (!cfg) return '';
     let scriptContent = cfg.evalscript;
 
-    // Switch to deep fusion evalscript when radar confirmation is enabled
-    if (state.deepFusion && cfg.deepEvalscript) {
-        scriptContent = cfg.deepEvalscript;
-    }
-
     // Apply Dynamic Calibration Placeholders
     const cal = CALIBRATION_PRESETS[state.activeBasin || 'permian'];
     scriptContent = scriptContent
@@ -150,8 +145,6 @@ export function getScriptContent(config, activeIndex, isDiff, isCumulative = fal
             bands = ['B02', 'B04', 'B08', 'B11', 'B12'];
         }
         if (activeIndex === 'hpwi') {
-            // Note: genDeepFusionEvalscript is WMS-incompatible (multi-datasource).
-            // Always use S2-only optical proxy in cumulative mode regardless of deepFusion toggle.
             {
                 logic = `(function() {
                     let ndsi = (sample.B11+sample.B12===0)?0:(sample.B11-sample.B12)/(sample.B11+sample.B12);
@@ -403,20 +396,20 @@ export function getWMSLayer(state, config, timeStr, isDiff, overrideIndex = null
     }
     // Force single main carrier layer for multi-source fusion scripts to avoid 400 error.
     // 'AGRICULTURE' is a near-universal default in Sentinel Hub configs.
-    if ((cfg && cfg.sensor === 'S1/S2 Fusion') || (state.deepFusion && activeIdx === 'hpwi')) {
+    if (cfg && cfg.sensor === 'S1/S2 Fusion') {
         wmsLayerParam = 'AGRICULTURE';
     }
 
     let queryTime = timeStr;
-    if ((activeIdx === 'hpwi' || activeIdx === 'pwoi') && !timeStr.includes('/')) {
+    if (activeIdx === 'pwoi' && !timeStr.includes('/')) {
         let dateObj = new Date(timeStr);
         let pastObj = new Date(dateObj);
         pastObj.setDate(pastObj.getDate() - 30);
         queryTime = pastObj.toISOString().split('T')[0] + '/' + timeStr;
     }
 
-    // HPWI/APEX use a 30-day window — relax cloud cover filter so more scenes are eligible
-    const maxcc = (activeIdx === 'hpwi' || activeIdx === 'pwoi') ? 60 : 20;
+    // ASAI (pwoi) uses a 30-day window — relax cloud cover filter so more scenes are eligible
+    const maxcc = activeIdx === 'pwoi' ? 60 : 20;
 
     const layer = new RateLimitedWMS(SH_WMS_URL, {
         layers: wmsLayerParam,

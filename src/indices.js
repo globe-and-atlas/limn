@@ -197,7 +197,7 @@ export const PALETTE_TRI = "[[0, 26, 10, 0], [0.3, 128, 64, 0], [0.7, 153, 51, 2
 export const PALETTE_BPI = "[[0, 34, 34, 34], [0.3, 68, 68, 68], [0.7, 0, 255, 255], [1, 255, 255, 0]]";
 export const PALETTE_VSI = "[[0, 0, 85, 0], [0.3, 255, 255, 0], [0.7, 255, 136, 0], [1, 255, 0, 0]]";
 export const PALETTE_CMA = "[[0, 68, 34, 0], [0.3, 136, 68, 0], [0.7, 170, 136, 170], [1, 255, 255, 255]]";
-export const PALETTE_APEX = "[[0, 0, 0, 0.0], [0.1, 0, 255, 255, 1.0], [0.5, 255, 0, 255, 1.0], [1, 140, 0, 255, 1.0]]";
+export const PALETTE_APEX = "[[0, 0, 0, 0.0], [0.3, 0, 255, 255, 0.0], [0.45, 0, 255, 255, 1.0], [0.72, 255, 0, 255, 1.0], [1, 140, 0, 255, 1.0]]";
 export const PALETTE_PHI = "[[0, 0, 0, 0], [0.3, 51, 51, 51], [0.7, 102, 51, 0], [1, 255, 204, 0]]";
 export const PALETTE_HMI = "[[0, 0, 17, 0], [0.3, 0, 68, 0], [0.7, 0, 255, 187], [1, 255, 255, 255]]";
 export const PALETTE_SCRI = "[[0, 0, 0, 0], [0.2, 75, 0, 130], [0.6, 231, 76, 60], [1, 241, 196, 15]]";
@@ -273,7 +273,7 @@ export const INDICES = {
         sensor: "Sentinel-2 L2A",
         min: 0,
         max: 1,
-        gradient: 'linear-gradient(to right, #000000, #00FFFF, #FF00FF, #8C00FF)',
+        gradient: 'linear-gradient(to right, transparent 30%, #00FFFF 45%, #FF00FF 72%, #8C00FF 100%)',
         formula: "Specular Smoothness Proxy × Salinity/Crust Signature",
         info: "Sentinel Explorer / Globe & Atlas composite calibration. Uses optical surface smoothness (B03/B11 ratio) as a proxy for specular surface reflectance, cross-referenced with salinity indicators, plus a dry-brine mode that fires when NDWI is deeply negative but NDSI is elevated — mapping dry evaporated salt crusts in arid environments without requiring active radar data. Formerly known as Produced Water Optical Index (PWOI) or APEX Anomaly Index.",
         diffLabels: ["Stable (No Detection)", "Salinity Anomaly Detected"],

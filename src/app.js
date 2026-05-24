@@ -266,7 +266,6 @@ const state = {
     monthIndex: Math.max(0, ALL_DATES.length - 1),
     sarFusion: false, // track the state of the SAR Overlay toggle
     hlsEnabled: false, // NASA HLS temporal booster
-    deepFusion: false, // True S1+S2 spectral fusion
     opacity: 0.85,
     visualFilter: 0,
     sensitivity: 0, // Dynamic threshold offset (-50 to 50)
@@ -708,13 +707,6 @@ function bindEvents() {
     }
 
 
-    const toggleDeep = document.getElementById('toggle-deep-fusion');
-    if (toggleDeep) {
-        toggleDeep.addEventListener('change', (e) => {
-            state.deepFusion = e.target.checked;
-            applyIndex();
-        });
-    }
 
     // RRC Spill Overlay Toggle
     const toggleRrc = document.getElementById('toggle-rrc-spills');

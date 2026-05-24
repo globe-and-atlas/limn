@@ -2386,11 +2386,29 @@ input[type=range]::-webkit-slider-runnable-track {
     border-radius: 4px;
 }
 
-/* Subtitle row with space-between flex */
-.subtitle-row {
+/* Sidebar footer — copyright + disclaimer */
+.sidebar-footer {
+    margin-top: auto;
+    padding: 16px 0 8px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
     display: flex;
     justify-content: space-between;
     align-items: center;
+    font-size: 11px;
+    color: var(--text-dim);
+    font-family: var(--font-ui);
+    flex-shrink: 0;
+}
+
+.disclaimer-trigger-btn {
+    background: none;
+    border: none;
+    color: #00D2FF;
+    cursor: pointer;
+    font-size: 11px;
+    font-family: var(--font-ui);
+    padding: 0;
+    text-decoration: underline;
 }
 
 /* Science docs link button */
@@ -2398,8 +2416,9 @@ input[type=range]::-webkit-slider-runnable-track {
     text-decoration: none;
     padding: 4px 10px;
     font-size: 10px;
-    margin: 0;
+    margin-top: 6px;
     display: inline-flex;
+    width: auto;
     align-items: center;
     gap: 4px;
     background: rgba(0, 210, 255, 0.1);

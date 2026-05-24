@@ -215,15 +215,9 @@
     <!-- CUSTOM INDEX LEGEND -->
     <div style="background: rgba(0, 210, 255, 0.05); border: 1px solid rgba(0, 210, 255, 0.2); border-radius: 8px; padding: 20px; margin: 30px 0;">
         <h2 style="margin-top: 0; border-bottom: none; color: #00D2FF;">Novelty &amp; Attribution (✧ / ✧✧)</h2>
-        <p style="font-size: 0.95em; margin-bottom: 10px;">Indices marked <strong>✧</strong> are original composites
-            engineered by <strong>Daniel Bally (2025–2026)</strong> for produced water detection in the Permian Basin.
-            Indices marked <strong>✧✧</strong> are the primary validated composites and are candidates for formal
-            academic publication.</p>
-        <p style="font-size: 0.95em; margin-bottom: 0;"><strong>How originality works here:</strong> The component
-            band ratios each ✧ index draws on (NDSI, HCAI, HMRI, BSI, NDWI, etc.) have established physics and prior
-            literature. The <em>composite architectures</em> — the multi-gate AND logic, dry brine detection mode,
-            Permian Basin calibration offsets, and the specific combinations of signals — are original engineering with
-            no published equivalent. A novel recipe is original even when the ingredients are common.</p>
+        <p style="font-size: 0.95em; margin-bottom: 10px;">All indices marked <strong>✧</strong> or <strong>✧✧</strong> were conceived and built by <strong>Daniel Bally (Globe &amp; Atlas, 2025–2026)</strong>. Standard literature indices (NDVI, NDWI, NDSI, etc.) have no star and carry full citations in Section 3.</p>
+        <p style="font-size: 0.95em; margin-bottom: 10px;"><strong>✧✧ Flagship Original:</strong> Primary validated composites — novel multi-gate architectures with Permian Basin calibration and dry-brine detection logic that have no published prior equivalent. ASAI and PWCI hold this designation.</p>
+        <p style="font-size: 0.95em; margin-bottom: 0;"><strong>✧ Original Composite:</strong> An original composite assembly of established band ratios in novel combinations, purpose-built for Permian Basin oilfield geochemistry. Each has a specific detection target no single literature index covers alone.</p>
     </div>
 
     <!-- ADVANCED DATA -->
@@ -234,10 +228,6 @@
             <strong>1-day temporal resolution</strong> in the date-picker, allowing you to bridge the standard 5-day
             Sentinel-2 gap with Landsat 8/9 captures.
         </p>
-        <p style="font-size: 0.95em; margin-bottom: 0;"><strong>Deep Spectral Fusion:</strong> A multi-source engine
-            that cross-verifies restrictive chemical signatures (PWCI, formerly PWI) against physical surface smoothness (S1 SAR
-            Backscatter). This mode is the gold-standard for eliminating false positives from dry salt ponds or
-            mineral-rich soils.</p>
     </div>
 
     <!-- TEMPORAL GUIDE -->
@@ -282,16 +272,12 @@
          SECTION 1: VALIDATED PRODUCED WATER COMPOSITES
          ══════════════════════════════════════════════════════ -->
     <h2>1. Validated Produced Water Composites</h2>
-    <p style="color: var(--text-dim); font-size: 0.9em; margin-top: -10px; line-height: 1.5;">Original custom composite architectures and Permian Basin calibrations by <strong>Daniel Bally (Globe & Atlas, 2025–2026)</strong>. Standard spectral indicators have full literature citations in Section 3; custom G&A composites are marked as follows to highlight intellectual ownership and original engineering:
-        <br>
-        <span style="color: #00D2FF; font-weight: 600;">✧✧ Globe & Atlas Original Composite:</span> A completely original, highly novel composite architecture featuring custom multi-gate logic, desert-specific calibrations, or multi-sensor specular proxies with no published prior equivalent.
-        <br>
-        <span style="color: #8C00FF; font-weight: 600;">✧ Globe & Atlas Calibrated Composite:</span> An original composite assembly and target-specific calibration of established band ratios, purpose-built for Permian Basin oilfield geochemistry.</p>
+    <p style="color: var(--text-dim); font-size: 0.9em; margin-top: -10px; line-height: 1.5;">The two flagship composites below — ASAI and PWCI — were conceived, engineered, and validated by <strong>Daniel Bally (Globe &amp; Atlas, 2025–2026)</strong>. Their composite architectures, multi-gate detection logic, dry-brine mode, and Permian Basin calibration offsets have no published prior equivalent. Standard spectral indicators (NDVI, NDWI, NDSI, etc.) are in Section 3 with full citations.</p>
 
     <div class="index-card">
         <h3><span>ASAI — Arid Salinity Anomaly Index (formerly PWOI / APEX) ✧✧</span>
-            <span class="temporal-badge temporal-live">Live / Deep Fusion</span>
-            <span class="formula fusion-badge">Optical Smoothness × Moisture+Brine → SAR Coincidence (Deep)</span>
+            <span class="temporal-badge temporal-live">Live</span>
+            <span class="formula fusion-badge">Optical Smoothness × Moisture+Brine</span>
         </h3>
         <p><strong>The Gap:</strong> Identifying industrial spills in complex terrain produces "look-alike" false
             positives from shadows, bright soil, or dry salt ponds. No single-source optical index can reliably separate
@@ -300,9 +286,7 @@
             surface smoothness proxy — the ratio <code>(B03 − B11) / (B03 + B11)</code>, an NDWI-like value that mirrors
             how specularly smooth liquid surfaces suppress SAR VH backscatter — cross-referenced against a combined
             moisture+brine score. A pixel is only flagged if it simultaneously exhibits optical smoothness <em>and</em>
-            elevated chemical moisture, with a non-linear boost for high-confidence coincidence. In
-            <strong>Deep Fusion mode</strong>, the optical smoothness proxy is replaced with true Sentinel-1 SAR VH
-            backscatter, achieving genuine radar-optical coincidence detection. Formerly known as Produced Water Optical Index (PWOI) or APEX Anomaly Index.<sup><a href="#fn4">4</a></sup><sup><a
+            elevated chemical moisture, with a non-linear boost for high-confidence coincidence. Formerly known as Produced Water Optical Index (PWOI) or APEX Anomaly Index.<sup><a href="#fn4">4</a></sup><sup><a
                     href="#fn18">18</a></sup><sup><a href="#fn31">31</a></sup></p>
         <p><strong>Dry Brine Mode:</strong> The wet-mode formula zeros on dry Permian Basin bare soil (NDWI = −0.39 to −0.51), which was the root cause of pre-fix 29.6% detection. A parallel dry path — <code>(NDSI − 0.04) × min(1, BSI × N) × scale</code> — fires when NDWI &lt; −0.30 AND NDSI &gt; 0.05 AND BSI &gt; 0.10, recovering evaporated salt crust signatures. Score takes <code>max(wet, dry)</code> to preserve standing-water detections.</p>
         <p><strong>Validation (2026-03-28):</strong> 77.8% detection on 27 TRRC confirmed spill sites; 87.5% on 8 GPS-verified sourced sites; 86% on major spills (&gt;500 BBL). Pre-dry-brine-mode baseline was 29.6%.</p>
@@ -348,11 +332,6 @@
                     <td>Mature spills with full triple-lock chemistry confirmed</td>
                 </tr>
                 <tr>
-                    <td><strong>Deep Fusion mode</strong></td>
-                    <td>True SAR VH coincidence with optical moisture proxy</td>
-                    <td>Triple-gate chemical signal × true SAR VH smoothness</td>
-                </tr>
-                <tr>
                     <td><strong>Recommended workflow</strong></td>
                     <td>Run first to identify candidate areas</td>
                     <td>Run second to confirm ASAI detections as produced water</td>
@@ -360,15 +339,14 @@
                 <tr>
                     <td><strong>False positives include</strong></td>
                     <td>Irrigation, ponded rainwater, natural seeps</td>
-                    <td>Near-zero in Deep Fusion mode</td>
+                    <td>Reduced when paired with PWCI or OBEC confirmation</td>
                 </tr>
             </tbody>
         </table>
         <p><strong>Practical workflow:</strong> Use ASAI to scan the AOI for anything anomalous — any optically smooth,
-            chemically active pixel. Then switch to OBEC (or OBEC Deep Fusion) on candidate sites to confirm whether
-            the chemistry qualifies as produced water. A detection that appears on ASAI but not OBEC is worth
-            investigating as a fresh or mild anomaly. A detection that appears on both is a high-confidence spill
-            indicator.</p>
+            chemically active pixel. Then switch to OBEC on candidate sites to confirm whether the chemistry qualifies
+            as produced water. A detection that appears on ASAI but not OBEC is worth investigating as a fresh or mild
+            anomaly. A detection that appears on both is a high-confidence spill indicator.</p>
     </div>
 
     <div class="index-card">
@@ -394,9 +372,7 @@
          SECTION 2: CUSTOM COMPOSITES & APPLIED INDICES
          ══════════════════════════════════════════════════════ -->
     <h2>2. Custom Composites & Applied Indices</h2>
-    <p style="color: var(--text-dim); font-size: 0.9em; margin-top: -10px;">Original composite indices by Daniel Bally
-        (2025–2026). These combine established spectral band physics in novel architectures calibrated for produced water
-        detection across varied spill states — active liquid, dry evaporite, and legacy residue.</p>
+    <p style="color: var(--text-dim); font-size: 0.9em; margin-top: -10px;">All indices in this section were conceived and built by <strong>Daniel Bally (Globe &amp; Atlas, 2025–2026)</strong>. Each targets a detection gap no single literature index covers — active liquid pooling, dry evaporite crust, legacy residue, or vegetation stress from chronic exposure.</p>
 
     <div class="index-card">
         <h3><span>OBEC — Oil-Brine Emulsion Composite (formerly HPWI) ✧</span> <span class="temporal-badge temporal-0-3m">0-3M</span>

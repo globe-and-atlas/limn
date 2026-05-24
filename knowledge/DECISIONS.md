@@ -10,6 +10,16 @@
 
 ---
 
+## Deep Fusion removed (2026-05-23)
+
+**Decision:** Removed the "Radar Confirmation (OBEC & ASAI)" deep fusion checkbox and all associated state/handler code.
+
+**Why:** `deepEvalscript` was never defined on any index in `indices.js`. The `state.deepFusion && cfg.deepEvalscript` branch in `map.js` was always a no-op. The checkbox appeared functional but had zero effect on rendered tiles. Also cleaned up stale `hpwi` key references in `map.js` that survived the HPWI→OBEC/pwoi rename.
+
+**Files changed:** `index.html` (removed checkbox), `src/app.js` (removed state + handler), `src/map.js` (removed dead branch + stale `hpwi` conditions).
+
+---
+
 ## Dry brine mode as parallel formula path (not replacement)
 
 **Decision:** Add a dry-brine detection path to APEX and HPWI as a `max(wet, dry)` complement, not a conditional branch that replaces the wet formula.
