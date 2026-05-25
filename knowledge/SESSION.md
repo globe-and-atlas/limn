@@ -76,3 +76,4 @@ No active checkpoints. All tasks completed, verified, and captured.
 - 2026-05-24 22:46 — checkpoint: verified public docs no longer contain direct second-person claim/ownership language; `node --check` passed for changed JS; `node tests/test_pwi.js` and `node tests/test_evalscript.js` passed; `node tests/test.js` remains blocked by missing `puppeteer-core`. | knowledge/SESSION.md,knowledge/procedural/public-doc-voice.md
 - 2026-05-24 22:48 — checkpoint: browser-verified `help.html` loads and contains neutral "Prior Art & Original Contribution" language without public "you can claim" / "you own" wording. | help.html
 - 2026-05-25 15:29 — commit: Refresh: Integrate final academic whitepaper (PUBLIC_SCIENCE_GUIDE.md), spacing, and error handling updates | .gitignore,PUBLIC_SCIENCE_GUIDE.md,SENTINEL_SCIENCE_GUIDE.md,help.html,index.html
+- 2026-05-25 15:31 — commit: docs: append auto-generated post-commit session checkpoint | knowledge/SESSION.md
