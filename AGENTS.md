@@ -4,7 +4,13 @@ This file provides guidance to Claude Code when working in this repository.
 
 ## Project Overview
 
-Sentinel Explorer is a browser-based GIS tool for visualizing Sentinel-2 (optical) and Sentinel-1 (SAR) satellite imagery over the Permian Basin. It streams WMS tiles from Copernicus Sentinel Hub using custom evalscripts to compute spectral indices (NDVI, NDMI, NDWI, NDSI, PWI, etc.) and renders them over Leaflet maps with Esri/OSM base layers.
+Limn (Globe & Atlas) is a browser-based satellite spectral intelligence tool for detecting produced water spills and environmental anomalies in the Permian Basin. It streams WMS tiles from Copernicus Sentinel Hub using custom evalscripts and renders them over Leaflet maps with Esri/OSM base layers.
+
+**Data sources — what's actually used:**
+
+- **Sentinel-2 L2A (primary):** All flagship composites (ASAI, PWCI, OBEC) and the majority of indices are pure S2. Where SAR language appears in comments or descriptions for these indices, it refers to a physical analogy (how liquid surfaces suppress radar backscatter), not actual S1 data.
+- **Sentinel-1 GRD (supplemental):** Two genuine SAR indices — `s1_sar` (SAR Moisture VV/VH) and `scri` (Salt Crust Roughness Index) — request real S1 GRD data. The Visual SAR Overlay toggle also layers real S1 tiles on top of optical as a confirmation check.
+- **No multi-sensor fusion in production:** Deep fusion (S1+S2 combined evalscripts) was removed as dead code — it was never wired to any index.
 
 ## Commands
 
