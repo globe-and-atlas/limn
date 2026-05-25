@@ -20,6 +20,13 @@ export const authorshipClaims = {
     doNotClaim: "Do not claim invention of the Floating Debris Index, marine debris mapping, or plastic detection from satellites in general.",
     why: "The claimable piece is the operational differentiation workflow: polymer-like debris versus common floating false positives."
   },
+  mvpi: {
+    level: "Strong multi-gate gas absorption claim",
+    strength: "Very High",
+    claim: "You can claim MVPI as your methane super-emitter screening workflow that pairs SWIR gas absorption ratios (B11/B12) with explicit high-albedo soil brightness gates, and water/vegetation rejection gates to isolate venting plumes.",
+    doNotClaim: "Do not claim direct chemical concentration measurement, active wellhead pressure measurement, or first use of SWIR ratio techniques for methane mapping in general.",
+    why: "The authorship resides in packaging the complex physics of SWIR gas absorption into a deterministic, threshold-gated Permian oilfield decision product that suppresses caliche pad noise."
+  },
   ttapi: {
     level: "Distinct synthesis claim",
     strength: "Medium-High",

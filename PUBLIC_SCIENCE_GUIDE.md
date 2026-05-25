@@ -11,7 +11,7 @@
 
 Produced water represents the largest volume liquid waste stream associated with oil and gas extraction, carrying high concentrations of ancient formation halides (brine salts), aromatic and aliphatic hydrocarbons, and dissolved heavy metal precipitants. Rapid spatial detection of these spills in arid and semi-arid regions (such as the Permian Basin) is severely hindered by high-albedo caliche backgrounds, dry playas, and civil construction signatures that mimic spill anomalies in single-band indices. 
 
-This paper introduces **Limn**, a high-performance multispectral GIS methodology utilizing Copernicus Sentinel-2 satellite imagery to detect produced water spills via **Multi-Gate Geochemical Consensus Calibration**. By multiplying independent spectral proxies for salinity, hydrocarbon absorption, and mineralogical heavy metal alteration into non-linear, multi-gate logical AND structures, Limn suppresses the background false-positive floor of bare desert soils. We detail the physics, mathematical formulations, and intellectual property boundaries of four novel composites designed, calibrated, and authored by Daniel Bally: the **Produced Water Chemical Index (PWCI)**, the **Arid Salinity Anomaly Index (ASAI)**, the **Oil-Brine Emulsion Composite (OBEC)**, and the **Evaporite Halo Composite (EHC)**.
+This paper introduces **Limn**, a high-performance multispectral GIS methodology utilizing Copernicus Sentinel-2 satellite imagery to detect produced water spills via **Multi-Gate Geochemical Consensus Calibration**. By multiplying independent spectral proxies for salinity, hydrocarbon absorption, and mineralogical heavy metal alteration into non-linear, multi-gate logical AND structures, Limn suppresses the background false-positive floor of bare desert soils. We detail the physics, mathematical formulations, and intellectual property boundaries of five novel composites designed, calibrated, and authored by Daniel Bally: the **Produced Water Chemical Index (PWCI)**, the **Arid Salinity Anomaly Index (ASAI)**, the **Oil-Brine Emulsion Composite (OBEC)**, the **Evaporite Halo Composite (EHC)**, and the **Methane Venting Plume Index (MVPI)**.
 
 ---
 
@@ -24,6 +24,7 @@ This paper introduces **Limn**, a high-performance multispectral GIS methodology
    - [ASAI: Arid Salinity Anomaly Index](#asai-arid-salinity-anomaly-index)
    - [OBEC: Oil-Brine Emulsion Composite](#obec-oil-brine-emulsion-composite)
    - [EHC: Evaporite Halo Composite](#ehc-evaporite-halo-composite)
+   - [MVPI: Methane Venting Plume Index](#mvpi-methane-venting-plume-index)
 5. [Novel ✧✧ Public-Good Ecological Composites (Daniel Bally, Globe & Atlas)](#5-novel-✧✧-public-good-ecological-composites-daniel-bally-globe--atlas)
    - [CSRC: Cyanotoxin Scum Risk Composite](#csrc-cyanotoxin-scum-risk-composite)
    - [TRSI: Tailings River Shock Index](#trsi-tailings-river-shock-index)
@@ -193,6 +194,26 @@ $$\text{Blue} = \text{NDSI} \quad (\text{Normalized Difference Salinity Index})$
 
 ---
 
+### MVPI: Methane Venting Plume Index
+
+The MVPI targets localized, high-concentration atmospheric methane venting plumes and wellhead blowouts directly over bright well pads and desert soils.
+
+#### Mathematical Formulation:
+$$\text{MVPI} = \text{MethaneRatio} \times \text{BrightGroundGate} \times \text{WaterReject} \times \text{VegReject}$$
+
+Where:
+*   $\text{MethaneRatio}$ isolates the gas-absorption peak in Sentinel-2's SWIR-2 band (B12) compared to SWIR-1 (B11):
+    $$\text{MethaneRatio} = \max\left(0, \left(\frac{B11}{B12} - 1.15\right) \times 4.0\right)$$
+*   $\text{BrightGroundGate}$ mandates a highly reflective background surface to measure absorption shadows:
+    $$\text{BrightGroundGate} = \max\left(0, \frac{B11 + B12}{2.0} - 0.20\right) \times 2.0$$
+*   $\text{WaterReject}$ eliminates false specular anomalies in standing water:
+    $$\text{WaterReject} = \begin{cases} 0 & \text{if } B03 > B11 \\ 1 & \text{otherwise} \end{cases}$$
+*   $\text{VegReject}$ filters out biological/canopy stress look-alikes:
+    $$\text{VegReject} = \begin{cases} 0 & \text{if } NDVI > 0.15 \\ 1 & \text{otherwise} \end{cases}$$
+*   **Physical Basis:** Methane gas ($CH_4$) displays a highly concentrated, narrow molecular absorption feature centered around $2300 \text{ nm}$, which significantly attenuates the returned solar signal in Sentinel-2's SWIR-2 Band 12 while leaving SWIR-1 Band 11 unaffected. By rationing B11/B12 over highly reflective bare well pads ($\text{SWIR Mean} > 0.20$) and executing rigid water and vegetation suppression gates, MVPI delivers a high-frequency spatial screening tool for gas super-emitters and pipeline venting blowouts.
+
+---
+
 ## 5. Novel ✧✧ Public-Good Ecological Composites (Daniel Bally, Globe & Atlas)
 
 Beyond localized industrial produced water blowouts, the Limn methodology integrates four public-good environmental emergency screening tools. These composites apply **multi-gate consensus and rejection logic** to complex ecological and civil environments:
@@ -284,8 +305,8 @@ When publishing research, presenting at conferences, or applying for patents, it
 |  * Standard Sentinel-2 Band Ratios |  * Multi-Gate Logical AND Gate     |
 |    (NDVI, NDWI, NDMI, SAVI)        |    Consensus Architecture          |
 +------------------------------------+------------------------------------+
-|  * Standard Geological Indices     |  * PWCI, ASAI, OBEC, and EHC       |
-|    (BSI, NDSI-Salinity, Clay)      |    Oilfield Spill Composites       |
+|  * Standard Geological/Gas Indices |  * PWCI, ASAI, OBEC, EHC, and MVPI |
+|    (BSI, NDSI-Salinity, Clay, CH4) |    Oilfield Spill & Plume Models   |
 +------------------------------------+------------------------------------+
 |  * Standard Water/Algae Indices    |  * CSRC, TRSI, LFGVI, and SWRI     |
 |    (NDTI, NDCI)                    |    Public-Good Ecological Models   |
@@ -303,6 +324,7 @@ When publishing research, presenting at conferences, or applying for patents, it
 *   **The Multi-Gate Multiplication Logic:** The scientific concept of multiplying independent geochemical and physical indices together as a multi-factor logical AND gate to suppress natural caliche, playic salt, or turbidity backgrounds.
 *   **The Custom PWCI Model:** The specific combination of $(NDSI - \tau_1) \times (HCAI - \tau_2) \times (HMRI - \tau_3)$ accompanied by cubic non-linear contrast stretching.
 *   **The ASAI Dry-Brine Logic:** The integration of meteorological drought floors and bare soil brightness (BSI) to calibrate salinity detection in hyper-arid soils.
+*   **The Custom MVPI Model:** The specific combination of SWIR narrow molecular absorption ratios $(B11/B12)$ with bright caliche pad gates, and water/vegetation rejection gates that targets local methane venting plumes.
 *   **The Upgraded Public-Good Ecological Suite:** The specific multi-gate consensus architectures for **CSRC** (NDCI with NIR scum multipliers), **TRSI** (NDTI ferric iron emergency alarms), **LFGVI** (radial landfill vegetation stress rings), and **SWRI** (turbidity shock with organic bloom channel separation).
 
 ---
@@ -339,6 +361,7 @@ Limn represents a significant advancement in satellite-based environmental polic
 9.  **Liang, Q., Zhang, Y., Ma, R., Loiselle, S., Li, J., & Hu, M. (2017).** *A MODIS-Based Novel Method to Distinguish Surface Cyanobacterial Scums and Aquatic Macrophytes in Lake Taihu.* *Remote Sensing*, 9(2), 133 (Prior-art benchmark for algae scum separation).
 10. **Drury, S. A. (1987).** *Image Interpretation in Geology.* Allen & Unwin (Context for geological clay $B11/B12$ and ferric iron $B04/B02$ ratios).
 11. **Texas Railroad Commission (TRRC). (2024–2026).** *Digital Spill Log Field Reports, Districts 8 and 8A (Permian Basin).* (Ground-truth validation database).
+12. **Varon, D. J., Jervis, D., McKeever, J., et al. (2021).** *High-resolution monitoring of methane emissions from space with Sentinel-2.* *Atmospheric Measurement Techniques*, 14(4), 2771–2785 (Prior-art benchmark for B11/B12 SWIR methane retrieval).
 
 
 ---

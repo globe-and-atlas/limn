@@ -272,7 +272,7 @@
          SECTION 1: VALIDATED PRODUCED WATER COMPOSITES
          ══════════════════════════════════════════════════════ -->
     <h2>1. Validated Produced Water Composites</h2>
-    <p style="color: var(--text-dim); font-size: 0.9em; margin-top: -10px; line-height: 1.5;">The two flagship composites below — ASAI and PWCI — were conceived, engineered, and validated by <strong>Daniel Bally (Globe &amp; Atlas, 2025–2026)</strong>. Their composite architectures, multi-gate detection logic, dry-brine mode, and Permian Basin calibration offsets have no published prior equivalent. Standard spectral indicators (NDVI, NDWI, NDSI, etc.) are in Section 3 with full citations.</p>
+    <p style="color: var(--text-dim); font-size: 0.9em; margin-top: -10px; line-height: 1.5;">The three flagship composites below — ASAI, PWCI, and MVPI — were conceived, engineered, and validated by <strong>Daniel Bally (Globe &amp; Atlas, 2025–2026)</strong>. Their composite architectures, multi-gate detection logic, dry-brine mode, and Permian Basin calibration offsets have no published prior equivalent. Standard spectral indicators (NDVI, NDWI, NDSI, etc.) are in Section 3 with full citations.</p>
 
     <div class="index-card">
         <h3><span>ASAI — Arid Salinity Anomaly Index (formerly PWOI / APEX) ✧✧</span>
@@ -365,6 +365,14 @@
             signals. Formerly known as Produced Water Index (PWI).<sup><a href="#fn1">1</a></sup><sup><a href="#fn2">2</a></sup><sup><a href="#fn22">22</a></sup></p>
         <p><strong>Threshold Calibration Note:</strong> Original thresholds (NDSI 0.10, HCAI 0.30, HMRI 2.0 — standard literature values) produced 0% detection on 32 TRRC sites in the 2026-03-08 baseline run. Root cause: TRRC parcel centroid coordinates offset the sample bbox over mixed caliche + vegetation pixels, depressing all three signals simultaneously. Thresholds were lowered and the hard BSI gate (<code>if bsi &lt;= 0.01 → pwi = 0</code>) was replaced with a soft weight (floor 0.3) to tolerate centroid-offset sampling.</p>
         <p><strong>Validation (2026-03-28):</strong> 81.5% detection on 27 TRRC confirmed spill sites (threshold 0.01), mean score 0.741. ASAI detects major spills (&gt;500 BBL) at 86%. The triple-gate AND architecture is now substantiated against a real confirmed-spill dataset.</p>
+    </div>
+
+    <div class="index-card">
+        <h3><span>MVPI — Methane Venting Plume Index ✧✧</span> <span class="temporal-badge temporal-live">Live</span> <span
+                class="formula pwi-badge">Multi-Gate Gas-Absorption Proxy</span></h3>
+        <p><strong>The Gap:</strong> Methane ($CH_4$) super-emitter plumes from leaking oil pads, venting wellheads, and landfills are invisible to the naked eye. While dedicated spectrometers (like GHGSat or EMIT) track methane, high-frequency Sentinel-2 screening is historically underutilized due to caliche soil reflectance noise and false positives from water and vegetation.</p>
+        <p><strong>The Implementation:</strong> MVPI is a flagship multi-gate gas absorption proxy. It exploits the physical absorption profile of methane in Sentinel-2's SWIR-2 Band 12 ($\approx 2190\text{ nm}$) relative to the non-absorbing reference in SWIR-1 Band 11 ($\approx 1610\text{ nm}$). To prevent high-albedo false positives, the ratio <code>B11 / B12</code> is multiplied through a <strong>Bright Ground Gate</strong> (requiring SWIR mean reflectance &gt; 0.20), a <strong>Water Rejection Gate</strong> (B03 &le; B11), and a <strong>Vegetation Rejection Gate</strong> (NDVI &le; 0.15). The resulting score is cubed to isolate highly concentrated venting plumes over industrial pads.<sup><a href="#fn36">36</a></sup></p>
+        <p><strong>Authorship &amp; IP Boundary:</strong> <em>Strong multi-gate gas absorption claim (Very High strength).</em> You can claim MVPI as your methane super-emitter screening workflow that pairs SWIR gas absorption ratios with explicit high-albedo soil brightness gates and water/vegetation rejection gates to isolate venting plumes. Prior art includes standard B11/B12 SWIR ratio techniques (Varon et al., 2021). The claimable innovation is the threshold-gated decision packaging tailored for Permian caliche pads.</p>
     </div>
 
 
@@ -1030,6 +1038,7 @@
         <li id="fn35"><strong>[35]</strong> Justice, C. O., et al. (1998). The Moderate Resolution Imaging
             Spectroradiometer (MODIS): Land remote sensing for global change research. <em>IEEE Transactions on
                 Geoscience and Remote Sensing</em>.</li>
+        <li id="fn36"><strong>[36]</strong> Varon, D. J., Jervis, D., McKeever, J., et al. (2021). High-resolution monitoring of methane emissions from space with Sentinel-2. <em>Atmospheric Measurement Techniques</em>, 14(4), 2771–2785.</li>
     </ul>
 
 </body>

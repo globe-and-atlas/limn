@@ -231,7 +231,7 @@ function updateUI() {
     updateUIDelegate(state, INDICES);
     
     // Geochemical Basin & Sensitivity Calibration UI Isolation
-    const SPILL_INDEX_KEYS = ['pwi', 'pwoi', 'hpwi', 'lbi', 'fbc', 'reai', 'vcbi', 'aoi', 'cma', 'hmi', 'phi', 'tri', 'bpi'];
+    const SPILL_INDEX_KEYS = ['pwi', 'pwoi', 'hpwi', 'lbi', 'fbc', 'reai', 'vcbi', 'aoi', 'cma', 'hmi', 'phi', 'tri', 'bpi', 'mvpi'];
     const isSpillIndex = SPILL_INDEX_KEYS.includes(state.activeIndex);
     
     const settingsContainers = document.querySelectorAll('#tab-settings .control-group');

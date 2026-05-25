@@ -202,6 +202,8 @@ export const PALETTE_PHI = "[[0, 0, 0, 0], [0.3, 51, 51, 51], [0.7, 102, 51, 0],
 export const PALETTE_HMI = "[[0, 0, 17, 0], [0.3, 0, 68, 0], [0.7, 0, 255, 187], [1, 255, 255, 255]]";
 export const PALETTE_SCRI = "[[0, 0, 0, 0], [0.2, 75, 0, 130], [0.6, 231, 76, 60], [1, 241, 196, 15]]";
 export const PALETTE_MSI_INV = "[[0, 212, 106, 36], [0.5, 239, 216, 122], [1, 28, 133, 166]]";
+export const PALETTE_METHANE = "[[0.0, 13, 23, 27], [0.3, 245, 120, 20], [0.75, 255, 180, 0], [1.0, 255, 255, 200]]";
+
 
 export const PALETTE_POST_FIRE = "[[0.0, 21, 17, 14], [0.3, 139, 107, 66], [0.6, 217, 134, 79], [0.85, 230, 180, 80], [1.0, 226, 102, 90]]";
 export const PALETTE_WATER_BLOOM = "[[0.0, 13, 34, 39], [0.3, 111, 201, 220], [0.6, 142, 207, 128], [0.85, 230, 180, 80], [1.0, 226, 102, 90]]";
@@ -1364,6 +1366,40 @@ function evaluatePixel(sample) {
   return [water * Math.max(0.0, fdi) * vegReject];
 `
     },
+    mvpi: {
+        name: 'Methane Venting Plume Index (MVPI)',
+        sensor: 'Sentinel-2 L2A',
+        temporal: 'Live',
+        min: 'Clean Ground', max: 'Methane Plume Anomaly',
+        gradient: 'linear-gradient(to right, #0d171b, #f57814, #ffb400)',
+        formula: 'Bright Soil × SWIR Methane Ratio × Water/Veg Gates',
+        info: 'Methane super-emitter screening. Targets localized high-concentration venting plumes over highly reflective oil pads and soils by isolating B11/B12 gas absorption features.',
+        diffLabels: ['Plume Dispersal', 'Plume Expansion'],
+        evalscript: genEvalscript(['B03', 'B04', 'B08', 'B11', 'B12'], `
+  if (sample.dataMask === 0) return [0,0,0,0];
+  let ndvi = (sample.B08 - sample.B04) / (sample.B08 + sample.B04);
+  let methaneRatio = sample.B11 / Math.max(sample.B12, 0.001);
+  let methaneScore = Math.max(0.0, (methaneRatio - 1.15) * 4.0);
+  let swirMean = (sample.B11 + sample.B12) / 2.0;
+  let groundGate = Math.max(0.0, (swirMean - 0.20) * 2.0);
+  let waterReject = sample.B03 > sample.B11 ? 0.0 : 1.0;
+  let vegReject = ndvi > 0.15 ? 0.0 : 1.0;
+  let score = waterReject * vegReject * groundGate * methaneScore;
+  let mapped = Math.min(1.0, score * 3.0);
+  ${colorBlend('mapped', PALETTE_METHANE)}
+`),
+        fisBands: ['B03', 'B04', 'B08', 'B11', 'B12'],
+        fisLogic: `
+  let ndvi = (sample.B08 - sample.B04) / (sample.B08 + sample.B04);
+  let methaneRatio = sample.B11 / Math.max(sample.B12, 0.001);
+  let methaneScore = Math.max(0.0, (methaneRatio - 1.15) * 4.0);
+  let swirMean = (sample.B11 + sample.B12) / 2.0;
+  let groundGate = Math.max(0.0, (swirMean - 0.20) * 2.0);
+  let waterReject = sample.B03 > sample.B11 ? 0.0 : 1.0;
+  let vegReject = ndvi > 0.15 ? 0.0 : 1.0;
+  return [waterReject * vegReject * groundGate * methaneScore];
+`
+    },
     ttapi: {
         name: 'Thermokarst Thaw & Anoxic Peat Index (TT-API)',
         sensor: 'Sentinel-2 L2A',
@@ -1802,6 +1838,7 @@ export const HIGHLIGHT_THRESHOLDS = {
     bhdfsi: 0.10,
     peti: 0.08,
     mppdi: 0.08,
+    mvpi: 0.10,
     ttapi: 0.10,
     ecaci: 0.08,
     lrdvsi: 0.08,
@@ -1828,7 +1865,7 @@ export const CHART_COLORS = {
     hmri: '#808080', ndoi: '#000000', crsi: '#FF5555', aoi: '#5555FF',
     ehc: '#333333', reai: '#FF0055', vcbi: '#AA0000', cma: '#AA88AA',
     phi: '#FF00FF', hmi: '#444444', pwoi: '#8C00FF',
-    bhdfsi: '#d9864f', peti: '#8ecf80', mppdi: '#6fc9dc', ttapi: '#b695e8',
+    bhdfsi: '#d9864f', peti: '#8ecf80', mppdi: '#6fc9dc', mvpi: '#f57814', ttapi: '#b695e8',
     ecaci: '#e6b450', lrdvsi: '#a8cf73', tdrasi: '#e2665a', sfeii: '#e6b450',
     wdacsi: '#6fc9dc', cduai: '#6fc9dc', csrc: '#8ecf80', trsi: '#e2665a',
     lfgvi: '#e6b450', swri: '#6fc9dc', dwci: '#88bde6', rrfi: '#a8cf73',
@@ -1948,6 +1985,7 @@ export function getShortIndexName(indexKey) {
         bhdfsi: 'BH-DFSI',
         peti: 'PETI',
         mppdi: 'MP-PDI',
+        mvpi: 'MV-PI',
         ttapi: 'TT-API',
         ecaci: 'EC-ACI',
         lrdvsi: 'LR-DVSI',

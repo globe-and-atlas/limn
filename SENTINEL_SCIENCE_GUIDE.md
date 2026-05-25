@@ -23,6 +23,7 @@
 9. [PWCI: Produced Water Chemical Index (formerly PWI) ✧✧ — Deep Dive](#9-pwci-produced-water-chemical-index-formerly-pwi-✧✧--deep-dive)
 10. [ASAI: Arid Salinity Anomaly Index (formerly PWOI) ✧✧](#10-asai-arid-salinity-anomaly-index-formerly-pwoi-✧✧)
 11. [OBEC: Oil-Brine Emulsion Composite (formerly HPWI) ✧](#11-obec-oil-brine-emulsion-composite-formerly-hpwi-✧)
+11.5 [MVPI: Methane Venting Plume Index ✧✧](#115-mvpi-methane-venting-plume-index-✧✧)
 12. [SAR Indices: Sentinel-1 Processing](#12-sar-indices-sentinel-1-processing)
 13. [Multi-Temporal Analysis](#13-multi-temporal-analysis)
 14. [The Permian Basin Context](#14-the-permian-basin-context)
@@ -648,6 +649,51 @@ hpwi = max(hpwi_wet, hpwi_dry)
 ```
 
 **Validated performance: 66.7% on 27 TRRC sites** (lower than PWCI's 81.5% and ASAI's 77.8%, but provides independent confirmation when all three agree). Formerly known as Hybrid Produced Water Index (HPWI).
+
+---
+
+## 11.5 MVPI: Methane Venting Plume Index ✧✧
+
+MVPI (Methane Venting Plume Index) is the third flagship original composite, designed to **track localized atmospheric methane venting plumes and wellhead blowouts** directly over bright caliche well pads and dry soils in the Permian Basin.
+
+### 11.5.1 Physical and Spectral Absorption Principles
+
+Methane ($CH_4$) gas has strong, narrow absorption bands in the Shortwave Infrared (SWIR) region, particularly around $2300\text{ nm}$. 
+
+- **Sentinel-2 Band 12 (SWIR-2, centered at 2190 nm):** Directly overlaps with this strong methane absorption feature. The presence of methane significantly attenuates the returned solar signal in this band.
+- **Sentinel-2 Band 11 (SWIR-1, centered at 1610 nm):** Acts as a clear reference band where methane does not display significant absorption.
+
+By calculating the ratio of SWIR-1 to SWIR-2 ($B11/B12$), we can detect localized methane plumes because the ratio increases dramatically as methane concentrations rise and SWIR-2 reflectance drops.
+
+### 11.5.2 The Multi-Gate Consensus Formula
+
+Because high-albedo bare soils, dry salt crusts, and gravel well pads naturally alter SWIR reflectance, a simple ratio produces heavy false positives. To resolve this, MVPI integrates a strict four-part logical AND consensus structure:
+
+```javascript
+// 1. SWIR Methane Gas Absorption Ratio
+let methaneRatio = B11 / Math.max(B12, 0.001);
+let methaneScore = Math.max(0.0, (methaneRatio - 1.15) * 4.0);
+
+// 2. Bright Ground Gate (requires highly reflective background surface)
+let swirMean = (B11 + B12) / 2.0;
+let groundGate = Math.max(0.0, (swirMean - 0.20) * 2.0);
+
+// 3. Water Rejection Gate (specular anomaly suppression)
+let waterReject = B03 > B11 ? 0.0 : 1.0;
+
+// 4. Vegetation Rejection Gate (early plant stress suppression)
+let ndvi = (B08 - B04) / (B08 + B04);
+let vegReject = ndvi > 0.15 ? 0.0 : 1.0;
+
+// 5. Cubed scaling for final visualization
+let score = waterReject * vegReject * groundGate * methaneScore;
+let mapped = Math.min(1.0, score * 3.0);
+```
+
+### 11.5.3 Authorship & Scientific IP Boundary
+
+- **What is Public Domain:** The basic physical science of SWIR methane gas mapping, multi-band ratioing ($B11/B12$), and Sentinel-2 gas retrievals are established scientific prior art (e.g., *Varon et al., 2021*).
+- **What Daniel Bally Safely Claims:** The specific multi-gate consensus composite formula pairing the $B11/B12$ ratio with a SWIR mean ground-brightness floor, a green-to-SWIR water reject gate, and an NDVI-based vegetation reject gate to suppress background false positives on bright Permian caliche sand pads.
 
 ---
 

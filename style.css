@@ -3222,6 +3222,103 @@ input[type=range]::-webkit-slider-runnable-track {
     font-weight: 700;
 }
 
+/* ── Triage inline bookmarks ─────────────────── */
+.triage-bookmarks {
+    margin-top: 10px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(255,255,255,0.07);
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.triage-bm-label {
+    font-size: 9px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.3);
+    margin-bottom: 2px;
+}
+
+.triage-bm-btn {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    width: 100%;
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 5px;
+    padding: 6px 8px;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.12s, border-color 0.12s;
+}
+
+.triage-bm-btn:hover {
+    background: rgba(255,255,255,0.07);
+    border-color: rgba(255,255,255,0.13);
+}
+
+.triage-bm-btn.active {
+    background: rgba(255,255,255,0.07);
+    border-color: rgba(255,255,255,0.2);
+}
+
+.triage-bm-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 6px;
+}
+
+.triage-bm-name {
+    font-size: 11px;
+    color: rgba(255,255,255,0.82);
+    font-weight: 500;
+    line-height: 1.3;
+}
+
+.triage-bm-date {
+    font-size: 10px;
+    color: rgba(255,255,255,0.35);
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.triage-bm-chips {
+    display: flex;
+    gap: 3px;
+    flex-wrap: wrap;
+}
+
+.triage-bm-chip {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    padding: 1px 5px;
+    border-radius: 3px;
+    text-transform: uppercase;
+    background: rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.5);
+}
+
+/* Per-index chip colors */
+.triage-bm-chip--pwi   { background: rgba(0,210,255,0.18);   color: #00D2FF; }
+.triage-bm-chip--pwoi  { background: rgba(56,189,248,0.18);  color: #38bdf8; }
+.triage-bm-chip--hpwi  { background: rgba(125,211,252,0.18); color: #7dd3fc; }
+.triage-bm-chip--lbi   { background: rgba(186,230,253,0.15); color: #bae6fd; }
+.triage-bm-chip--mvpi  { background: rgba(134,239,172,0.15); color: #86efac; }
+.triage-bm-chip--bhdfsi { background: rgba(226,102,90,0.18); color: #e2665a; }
+.triage-bm-chip--sfeii  { background: rgba(251,146,60,0.15); color: #fb923c; }
+.triage-bm-chip--peti   { background: rgba(111,201,220,0.18); color: #6fc9dc; }
+.triage-bm-chip--csrc   { background: rgba(52,211,153,0.15);  color: #34d399; }
+.triage-bm-chip--swri   { background: rgba(167,243,208,0.15); color: #6ee7b7; }
+.triage-bm-chip--cduai  { background: rgba(103,232,249,0.15); color: #67e8f9; }
+.triage-bm-chip--ttapi  { background: rgba(182,149,232,0.18); color: #b695e8; }
+.triage-bm-chip--trsi   { background: rgba(139,92,246,0.15);  color: #a78bfa; }
+.triage-bm-chip--ecaci  { background: rgba(230,180,80,0.18);  color: #e6b450; }
+.triage-bm-chip--hsai   { background: rgba(251,191,36,0.15);  color: #fbbf24; }
+
 /* Command Console HUD */
 .hud-container {
     display: flex;

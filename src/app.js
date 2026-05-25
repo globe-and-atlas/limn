@@ -85,7 +85,8 @@ const SPILL_BOOKMARKS = [
         volume: 'Chronic Brine Lake (60+ acres)',
         source: 'Wikipedia / Marfa Public Radio',
         confidence: 'High (Exact GPS)',
-        note: 'The ultimate calibration site. 60-acre hyper-saline lake in Pecos County continuously fed by a legacy 1951 Gulf Oil dry hole. Shows exceptionally strong PWCI, ASAI, and OBEC signatures across all acquisitions.'
+        note: 'The ultimate calibration site. 60-acre hyper-saline lake in Pecos County continuously fed by a legacy 1951 Gulf Oil dry hole. Shows exceptionally strong PWCI, ASAI, and OBEC signatures across all acquisitions.',
+        indices: ['pwi', 'pwoi', 'hpwi'],
     },
     {
         id: 'meister-2022',
@@ -96,7 +97,8 @@ const SPILL_BOOKMARKS = [
         volume: '~357,000 bbl over 14 days',
         source: 'TRRC / Karanam et al. 2024 (GRL)',
         confidence: 'High (Exact GPS)',
-        note: 'Abandoned 194 Gulf Oil dry hole erupted a 100-ft brine geyser due to SWD injection-induced overpressure. Fuses high salinity with a specular surface smoothness proxy.'
+        note: 'Abandoned 194 Gulf Oil dry hole erupted a 100-ft brine geyser due to SWD injection-induced overpressure. Fuses high salinity with a specular surface smoothness proxy.',
+        indices: ['pwi', 'pwoi'],
     },
     {
         id: 'crane-crevice-2023',
@@ -107,7 +109,8 @@ const SPILL_BOOKMARKS = [
         volume: '~14M gallons over 45 days',
         source: 'TRRC / Marfa Public Radio',
         confidence: 'Medium (~0.5km)',
-        note: '300-ft ground crevice emitting 13,000 gal/hr of saline produced water, causing a 30-acre vegetation kill zone. RRC plugging cost $2.5M.'
+        note: '300-ft ground crevice emitting 13,000 gal/hr of saline produced water, causing a 30-acre vegetation kill zone. RRC plugging cost $2.5M.',
+        indices: ['pwi'],
     },
     {
         id: 'toyah-2024',
@@ -118,7 +121,8 @@ const SPILL_BOOKMARKS = [
         volume: 'Active 19 days (volume unquantified)',
         source: 'TRRC / Texas Tribune / DeSmog',
         confidence: 'Medium (~1km)',
-        note: '100-ft geyser of oily saline brine + H₂S gas from a 1961 dry hole, requiring local emergency response. Cleanly isolates using PWCI and OBEC.'
+        note: '100-ft geyser of oily saline brine + H₂S gas from a 1961 dry hole, requiring local emergency response. Cleanly isolates using PWCI and OBEC.',
+        indices: ['pwi', 'hpwi'],
     },
     {
         id: 'apache-balmorhea-2020',
@@ -129,7 +133,8 @@ const SPILL_BOOKMARKS = [
         volume: '77,500 BBL Produced Water',
         source: 'TRRC / Inside Climate News',
         confidence: 'Medium (~1km)',
-        note: 'Massive produced water storage tank battery blowout north of Balmorhea. Heavy salt crystallization and vegetative damage documented on TRRC inspections persist in Sentinel imagery.'
+        note: 'Massive produced water storage tank battery blowout north of Balmorhea. Heavy salt crystallization and vegetative damage documented on TRRC inspections persist in Sentinel imagery.',
+        indices: ['pwi', 'pwoi'],
     },
     {
         id: 'antina-ranch-2020',
@@ -140,7 +145,8 @@ const SPILL_BOOKMARKS = [
         volume: 'Chronic Leaking Brine + Methane',
         source: 'TRRC / Inside Climate News',
         confidence: 'Regional (±10km)',
-        note: 'Orphaned wells on Crane/Ward County ranch leaked highly saline wastewater and gas. Chevron settled landmark legacy-liability lawsuit with landowner in Dec 2025.'
+        note: 'Orphaned wells on Crane/Ward County ranch leaked highly saline wastewater and gas. Chevron settled landmark legacy-liability lawsuit with landowner in Dec 2025.',
+        indices: ['pwi'],
     },
     {
         id: 'enlink-midstream-chickadee-2023',
@@ -151,7 +157,8 @@ const SPILL_BOOKMARKS = [
         volume: '9,583 BBL Crude Oil',
         source: 'Pipeline Safety Trust / EPA',
         confidence: 'Medium (~1.5km)',
-        note: 'El Dorado Crude Station pipeline rupture south of Midland. 400,000+ gal of crude spilled. Crucial cross-calibration site: should spike HCAI (Hydrocarbons) but *not* brine/salinity (PWCI/ASAI).'
+        note: 'El Dorado Crude Station pipeline rupture south of Midland. 400,000+ gal of crude spilled. Crucial cross-calibration site: should spike HCAI (Hydrocarbons) but *not* brine/salinity (PWCI/ASAI).',
+        indices: ['hpwi'],
     },
     {
         id: 'eog-klondike-2025',
@@ -162,7 +169,8 @@ const SPILL_BOOKMARKS = [
         volume: '~160,000 gal spilled, ~143,000 gal lost',
         source: 'NMED / WildEarth Guardians',
         confidence: 'Regional (±15km)',
-        note: 'Equipment failure overflow at a produced water recycling pit on New Mexico State Trust Land, damaging over 20 acres of high-desert scrub.'
+        note: 'Equipment failure overflow at a produced water recycling pit on New Mexico State Trust Land, damaging over 20 acres of high-desert scrub.',
+        indices: ['pwi', 'pwoi'],
     },
     {
         id: 'oxy-mesa-verde-2025',
@@ -173,9 +181,20 @@ const SPILL_BOOKMARKS = [
         volume: '~1.6M gal produced water + 126k gal crude',
         source: 'NMED / WildEarth Guardians',
         confidence: 'Regional (±5km)',
-        note: 'Huge wastewater recycling facility failure on federal land in southeast New Mexico. One of the largest inland spills of Q3 2025.'
+        note: 'Huge wastewater recycling facility failure on federal land in southeast New Mexico. One of the largest inland spills of Q3 2025.',
+        indices: ['pwi', 'pwoi', 'hpwi'],
     }
 ];
+
+const INDEX_SHORT_LABELS = {
+    pwi: 'PWCI', pwoi: 'ASAI', hpwi: 'OBEC', lbi: 'LBI', mvpi: 'MVPI',
+    bhdfsi: 'BH-DFSI', sfeii: 'SF-EII',
+    peti: 'PETI', csrc: 'CSRC', swri: 'SWRI', cduai: 'CD-UAI',
+    ttapi: 'TT-API', trsi: 'TRSI',
+    ecaci: 'EC-ACI', hsai: 'HSAI',
+    lrdvsi: 'LRDVSI', tdrasi: 'TDRASI', wdacsi: 'WDACSI',
+    lfgvi: 'LFGVI', dwci: 'DWCI', rrfi: 'RRFI', epdi: 'EPDI',
+};
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const START_YEAR = 2020;
@@ -230,7 +249,7 @@ function updateUI() {
     updateUIDelegate(state, INDICES);
     
     // Geochemical Basin & Sensitivity Calibration UI Isolation
-    const SPILL_INDEX_KEYS = ['pwi', 'pwoi', 'hpwi', 'lbi', 'fbc', 'reai', 'vcbi', 'aoi', 'cma', 'hmi', 'phi', 'tri', 'bpi'];
+    const SPILL_INDEX_KEYS = ['pwi', 'pwoi', 'hpwi', 'lbi', 'fbc', 'reai', 'vcbi', 'aoi', 'cma', 'hmi', 'phi', 'tri', 'bpi', 'mvpi'];
     const isSpillIndex = SPILL_INDEX_KEYS.includes(state.activeIndex);
     
     const settingsContainers = document.querySelectorAll('#tab-settings .control-group');
@@ -2505,14 +2524,14 @@ export function renderFocusedTriage() {
         
         // Fly to the first bookmark if available
         const bookmarks = [
-            'bhdfsi', 'peti', 'mppdi', 'ttapi', 'ecaci', 'lrdvsi', 
-            'tdrasi', 'sfeii', 'wdacsi', 'cduai', 'csrc', 'trsi', 
-            'lfgvi', 'swri', 'dwci', 'rrfi', 'epdi', 'hsai', 'pwci', 'pwoi', 'hpwi', 'lbi'
+            'bhdfsi', 'peti', 'mppdi', 'ttapi', 'ecaci', 'lrdvsi',
+            'tdrasi', 'sfeii', 'wdacsi', 'cduai', 'csrc', 'trsi',
+            'lfgvi', 'swri', 'dwci', 'rrfi', 'epdi', 'hsai', 'pwci', 'pwoi', 'hpwi', 'lbi', 'pwi',
         ].includes(indexKey) ? (verifiedBookmarks[indexKey] || []) : SPILL_BOOKMARKS;
-        
+
         if (bookmarks.length > 0) {
             const targetB = bookmarks[0];
-            
+
             // Fly map
             state.map.flyTo([targetB.lat, targetB.lng], targetB.zoom, { duration: 1.5 });
             document.getElementById('disp-lat').innerText = targetB.lat.toFixed(4) + '°';
@@ -2596,6 +2615,127 @@ export function renderFocusedTriage() {
                 activateIndex(indexKey, newCard);
             });
         });
+
+        // ── Inline bookmark list ──────────────────────────────────────────────
+        // Collect bookmarks relevant to this triage card
+        let cardBookmarks = [];
+        if (triageType === 'oilfield-spill') {
+            cardBookmarks = SPILL_BOOKMARKS;
+        } else {
+            // Gather verified bookmarks for each pill's index, tagging each entry with its index key
+            const pillIndexKeys = Array.from(newCard.querySelectorAll('.triage-tag-pill'))
+                .map(p => p.dataset.index)
+                .filter(Boolean);
+            pillIndexKeys.forEach(idxKey => {
+                const entries = verifiedBookmarks[idxKey];
+                if (!entries) return;
+                entries.forEach(entry => {
+                    cardBookmarks.push({ ...entry, indices: [idxKey] });
+                });
+            });
+        }
+
+        if (cardBookmarks.length > 0) {
+            const bmContainer = document.createElement('div');
+            bmContainer.className = 'triage-bookmarks';
+
+            const bmLabel = document.createElement('span');
+            bmLabel.className = 'triage-bm-label';
+            bmLabel.textContent = 'Verified Sites';
+            bmContainer.appendChild(bmLabel);
+
+            cardBookmarks.forEach(spill => {
+                const btn = document.createElement('button');
+                btn.className = 'triage-bm-btn';
+
+                // Header row: name + date
+                const header = document.createElement('div');
+                header.className = 'triage-bm-header';
+
+                const nameEl = document.createElement('span');
+                nameEl.className = 'triage-bm-name';
+                nameEl.textContent = spill.label;
+
+                const dateEl = document.createElement('span');
+                dateEl.className = 'triage-bm-date';
+                dateEl.textContent = spill.displayDate || spill.date;
+
+                header.appendChild(nameEl);
+                header.appendChild(dateEl);
+
+                // Chip row: one chip per index
+                const chips = document.createElement('div');
+                chips.className = 'triage-bm-chips';
+                (spill.indices || []).forEach(idxKey => {
+                    const chip = document.createElement('span');
+                    chip.className = `triage-bm-chip triage-bm-chip--${idxKey}`;
+                    chip.textContent = INDEX_SHORT_LABELS[idxKey] || idxKey.toUpperCase();
+                    chips.appendChild(chip);
+                });
+
+                btn.appendChild(header);
+                btn.appendChild(chips);
+
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+
+                    const primaryIndex = (spill.indices && spill.indices[0]) || defaultIndex;
+
+                    // Activate the index
+                    state.activeIndex = primaryIndex;
+                    document.querySelectorAll('.index-btn').forEach(b => {
+                        b.classList.toggle('active', b.dataset.index === primaryIndex);
+                    });
+
+                    // Activate this card, clear others
+                    document.querySelectorAll('.triage-card').forEach(c => {
+                        c.classList.remove('active');
+                        c.querySelectorAll('.triage-tag-pill').forEach(p => p.classList.remove('active'));
+                    });
+                    newCard.classList.add('active');
+                    newCard.querySelectorAll('.triage-tag-pill').forEach(p => {
+                        p.classList.toggle('active', p.dataset.index === primaryIndex);
+                    });
+
+                    // Activate this button, deactivate siblings
+                    bmContainer.querySelectorAll('.triage-bm-btn').forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+
+                    // Find closest date in ALL_DATES
+                    const targetTime = new Date(spill.date).getTime();
+                    let closestIdx = 0, minDiff = Infinity;
+                    ALL_DATES.forEach((d, i) => {
+                        const diff = Math.abs(new Date(d.value).getTime() - targetTime);
+                        if (diff < minDiff) { minDiff = diff; closestIdx = i; }
+                    });
+                    state.monthIndex = closestIdx;
+                    const dSingle = document.getElementById('date-single');
+                    if (dSingle) dSingle.value = closestIdx.toString();
+
+                    // Fly the map
+                    state.map.flyTo([spill.lat, spill.lng], spill.zoom, { duration: 1.5 });
+                    document.getElementById('disp-lat').innerText = spill.lat.toFixed(4) + '°';
+                    document.getElementById('disp-lng').innerText = spill.lng.toFixed(4) + '°';
+
+                    // Update authorship and sidebar bookmarks
+                    updateAuthorshipCard(primaryIndex);
+                    renderSpillBookmarks(primaryIndex);
+
+                    // Apply index / switch to single mode
+                    if (state.mode !== 'single') {
+                        const mSing = document.getElementById('mode-single');
+                        if (mSing) mSing.click();
+                    } else {
+                        applyIndex();
+                    }
+                    setTimeout(() => probeAcquisitions(), 1600);
+                });
+
+                bmContainer.appendChild(btn);
+            });
+
+            newCard.appendChild(bmContainer);
+        }
     });
 }
 window.renderFocusedTriage = renderFocusedTriage;

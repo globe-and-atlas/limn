@@ -73,7 +73,7 @@ export function getScriptContent(config, activeIndex, isDiff, isCumulative = fal
     let scriptContent = cfg.evalscript;
 
     // Isolate Permian Basin calibration to Produced Water Spill indices only
-    const SPILL_INDEX_KEYS = ['pwi', 'pwoi', 'hpwi', 'lbi', 'fbc', 'reai', 'vcbi', 'aoi', 'cma', 'hmi', 'phi', 'tri', 'bpi'];
+    const SPILL_INDEX_KEYS = ['pwi', 'pwoi', 'hpwi', 'lbi', 'fbc', 'reai', 'vcbi', 'aoi', 'cma', 'hmi', 'phi', 'tri', 'bpi', 'mvpi'];
     const isSpill = SPILL_INDEX_KEYS.includes(activeIndex);
     const activeBasin = isSpill ? (state.activeBasin || 'permian') : 'standard';
 
