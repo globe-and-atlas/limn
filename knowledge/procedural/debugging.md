@@ -7,6 +7,7 @@
 3. Common causes:
    - `HTTP 400`: Evalscript references wrong datasource for the WMS `layers` param. Fusion scripts need `layers=AGRICULTURE`.
    - `HTTP 401`: Token expired or missing. Check `window.CONFIG.CDSE_CLIENT_ID` is set.
+   - `HTTP 403` with "Insufficient processing units or requests available": the configured Sentinel Hub/CDSE account has exhausted processing units or request credits. Restore quota/credits in the Copernicus/Sentinel Hub account; code changes cannot make WMS tiles load while this is active.
    - `HTTP 422`: Evalscript syntax error. Check the decoded script for JS errors.
    - `Blank tiles (200 OK)`: Mosaicking returned 0 scenes. For ORBIT mode, widen the `time` range.
 

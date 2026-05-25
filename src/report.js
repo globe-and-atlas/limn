@@ -5,10 +5,34 @@
 
 import { getCDSEToken } from './auth.js';
 import { INDICES } from './indices.js';
-import { getScriptContent } from './map.js';
-import { showToast } from './ui.js';
+import { getScriptContent } from './map.js?v=76';
+import { showToast } from './ui.js?v=76';
 
 const SH_WMS_URL = 'https://sh.dataspace.copernicus.eu/ogc/wms/959ea2c5-5892-4b36-82b3-76e6bdb93c8a';
+
+function parseServiceError(text) {
+    if (!text) return '';
+    try {
+        const data = JSON.parse(text);
+        return data.description || data.message || data.error || '';
+    } catch (_) {
+        const cdataMatch = text.match(/<!\[CDATA\[\s*([\s\S]*?)\s*\]\]>/);
+        if (cdataMatch) return cdataMatch[1].replace(/\s+/g, ' ').trim();
+        return text.replace(/\s+/g, ' ').trim().slice(0, 240);
+    }
+}
+
+function publishSentinelHubError(status, body) {
+    const detail = parseServiceError(body);
+    const eventDetail = {
+        status,
+        detail,
+        message: detail ? `Sentinel Hub request failed HTTP ${status}: ${detail}` : `Sentinel Hub request failed HTTP ${status}.`,
+        isQuotaExhausted: /insufficient processing units|additional credits|requests available/i.test(detail)
+    };
+    window.sentinelHubLastError = eventDetail;
+    window.dispatchEvent(new CustomEvent('sentinelhuberror', { detail: eventDetail }));
+}
 
 // Helper: Build clean WMS params for offline HTML export (bypasses Leaflet object serialization)
 function buildHTMLWMSParams(timeStr, isDiff) {
@@ -500,6 +524,7 @@ export async function probeAcquisitions() {
                 if (!resp.ok) {
                     const errBody = await resp.text();
                     console.warn(`[Probe] Catalog Failed for ${colId} (${resp.status}):`, errBody);
+                    publishSentinelHubError(resp.status, errBody);
                     if (resp.status === 401 || resp.status === 403) isTrialMode = true;
                     continue;
                 }

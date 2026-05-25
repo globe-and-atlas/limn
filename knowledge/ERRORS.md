@@ -1,11 +1,22 @@
 # Error Log
 
+## 2026-05-24: Sentinel Hub WMS Tile Errors from Quota Exhaustion — DIAGNOSED
+
+- **Infrastructure error**: Browser verification of `http://localhost:4180/index.html` emitted repeated `[WMS] Tile Error: Object` console errors from `src/map.js`.
+- **Observed response**: Direct WMS reproduction returned HTTP `403` with the Sentinel Hub service message `Insufficient processing units or requests available in your account. Upgrade account or acquire additional credits.`
+- **Cause**: Sentinel Hub/CDSE account quota or request credits are exhausted for the configured WMS instance/account.
+- **Impact**: Sentinel overlay tiles cannot load until quota/credits are restored, but the local app shell and basemap can still initialize.
+- **Fix status**: App-side UX fixed. `src/map.js` now parses WMS error bodies when readable, `src/report.js` publishes Catalog API 401/403 details, and `src/app.js` shows one deduped quota-specific toast instead of repeated generic tile errors.
+- **Graduated to**: `knowledge/procedural/debugging.md`.
+
 ## 2026-05-20: Test Harness Missing `puppeteer-core` — OPEN
 
 - **Deterministic error**: `node tests/test.js` fails before running browser assertions with `Error: Cannot find module 'puppeteer-core'`.
 - **Cause**: The repository currently has no `package.json`, no `package-lock.json`, and no local `node_modules/puppeteer-core` dependency, but `tests/test.js` starts with `require('puppeteer-core')`.
 - **Impact**: The project test command listed in `AGENTS.md` cannot run in this checkout until the Node test dependency is installed or vendored via project package metadata.
 - **Fix status**: Not fixed in this pass; no dependency was added because the current task only changes documentation/authorship claims.
+- **2026-05-24 recurrence**: Reproduced during top bookmark removal validation. The error still occurs before any app assertions run.
+- **2026-05-24 recurrence**: Reproduced during public-doc voice validation. The error still occurs before any app assertions run.
 - **Graduated to**: pending dependency/package-management decision.
 
 ## 2026-05-24: Node Test Harness Path Drift — RESOLVED

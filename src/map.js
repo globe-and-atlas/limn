@@ -48,6 +48,47 @@ import {
 
 import { renderScanThumbnails } from './charts.js';
 
+function extractWmsErrorMessage(text) {
+    if (!text) return '';
+
+    try {
+        const data = JSON.parse(text);
+        if (data.description) return data.description;
+        if (data.message) return data.message;
+        if (data.error) return data.error;
+    } catch (_) {
+        // Non-JSON WMS errors are usually XML ServiceException reports.
+    }
+
+    const cdataMatch = text.match(/<!\[CDATA\[\s*([\s\S]*?)\s*\]\]>/);
+    if (cdataMatch) return cdataMatch[1].replace(/\s+/g, ' ').trim();
+
+    const serviceMatch = text.match(/<ServiceException[^>]*>\s*([\s\S]*?)\s*<\/ServiceException>/i);
+    if (serviceMatch) {
+        return serviceMatch[1]
+            .replace(/<[^>]+>/g, ' ')
+            .replace(/\s+/g, ' ')
+            .trim();
+    }
+
+    return text.replace(/\s+/g, ' ').trim().slice(0, 240);
+}
+
+async function buildWmsFetchError(response) {
+    const text = await response.text().catch(() => '');
+    const detail = extractWmsErrorMessage(text);
+    const message = detail
+        ? `HTTP ${response.status}: ${detail}`
+        : `HTTP ${response.status} ${response.statusText}`;
+    const error = new Error(message);
+    error.name = 'WmsTileError';
+    error.status = response.status;
+    error.statusText = response.statusText;
+    error.detail = detail;
+    error.isQuotaExhausted = /insufficient processing units|additional credits|requests available/i.test(detail);
+    return error;
+}
+
 /**
  * Initializes the Leaflet map.
  * @param {string} id - Map container ID.
@@ -447,14 +488,14 @@ const RateLimitedWMS = L.TileLayer.WMS.extend({
 
     _load({ url, img, done, retriesLeft }) {
         fetch(url)
-            .then(r => {
+            .then(async r => {
                 if (r.status === 429 && retriesLeft > 0) {
                     this._active--;
                     this._drain();
                     setTimeout(() => this._enqueue(url, img, done, retriesLeft - 1), 2000);
                     return null;
                 }
-                if (!r.ok) throw new Error(`HTTP ${r.status}`);
+                if (!r.ok) throw await buildWmsFetchError(r);
                 return r.blob();
             })
             .then(blob => {
@@ -532,10 +573,15 @@ export function getWMSLayer(state, config, timeStr, isDiff, overrideIndex = null
     });
 
     layer.on('tileerror', (error) => {
-        console.error('[WMS] Tile Error:', error);
+        const err = error?.error || error;
+        console.error('[WMS] Tile Error:', {
+            layer: activeIdx,
+            status: err?.status,
+            detail: err?.detail || err?.message || String(err)
+        });
         // Dispatch custom global event if map exists
         if (state.map) {
-            state.map.fire('tileerror', { error, layer: activeIdx });
+            state.map.fire('tileerror', { error: err, layer: activeIdx });
         }
     });
 

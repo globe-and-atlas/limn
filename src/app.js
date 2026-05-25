@@ -53,19 +53,19 @@ import {
     closeReportModal,
     initRrcSpillOverlay,
     downloadHTMLReport
-} from './report.js';
+} from './report.js?v=76';
 import {
     initLeafletMap,
     applyIndex as applyIndexDelegate,
     updateGifInset as updateGifInsetDelegate,
     getScriptContent,
     getWMSLayer
-} from './map.js';
+} from './map.js?v=76';
 import {
     showToast as showToastDelegate,
     switchTab,
     updateUI as updateUIDelegate
-} from './ui.js';
+} from './ui.js?v=76';
 
 const AOI_LOCATIONS = {
     dixon: { lat: 31.893285, lng: -101.864031, zoom: 15 },
@@ -227,7 +227,7 @@ while (iterDate <= today) {
 const SH_WMS_URL = 'https://sh.dataspace.copernicus.eu/ogc/wms/959ea2c5-5892-4b36-82b3-76e6bdb93c8a';
 const SH_STAT_API_URL = 'https://sh.dataspace.copernicus.eu/api/v1/statistics';
 
-const APP_VERSION = 'v48';
+const APP_VERSION = 'v49';
 
 const internalAppConfig = {
     SH_WMS_URL,
@@ -296,6 +296,53 @@ function showToast(message, type = 'info') {
     showToastDelegate(message, type);
 }
 
+const tileErrorToastState = {
+    message: '',
+    at: 0
+};
+
+function getTileErrorMessage(event) {
+    const err = event?.error;
+    if (window.sentinelHubLastError?.isQuotaExhausted) {
+        return 'Sentinel Hub quota exhausted: processing units or request credits are unavailable for this account.';
+    }
+    if (err?.isQuotaExhausted) {
+        return 'Sentinel Hub quota exhausted: processing units or request credits are unavailable for this account.';
+    }
+    if (err?.status === 403) {
+        return err.detail ? `Sentinel Hub denied tile access: ${err.detail}` : 'Sentinel Hub denied tile access with HTTP 403.';
+    }
+    if (err?.status) {
+        return err.detail
+            ? `Sentinel Hub tile error HTTP ${err.status}: ${err.detail}`
+            : `Sentinel Hub tile error HTTP ${err.status}.`;
+    }
+    return `Sentinel Hub tile request failed for ${event?.layer || 'selected'}; checking account quota and network status.`;
+}
+
+function showDedupedTileToast(message) {
+    const now = Date.now();
+    if (tileErrorToastState.message === message && now - tileErrorToastState.at < 15000) return;
+    tileErrorToastState.message = message;
+    tileErrorToastState.at = now;
+    showToast(message, 'error');
+}
+
+function showTileErrorToast(event) {
+    showDedupedTileToast(getTileErrorMessage(event));
+}
+
+window.addEventListener('sentinelhuberror', (event) => {
+    const detail = event.detail || {};
+    if (detail.isQuotaExhausted) {
+        showDedupedTileToast('Sentinel Hub quota exhausted: processing units or request credits are unavailable for this account.');
+        return;
+    }
+    if (detail.status) {
+        showDedupedTileToast(detail.message || `Sentinel Hub request failed with HTTP ${detail.status}.`);
+    }
+});
+
 // Globals for Report Generation (Exposed for report.js and charts.js)
 window.aoiDrawnItem = null;
 window.reportChartInst = null;
@@ -353,7 +400,7 @@ export function updateAuthorshipCard(indexKey) {
     const card = document.getElementById('authorship-card');
     const title = document.getElementById('authorship-title');
     const claimStatus = document.getElementById('authorship-claim-status');
-    const ownable = document.getElementById('authorship-ownable-details');
+    const originalScope = document.getElementById('authorship-original-details');
     const priorArt = document.getElementById('authorship-prior-art');
 
     if (!card) return;
@@ -368,9 +415,9 @@ export function updateAuthorshipCard(indexKey) {
     if (title) title.textContent = INDICES[indexKey].name;
     if (claimStatus) {
         claimStatus.textContent = claimData.strength;
-        claimStatus.className = 'claim-badge ' + (claimData.strength.toLowerCase().includes('very high') || claimData.strength.toLowerCase().includes('high') ? 'claim-badge--ownable' : 'claim-badge--shared');
+        claimStatus.className = 'claim-badge ' + (claimData.strength.toLowerCase().includes('very high') || claimData.strength.toLowerCase().includes('high') ? 'claim-badge--strong' : 'claim-badge--shared');
     }
-    if (ownable) ownable.textContent = claimData.claim;
+    if (originalScope) originalScope.textContent = claimData.claim;
     if (priorArt) priorArt.textContent = claimData.doNotClaim + ' ' + claimData.why;
 }
 window.updateAuthorshipCard = updateAuthorshipCard;
@@ -594,7 +641,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     state.map.on('tileerror', (e) => {
         if (mapLoader) mapLoader.classList.remove('active');
-        showToast(`Sentinel Hub Error: Failed to load ${e.layer} tiles.`, 'error');
+        showTileErrorToast(e);
     });
 
     // Initialize Base Layer

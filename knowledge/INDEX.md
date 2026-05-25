@@ -13,6 +13,8 @@
 - [debugging.md](procedural/debugging.md) — How to diagnose tile load failures, auth errors, evalscript bugs
 - [adding-index.md](procedural/adding-index.md) — Step-by-step: adding a new spectral index end-to-end
 - [validation-summary.md](procedural/validation-summary.md) — 2026-03-08 validation run: FBC/HPWI/PWI detection rates on 32 RRC spill sites
+- [ui-layouts.md](procedural/ui-layouts.md) — 2026-05-24 note on retired top bookmark rail and embedded bookmark locations
+- [public-doc-voice.md](procedural/public-doc-voice.md) — 2026-05-24 guidance separating public science language from private ownership notes
 
 ## Session & Decisions
 - [SESSION.md](SESSION.md) — Active session state and last known state

@@ -30,7 +30,7 @@ This paper introduces **Limn**, a high-performance multispectral GIS methodology
    - [TRSI: Tailings River Shock Index](#trsi-tailings-river-shock-index)
    - [LFGVI: Landfill Gas Vegetation Intrusion Index](#lfgvi-landfill-gas-vegetation-intrusion-index)
    - [SWRI: Sewage-Water Release Index](#swri-sewage-water-release-index)
-6. [IP & Scientific Authorship Boundaries: What You Can Own](#6-ip--scientific-authorship-boundaries-what-you-can-own)
+6. [Scientific Authorship and Prior-Art Boundaries](#6-scientific-authorship-and-prior-art-boundaries)
 7. [Arid Background Calibration & Threshold Validation](#7-arid-background-calibration--threshold-validation)
 8. [Conclusion & References](#8-conclusion--references)
 
@@ -292,15 +292,15 @@ Where:
 
 ---
 
-## 6. IP & Scientific Authorship Boundaries: What You Can Own
+## 6. Scientific Authorship and Prior-Art Boundaries
 
-When publishing research, presenting at conferences, or applying for patents, it is critical to clearly demarcate standard public-domain satellite science from your proprietary innovations. Below is the official IP mapping for the Limn project:
+For public scientific clarity, Limn separates standard public-domain satellite science from project-specific composite architectures and calibrations. The boundary is summarized below:
 
 ```
 +-------------------------------------------------------------------------+
-|                               IP BOUNDARIES                             |
+|                               AUTHORSHIP BOUNDARIES                             |
 +------------------------------------+------------------------------------+
-|   PUBLIC DOMAIN (Prior Art)        |   PROPRIETARY (Daniel Bally)       |
+|   PUBLIC DOMAIN (Prior Art)        |   ORIGINAL PROJECT WORK       |
 +------------------------------------+------------------------------------+
 |  * Standard Sentinel-2 Band Ratios |  * Multi-Gate Logical AND Gate     |
 |    (NDVI, NDWI, NDMI, SAVI)        |    Consensus Architecture          |
@@ -316,11 +316,11 @@ When publishing research, presenting at conferences, or applying for patents, it
 +------------------------------------+------------------------------------+
 ```
 
-### 1. What is Public Domain (Prior Art):
+### 1. Public-Domain Prior Art:
 *   **The Component Ratios:** Formulas like the Bare Soil Index (BSI), NDWI, NDTI, or the Normalized Difference Chlorophyll Index (NDCI) are widely published and free to use.
 *   **The Band Definitions:** Sentinel-2's 13 spectral bands and standard reflections are established Copernicus science.
 
-### 2. What Daniel Bally Safely "Owns" and Controls:
+### 2. Original Project Contributions Attributed to Daniel Bally:
 *   **The Multi-Gate Multiplication Logic:** The scientific concept of multiplying independent geochemical and physical indices together as a multi-factor logical AND gate to suppress natural caliche, playic salt, or turbidity backgrounds.
 *   **The Custom PWCI Model:** The specific combination of $(NDSI - \tau_1) \times (HCAI - \tau_2) \times (HMRI - \tau_3)$ accompanied by cubic non-linear contrast stretching.
 *   **The ASAI Dry-Brine Logic:** The integration of meteorological drought floors and bare soil brightness (BSI) to calibrate salinity detection in hyper-arid soils.

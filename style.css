@@ -617,6 +617,13 @@ button {
     color: var(--accent-blue);
 }
 
+.toast-error {
+    border-color: rgba(255, 80, 80, 0.42);
+}
+.toast-error .toast-icon {
+    color: #ff6b6b;
+}
+
 /* Glass Refinements */
 .glass-panel {
     background: linear-gradient(135deg, rgba(16, 18, 27, 0.85), rgba(16, 18, 27, 0.75));
@@ -945,14 +952,6 @@ button {
     background: rgba(0, 210, 255, 0.15);
     border-color: var(--accent-blue);
     color: #fff;
-}
-
-.spill-bookmarks-section .spill-disclaimer {
-    font-size: 10px;
-    color: var(--text-dim);
-    margin-bottom: 8px;
-    font-family: var(--font-mono);
-    opacity: 0.7;
 }
 
 .spill-bookmark-list {
@@ -2985,7 +2984,7 @@ input[type=range]::-webkit-slider-runnable-track {
     border-radius: 4px;
 }
 
-.claim-badge--ownable {
+.claim-badge--strong {
     background: rgba(46, 204, 113, 0.15);
     color: #2ecc71;
     border: 1px solid rgba(46, 204, 113, 0.3);

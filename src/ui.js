@@ -6,7 +6,7 @@
 /**
  * Displays a toast notification.
  * @param {string} message 
- * @param {'info'|'success'|'warning'} type 
+ * @param {'info'|'success'|'warning'|'error'} type 
  */
 export function showToast(message, type = 'info') {
     let container = document.getElementById('toast-container');
@@ -20,7 +20,7 @@ export function showToast(message, type = 'info') {
     const toast = document.createElement('div');
     toast.className = `toast toast-${type}`;
     toast.innerHTML = `
-        <span class="toast-icon">${type === 'success' ? '✓' : type === 'warning' ? '⚠' : 'ℹ'}</span>
+        <span class="toast-icon">${type === 'success' ? '✓' : type === 'warning' ? '⚠' : type === 'error' ? '!' : 'ℹ'}</span>
         <span class="toast-msg">${message}</span>
     `;
     container.appendChild(toast);

@@ -6,9 +6,16 @@ Spectral index library validated. 2026-03-08 validation run: FBC/HPWI/PWI detect
 
 ## Current Session
 
-Agent: Antigravity AI
-Goal: Integrate the 18 novel public-good environmental and commercial composites, their global scenario bookmarks, science notes, and authorship boundaries from civic-sentinel into Limn.
-Status: Fully completed and verified. Section 2.5 detailing all 18 Civic Atlas composites added to help.html. Test harness paths and ESM mock environments fixed and verified.
+Agent: OpenAI Codex
+Goal: Separate public Limn science documentation from private claim/ownership notes.
+Status: Completed and verified. Public docs now use neutral third-person contribution/prior-art language, and direct ownership notes live in `LIMN_CLAIM_NOTES.md`.
+
+## Validation Contract — Public Science Docs
+
+- [x] Public-facing science docs do not use direct "you can claim" or "you own" language.
+- [x] The in-app authorship card copy uses neutral public-facing labels.
+- [x] A separate artifact preserves direct notes about what Daniel Bally can claim and own.
+- [x] Documentation changes are checked for obvious broken wording.
 
 ## Validation Contract
 
@@ -60,3 +67,11 @@ No active checkpoints. All tasks completed, verified, and captured.
 - 2026-05-24 17:37 — commit: feat: integrate Civic Atlas composites, triage layout varieties, calibration settings, and rigorous scholarly novelty updates | PUBLIC_SCIENCE_GUIDE.md,SENTINEL_SCIENCE_GUIDE.md,help.html,index.html,knowledge/ERRORS.md
 - 2026-05-24 17:45 — commit: fix: resolve duplicate SPILL_INDEX_KEYS declaration syntax error and style loading screen to be warm and premium | index.html,knowledge/SESSION.md,src/map.js,style.css
 - 2026-05-24 20:11 — commit: docs: synchronize agent trio files to main | AGENTS.md,GEMINI.md,knowledge/SESSION.md
+- 2026-05-24 20:37 — commit: feat: inline triage bookmarks with per-index chips | PUBLIC_SCIENCE_GUIDE.md,SENTINEL_SCIENCE_GUIDE.md,help.html,index.html,knowledge/SESSION.md
+- 2026-05-24 21:47 — checkpoint: removed the obsolete top-level bookmark/calibration-events section below coordinate entry; kept embedded triage and HUD bookmark styles intact. | index.html,style.css
+- 2026-05-24 21:49 — checkpoint: browser-verified the sidebar order and embedded bookmark containers; `node tests/test_pwi.js` and `node tests/test_evalscript.js` passed; `node tests/test.js` remains blocked by missing `puppeteer-core`. | knowledge/ERRORS.md,knowledge/SESSION.md
+- 2026-05-24 22:20 — checkpoint: diagnosed Sentinel tile failures as Sentinel Hub 403 quota exhaustion; added WMS/Catalog error parsing, deduped quota toasts, error-toast styling, and asset cache bumps. | index.html,src/app.js,src/map.js,src/report.js,src/ui.js,style.css,knowledge/ERRORS.md
+- 2026-05-24 22:23 — checkpoint: verified quota-specific toast in browser; `node --check` passed for changed JS modules; `node tests/test_pwi.js` and `node tests/test_evalscript.js` passed; `node tests/test.js` remains blocked by missing `puppeteer-core`. | src/app.js,src/map.js,src/report.js,src/ui.js
+- 2026-05-24 22:42 — checkpoint: neutralized public science-doc ownership coaching language and added private claim notes in `LIMN_CLAIM_NOTES.md`. | help.html,SENTINEL_SCIENCE_GUIDE.md,PUBLIC_SCIENCE_GUIDE.md,index.html,src/authorshipClaims.js,LIMN_CLAIM_NOTES.md
+- 2026-05-24 22:46 — checkpoint: verified public docs no longer contain direct second-person claim/ownership language; `node --check` passed for changed JS; `node tests/test_pwi.js` and `node tests/test_evalscript.js` passed; `node tests/test.js` remains blocked by missing `puppeteer-core`. | knowledge/SESSION.md,knowledge/procedural/public-doc-voice.md
+- 2026-05-24 22:48 — checkpoint: browser-verified `help.html` loads and contains neutral "Prior Art & Original Contribution" language without public "you can claim" / "you own" wording. | help.html

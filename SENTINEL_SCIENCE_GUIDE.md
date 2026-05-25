@@ -212,7 +212,7 @@ Speckle makes SAR imagery harder to interpret visually than optical imagery. Mul
 
 ## 5. How Satellite Data Becomes a Map Tile
 
-This application uses the **Sentinel Hub WMS (Web Map Service)** to stream processed satellite imagery. Understanding this pipeline is key to understanding what you're actually looking at.
+This application uses the **Sentinel Hub WMS (Web Map Service)** to stream processed satellite imagery. Understanding this pipeline is key to understanding what the map is actually showing.
 
 ### 5.1 The WMS Pipeline
 
@@ -245,7 +245,7 @@ Every map tile request sends these key parameters:
 
 ### 5.3 Mosaicking: How Dates Are Handled
 
-When you specify a **date range** instead of a single date, Sentinel Hub applies **mosaicking** — it picks the best pixel across all images in the range. The default mosaicking order is `mostRecent`: it uses the newest cloud-free pixel from the range. This effectively "fills in" cloudy areas using data from adjacent days.
+When a date range is specified a **date range** instead of a single date, Sentinel Hub applies **mosaicking** — it picks the best pixel across all images in the range. The default mosaicking order is `mostRecent`: it uses the newest cloud-free pixel from the range. This effectively "fills in" cloudy areas using data from adjacent days.
 
 For **multi-temporal difference analysis**, the app switches to `mosaicking: "ORBIT"` mode, which provides all individual acquisitions as an array of samples for the evalscript to compare.
 
@@ -274,7 +274,7 @@ function evaluatePixel(sample) {
 
   if (sample.dataMask === 0) return [0, 0, 0, 0];  // transparent
 
-  // ... your formula ...
+  // ... index formula ...
 
   return [red, green, blue, alpha];  // all values 0–1
 }
@@ -482,12 +482,12 @@ Used throughout as a masking criterion to identify bare soil vs. vegetated/water
 
 #### True Color
 - **Formula:** `return [B04 × 2.5, B03 × 2.5, B02 × 2.5, 1]`
-- **What you see:** Natural-looking color image. The 2.5× brightness multiplier compensates for the fact that surface reflectance values are typically 0.1–0.4 (10–40%), which would appear very dark without brightening.
+- **Visual output:** Natural-looking color image. The 2.5× brightness multiplier compensates for the fact that surface reflectance values are typically 0.1–0.4 (10–40%), which would appear very dark without brightening.
 - **Use:** Visual reference. Confirms geographic features. Not analytically useful for spill detection.
 
 #### False Color (NIR)
 - **Formula:** `return [B08 × 2.5, B04 × 2.5, B03 × 2.5, 1]` — NIR mapped to Red channel
-- **What you see:** Healthy vegetation appears bright crimson/red (because NIR reflectance is very high for vegetation). Dry soil and built surfaces appear in tans and blues. Water is very dark.
+- **Visual output:** Healthy vegetation appears bright crimson/red (because NIR reflectance is very high for vegetation). Dry soil and built surfaces appear in tans and blues. Water is very dark.
 - **Use:** Classic vegetation mapping. Immediately distinguishes bare from vegetated areas.
 
 #### EHC — Evaporite Halo Composite ✧
@@ -693,7 +693,7 @@ let mapped = Math.min(1.0, score * 3.0);
 ### 11.5.3 Authorship & Scientific IP Boundary
 
 - **What is Public Domain:** The basic physical science of SWIR methane gas mapping, multi-band ratioing ($B11/B12$), and Sentinel-2 gas retrievals are established scientific prior art (e.g., *Varon et al., 2021*).
-- **What Daniel Bally Safely Claims:** The specific multi-gate consensus composite formula pairing the $B11/B12$ ratio with a SWIR mean ground-brightness floor, a green-to-SWIR water reject gate, and an NDVI-based vegetation reject gate to suppress background false positives on bright Permian caliche sand pads.
+- **Original Project Contribution:** The specific multi-gate consensus composite formula pairing the $B11/B12$ ratio with a SWIR mean ground-brightness floor, a green-to-SWIR water reject gate, and an NDVI-based vegetation reject gate to suppress background false positives on bright Permian caliche sand pads.
 
 ---
 
@@ -912,7 +912,7 @@ The threshold history illustrates the iterative calibration process:
 
 ### 16.1 How the Area Scan Works
 
-When you draw a polygon on the map and click "Scan AOI," the application queries the **Sentinel Hub Statistics API** — a completely different endpoint from the map tiles. Instead of rendering pixels, it computes **statistical summaries** (mean, standard deviation, min, max, sample count) over the polygon for every 5-day interval in a time range.
+When a polygon is drawn a polygon on the map and click "Scan AOI," the application queries the **Sentinel Hub Statistics API** — a completely different endpoint from the map tiles. Instead of rendering pixels, it computes **statistical summaries** (mean, standard deviation, min, max, sample count) over the polygon for every 5-day interval in a time range.
 
 The Statistics API payload:
 ```json
@@ -965,11 +965,11 @@ function evaluatePixel(sample) {
 }
 ```
 
-For each 5-day interval, the Statistics API returns the **mean value of each band** across all valid (cloud-free) pixels inside the polygon. This gives you a time series of 8 indices simultaneously.
+For each 5-day interval, the Statistics API returns the **mean value of each band** across all valid (cloud-free) pixels inside the polygon. This gives analysts a time series of 8 indices simultaneously.
 
 ### 16.3 Chart Visualization
 
-The time series is displayed as a multi-line Chart.js chart. The peak detection algorithm runs pixel-level analysis: when you hover over a spike in the chart, it fetches a small thumbnail image of the AOI for that specific date, renders it with the relevant index evalscript, and uses image analysis to pinpoint the pixel with maximum index value.
+The time series is displayed as a multi-line Chart.js chart. The peak detection algorithm runs pixel-level analysis: when a user hovers over a spike in the chart, it fetches a small thumbnail image of the AOI for that specific date, renders it with the relevant index evalscript, and uses image analysis to pinpoint the pixel with maximum index value.
 
 ---
 
@@ -1150,7 +1150,7 @@ Each composite leverages Sentinel-2's bottom-of-atmosphere (L2A) surface reflect
     1.  *Burn Severity* (dNBR proxy via NIR B08 and SWIR2 B12): Identifies canopy carbonization and organic soil destruction.
     2.  *Bare Slope Exposure* (Bare Soil Index BSI): Ensures detection is restricted to exposed soils lacking organic mulch.
     3.  *Canopy/Root Vigor Loss* (low NDVI): Confirms the loss of root-system cohesion that previously bound the topsoil.
-*   **Authorship Boundary:** You own the named packaged debris-flow triage composite and its three-gate AND design. Prior art includes NBR/dNBR (Key & Benson, 2006) and BSI (Rikimaru et al., 2002).
+*   **Original Contribution & Prior Art:** The original contribution is the named packaged debris-flow triage composite and its three-gate AND design. Prior art includes NBR/dNBR (Key & Benson, 2006) and BSI (Rikimaru et al., 2002).
 
 ### 2. Phycocyanin Eutrophication Toxicity Index (PETI)
 *   **Formula:** `WaterMask × NDCI × RedEdgeSlope × 8.0`
@@ -1158,103 +1158,103 @@ Each composite leverages Sentinel-2's bottom-of-atmosphere (L2A) surface reflect
 *   **Physical Basis:** Cyanobacteria bloom classification. Over water bodies (B03 > B11), PETI detects phycocyanin-like signatures without requiring a dedicated phycocyanin band. It utilizes:
     1.  *Chlorophyll excess* (NDCI via B05 and B04): Measures algal density.
     2.  *Red-Edge Slope* (B06 to B04 ratio): Isolates the steep slope characteristic of phycocyanin absorption near 620 nm.
-*   **Authorship Boundary:** You own the virtual phycocyanin proxy workflow and gate logic. Prior art includes NDCI (Mishra & Mishra, 2012) and red-edge algal science.
+*   **Original Contribution & Prior Art:** The original contribution is the virtual phycocyanin proxy workflow and gate logic. Prior art includes NDCI (Mishra & Mishra, 2012) and red-edge algal science.
 
 ### 3. Marine Plastisphere & Polymer Differentiation Index (MP-PDI)
 *   **Formula:** `WaterMask × max(0, FDI) × (1.0 - NDVI) × 15.0`
 *   **Sensor & Bands:** Sentinel-2 L2A (B03, B04, B06, B08, B11)
 *   **Physical Basis:** Floating marine plastic screening. Uses the Floating Debris Index (FDI) over ocean surfaces while introducing organic vegetation reject gates (1 - NDVI) to filter out Sargassum and organic foam false positives.
-*   **Authorship Boundary:** You own the polymer-selective rejection-gate workflow. Prior art includes FDI (Biermann et al., 2020).
+*   **Original Contribution & Prior Art:** The original contribution is the polymer-selective rejection-gate workflow. Prior art includes FDI (Biermann et al., 2020).
 
 ### 4. Thermokarst Thaw & Anoxic Peat Index (TT-API)
 *   **Formula:** `max(0, BSI + 0.15) × max(0, NDMI) × max(0, 0.25 - B02) × 18.0`
 *   **Sensor & Bands:** Sentinel-2 L2A (B02, B04, B08, B11, B8A)
 *   **Physical Basis:** Permafrost carbon risk mapping. Targets tundra edge collapse and anoxic peat expansion by multiplying bare soil exposure (BSI) with moist peat darkening (positive NDMI and low Blue B02 reflectance).
-*   **Authorship Boundary:** You own the combined anoxic-peat thaw-risk synthesis. Prior art includes Arctic permafrost spectral monitoring.
+*   **Original Contribution & Prior Art:** The original contribution is the combined anoxic-peat thaw-risk synthesis. Prior art includes Arctic permafrost spectral monitoring.
 
 ### 5. Evapotranspirative Canopy & Asphalt Contrast Index (EC-ACI)
 *   **Formula:** `NDBI × max(0, 0.25 - NDVI) × max(0, MSI - 0.5) × 14.0`
 *   **Sensor & Bands:** Sentinel-2 L2A (B04, B08, B11)
 *   **Physical Basis:** Urban heat shelter screening. Contrasts evapotranspirative canopy presence against dry impervious exposure (asphalt/soil) via NDBI and shade/canopy deficit to identify vulnerable urban centers.
-*   **Authorship Boundary:** You own the 10m shade-shelter contrast interpretation layer. Prior art includes NDBI and UHI remote sensing.
+*   **Original Contribution & Prior Art:** The original contribution is the 10m shade-shelter contrast interpretation layer. Prior art includes NDBI and UHI remote sensing.
 
 ### 6. Logged Rainforest Degradation & Vigor Slope Index (LR-DVSI)
 *   **Formula:** `max(0, 0.12 - NDVI) × max(0, BSI) × max(0, MSI - 0.3) × 15.0`
 *   **Sensor & Bands:** Sentinel-2 L2A (B02, B04, B08, B11)
 *   **Physical Basis:** Logging track encroachment. Detects structural canopy gaps (NDVI decline), exposed soils (BSI), and canopy dehydration (MSI) to map logging corridors.
-*   **Authorship Boundary:** You own the canopy-gap buffer-intrusion score. Prior art includes forest fragmentation indices.
+*   **Original Contribution & Prior Art:** The original contribution is the canopy-gap buffer-intrusion score. Prior art includes forest fragmentation indices.
 
 ### 7. Tailings Dam Risk & Acidification Susceptibility Index (TD-RASI)
 *   **Formula:** `(B04 / B02) × max(0, BSI) × max(0, 0.3 - B12) × 12.0`
 *   **Sensor & Bands:** Sentinel-2 L2A (B02, B04, B11, B12)
 *   **Physical Basis:** Acid-mine runoff monitoring. Fuses ferric iron staining (Red/Blue ratio B04/B02) with bare soil exposure (BSI) and low SWIR2 reflectance (B12) to detect acidic tailings runout paths.
-*   **Authorship Boundary:** You own the acid-silt runout path emergency screening score. Prior art includes AMD mineral mapping.
+*   **Original Contribution & Prior Art:** The original contribution is the acid-silt runout path emergency screening score. Prior art includes AMD mineral mapping.
 
 ### 8. Shallow-Focus Earthquake Impact Index (SFEII)
 *   **Formula:** `max(0, BSI) × max(0, 0.4 - NDVI) × max(0, MSI - 0.2) × 12.0`
 *   **Sensor & Bands:** Sentinel-2 L2A (B02, B04, B08, B11)
 *   **Physical Basis:** Post-seismic landslide and collapse mapping. Combines exposed soil (BSI), green canopy destruction (low NDVI), and canopy dehydration (MSI) to map debris fields.
-*   **Authorship Boundary:** You own the plain-language biomass-continuity fuel score. Prior art includes co-seismic landslide mapping.
+*   **Original Contribution & Prior Art:** The original contribution is the plain-language biomass-continuity fuel score. Prior art includes co-seismic landslide mapping.
 
 ### 9. Water-Deficit Agricultural Crop Stress Index (WDA-CSI)
 *   **Formula:** `max(0, MSI - 0.6) × max(0, 0.3 - NDWI) × max(0, NDVI) × 15.0`
 *   **Sensor & Bands:** Sentinel-2 L2A (B03, B04, B08, B11)
 *   **Physical Basis:** Agricultural stress detection. Requiring live crops (positive NDVI), highlights severe moisture stress (MSI) combined with surface water deficit (low NDWI) to track agricultural collapse.
-*   **Authorship Boundary:** You own the water-deficit crop stress triage score. Prior art includes crop drought indices.
+*   **Original Contribution & Prior Art:** The original contribution is the water-deficit crop stress triage score. Prior art includes crop drought indices.
 
 ### 10. Coal Dust & Urban Aerosol Index (CD-UAI)
 *   **Formula:** `max(0, 0.22 - B02) × max(0, BSI) × max(0, 0.28 - B11) × 14.0`
 *   **Sensor & Bands:** Sentinel-2 L2A (B02, B04, B08, B11)
 *   **Physical Basis:** Heavy industrial dust deposition. Tracks localized dark coal/soot deposition on bare soils by looking for strong blue absorption (low B02) and deep SWIR absorption (low B11).
-*   **Authorship Boundary:** You own the blue-SWIR absorption dust proxy score. Prior art includes particulate optical remote sensing.
+*   **Original Contribution & Prior Art:** The original contribution is the blue-SWIR absorption dust proxy score. Prior art includes particulate optical remote sensing.
 
 ### 11. Coastal Sedimentation & Runoff Composite (CSRC)
 *   **Formula:** `WaterMask × max(0, B03 - B04) × max(0, 0.35 - B02) × 10.0`
 *   **Sensor & Bands:** Sentinel-2 L2A (B02, B03, B04, B11)
 *   **Physical Basis:** Coastal sedimentation mapping. Over water surfaces, contrasts bright green suspended sediment (B03) against blue light absorption (low B02) to map runoff plumes.
-*   **Authorship Boundary:** You own the small-water runoff sedimentation triage workflow. Prior art includes ocean color turbidity algorithms.
+*   **Original Contribution & Prior Art:** The original contribution is the small-water runoff sedimentation triage workflow. Prior art includes ocean color turbidity algorithms.
 
 ### 12. Tundra Shrubification & Reclamation Index (TRSI)
 *   **Formula:** `max(0, NDVI - 0.15) × max(0, 0.3 - B11) × max(0, B8A - B04) × 15.0`
 *   **Sensor & Bands:** Sentinel-2 L2A (B04, B08, B11, B8A)
 *   **Physical Basis:** Arctic greening and brush expansion. Detects high green biomass (NDVI) coupled with damp tundra soil signatures (low SWIR1 B11 and elevated NIR/Red difference).
-*   **Authorship Boundary:** You own the tundra greening/shrubification workflow. Prior art includes Arctic greening indices.
+*   **Original Contribution & Prior Art:** The original contribution is the tundra greening/shrubification workflow. Prior art includes Arctic greening indices.
 
 ### 13. Landfill Gas & Vegetation Impact Index (LFG-VI)
 *   **Formula:** `max(0, MSI - 0.4) × max(0, 0.3 - NDVI) × max(0, BSI) × 15.0`
 *   **Sensor & Bands:** Sentinel-2 L2A (B02, B04, B08, B11)
 *   **Physical Basis:** Landfill boundary monitoring. Measures high soil exposure (BSI) paired with vegetation canopy stress (high MSI and depressed NDVI) around landfills.
-*   **Authorship Boundary:** You own the radial landfill boundary-ring vegetation stress workflow. Prior art includes landfill boundary soil studies.
+*   **Original Contribution & Prior Art:** The original contribution is the radial landfill boundary-ring vegetation stress workflow. Prior art includes landfill boundary soil studies.
 
 ### 14. Siltation & Water Reservoirs Index (SWRI)
 *   **Formula:** `WaterMask × max(0, B03 - B04) × max(0, B11) × 12.0`
 *   **Sensor & Bands:** Sentinel-2 L2A (B03, B04, B11)
 *   **Physical Basis:** Reservoir siltation tracking. Over water surfaces, uses green/red sediment contrast and SWIR backscattering to isolate heavy siltation in reservoirs.
-*   **Authorship Boundary:** You own the sewage/silt discharge reservoir triage model. Prior art includes suspended sediment indices.
+*   **Original Contribution & Prior Art:** The original contribution is the sewage/silt discharge reservoir triage model. Prior art includes suspended sediment indices.
 
 ### 15. Dam-Water Catchment Index (DWCI)
 *   **Formula:** `WaterMask × max(0, 0.4 - B11) × max(0, B03) × 12.0`
 *   **Sensor & Bands:** Sentinel-2 L2A (B03, B11)
 *   **Physical Basis:** Catchment capacity tracking. Measures open clean reservoir water by tracking green light reflection (B03) and deep SWIR absorption (low B11) over water.
-*   **Authorship Boundary:** You own the source-water catchment capacity score. Prior art includes water body indexing.
+*   **Original Contribution & Prior Art:** The original contribution is the source-water catchment capacity score. Prior art includes water body indexing.
 
 ### 16. Riparian Refuge & Flood Index (RRFI)
 *   **Formula:** `max(0, NDVI) × max(0, NDWI) × max(0, B8A) × 15.0`
 *   **Sensor & Bands:** Sentinel-2 L2A (B03, B04, B08, B11, B8A)
 *   **Physical Basis:** Wetlands and riparian flood corridors. Identifies healthy green riparian canopies (NDVI) that are simultaneously flooded or saturated (NDWI and NIR).
-*   **Authorship Boundary:** You own the riparian refuge failure warning system. Prior art includes flood boundary remote sensing.
+*   **Original Contribution & Prior Art:** The original contribution is the riparian refuge failure warning system. Prior art includes flood boundary remote sensing.
 
 ### 17. Estuarine Plume Dispersion Index (EPDI)
 *   **Formula:** `WaterMask × max(0, B03 / B02) × max(0, 0.2 - B11) × 15.0`
 *   **Sensor & Bands:** Sentinel-2 L2A (B02, B03, B11)
 *   **Physical Basis:** Estuarine sedimentation plumes. Over water, isolates bright sediment dispersion plumes using the Green/Blue ratio coupled with clean water SWIR absorption.
-*   **Authorship Boundary:** You own the estuarine sediment dispersion chain triage. Prior art includes estuarine turbidity algorithms.
+*   **Original Contribution & Prior Art:** The original contribution is the estuarine sediment dispersion chain triage. Prior art includes estuarine turbidity algorithms.
 
 ### 18. Heat Stress & Albedo Index (HSAI)
 *   **Formula:** `max(0, B11 - 0.2) × max(0, 0.3 - NDVI) × max(0, MSI - 0.4) × 14.0`
 *   **Sensor & Bands:** Sentinel-2 L2A (B04, B08, B11)
 *   **Physical Basis:** Canopy heat stress vulnerability. Combines dry bare-ground exposure (B11) with canopy moisture deficit (MSI) and absence of green shade (low NDVI).
-*   **Authorship Boundary:** You own the shade-shelter absence heat vulnerability model. Prior art includes albedo and canopy drought indexes.
+*   **Original Contribution & Prior Art:** The original contribution is the shade-shelter absence heat vulnerability model. Prior art includes albedo and canopy drought indexes.
 
 ---
 
@@ -1262,15 +1262,15 @@ Each composite leverages Sentinel-2's bottom-of-atmosphere (L2A) surface reflect
 
 To ensure defensible, peer-reviewed, and reputable publication in 1–2 days, the authorship boundaries for all custom composite indices are defined below:
 
-### What You Can Safely Claim ("Own"):
-1.  **Multi-Gate Consensus Logic (AND Gates):** You are the author of the packaged composite algorithms (e.g., PWCI, ASAI) that require multiple distinct spectral signatures to fire simultaneously. The probability of three independent false positives coinciding in the same pixel is very low, forming a highly defensible IP claim.
-2.  **ASAI Dry Brine Mode Calibration:** You are the author of the dry-brine path calibration that overcomes the desert caliche baseline problem. This specific contribution is highly novel in remote sensing literature.
-3.  **Civic Atlas Triage Workflows:** You own the decision support workflows, target-specific calibrations, and named indices designed to triage localized hazards for public-good environmental screening.
-4.  **Permian Basin Calibration Offsets:** You own the exact, validated threshold values mapped to the `permian` calibration preset.
+### Claimable Original Contributions:
+1.  **Multi-Gate Consensus Logic (AND Gates):** Daniel Bally is credited as author of the packaged composite algorithms (e.g., PWCI, ASAI) that require multiple distinct spectral signatures to fire simultaneously. The probability of three independent false positives coinciding in the same pixel is very low, forming a highly defensible IP claim.
+2.  **ASAI Dry Brine Mode Calibration:** Daniel Bally is credited as author of the dry-brine path calibration that overcomes the desert caliche baseline problem. This specific contribution is highly novel in remote sensing literature.
+3.  **Civic Atlas Triage Workflows:** The original contribution is the decision support workflows, target-specific calibrations, and named indices designed to triage localized hazards for public-good environmental screening.
+4.  **Permian Basin Calibration Offsets:** The original contribution is the exact, validated threshold values mapped to the `permian` calibration preset.
 
-### What is Prior Art (Do NOT Claim):
+### Established Prior Art and Non-Claims:
 1.  **Individual Spectral Bands:** Sentinel-2's 13 spectral bands and their physical properties are ESA intellectual property.
-2.  **Established Band Ratios:** Do not claim the invention of standard ratios like NDVI, SAVI, NDWI, NDMI, or BSI.
+2.  **Established Band Ratios:** This composite does not assert the invention of standard ratios like NDVI, SAVI, NDWI, NDMI, or BSI.
 3.  **Copernicus Satellite Infrastructure:** Sentinel satellites are operated by the European Space Agency.
 4.  **Atmospheric Correction Sen2Cor:** The sen2cor algorithm belongs to its respective developers.
 
