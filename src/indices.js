@@ -294,7 +294,7 @@ export const INDICES = {
         sensor: "Sentinel-2 L2A",
         min: 0,
         max: 1,
-        gradient: 'linear-gradient(to right, transparent 55%, #00DCFF 55%, #FF00FF 75%, #8C00FF 100%)',
+        gradient: 'linear-gradient(to right, #000000, #00DCFF, #FF00FF, #8C00FF)',
         formula: "Specular Smoothness Proxy × Salinity/Crust Signature",
         info: "Globe & Atlas · Limn composite calibration. Uses optical surface smoothness (B03/B11 ratio) as a proxy for specular surface reflectance, cross-referenced with salinity indicators, plus a dry-brine mode that fires when NDWI is deeply negative but NDSI is elevated — mapping dry evaporated salt crusts in arid environments without requiring active radar data. Formerly known as Produced Water Optical Index (PWOI) or APEX Anomaly Index.",
         diffLabels: ["Stable (No Detection)", "Salinity Anomaly Detected"],
