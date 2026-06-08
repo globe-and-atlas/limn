@@ -136,6 +136,14 @@
                 <button class="layer-toggle" data-layer="topo" aria-pressed="false">Topo</button>
                 <button class="layer-toggle" data-layer="dark" aria-pressed="false">Dark</button>
                 <button class="layer-toggle" data-layer="osm" aria-pressed="false">OSM</button>
+                <a href="help.html" target="_blank" class="layer-toggle help-link" aria-label="Open science documentation">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <path d="M12 16v-4"></path>
+                        <path d="M12 8h.01"></path>
+                    </svg>
+                    Docs
+                </a>
             </div>
         </main> <!-- End of map-container -->
 
@@ -156,23 +164,15 @@
                     </svg>
                     <div>
                         <h1>LIMN</h1>
-                        <h2>Globe &amp; Atlas · Arid Environmental Screening</h2>
-                        <a href="help.html" target="_blank" class="tool-btn help-link" aria-label="Open science documentation">
-                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                <circle cx="12" cy="12" r="10"></circle>
-                                <path d="M12 16v-4"></path>
-                                <path d="M12 8h.01"></path>
-                            </svg>
-                            SCIENCE DOCS
-                        </a>
+                        <h2>Produced-water screening</h2>
                     </div>
                 </div>
             </header>
-            <section class="control-group">
-                <h3>Analysis Location</h3>
+            <details class="control-group location-control">
+                <summary>Location</summary>
                 <div class="search-box">
                     <label for="loc-search-input" class="sr-only">Location search</label>
-                    <input type="text" id="loc-search-input" class="search-input" placeholder="lat, lng OR place name..." aria-label="Search for location">
+                    <input type="text" id="loc-search-input" class="search-input" placeholder="lat, lng or place" aria-label="Search for location">
                     <button id="btn-search-loc" class="tool-btn search-btn" aria-label="Search location">GO</button>
                 </div>
                 <div class="coord-display">
@@ -180,13 +180,13 @@
                     <span class="coord-label coord-label--lng">LNG:</span> <span
                         id="disp-lng">-101.8640°</span>
                 </div>
-            </section>
+            </details>
 
             <!-- UI Layout View Switcher -->
             <div class="ui-mode-selector" role="tablist" aria-label="UI Layout View Selector">
-                <button class="ui-mode-btn" data-layout="suite-grid" role="tab" aria-selected="false">Compare Indices</button>
-                <button class="ui-mode-btn active" data-layout="focused-triage" role="tab" aria-selected="true">Screen Spill</button>
-                <button class="ui-mode-btn" data-layout="command-console" role="tab" aria-selected="false">Investigate Site</button>
+                <button class="ui-mode-btn" data-layout="suite-grid" role="tab" aria-selected="false">Compare</button>
+                <button class="ui-mode-btn active" data-layout="focused-triage" role="tab" aria-selected="true">Screen</button>
+                <button class="ui-mode-btn" data-layout="command-console" role="tab" aria-selected="false">Investigate</button>
             </div>
 
             <!-- UI Layout Pane 1: Suite Grid (Original) -->
@@ -511,15 +511,14 @@
             <!-- UI Layout Pane 2: Focused Triage (Thematic Wizard) -->
             <div id="layout-pane-focused-triage" class="ui-layout-pane active" style="display: flex;">
                 <div class="triage-container">
-                    <h3>Screen a Produced-Water Site</h3>
-                    <p class="triage-subtitle">Choose a verified site or detection lens. Limn syncs the map, date, and index together.</p>
+                    <h3>Screen Spill</h3>
                     <div class="workflow-summary" aria-live="polite">
                         <div class="workflow-summary__row">
-                            <span class="workflow-summary__label">Current lens</span>
-                            <strong id="workflow-lens">ASAI — Arid Salinity Anomaly</strong>
+                            <span class="workflow-summary__label">Lens</span>
+                            <strong id="workflow-lens">OBEC</strong>
                         </div>
                         <div class="workflow-summary__row">
-                            <span class="workflow-summary__label">Selected site</span>
+                            <span class="workflow-summary__label">Site</span>
                             <strong id="workflow-site">Lake Boehmer (Imperial, TX)</strong>
                         </div>
                         <div class="workflow-summary__note" id="workflow-evidence">Continuous brine target · representative imagery date</div>
@@ -528,11 +527,6 @@
                     <div class="triage-grid">
                         <!-- Triage Card 1: Produced Water & Oilfield Leaks -->
                         <div class="triage-card" data-triage="oilfield-spill">
-                            <div class="triage-card-header">
-                                <span class="triage-icon">🚨</span>
-                                <h4>Produced Water &amp; Spills</h4>
-                            </div>
-                            <p>Detect active brine wetting, dry salt crusts, pad runoff, hydrocarbon mixing, and vegetation exposure in oilfields.</p>
                             <span class="triage-section-label">Detection Lens</span>
                             <div class="triage-tags">
                                 <button type="button" class="triage-tag-pill" data-index="pwi" data-tooltip="<strong>PWCI — Produced Water Chemical Index</strong><br>A three-way logical AND consensus composite. Requires elevated salinity, hydrocarbons, and heavy metals to suppress bare soil and playa false positives. Calibrated for Permian desert environments.">PWCI</button>
