@@ -280,16 +280,22 @@ export function getScriptContent(config, activeIndex, isDiff, isCumulative = fal
                 let sum = sample.B03 + sample.B11;
                 let oVal = sum === 0 ? 0 : (sample.B03 - sample.B11) / sum;
                 let radarProxy = Math.max(0, Math.min(1.2, (oVal + 0.3) / 0.6));
-                let ndsiSum = sample.B11 + sample.B12;
-                let brineBoost = ndsiSum === 0 ? 0 : Math.max(0, (sample.B11 - sample.B12) / ndsiSum) * 0.4;
+                let ndsiDen = sample.B11 + sample.B12;
+                let ndsiVal = ndsiDen === 0 ? 0 : (sample.B11 - sample.B12) / ndsiDen;
+                let brineBoost = Math.max(0, ndsiVal) * 0.4;
                 let moisture = oVal + 0.3 + brineBoost;
-                let fusion = (radarProxy > 0.7 && moisture > 0.45)
+                let wetScore = (radarProxy > 0.50 && moisture > 0.30)
                     ? (radarProxy * 0.4 + moisture * 0.6 + 0.25)
                     : (radarProxy * 0.3 + moisture * 0.7);
-                return Math.min(Math.max(fusion, 0), 1);
+                let bsiDen = (sample.B11 + sample.B04) + (sample.B08 + sample.B02);
+                let bsiDry = bsiDen === 0 ? 0 : ((sample.B11 + sample.B04) - (sample.B08 + sample.B02)) / bsiDen;
+                let dryScore = (oVal < -0.30 && ndsiVal > 0.05 && bsiDry > 0.10)
+                    ? Math.max(0, Math.min(1, (ndsiVal - 0.05) / 0.20 * 0.45 + 0.55))
+                    : 0;
+                return Math.min(Math.max(Math.max(wetScore, 0), dryScore), 1);
             })()`;
             palette = PALETTE_APEX;
-            bands = ['B03', 'B11', 'B12'];
+            bands = ['B02', 'B03', 'B04', 'B08', 'B11', 'B12'];
         }
 
         const civicKeys = [

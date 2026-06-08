@@ -299,40 +299,51 @@ export const INDICES = {
         info: "Globe & Atlas · Limn composite calibration. Uses optical surface smoothness (B03/B11 ratio) as a proxy for specular surface reflectance, cross-referenced with salinity indicators, plus a dry-brine mode that fires when NDWI is deeply negative but NDSI is elevated — mapping dry evaporated salt crusts in arid environments without requiring active radar data. Formerly known as Produced Water Optical Index (PWOI) or APEX Anomaly Index.",
         diffLabels: ["Stable (No Detection)", "Salinity Anomaly Detected"],
         // WMS-compatible S2-only evalscript (optical proxy for radar smoothness)
-        evalscript: genEvalscript(['B03', 'B11', 'B12'], `
-  // Optical proxy for SAR surface smoothness:
-  // smooth/wet surfaces (liquid) → high NDWI-like ratio, mirrors low SAR VH backscatter
+        evalscript: genEvalscript(['B02', 'B03', 'B04', 'B08', 'B11', 'B12'], `
+  // WET PATH — optical proxy for SAR surface smoothness
+  // smooth/wet surfaces → high oVal, mirrors low SAR VH backscatter
   let sum = sample.B03 + sample.B11;
   let oVal = sum === 0 ? 0 : (sample.B03 - sample.B11) / sum;
   let radarProxy = Math.max(0, Math.min(1.2, (oVal + 0.3) / 0.6));
-
-  // Moisture + brine chemical signature
-  let ndsiSum = sample.B11 + sample.B12;
-  let brineBoost = ndsiSum === 0 ? 0 : Math.max(0, (sample.B11 - sample.B12) / ndsiSum) * 0.4;
+  let ndsiDen = sample.B11 + sample.B12;
+  let ndsiVal = ndsiDen === 0 ? 0 : (sample.B11 - sample.B12) / ndsiDen;
+  let brineBoost = Math.max(0, ndsiVal) * 0.4;
   let moisture = oVal + 0.3 + brineBoost;
-
-  // PWOI fusion logic (same thresholds as S1/S2 deep version)
-  let fusion = (radarProxy > 0.7 && moisture > 0.45)
+  let wetScore = (radarProxy > 0.50 && moisture > 0.30)
       ? (radarProxy * 0.4) + (moisture * 0.6) + 0.25
       : (radarProxy * 0.3) + (moisture * 0.7);
 
-  let finalVal = Math.min(Math.max(fusion, 0), 1);
+  // DRY BRINE PATH — evaporated salt crusts: dry bare soil + elevated NDSI
+  let bsiDen = (sample.B11 + sample.B04) + (sample.B08 + sample.B02);
+  let bsiDry = bsiDen === 0 ? 0 : ((sample.B11 + sample.B04) - (sample.B08 + sample.B02)) / bsiDen;
+  let dryScore = 0;
+  if (oVal < -0.30 && ndsiVal > 0.05 && bsiDry > 0.10) {
+      dryScore = Math.max(0, Math.min(1, (ndsiVal - 0.05) / 0.20 * 0.45 + 0.55));
+  }
+
+  let finalVal = Math.min(Math.max(Math.max(wetScore, 0), dryScore), 1);
   ${colorBlend('finalVal', PALETTE_APEX)}
 `),
         // Note: No deepEvalscript for PWOI — WMS cannot handle multi-datasource S1+S2 format.
         // Deep Fusion toggle has no effect on PWOI; optical proxy evalscript is always used.
-        fisBands: ['B03', 'B11', 'B12'],
+        fisBands: ['B02', 'B03', 'B04', 'B08', 'B11', 'B12'],
         fisLogic: `
   let sum = sample.B03 + sample.B11;
   let oVal = sum === 0 ? 0 : (sample.B03 - sample.B11) / sum;
   let radarProxy = Math.max(0, Math.min(1.2, (oVal + 0.3) / 0.6));
-  let ndsiSum = sample.B11 + sample.B12;
-  let brineBoost = ndsiSum === 0 ? 0 : Math.max(0, (sample.B11 - sample.B12) / ndsiSum) * 0.4;
+  let ndsiDen = sample.B11 + sample.B12;
+  let ndsiVal = ndsiDen === 0 ? 0 : (sample.B11 - sample.B12) / ndsiDen;
+  let brineBoost = Math.max(0, ndsiVal) * 0.4;
   let moisture = oVal + 0.3 + brineBoost;
-  let fusion = (radarProxy > 0.7 && moisture > 0.45)
+  let wetScore = (radarProxy > 0.50 && moisture > 0.30)
       ? (radarProxy * 0.4 + moisture * 0.6 + 0.25)
       : (radarProxy * 0.3 + moisture * 0.7);
-  return [Math.min(Math.max(fusion, 0), 1)];
+  let bsiDen = (sample.B11 + sample.B04) + (sample.B08 + sample.B02);
+  let bsiDry = bsiDen === 0 ? 0 : ((sample.B11 + sample.B04) - (sample.B08 + sample.B02)) / bsiDen;
+  let dryScore = (oVal < -0.30 && ndsiVal > 0.05 && bsiDry > 0.10)
+      ? Math.max(0, Math.min(1, (ndsiVal - 0.05) / 0.20 * 0.45 + 0.55))
+      : 0;
+  return [Math.min(Math.max(Math.max(wetScore, 0), dryScore), 1)];
 `
     },
     ndwi: {
