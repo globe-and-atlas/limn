@@ -2788,6 +2788,13 @@ export function renderFocusedTriage() {
             newCard.appendChild(bmContainer);
         }
     });
+
+    // Auto-activate the oilfield-spill card so pills are immediately interactive
+    // without requiring the user to discover the card-click mechanic first.
+    const defaultCard = document.querySelector('.triage-card[data-triage="oilfield-spill"]');
+    if (defaultCard && !defaultCard.classList.contains('active')) {
+        defaultCard.classList.add('active');
+    }
 }
 window.renderFocusedTriage = renderFocusedTriage;
 
