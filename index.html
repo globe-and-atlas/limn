@@ -184,9 +184,9 @@
 
             <!-- UI Layout View Switcher -->
             <div class="ui-mode-selector" role="tablist" aria-label="UI Layout View Selector">
-                <button class="ui-mode-btn" data-layout="suite-grid" role="tab" aria-selected="false">Suite Grid</button>
-                <button class="ui-mode-btn active" data-layout="focused-triage" role="tab" aria-selected="true">Focused Triage</button>
-                <button class="ui-mode-btn" data-layout="command-console" role="tab" aria-selected="false">Command Console</button>
+                <button class="ui-mode-btn" data-layout="suite-grid" role="tab" aria-selected="false">Compare Indices</button>
+                <button class="ui-mode-btn active" data-layout="focused-triage" role="tab" aria-selected="true">Screen Spill</button>
+                <button class="ui-mode-btn" data-layout="command-console" role="tab" aria-selected="false">Investigate Site</button>
             </div>
 
             <!-- UI Layout Pane 1: Suite Grid (Original) -->
@@ -511,8 +511,19 @@
             <!-- UI Layout Pane 2: Focused Triage (Thematic Wizard) -->
             <div id="layout-pane-focused-triage" class="ui-layout-pane active" style="display: flex;">
                 <div class="triage-container">
-                    <h3>Produced Water Screening</h3>
-                    <p class="triage-subtitle">Click an index pill to load it on the map</p>
+                    <h3>Screen a Produced-Water Site</h3>
+                    <p class="triage-subtitle">Choose a verified site or detection lens. Limn syncs the map, date, and index together.</p>
+                    <div class="workflow-summary" aria-live="polite">
+                        <div class="workflow-summary__row">
+                            <span class="workflow-summary__label">Current lens</span>
+                            <strong id="workflow-lens">ASAI — Arid Salinity Anomaly</strong>
+                        </div>
+                        <div class="workflow-summary__row">
+                            <span class="workflow-summary__label">Selected site</span>
+                            <strong id="workflow-site">Lake Boehmer (Imperial, TX)</strong>
+                        </div>
+                        <div class="workflow-summary__note" id="workflow-evidence">Continuous brine target · representative imagery date</div>
+                    </div>
                     
                     <div class="triage-grid">
                         <!-- Triage Card 1: Produced Water & Oilfield Leaks -->
@@ -522,12 +533,13 @@
                                 <h4>Produced Water &amp; Spills</h4>
                             </div>
                             <p>Detect active brine wetting, dry salt crusts, pad runoff, hydrocarbon mixing, and vegetation exposure in oilfields.</p>
+                            <span class="triage-section-label">Detection Lens</span>
                             <div class="triage-tags">
-                                <span class="triage-tag-pill" data-index="pwi" data-tooltip="<strong>PWCI — Produced Water Chemical Index</strong><br>A three-way logical AND consensus composite. Requires elevated salinity, hydrocarbons, and heavy metals to suppress bare soil and playa false positives. Calibrated for Permian desert environments.">PWCI</span>
-                                <span class="triage-tag-pill" data-index="pwoi" data-tooltip="<strong>ASAI — Arid Salinity Anomaly Index</strong><br>High-sensitivity dry-brine logic model. Fuses salinity shifts (NDSI) with soil brightness (BSI) to isolate salt crusts in dry bare desert soils.">ASAI</span>
-                                <span class="triage-tag-pill" data-index="hpwi" data-tooltip="<strong>OBEC — Oil-Brine Emulsion Composite</strong><br>Physical-chemical consensus composite. Fuses chemical signatures with a visible specular surface smoothness proxy to detect active pooling emulsions.">OBEC</span>
-                                <span class="triage-tag-pill" data-index="lbi" data-tooltip="<strong>LBI — Liquid Brine Index</strong><br>High-precision ratio tracker with maximum sensitivity to liquid salinity changes and evaporation signatures.">LBI</span>
-                                <span class="triage-tag-pill" data-index="mvpi" data-tooltip="<strong>MVPI — Methane Venting Plume Index</strong><br>SWIR gas-absorption proxy targeting localized super-emitter plumes over bright well pads. Fuses B11/B12 ratios with hard water, vegetation, and low-albedo rejection gates.">MVPI</span>
+                                <button type="button" class="triage-tag-pill" data-index="pwi" data-tooltip="<strong>PWCI — Produced Water Chemical Index</strong><br>A three-way logical AND consensus composite. Requires elevated salinity, hydrocarbons, and heavy metals to suppress bare soil and playa false positives. Calibrated for Permian desert environments.">PWCI</button>
+                                <button type="button" class="triage-tag-pill" data-index="pwoi" data-tooltip="<strong>ASAI — Arid Salinity Anomaly Index</strong><br>High-sensitivity dry-brine logic model. Fuses salinity shifts (NDSI) with soil brightness (BSI) to isolate salt crusts in dry bare desert soils.">ASAI</button>
+                                <button type="button" class="triage-tag-pill" data-index="hpwi" data-tooltip="<strong>OBEC — Oil-Brine Emulsion Composite</strong><br>Physical-chemical consensus composite. Fuses chemical signatures with a visible specular surface smoothness proxy to detect active pooling emulsions.">OBEC</button>
+                                <button type="button" class="triage-tag-pill" data-index="lbi" data-tooltip="<strong>LBI — Liquid Brine Index</strong><br>High-precision ratio tracker with maximum sensitivity to liquid salinity changes and evaporation signatures.">LBI</button>
+                                <button type="button" class="triage-tag-pill" data-index="mvpi" data-tooltip="<strong>MVPI — Methane Venting Plume Index</strong><br>SWIR gas-absorption proxy targeting localized super-emitter plumes over bright well pads. Fuses B11/B12 ratios with hard water, vegetation, and low-albedo rejection gates.">MVPI</button>
                             </div>
                         </div>
 

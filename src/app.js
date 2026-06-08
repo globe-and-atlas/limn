@@ -333,6 +333,8 @@ const SPILL_BOOKMARKS = [
 const INDEX_SHORT_LABELS = {
     pwi: 'PWCI', pwoi: 'ASAI', hpwi: 'OBEC', lbi: 'LBI', bpi: 'BPI', mvpi: 'MVPI',
 };
+const DEFAULT_SPILL_ID = 'lake-boehmer-pecos-orphan';
+const DEFAULT_INDEX = 'pwoi';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const START_YEAR = 2020;
@@ -503,7 +505,8 @@ const state = {
     map: null,
     baseLayerInst: null,
     activeLoc: 'dixon',
-    activeIndex: 'ndmi',
+    activeIndex: DEFAULT_INDEX,
+    activeSpillId: DEFAULT_SPILL_ID,
     activeBasin: 'permian',
     mode: 'single', // 'single' or 'compare'
     compareType: 'swipe', // 'swipe' | 'diff' | 'cumulative'
@@ -533,6 +536,77 @@ window.CONFIG = Object.assign(window.CONFIG || {}, internalAppConfig);
 window.ALL_DATES = ALL_DATES;
 window.MONTHS = MONTHS;
 
+function getSpillById(spillId) {
+    return SPILL_BOOKMARKS.find(spill => spill.id === spillId) || SPILL_BOOKMARKS[0];
+}
+
+function getActiveSpill() {
+    return getSpillById(state.activeSpillId);
+}
+
+function setClosestDateForSpill(spill) {
+    const targetStr = spill?.date || spill?.displayDate;
+    const target = new Date(targetStr).getTime();
+    if (Number.isNaN(target)) return;
+
+    let closestIdx = 0;
+    let minDiff = Infinity;
+    ALL_DATES.forEach((dateOption, index) => {
+        const diff = Math.abs(new Date(dateOption.value).getTime() - target);
+        if (diff < minDiff) {
+            minDiff = diff;
+            closestIdx = index;
+        }
+    });
+
+    state.monthIndex = closestIdx;
+    const dateSingleEl = document.getElementById('date-single');
+    if (dateSingleEl) dateSingleEl.value = closestIdx.toString();
+}
+
+function updateWorkflowSummary(spill = getActiveSpill(), indexKey = state.activeIndex) {
+    const indexConfig = INDICES[indexKey];
+    const lensEl = document.getElementById('workflow-lens');
+    const siteEl = document.getElementById('workflow-site');
+    const evidenceEl = document.getElementById('workflow-evidence');
+
+    if (lensEl) {
+        const shortLabel = INDEX_SHORT_LABELS[indexKey] || indexKey.toUpperCase();
+        const longName = indexConfig?.name?.replace(/\s*\(formerly.*?\)/i, '') || shortLabel;
+        lensEl.textContent = longName.startsWith(shortLabel) ? longName : `${shortLabel} — ${longName}`;
+    }
+    if (siteEl && spill) siteEl.textContent = spill.label;
+    if (evidenceEl && spill) {
+        const evidenceClass = (spill.evidenceClass || 'screening target').replace(/-/g, ' ');
+        const dateRole = spill.dateRole || spill.displayDate || spill.date;
+        evidenceEl.textContent = `${evidenceClass} · ${dateRole}`;
+    }
+}
+
+function markActiveWorkflowControls() {
+    document.querySelectorAll('.triage-tag-pill').forEach(pill => {
+        pill.classList.toggle('active', pill.dataset.index === state.activeIndex);
+    });
+    document.querySelectorAll('.triage-bm-btn, .spill-bookmark-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.spillId === state.activeSpillId);
+    });
+}
+
+function selectSpill(spill, { fly = false } = {}) {
+    if (!spill) return;
+    state.activeSpillId = spill.id || DEFAULT_SPILL_ID;
+    setClosestDateForSpill(spill);
+
+    document.getElementById('disp-lat').innerText = spill.lat.toFixed(4) + '°';
+    document.getElementById('disp-lng').innerText = spill.lng.toFixed(4) + '°';
+    if (fly && state.map) {
+        state.map.flyTo([spill.lat, spill.lng], spill.zoom, { duration: 1.5 });
+    }
+
+    updateWorkflowSummary(spill, state.activeIndex);
+    markActiveWorkflowControls();
+}
+
 
 export function renderSpillBookmarks(indexKey = state.activeIndex) {
     const spillList = document.getElementById('spill-bookmark-list');
@@ -551,6 +625,7 @@ export function renderSpillBookmarks(indexKey = state.activeIndex) {
         const btn = document.createElement('button');
         btn.className = 'spill-bookmark-btn';
         btn.dataset.spillId = spill.id || spill.label.replace(/\s+/g, '-').toLowerCase();
+        btn.classList.toggle('active', btn.dataset.spillId === state.activeSpillId);
 
         const tooltipText = `<strong>${spill.label}</strong><br>${spill.note}<br><br>📅 ${spill.displayDate} &nbsp;|&nbsp; 📦 ${spill.volume}<br>📡 ${spill.source}<br>⚠ Coords: ${spill.confidence}`;
         btn.setAttribute('data-tooltip', tooltipText);
@@ -558,29 +633,13 @@ export function renderSpillBookmarks(indexKey = state.activeIndex) {
         btn.innerHTML = `<span class="spill-name">${spill.label}</span><span class="spill-date-tag">${spill.displayDate}</span>`;
         
         btn.addEventListener('click', () => {
-            // Find closest date in ALL_DATES
-            const targetStr = spill.date; // e.g. "2018-01-09"
-            const target = new Date(targetStr).getTime();
-            let closestIdx = 0, minDiff = Infinity;
-            ALL_DATES.forEach((d, i) => {
-                const diff = Math.abs(new Date(d.value).getTime() - target);
-                if (diff < minDiff) { minDiff = diff; closestIdx = i; }
-            });
-
-            // Set date
-            state.monthIndex = closestIdx;
-            const dateSingleEl = document.getElementById('date-single');
-            if (dateSingleEl) dateSingleEl.value = closestIdx.toString();
-
-            // Fly to location
-            document.getElementById('disp-lat').innerText = spill.lat.toFixed(4) + '°';
-            document.getElementById('disp-lng').innerText = spill.lng.toFixed(4) + '°';
-            state.map.flyTo([spill.lat, spill.lng], spill.zoom, { duration: 1.5 });
+            selectSpill(spill, { fly: true });
 
             // Deselect preset location buttons and spill buttons
             document.querySelectorAll('.loc-btn').forEach(b => b.classList.remove('active'));
             document.querySelectorAll('.spill-bookmark-btn').forEach(b => b.classList.remove('active'));
             btn.classList.add('active');
+            markActiveWorkflowControls();
 
             // Force single date mode on bookmark click for instant cloud-free imagery
             if (state.mode !== 'single') {
@@ -688,6 +747,7 @@ document.addEventListener('DOMContentLoaded', () => {
     bindEvents();
 
     // Initial Data Load
+    selectSpill(getActiveSpill());
     renderSpillBookmarks(state.activeIndex);
     applyIndex();
     probeAcquisitions();
@@ -850,6 +910,8 @@ function bindEvents() {
             
             // Render Dynamic Bookmarks for this standard index
             renderSpillBookmarks(state.activeIndex);
+            updateWorkflowSummary();
+            markActiveWorkflowControls();
             applyIndex();
         });
     });
@@ -1448,10 +1510,12 @@ function evaluatePixel(sample) {
                         const clickedLabel = chart.data.datasets[datasetIdx].label.toLowerCase();
                         if (INDICES[clickedLabel]) {
                             state.activeIndex = clickedLabel;
+                            updateWorkflowSummary();
                             // Update sidebar button highlight
                             document.querySelectorAll('.index-btn').forEach(b => {
                                 b.classList.toggle('active', b.dataset.index === clickedLabel);
                             });
+                            markActiveWorkflowControls();
                         }
 
                     const dateIdx = ALL_DATES.findIndex(d => d.value === dateStr);
@@ -2601,28 +2665,8 @@ export function renderFocusedTriage() {
         // Render bookmarks for this selected index
         renderSpillBookmarks(indexKey);
         
-        // Fly to the first bookmark if available
-        const bookmarks = SPILL_BOOKMARKS;
-
-        if (bookmarks.length > 0) {
-            const targetB = bookmarks[0];
-
-            // Fly map
-            state.map.flyTo([targetB.lat, targetB.lng], targetB.zoom, { duration: 1.5 });
-            document.getElementById('disp-lat').innerText = targetB.lat.toFixed(4) + '°';
-            document.getElementById('disp-lng').innerText = targetB.lng.toFixed(4) + '°';
-            
-            // Set date single value
-            const targetTime = new Date(targetB.date || targetB.displayDate).getTime();
-            let closestIdx = 0, minDiff = Infinity;
-            ALL_DATES.forEach((d, i) => {
-                const diff = Math.abs(new Date(d.value).getTime() - targetTime);
-                if (diff < minDiff) { minDiff = diff; closestIdx = i; }
-            });
-            state.monthIndex = closestIdx;
-            const dSingle = document.getElementById('date-single');
-            if (dSingle) dSingle.value = closestIdx.toString();
-        }
+        selectSpill(getActiveSpill());
+        markActiveWorkflowControls();
         
         // Force single date mode on triage selection for instant cloud-free imagery
         if (state.mode !== 'single') {
@@ -2642,9 +2686,9 @@ export function renderFocusedTriage() {
         
         // Find default primary index for this card
         const triageType = newCard.dataset.triage;
-        let defaultIndex = 'pwoi'; // Default fallback
+        let defaultIndex = DEFAULT_INDEX;
         if (triageType === 'oilfield-spill') {
-            defaultIndex = 'pwi'; // PWCI default index
+            defaultIndex = DEFAULT_INDEX;
         }
 
         // Add event listener to the card itself
@@ -2694,12 +2738,14 @@ export function renderFocusedTriage() {
 
             const bmLabel = document.createElement('span');
             bmLabel.className = 'triage-bm-label';
-            bmLabel.textContent = 'Verified Sites';
+            bmLabel.textContent = '📍 Fly to Verified Site';
             bmContainer.appendChild(bmLabel);
 
             cardBookmarks.forEach(spill => {
                 const btn = document.createElement('button');
                 btn.className = 'triage-bm-btn';
+                btn.dataset.spillId = spill.id || spill.label.replace(/\s+/g, '-').toLowerCase();
+                btn.classList.toggle('active', btn.dataset.spillId === state.activeSpillId);
 
                 // Header row: name + date
                 const header = document.createElement('div');
@@ -2732,20 +2778,20 @@ export function renderFocusedTriage() {
                 btn.addEventListener('click', (e) => {
                     e.stopPropagation();
 
-                    const primaryIndex = (spill.indices && spill.indices[0]) || defaultIndex;
+                const primaryIndex = (spill.indices && spill.indices[0]) || defaultIndex;
 
-                    // Activate the index
-                    state.activeIndex = primaryIndex;
+                // Activate the index
+                state.activeIndex = primaryIndex;
                     document.querySelectorAll('.index-btn').forEach(b => {
                         b.classList.toggle('active', b.dataset.index === primaryIndex);
                     });
 
                     // Activate this card, clear others
-                    document.querySelectorAll('.triage-card').forEach(c => {
-                        c.classList.remove('active');
-                        c.querySelectorAll('.triage-tag-pill').forEach(p => p.classList.remove('active'));
-                    });
-                    newCard.classList.add('active');
+                document.querySelectorAll('.triage-card').forEach(c => {
+                    c.classList.remove('active');
+                    c.querySelectorAll('.triage-tag-pill').forEach(p => p.classList.remove('active'));
+                });
+                newCard.classList.add('active');
                     newCard.querySelectorAll('.triage-tag-pill').forEach(p => {
                         p.classList.toggle('active', p.dataset.index === primaryIndex);
                     });
@@ -2754,23 +2800,10 @@ export function renderFocusedTriage() {
                     bmContainer.querySelectorAll('.triage-bm-btn').forEach(b => b.classList.remove('active'));
                     btn.classList.add('active');
 
-                    // Find closest date in ALL_DATES
-                    const targetTime = new Date(spill.date).getTime();
-                    let closestIdx = 0, minDiff = Infinity;
-                    ALL_DATES.forEach((d, i) => {
-                        const diff = Math.abs(new Date(d.value).getTime() - targetTime);
-                        if (diff < minDiff) { minDiff = diff; closestIdx = i; }
-                    });
-                    state.monthIndex = closestIdx;
-                    const dSingle = document.getElementById('date-single');
-                    if (dSingle) dSingle.value = closestIdx.toString();
-
-                    // Fly the map
-                    state.map.flyTo([spill.lat, spill.lng], spill.zoom, { duration: 1.5 });
-                    document.getElementById('disp-lat').innerText = spill.lat.toFixed(4) + '°';
-                    document.getElementById('disp-lng').innerText = spill.lng.toFixed(4) + '°';
+                    selectSpill(spill, { fly: true });
 
                     renderSpillBookmarks(primaryIndex);
+                    markActiveWorkflowControls();
 
                     // Apply index / switch to single mode
                     if (state.mode !== 'single') {
@@ -2795,6 +2828,8 @@ export function renderFocusedTriage() {
     if (defaultCard && !defaultCard.classList.contains('active')) {
         defaultCard.classList.add('active');
     }
+    updateWorkflowSummary();
+    markActiveWorkflowControls();
 }
 window.renderFocusedTriage = renderFocusedTriage;
 
@@ -2869,6 +2904,8 @@ export function renderCommandConsole() {
                 
                 applyIndex();
                 renderSpillBookmarks(key);
+                updateWorkflowSummary(getActiveSpill(), key);
+                markActiveWorkflowControls();
                 
                 // Show matching bookmarks for this selected index in the HUD
                 renderHUDBookmarks(key);
@@ -2895,27 +2932,16 @@ export function renderCommandConsole() {
             bookmarks.forEach(spill => {
                 const btn = document.createElement('button');
                 btn.className = 'spill-bookmark-btn';
+                btn.dataset.spillId = spill.id || spill.label.replace(/\s+/g, '-').toLowerCase();
+                btn.classList.toggle('active', btn.dataset.spillId === state.activeSpillId);
                 btn.innerHTML = `<span class="spill-name">${spill.label}</span><span class="spill-date-tag">${spill.displayDate}</span>`;
                 
                 btn.addEventListener('click', () => {
-                    const targetStr = spill.date || spill.displayDate;
-                    const target = new Date(targetStr).getTime();
-                    let closestIdx = 0, minDiff = Infinity;
-                    ALL_DATES.forEach((d, i) => {
-                        const diff = Math.abs(new Date(d.value).getTime() - target);
-                        if (diff < minDiff) { minDiff = diff; closestIdx = i; }
-                    });
-                    
-                    state.monthIndex = closestIdx;
-                    const dateSingleEl = document.getElementById('date-single');
-                    if (dateSingleEl) dateSingleEl.value = closestIdx.toString();
-                    
-                    document.getElementById('disp-lat').innerText = spill.lat.toFixed(4) + '°';
-                    document.getElementById('disp-lng').innerText = spill.lng.toFixed(4) + '°';
-                    state.map.flyTo([spill.lat, spill.lng], spill.zoom, { duration: 1.5 });
+                    selectSpill(spill, { fly: true });
                     
                     document.querySelectorAll('#hud-bookmark-results .spill-bookmark-btn').forEach(b => b.classList.remove('active'));
                     btn.classList.add('active');
+                    markActiveWorkflowControls();
                     
                     if (state.mode !== 'single') {
                         const mSing = document.getElementById('mode-single');
