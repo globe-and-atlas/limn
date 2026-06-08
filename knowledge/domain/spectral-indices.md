@@ -6,20 +6,63 @@ Each entry requires: `name`, `sensor`, `temporal`, `min`, `max`, `gradient`, `fo
 
 Optional: `diffscript` (overrides diff mode evalscript), `fisBands` (for Statistics API).
 
-## Detection Suite
+## Detection Tab Structure
+
+The Detection tab is split into three clearly labelled sections:
+
+### Produced Water Composites
+
+Globe & Atlas custom composites — ordered by combined novelty + effectiveness (descending).
 
 | Key | Name | Bands | Sensor | Detection Rate | Notes |
-|-----|------|-------|--------|----------------|-------|
-| `pwoi` | ASAI — Arid Salinity Anomaly Index (formerly PWOI / APEX) | B03, B11, B12 | S2 (WMS proxy) | 77.8% (TRRC), 87.5% (verified) | Dry brine mode added 2026-03-28; was 29.6% |
-| `hpwi` | OBEC — Oil-Brine Emulsion Composite (formerly HPWI) | B02, B03, B04, B08, B11, B12 | S2 (WMS proxy) | 66.7% (TRRC) | Dry brine mode added 2026-03-28; was 14.8% |
-| `pwi` | PWCI — Produced Water Chemical Index (formerly PWI) | B02-B12 | Sentinel-2 | 81.5% (TRRC) | Lowered thresholds 2026-03-28; was 0% |
+| --- | --- | --- | --- | --- | --- |
+| `pwoi` | ASAI — Arid Salinity Anomaly Index | B03, B11, B12 | S2 (WMS proxy) | 77.8% (TRRC), 87.5% (verified) | Dry brine mode added 2026-03-28 |
+| `hpwi` | OBEC — Oil-Brine Emulsion Composite | B02, B03, B04, B08, B11, B12 | S2 (WMS proxy) | 66.7% (TRRC) | Formerly HPWI |
+| `pwi` | PWCI — Produced Water Chemical Index | B02-B12 | Sentinel-2 | 81.5% (TRRC) | Three-way AND gate (brine × HC × metals) |
 | `lbi` | Liquid Brine Index | B03, B08, B11, B12 | Sentinel-2 | 63.0% (TRRC) | NDSI × (NDWI+0.5) × (1−NDVI) × BSI |
-| `fbc` | Iron-Brine Composite | B02-B12 | Sentinel-2 | 66.7% (TRRC) | Fe³⁺ staining proxy; reference index |
+| `fbc` | Iron-Brine Composite | B02-B12 | Sentinel-2 | 66.7% (TRRC) | Fe³⁺ staining proxy |
+| `vcbi` | Veg-Confirmed Brine Index | B05, B07, B08, B11 | Sentinel-2 | — | Vegetation evidence of subsurface brine |
+| `reai` | Red Edge Alteration Index | B05, B07, B8A | Sentinel-2 | — | Red-edge chlorosis from salt loading |
+| `ehc` | Evaporite Halo Composite | B03, B04, B11, B12 | Sentinel-2 | — | RGB false-color: oil/mud/salt morphology |
 | `vsi` | Vegetation Stress Index | B05, B07, B8A, B11 | Sentinel-2 | 74.1% (TRRC) | NDSI × RedEdge delta × MSI |
-| `bpi` | Brine-Petroleum Index | B04, B08, B11, B12 | Sentinel-2 | 55.6% (TRRC) | BSI × NDSI × HCAI |
+| `crsi` | Salt Stress / Mortality | B05, B08, B11 | Sentinel-2 | — | Vegetation mortality from salt loading |
+| `aoi` | Anoxic Oxidation Index | B04, B08, B11 | Sentinel-2 | — | Ferrous iron oxidation in brine |
+| `bpi` | Brine-Pavement Index | B04, B08, B11, B12 | Sentinel-2 | 55.6% (TRRC) | BSI × NDSI × HCAI |
 | `tri` | Toxic Residue Index | B02, B03, B04, B11, B12 | Sentinel-2 | — | NDSI × HMRI × AOI; high specificity |
+| `scri` | Salt Crust Roughness Index | VV, VH | Sentinel-1 GRD | — | SAR mechanical verification of salt crust |
+| `phi` | Petro-Hydrocarbon Index | B04, B08, B11, B12 | Sentinel-2 | — | Spectral HC anomaly in soil |
+| `cma` | Clay-Mineral Alteration | B04, B11, B12 | Sentinel-2 | — | Kaolinite/illite from brine alteration |
+| `hmi` | Heavy Metal Interaction | B05, B07, B08 | Sentinel-2 | — | Red-edge signal of metallic contamination |
 
-**All detection rates from 2026-03-28 run, threshold=0.01, n=27 TRRC sites.**
+**Detection rates from 2026-03-28 run, threshold=0.01, n=27 TRRC sites.**
+
+### Standard PW Indicators
+
+Established algorithms directly relevant to produced water detection (not Globe & Atlas originals).
+
+| Key | Name | Notes |
+| --- | --- | --- |
+| `ndsi` | Saline Content (Brine) | SWIR1/SWIR2 ratio — brine crystallisation signal |
+| `hcai` | Hydrocarbons | SWIR absorption for organic compounds |
+| `hmri` | Heavy Metals | Red-edge distortion from metallic ions |
+| `csi` | Contaminated Soil | Clay ratio proxy for pollution indicator |
+| `ndoi` | Oil Slicks | B11/B12 absorption for surface petroleum |
+| `si` | Salinity / Crust | Classic salt index |
+| `bsi` | Bare Soil Index | Soil exposure; supports brine site identification |
+| `s1_sar` | SAR Moisture (VV/VH) | Sentinel-1 radar moisture and roughness |
+
+### General Reference
+
+General-purpose satellite indices — not produced-water specific.
+
+| Key | Name |
+| --- | --- |
+| `tc` | True Color |
+| `ndvi` | Vegetation Health |
+| `ndwi` | Wetness / Ponding |
+| `ndmi` | Moisture Stress |
+| `msi` | Drought / Canopy |
+| `savi` | Arid Vegetation |
 
 ### Dry Brine Mode (ASAI + OBEC)
 
@@ -33,7 +76,7 @@ Dry path formula: `(NDSI − 0.04) × min(1, BSI × N) × scale`; result takes `
 ## Calibration Presets (`CALIBRATION_PRESETS` in indices.js)
 
 | Preset | `bsiMask` | `bsiOffset` | `ndwiOffset` | PWI Salinity | PWI HC | PWI HMRI |
-|--------|-----------|-------------|--------------|--------------|--------|----------|
+| --- | --- | --- | --- | --- | --- | --- |
 | `permian` (arid) | -0.3 | 0.3 | 0.5 | 0.10 | 0.30 | 2.0 |
 | `standard` (temperate) | -0.1 | 0.0 | 0.0 | 0.05 | 0.15 | 1.5 |
 
@@ -42,7 +85,7 @@ Placeholders injected at render time: `__BSI_MASK__`, `__BSI_OFFSET__`, `__NDWI_
 ## Evalscript Generators
 
 | Generator | Output | Use |
-|-----------|--------|-----|
+| --- | --- | --- |
 | `genEvalscript(bands, logic)` | Single-date, single-source | Standard indices |
 | `genDiffEvalscript(bands, calcLogic)` | Two-date ORBIT diff heatmap | Compare → Diff mode |
 | `genDeepFusionEvalscript(bands, logic)` | Multi-source S1+S2 ORBIT | OBEC, ASAI (formerly HPWI, APEX/PWOI) |

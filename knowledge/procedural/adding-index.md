@@ -51,7 +51,11 @@ Then import it in `map.js` and `app.js`.
     <span class="index-full index-full-bold">My Index Name</span>
 </button>
 ```
-Pick the right `<div class="index-suite-container">` section (Detection, Diagnostic, Spectral, or Standard).
+Pick the right `<div class="index-suite-container">` section:
+
+- **Produced Water Composites** (`suite-primary`) — Globe & Atlas custom composites; place in novelty+effectiveness order relative to peers
+- **Standard PW Indicators** (`suite-diagnostic`) — established algorithms directly relevant to PW detection (NDSI, HCAI, HMRI, NDOI, etc.)
+- **General Reference** (`suite-standard`) — general-purpose satellite indices not produced-water specific (NDVI, NDWI, etc.)
 
 ## Step 4: Handle cumulative mode in `map.js` (`getScriptContent`)
 
