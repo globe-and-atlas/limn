@@ -3,8 +3,7 @@
    ========================================================================== */
 
 import { getCDSEToken } from './auth.js';
-import { verifiedBookmarks } from './verifiedBookmarks.js';
-import { authorshipClaims } from './authorshipClaims.js';
+
 import { 
     INDICES, 
     CALIBRATION_PRESETS, 
@@ -333,12 +332,6 @@ const SPILL_BOOKMARKS = [
 
 const INDEX_SHORT_LABELS = {
     pwi: 'PWCI', pwoi: 'ASAI', hpwi: 'OBEC', lbi: 'LBI', bpi: 'BPI', mvpi: 'MVPI',
-    bhdfsi: 'BH-DFSI', sfeii: 'SF-EII',
-    peti: 'PETI', csrc: 'CSRC', swri: 'SWRI', cduai: 'CD-UAI',
-    ttapi: 'TT-API', trsi: 'TRSI',
-    ecaci: 'EC-ACI', hsai: 'HSAI',
-    lrdvsi: 'LRDVSI', tdrasi: 'TDRASI', wdacsi: 'WDACSI',
-    lfgvi: 'LFGVI', dwci: 'DWCI', rrfi: 'RRFI', epdi: 'EPDI',
 };
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -540,72 +533,29 @@ window.CONFIG = Object.assign(window.CONFIG || {}, internalAppConfig);
 window.ALL_DATES = ALL_DATES;
 window.MONTHS = MONTHS;
 
-// ── Civic Atlas & Authorship Helpers ─────────────────
-export function updateAuthorshipCard(indexKey) {
-    const card = document.getElementById('authorship-card');
-    const title = document.getElementById('authorship-title');
-    const claimStatus = document.getElementById('authorship-claim-status');
-    const originalScope = document.getElementById('authorship-original-details');
-    const priorArt = document.getElementById('authorship-prior-art');
-
-    if (!card) return;
-
-    const claimData = authorshipClaims[indexKey];
-    if (!claimData) {
-        card.style.display = 'none';
-        return;
-    }
-
-    card.style.display = 'block';
-    if (title) title.textContent = INDICES[indexKey].name;
-    if (claimStatus) {
-        claimStatus.textContent = claimData.strength;
-        claimStatus.className = 'claim-badge ' + (claimData.strength.toLowerCase().includes('very high') || claimData.strength.toLowerCase().includes('high') ? 'claim-badge--strong' : 'claim-badge--shared');
-    }
-    if (originalScope) originalScope.textContent = claimData.claim;
-    if (priorArt) priorArt.textContent = claimData.doNotClaim + ' ' + claimData.why;
-}
-window.updateAuthorshipCard = updateAuthorshipCard;
 
 export function renderSpillBookmarks(indexKey = state.activeIndex) {
     const spillList = document.getElementById('spill-bookmark-list');
     if (!spillList) return;
     spillList.innerHTML = '';
 
-    const isCivic = [
-        'bhdfsi', 'peti', 'mppdi', 'ttapi', 'ecaci', 'lrdvsi', 
-        'tdrasi', 'sfeii', 'wdacsi', 'cduai', 'csrc', 'trsi', 
-        'lfgvi', 'swri', 'dwci', 'rrfi', 'epdi', 'hsai'
-    ].includes(indexKey);
+    const bookmarks = SPILL_BOOKMARKS;
 
-    const bookmarks = isCivic ? (verifiedBookmarks[indexKey] || []) : SPILL_BOOKMARKS;
-
-    // Update section title & disclaimer conditionally
+    // Update section title & disclaimer
     const sectionTitle = document.querySelector('.spill-bookmarks-section h3');
     const sectionDisclaimer = document.querySelector('.spill-disclaimer');
-    if (isCivic) {
-        if (sectionTitle) sectionTitle.textContent = 'Curated Calibration Events';
-        if (sectionDisclaimer) sectionDisclaimer.textContent = 'Global scientific validation scenarios';
-    } else {
-        if (sectionTitle) sectionTitle.textContent = 'Confirmed Spill Sites';
-        if (sectionDisclaimer) sectionDisclaimer.textContent = 'TRRC/NMED confirmed · coordinates approximate';
-    }
+    if (sectionTitle) sectionTitle.textContent = 'Confirmed Spill Sites';
+    if (sectionDisclaimer) sectionDisclaimer.textContent = 'TRRC/NMED confirmed · coordinates approximate';
 
     bookmarks.forEach(spill => {
         const btn = document.createElement('button');
         btn.className = 'spill-bookmark-btn';
         btn.dataset.spillId = spill.id || spill.label.replace(/\s+/g, '-').toLowerCase();
-        
-        let tooltipText = '';
-        if (isCivic) {
-            tooltipText = `<strong>${spill.label}</strong><br>${spill.note}<br><br>📅 ${spill.date}<br>📡 ${spill.sourceLabel}`;
-        } else {
-            tooltipText = `<strong>${spill.label}</strong><br>${spill.note}<br><br>📅 ${spill.displayDate} &nbsp;|&nbsp; 📦 ${spill.volume}<br>📡 ${spill.source}<br>⚠ Coords: ${spill.confidence}`;
-        }
+
+        const tooltipText = `<strong>${spill.label}</strong><br>${spill.note}<br><br>📅 ${spill.displayDate} &nbsp;|&nbsp; 📦 ${spill.volume}<br>📡 ${spill.source}<br>⚠ Coords: ${spill.confidence}`;
         btn.setAttribute('data-tooltip', tooltipText);
-        
-        const displayDate = isCivic ? spill.date : spill.displayDate;
-        btn.innerHTML = `<span class="spill-name">${spill.label}</span><span class="spill-date-tag">${displayDate}</span>`;
+
+        btn.innerHTML = `<span class="spill-name">${spill.label}</span><span class="spill-date-tag">${spill.displayDate}</span>`;
         
         btn.addEventListener('click', () => {
             // Find closest date in ALL_DATES
@@ -650,64 +600,6 @@ export function renderSpillBookmarks(indexKey = state.activeIndex) {
     });
 }
 window.renderSpillBookmarks = renderSpillBookmarks;
-
-export function renderCivicComposites() {
-    const listContainer = document.getElementById('civic-composite-list');
-    if (!listContainer) return;
-    listContainer.innerHTML = '';
-
-    const civicKeys = [
-        'bhdfsi', 'peti', 'mppdi', 'ttapi', 'ecaci', 'lrdvsi', 
-        'tdrasi', 'sfeii', 'wdacsi', 'cduai', 'csrc', 'trsi', 
-        'lfgvi', 'swri', 'dwci', 'rrfi', 'epdi', 'hsai'
-    ];
-
-    civicKeys.forEach(idxKey => {
-        const cfg = INDICES[idxKey];
-        if (!cfg) return;
-
-        const btn = document.createElement('button');
-        btn.className = 'index-btn flex-column';
-        btn.dataset.index = idxKey;
-        btn.style.width = '100%';
-        btn.style.textAlign = 'left';
-        btn.style.padding = '12px 16px';
-        btn.style.marginBottom = '8px';
-        btn.style.display = 'flex';
-        btn.style.flexDirection = 'column';
-        btn.style.gap = '4px';
-
-        // Tooltip
-        const tooltipText = `<strong>${cfg.name}</strong><br>${cfg.info}`;
-        btn.setAttribute('data-tooltip', tooltipText);
-
-        btn.innerHTML = `
-            <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
-                <span class="index-short" style="font-weight: 700; font-size: 13px; color: var(--accent-blue);">${idxKey.toUpperCase()}</span>
-                <span class="temporal-badge temporal-${cfg.temporal.toLowerCase().replace(/ /g, '-').replace(/\//g, '-').replace(/\+/g, 'plus')}" style="font-size: 9px;">${cfg.temporal}</span>
-            </div>
-            <span class="index-full" style="font-size: 11px; font-weight: 500; color: #fff; opacity: 0.95;">${cfg.name}</span>
-            <span style="font-size: 10px; color: var(--text-dim); font-family: var(--font-mono);">${cfg.formula}</span>
-        `;
-
-        btn.addEventListener('click', (e) => {
-            document.querySelectorAll('.index-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            state.activeIndex = idxKey;
-            
-            // Render Dynamic Bookmarks for this civic composite
-            renderSpillBookmarks(idxKey);
-            
-            // Update Authorship Card
-            updateAuthorshipCard(idxKey);
-            
-            applyIndex();
-        });
-
-        listContainer.appendChild(btn);
-    });
-}
-window.renderCivicComposites = renderCivicComposites;
 
 // ── INIT ───────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
@@ -796,7 +688,6 @@ document.addEventListener('DOMContentLoaded', () => {
     bindEvents();
 
     // Initial Data Load
-    renderCivicComposites();
     renderSpillBookmarks(state.activeIndex);
     applyIndex();
     probeAcquisitions();
@@ -959,10 +850,6 @@ function bindEvents() {
             
             // Render Dynamic Bookmarks for this standard index
             renderSpillBookmarks(state.activeIndex);
-            
-            // Hide/Update Authorship Card for standard indices
-            updateAuthorshipCard(state.activeIndex);
-            
             applyIndex();
         });
     });
@@ -2715,11 +2602,7 @@ export function renderFocusedTriage() {
         renderSpillBookmarks(indexKey);
         
         // Fly to the first bookmark if available
-        const bookmarks = [
-            'bhdfsi', 'peti', 'mppdi', 'ttapi', 'ecaci', 'lrdvsi',
-            'tdrasi', 'sfeii', 'wdacsi', 'cduai', 'csrc', 'trsi',
-            'lfgvi', 'swri', 'dwci', 'rrfi', 'epdi', 'hsai', 'pwci', 'pwoi', 'hpwi', 'lbi', 'pwi',
-        ].includes(indexKey) ? (verifiedBookmarks[indexKey] || []) : SPILL_BOOKMARKS;
+        const bookmarks = SPILL_BOOKMARKS;
 
         if (bookmarks.length > 0) {
             const targetB = bookmarks[0];
@@ -2761,14 +2644,6 @@ export function renderFocusedTriage() {
         let defaultIndex = 'pwoi'; // Default fallback
         if (triageType === 'oilfield-spill') {
             defaultIndex = 'pwi'; // PWCI default index
-        } else if (triageType === 'wildfire-hazard') {
-            defaultIndex = 'bhdfsi';
-        } else if (triageType === 'water-quality') {
-            defaultIndex = 'peti';
-        } else if (triageType === 'cryosphere-peat') {
-            defaultIndex = 'ttapi';
-        } else if (triageType === 'urban-albedo') {
-            defaultIndex = 'ecaci';
         }
 
         // Add event listener to the card itself
@@ -2810,22 +2685,7 @@ export function renderFocusedTriage() {
 
         // ── Inline bookmark list ──────────────────────────────────────────────
         // Collect bookmarks relevant to this triage card
-        let cardBookmarks = [];
-        if (triageType === 'oilfield-spill') {
-            cardBookmarks = SPILL_BOOKMARKS;
-        } else {
-            // Gather verified bookmarks for each pill's index, tagging each entry with its index key
-            const pillIndexKeys = Array.from(newCard.querySelectorAll('.triage-tag-pill'))
-                .map(p => p.dataset.index)
-                .filter(Boolean);
-            pillIndexKeys.forEach(idxKey => {
-                const entries = verifiedBookmarks[idxKey];
-                if (!entries) return;
-                entries.forEach(entry => {
-                    cardBookmarks.push({ ...entry, indices: [idxKey] });
-                });
-            });
-        }
+        const cardBookmarks = SPILL_BOOKMARKS;
 
         if (cardBookmarks.length > 0) {
             const bmContainer = document.createElement('div');
@@ -2909,8 +2769,6 @@ export function renderFocusedTriage() {
                     document.getElementById('disp-lat').innerText = spill.lat.toFixed(4) + '°';
                     document.getElementById('disp-lng').innerText = spill.lng.toFixed(4) + '°';
 
-                    // Update authorship and sidebar bookmarks
-                    updateAuthorshipCard(primaryIndex);
                     renderSpillBookmarks(primaryIndex);
 
                     // Apply index / switch to single mode
@@ -2945,12 +2803,10 @@ export function renderCommandConsole() {
     
     // Tag categories map
     const tagMap = {
-        water: ['peti', 'mppdi', 'cduai', 'csrc', 'trsi', 'swri', 'dwci', 'rrfi', 'epdi', 'lbi', 'ndwi'],
-        vegetation: ['vsi', 'sfeii', 'lrdvsi', 'lfgvi', 'rrfi', 'ndvi', 'vcbi'],
-        soil: ['bhdfsi', 'ttapi', 'tdrasi', 'wdacsi', 'bpi', 'cma', 'bsi', 'reai', 'aoi', 'fbc'],
-        mining: ['tdrasi', 'trsi', 'scri'],
-        thermal: ['ecaci', 'hsai'],
-        oilgas: ['pwci', 'pwoi', 'hpwi', 'lbi', 'bpi', 'tri', 'phi', 'cma', 'hmi', 'ehc', 'aoi', 'fbc', 'reai', 'vcbi']
+        water: ['lbi', 'ndwi'],
+        vegetation: ['vsi', 'ndvi', 'vcbi'],
+        soil: ['bpi', 'cma', 'bsi', 'reai', 'aoi', 'fbc'],
+        oilgas: ['pwi', 'pwoi', 'hpwi', 'lbi', 'bpi', 'tri', 'phi', 'cma', 'hmi', 'ehc', 'aoi', 'fbc', 'reai', 'vcbi', 'mvpi']
     };
 
     function updateHUDResults() {
@@ -3004,7 +2860,6 @@ export function renderCommandConsole() {
                 });
                 
                 applyIndex();
-                updateAuthorshipCard(key);
                 renderSpillBookmarks(key);
                 
                 // Show matching bookmarks for this selected index in the HUD
@@ -3025,21 +2880,14 @@ export function renderCommandConsole() {
 
     function renderHUDBookmarks(indexKey) {
         bookmarkResults.innerHTML = '';
-        const isCivic = [
-            'bhdfsi', 'peti', 'mppdi', 'ttapi', 'ecaci', 'lrdvsi', 
-            'tdrasi', 'sfeii', 'wdacsi', 'cduai', 'csrc', 'trsi', 
-            'lfgvi', 'swri', 'dwci', 'rrfi', 'epdi', 'hsai'
-        ].includes(indexKey);
-        
-        const bookmarks = isCivic ? (verifiedBookmarks[indexKey] || []) : SPILL_BOOKMARKS;
-        
+        const bookmarks = SPILL_BOOKMARKS;
+
         if (bookmarks.length > 0) {
             bookmarkGroup.style.display = 'block';
             bookmarks.forEach(spill => {
                 const btn = document.createElement('button');
                 btn.className = 'spill-bookmark-btn';
-                const displayDate = isCivic ? spill.date : spill.displayDate;
-                btn.innerHTML = `<span class="spill-name">${spill.label}</span><span class="spill-date-tag">${displayDate}</span>`;
+                btn.innerHTML = `<span class="spill-name">${spill.label}</span><span class="spill-date-tag">${spill.displayDate}</span>`;
                 
                 btn.addEventListener('click', () => {
                     const targetStr = spill.date || spill.displayDate;

@@ -194,7 +194,6 @@
                 <!-- Sidebar Navigation Tabs -->
                 <nav class="sidebar-tabs">
                     <button class="tab-btn active" data-tab="detection">DETECTION</button>
-                    <button class="tab-btn" data-tab="civic">CIVIC ATLAS</button>
                 <button class="tab-btn" data-tab="analysis">ANALYSIS</button>
                 <button class="tab-btn" data-tab="ground">GROUND</button>
                 <button class="tab-btn" data-tab="settings">SETTINGS</button>
@@ -355,38 +354,6 @@
                                 <span class="index-short">SAVI</span>
                                 <span class="index-full">Arid Vegetation</span>
                             </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Tab: Civic Atlas -->
-                <div id="tab-civic" class="tab-pane">
-                    <div class="index-suite-container suite-primary">
-                        <h3>Civic &amp; Ecological Composites</h3>
-                        <div id="civic-composite-list" class="index-grid flex-column">
-                            <!-- Populated dynamically by JS -->
-                        </div>
-                    </div>
-
-                    <!-- Authorship & Prior Art Boundary Card -->
-                    <div id="authorship-card" class="authorship-card glass-panel" style="display: none;">
-                        <div class="authorship-header">
-                            <span class="authorship-badge">Authorship Boundary</span>
-                            <h4 id="authorship-title">Composite Name</h4>
-                        </div>
-                        <div class="authorship-body">
-                            <div class="authorship-row">
-                                <span class="authorship-label">Contribution Strength:</span>
-                                <span id="authorship-claim-status" class="claim-badge">High</span>
-                            </div>
-                            <div class="authorship-row flex-column mt-2" style="margin-top: 8px;">
-                                <span class="authorship-label">Original Scope:</span>
-                                <p id="authorship-original-details" class="authorship-text" style="color: #ccc; margin-top: 4px; font-size: 11px;"></p>
-                            </div>
-                            <div class="authorship-row flex-column mt-2" style="margin-top: 8px;">
-                                <span class="authorship-label">Prior Art Boundary:</span>
-                                <p id="authorship-prior-art" class="authorship-text" style="color: #999; margin-top: 4px; font-size: 11px;"></p>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -564,59 +531,6 @@
                             </div>
                         </div>
 
-                        <!-- Triage Card 2: Wildfire & Landslide -->
-                        <div class="triage-card" data-triage="wildfire-hazard">
-                            <div class="triage-card-header">
-                                <span class="triage-icon">🔥</span>
-                                <h4>Wildfire &amp; Landslide</h4>
-                            </div>
-                            <p>Triage steep burned slopes vulnerable to debris-flows, track vegetation fuel loads, and map seismic/landslide scars.</p>
-                            <div class="triage-tags">
-                                <span class="triage-tag-pill" data-index="bhdfsi" data-tooltip="<strong>BH-DFSI — Burn-Height Debris Flow Susceptibility Index</strong><br>Maps burn severity scars and matches steep slopes highly vulnerable to post-fire debris flows and mudslides.">BH-DFSI</span>
-                                <span class="triage-tag-pill" data-index="sfeii" data-tooltip="<strong>SF-EII — Slope-Failure Erosion Index</strong><br>Identifies active erosion and structural soil cohesion loss on seismic scars and steep gradients.">SF-EII</span>
-                            </div>
-                        </div>
-
-                        <!-- Triage Card 3: Water Quality -->
-                        <div class="triage-card" data-triage="water-quality">
-                            <div class="triage-card-header">
-                                <span class="triage-icon">💧</span>
-                                <h4>Freshwater &amp; Algae</h4>
-                            </div>
-                            <p>Identify toxic algae cyanobacteria, chlorophyll concentrations, coastal silt plumes, and suspicious sewage releases.</p>
-                            <div class="triage-tags">
-                                <span class="triage-tag-pill" data-index="peti" data-tooltip="<strong>PETI — Phytoplankton Eutrophication Tracking Index</strong><br>High sensitivity to toxic green cyanobacteria and chlorophyll concentrations.">PETI</span>
-                                <span class="triage-tag-pill" data-index="csrc" data-tooltip="<strong>CSRC — Cyanotoxin Scum Risk Composite</strong><br>Exposes dense blue-green algal blooms, water stagnation, and surface scum build-ups.">CSRC</span>
-                                <span class="triage-tag-pill" data-index="swri" data-tooltip="<strong>SWRI — Sewage-Water Release Index</strong><br>Tracks organic nitrogen and phosphorous loading, signaling potential municipal wastewater leaks.">SWRI</span>
-                                <span class="triage-tag-pill" data-index="cduai" data-tooltip="<strong>CD-UAI — Coastal Dredging Urban Aquatics Index</strong><br>Highlights marine silt plumes, coastal dredging runoff, and aquatic turbidity.">CD-UAI</span>
-                            </div>
-                        </div>
-
-                        <!-- Triage Card 4: Cryosphere/Peat -->
-                        <div class="triage-card" data-triage="cryosphere-peat">
-                            <div class="triage-card-header">
-                                <span class="triage-icon">❄️</span>
-                                <h4>Permafrost &amp; Arctic</h4>
-                            </div>
-                            <p>Map thermokarst slump edges, anoxic peatlands, methane-release risk surfaces, and brush greening trends.</p>
-                            <div class="triage-tags">
-                                <span class="triage-tag-pill" data-index="ttapi" data-tooltip="<strong>TT-API — Thermokarst Tundra Anoxic Peat Index</strong><br>Identifies active slump slumping, wet peatlands, and high-risk methane emissions.">TT-API</span>
-                                <span class="triage-tag-pill" data-index="trsi" data-tooltip="<strong>TRSI — Tundra-Regrowth Shrub Index</strong><br>Tracks high-latitude vegetative greening, brush encroachment, and melting margins.">TRSI</span>
-                            </div>
-                        </div>
-
-                        <!-- Triage Card 5: Urban Albedo -->
-                        <div class="triage-card" data-triage="urban-albedo">
-                            <div class="triage-card-header">
-                                <span class="triage-icon">🏙️</span>
-                                <h4>Urban Heat &amp; Albedo</h4>
-                            </div>
-                            <p>Identify critical heat stress vulnerability, dry dark asphalt exposure, and map 10m microclimate canopy gaps.</p>
-                            <div class="triage-tags">
-                                <span class="triage-tag-pill" data-index="ecaci" data-tooltip="<strong>EC-ACI — Evaporative Canopy Urban Heat Index</strong><br>Highlights asphalt solar absorption, concrete heat storage, and microclimate canopy deficits.">EC-ACI</span>
-                                <span class="triage-tag-pill" data-index="hsai" data-tooltip="<strong>HSAI — High-Resolution Solar Albedo Index</strong><br>Maps solar reflectivity baselines, identifying dark heat-retaining urban surfaces at 10m.">HSAI</span>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
