@@ -261,18 +261,17 @@ export function getScriptContent(config, activeIndex, isDiff, isCumulative = fal
             logic = `(function() {
                 let sum = sample.B03 + sample.B11;
                 let oVal = sum === 0 ? 0 : (sample.B03 - sample.B11) / sum;
-                let radarProxy = Math.max(0, Math.min(1.2, (oVal + 0.3) / 0.6));
+                let radarProxy = Math.max(0, Math.min(1.0, (oVal + 0.3) / 0.6));
                 let ndsiDen = sample.B11 + sample.B12;
                 let ndsiVal = ndsiDen === 0 ? 0 : (sample.B11 - sample.B12) / ndsiDen;
-                let brineBoost = Math.max(0, ndsiVal) * 0.4;
-                let moisture = oVal + 0.3 + brineBoost;
-                let wetScore = (radarProxy > 0.50 && moisture > 0.30)
-                    ? (radarProxy * 0.4 + moisture * 0.6 + 0.25)
-                    : (radarProxy * 0.3 + moisture * 0.7);
+                let salinityGate = Math.max(0, Math.min(1, (ndsiVal - 0.035) / 0.16));
+                let wetScore = (radarProxy > 0.58 && salinityGate > 0)
+                    ? Math.min(1, (radarProxy * 0.42) + (salinityGate * 0.58))
+                    : 0;
                 let bsiDen = (sample.B11 + sample.B04) + (sample.B08 + sample.B02);
                 let bsiDry = bsiDen === 0 ? 0 : ((sample.B11 + sample.B04) - (sample.B08 + sample.B02)) / bsiDen;
-                let dryScore = (oVal < -0.30 && ndsiVal > 0.05 && bsiDry > 0.10)
-                    ? Math.max(0, Math.min(1, (ndsiVal - 0.05) / 0.20 * 0.45 + 0.55))
+                let dryScore = (oVal < -0.34 && ndsiVal > 0.07 && bsiDry > 0.14)
+                    ? Math.max(0, Math.min(1, (ndsiVal - 0.07) / 0.18 * 0.45 + 0.55))
                     : 0;
                 return Math.min(Math.max(Math.max(wetScore, 0), dryScore), 1);
             })()`;
