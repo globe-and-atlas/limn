@@ -203,22 +203,21 @@
             <div class="tab-content-container">
                 <!-- Tab 1: Detection -->
                 <div id="tab-detection" class="tab-pane active">
+                    <!-- Produced Water Composites — Globe & Atlas custom indices, ordered by novelty + effectiveness -->
                     <div class="index-suite-container suite-primary">
-                        <h3>Spill Detection Suite</h3>
-                        <div class="index-grid" role="group" aria-label="Spill detection indices">
-                            <!-- Primary Target Indices — ordered by PW detection effectiveness -->
-                            <!-- Primary Detection Tools -->
+                        <h3>Produced Water Composites</h3>
+                        <div class="index-grid" role="group" aria-label="Produced water composites">
                             <button class="index-btn idx-pwoi" data-index="pwoi" data-tooltip="ASAI — Arid Salinity Anomaly Index (formerly PWOI / APEX). S2-only optical index. Uses optical band ratios (B03/B11) as proxies for specular surface smoothness to detect dry salt crusts or active brine — no Sentinel-1 required.">
                                 <span class="index-short">ASAI</span>
-                                <span class="index-full index-full-bold">Arid Salinity Anomaly Index (formerly PWOI)</span>
+                                <span class="index-full index-full-bold">Arid Salinity Anomaly Index</span>
                             </button>
                             <button class="index-btn idx-hpwi" data-index="hpwi" data-tooltip="OBEC — Oil-Brine Emulsion Composite (formerly HPWI). S2-only composite calibration. Fuses specular surface smoothness with chemical oil and brine signatures to validate liquid emulsion pooling — does not use actual Sentinel-1 data.">
                                 <span class="index-short">OBEC</span>
-                                <span class="index-full index-full-bold">Oil-Brine Emulsion Composite (formerly HPWI)</span>
+                                <span class="index-full index-full-bold">Oil-Brine Emulsion Composite</span>
                             </button>
                             <button class="index-btn idx-pwi" data-index="pwi" data-tooltip="PWCI — Produced Water Chemical Index (formerly PWI). Requires co-located salinity, hydrocarbon, and heavy metal chemical signatures to suppress caliche soil background noise.">
                                 <span class="index-short">PWCI</span>
-                                <span class="index-full index-full-bold">Produced Water Chemical Index (formerly PWI)</span>
+                                <span class="index-full index-full-bold">Produced Water Chemical Index</span>
                             </button>
                             <button class="index-btn idx-lbi" data-index="lbi" data-tooltip="Liquid Brine Index. High sensitivity to salinity-induced spectral changes in desert environments.">
                                 <span class="index-short">LBI</span>
@@ -228,27 +227,41 @@
                                 <span class="index-short">FBC</span>
                                 <span class="index-full index-full-bold">Iron-Brine Composite</span>
                             </button>
-                        </div>
-                    </div>
-
-                    <div class="index-suite-container suite-diagnostic">
-                        <h3>Diagnostic & Forensic</h3>
-                        <div class="index-grid" role="group" aria-label="Diagnostic indices">
+                            <button class="index-btn idx-vcbi" data-index="vcbi">
+                                <span class="index-short">VCBI</span>
+                                <span class="index-full index-full-bold">Veg-Confirmed Brine</span>
+                            </button>
+                            <button class="index-btn idx-reai" data-index="reai">
+                                <span class="index-short">REAI</span>
+                                <span class="index-full index-full-bold">Red Edge Alteration</span>
+                            </button>
+                            <button class="index-btn idx-ehc" data-index="ehc" data-tooltip="EHC — Evaporite Halo Composite (formerly Evaporite Halo / Visual). Custom RGB false-color proxy designed to visually isolate blowout spatial morphology (oil center, mud footprint, salt ring).">
+                                <span class="index-short">EHC</span>
+                                <span class="index-full index-full-bold">Evaporite Halo Composite</span>
+                            </button>
                             <button class="index-btn idx-vsi" data-index="vsi">
                                 <span class="index-short">VSI</span>
                                 <span class="index-full index-full-bold">Veg Stress Index</span>
                             </button>
-                            <button class="index-btn idx-scri" data-index="scri">
-                                <span class="index-short">SCRI</span>
-                                <span class="index-full index-full-bold">Salt Crust Roughness</span>
+                            <button class="index-btn" data-index="crsi">
+                                <span class="index-short">CRSI</span>
+                                <span class="index-full">Salt Stress / Mortality</span>
+                            </button>
+                            <button class="index-btn idx-aoi" data-index="aoi">
+                                <span class="index-short">AOI</span>
+                                <span class="index-full">Anoxic Oxidation</span>
+                            </button>
+                            <button class="index-btn idx-bpi" data-index="bpi">
+                                <span class="index-short">BPI</span>
+                                <span class="index-full index-full-bold">Brine-Pavement Index</span>
                             </button>
                             <button class="index-btn idx-tri" data-index="tri">
                                 <span class="index-short">TRI</span>
                                 <span class="index-full index-full-bold">Toxic Residue Index</span>
                             </button>
-                            <button class="index-btn idx-bpi" data-index="bpi">
-                                <span class="index-short">BPI</span>
-                                <span class="index-full index-full-bold">Brine-Pavement Index</span>
+                            <button class="index-btn idx-scri" data-index="scri">
+                                <span class="index-short">SCRI</span>
+                                <span class="index-full index-full-bold">Salt Crust Roughness</span>
                             </button>
                             <button class="index-btn idx-phi" data-index="phi">
                                 <span class="index-short">PHI</span>
@@ -265,75 +278,16 @@
                         </div>
                     </div>
 
-                    <div class="index-suite-container suite-spectral">
-                        <h3>Spectral Components</h3>
-                        <div class="index-grid" role="group" aria-label="Spectral component indices">
-                            <button class="index-btn idx-ndsi" data-index="ndsi">
-                                <span class="index-short">NDSI</span>
-                                <span class="index-full index-full-bold">Saline Content (Brine)</span>
-                            </button>
-                            <button class="index-btn idx-vcbi" data-index="vcbi">
-                                <span class="index-short">VCBI</span>
-                                <span class="index-full index-full-bold">Veg-Confirmed Brine</span>
-                            </button>
-                            <button class="index-btn idx-bsi" data-index="bsi">
-                                <span class="index-short">BSI</span>
-                                <span class="index-full index-full-bold">Bare Soil Index</span>
-                            </button>
-                            <button class="index-btn idx-reai" data-index="reai">
-                                <span class="index-short">REAI</span>
-                                <span class="index-full index-full-bold">Red Edge Alteration</span>
-                            </button>
-                            <button class="index-btn idx-aoi" data-index="aoi">
-                                <span class="index-short">AOI</span>
-                                <span class="index-full">Anoxic Oxidation</span>
-                            </button>
-                            <button class="index-btn" data-index="crsi">
-                                <span class="index-short">CRSI</span>
-                                <span class="index-full">Salt Stress / Mortality</span>
-                            </button>
-                            <button class="index-btn idx-ehc" data-index="ehc" data-tooltip="EHC — Evaporite Halo Composite (formerly Evaporite Halo / Visual). Custom RGB false-color proxy designed to visually isolate blowout spatial morphology (oil center, mud footprint, salt ring).">
-                                <span class="index-short">EHC</span>
-                                <span class="index-full index-full-bold">Evaporite Halo Composite (formerly EHC)</span>
-                            </button>
-                        </div>
-                    </div>
-
                     <!-- Divider -->
                     <div class="section-divider"></div>
 
-                    <div class="index-suite-container suite-standard">
-                        <h3>Standard Indices</h3>
-                        <div class="index-grid" role="group" aria-label="Standard indices">
-                            <!-- OFF / Hide Satellite Layer -->
-                            <button class="index-btn index-btn--off idx-none" data-index="none">
-                                <span class="index-short">OFF</span>
-                                <span class="index-full">Hide Satellite</span>
-                            </button>
-                            <!-- Secondary / Standard Indices (Alphabetical) -->
-                            <button class="index-btn" data-index="s1_sar">
-                                <span class="index-short">SAR</span>
-                                <span class="index-full">S1 VV/VH Radar</span>
-                            </button>
-                            <button class="index-btn" data-index="si">
-                                <span class="index-short">SI</span>
-                                <span class="index-full">Salinity / Crust</span>
-                            </button>
-                            <button class="index-btn" data-index="ndvi">
-                                <span class="index-short">NDVI</span>
-                                <span class="index-full">Vegetation Health</span>
-                            </button>
-                            <button class="index-btn" data-index="ndmi">
-                                <span class="index-short">NDMI</span>
-                                <span class="index-full">Moisture Stress</span>
-                            </button>
-                            <button class="index-btn" data-index="ndwi">
-                                <span class="index-short">NDWI</span>
-                                <span class="index-full">Wetness / Ponding</span>
-                            </button>
-                            <button class="index-btn" data-index="msi">
-                                <span class="index-short">MSI</span>
-                                <span class="index-full">Drought / Canopy</span>
+                    <!-- Standard algorithms directly relevant to produced water detection -->
+                    <div class="index-suite-container suite-diagnostic">
+                        <h3>Standard PW Indicators</h3>
+                        <div class="index-grid" role="group" aria-label="Standard produced water indicator indices">
+                            <button class="index-btn idx-ndsi" data-index="ndsi">
+                                <span class="index-short">NDSI</span>
+                                <span class="index-full index-full-bold">Saline Content (Brine)</span>
                             </button>
                             <button class="index-btn" data-index="hcai">
                                 <span class="index-short">HCAI</span>
@@ -343,21 +297,63 @@
                                 <span class="index-short">HMRI</span>
                                 <span class="index-full">Heavy Metals</span>
                             </button>
-                            <button class="index-btn" data-index="ndoi">
-                                <span class="index-short">NDOI</span>
-                                <span class="index-full">Oil Slicks</span>
-                            </button>
                             <button class="index-btn" data-index="csi">
                                 <span class="index-short">CSI</span>
                                 <span class="index-full">Contaminated Soil</span>
                             </button>
-                            <button class="index-btn" data-index="savi">
-                                <span class="index-short">SAVI</span>
-                                <span class="index-full">Arid Vegetation</span>
+                            <button class="index-btn" data-index="ndoi">
+                                <span class="index-short">NDOI</span>
+                                <span class="index-full">Oil Slicks</span>
+                            </button>
+                            <button class="index-btn" data-index="si">
+                                <span class="index-short">SI</span>
+                                <span class="index-full">Salinity / Crust</span>
+                            </button>
+                            <button class="index-btn idx-bsi" data-index="bsi">
+                                <span class="index-short">BSI</span>
+                                <span class="index-full index-full-bold">Bare Soil Index</span>
+                            </button>
+                            <button class="index-btn" data-index="s1_sar">
+                                <span class="index-short">SAR</span>
+                                <span class="index-full">S1 VV/VH Radar</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Divider -->
+                    <div class="section-divider"></div>
+
+                    <!-- General-purpose satellite indices — not produced-water specific -->
+                    <div class="index-suite-container suite-standard">
+                        <h3>General Reference</h3>
+                        <div class="index-grid" role="group" aria-label="General reference indices">
+                            <button class="index-btn index-btn--off idx-none" data-index="none">
+                                <span class="index-short">OFF</span>
+                                <span class="index-full">Hide Satellite</span>
                             </button>
                             <button class="index-btn" data-index="tc">
                                 <span class="index-short">TC</span>
                                 <span class="index-full">True Color</span>
+                            </button>
+                            <button class="index-btn" data-index="ndvi">
+                                <span class="index-short">NDVI</span>
+                                <span class="index-full">Vegetation Health</span>
+                            </button>
+                            <button class="index-btn" data-index="ndwi">
+                                <span class="index-short">NDWI</span>
+                                <span class="index-full">Wetness / Ponding</span>
+                            </button>
+                            <button class="index-btn" data-index="ndmi">
+                                <span class="index-short">NDMI</span>
+                                <span class="index-full">Moisture Stress</span>
+                            </button>
+                            <button class="index-btn" data-index="msi">
+                                <span class="index-short">MSI</span>
+                                <span class="index-full">Drought / Canopy</span>
+                            </button>
+                            <button class="index-btn" data-index="savi">
+                                <span class="index-short">SAVI</span>
+                                <span class="index-full">Arid Vegetation</span>
                             </button>
                         </div>
                     </div>
