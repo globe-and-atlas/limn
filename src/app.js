@@ -2637,6 +2637,7 @@ export function renderFocusedTriage() {
     triageCards.forEach(card => {
         // Remove existing listener to prevent duplicate bindings by replacing the node
         const newCard = card.cloneNode(true);
+        newCard.querySelectorAll('.triage-bookmarks').forEach(el => el.remove());
         card.parentNode.replaceChild(newCard, card);
         
         // Find default primary index for this card
