@@ -33,35 +33,71 @@ Then open `http://localhost:8080`.
 
 ---
 
-## Setup: credentials
+## Setup: Sentinel-2 COGs and Google Earth Engine
 
-All satellite imagery is streamed from the **Copernicus Data Space Ecosystem (CDSE)**. You need a free CDSE account and an OAuth client:
+Limn Produced Water defaults to **public Sentinel-2 L2A Cloud-Optimized GeoTIFFs** through the local endpoint at `/api/cog/tiles/{z}/{x}/{y}`. This avoids Sentinel Hub credits and avoids GEE's slower interactive tile rendering for the main produced-water demo flow.
 
-1. Register at [dataspace.copernicus.eu](https://dataspace.copernicus.eu)
-2. Go to Dashboard → User Settings → OAuth Clients → Create client
-3. Copy `config.example.js` to `config-v1.js`:
+The COG demo path intentionally exposes only the lenses currently implemented in the COG renderer: **OBEC**, **LBI**, **ASAI**, and **PWCI**. Other support lenses remain available through GEE/Sentinel fallback work, but are hidden or disabled in COG mode so demos do not overclaim unsupported layers. COG mode also disables Diff/Cumulative until temporal COG rendering is implemented.
+
+Limn Atlas still defaults to **Google Earth Engine true-color context** until Atlas-specific formulas are ported to the COG renderer. Earth Engine service-account credentials stay on the server.
+
+1. Copy the safe browser config:
    ```bash
    cp config.example.js config-v1.js
    ```
-4. Fill in your credentials:
+2. Keep COG enabled for Produced Water and GEE enabled for Atlas context in `config-v1.js`:
    ```javascript
    window.CONFIG = {
-       CDSE_CLIENT_ID: "your-client-id",
-       CDSE_CLIENT_SECRET: "your-client-secret"
+       IMAGE_PROVIDER: "cog",
+       COG_TILE_ENDPOINT: "/api/cog/tiles",
+       GEE_TILE_ENDPOINT: "/api/gee/tiles",
+       ATLAS_GEE_TILE_ENDPOINT: "/api/gee/tiles"
    };
    ```
+3. Copy the server env template:
+   ```bash
+   cp .env.example .env
+   ```
+4. Fill `.env` with a Google Cloud project and Earth Engine service-account credential path:
+   ```bash
+   GEE_PROJECT=your-google-cloud-project-id
+   GEE_SERVICE_ACCOUNT_JSON_PATH=/absolute/path/to/earth-engine-service-account.json
+   ```
+5. Start the local tile server:
+   ```bash
+   npm run start:gee
+   ```
+6. Open `http://127.0.0.1:4177/index.html` or `http://127.0.0.1:4177/atlas.html`.
 
-`config-v1.js` is gitignored. Never commit credentials.
+The server prewarms a small set of Produced Water demo COG tiles on startup by default. To prewarm manually:
+```bash
+curl 'http://127.0.0.1:4177/api/cog/prewarm?limit=4&radius=0'
+```
 
-You also need a **Sentinel Hub WMS configuration** — a layer configuration that defines which datasources are available. The app references this via an instance ID stored in your config. Set up a WMS configuration in the [Sentinel Hub Dashboard](https://shapps.dataspace.copernicus.eu/dashboard/) and add the instance ID to your config file.
+Use `COG_PREWARM_ON_START=0` to disable startup prewarm, or increase `COG_PREWARM_RADIUS` when you want adjacent tiles cached around each demo bookmark.
+
+`config-v1.js` and `.env` are gitignored. Never commit service-account JSON, private keys, tokens, or filled runtime config.
+
+Browser API keys alone cannot create Earth Engine maps. Atlas/GEE fallback needs service-account or OAuth credentials authorized for Earth Engine. Produced Water COG browsing uses public STAC/COG assets and does not need GEE credentials.
 
 ---
 
 ## Fork: what to change
 
-### Sentinel Hub WMS instance
+### Imagery provider
 
-The WMS layer URL is constructed in `src/map.js`. The instance ID is pulled from `config-v1.js`. You must point this at a Sentinel Hub WMS configuration that includes both `sentinel-2-l2a` and `sentinel-1-grd` datasources.
+COG is the Produced Water default. To temporarily use GEE instead, set `IMAGE_PROVIDER: "gee"`. To temporarily fall back to Sentinel Hub, set both `ALLOW_SENTINEL_FALLBACK: true` and `IMAGE_PROVIDER: "sentinelhub"` in `config-v1.js`, then provide the older CDSE/Sentinel Hub fields. Do this only when you intend to spend Sentinel Hub credits.
+
+Sentinel Hub fallback has an additional credit guard. By default:
+```javascript
+SENTINEL_CREDIT_GUARD: true,
+SENTINEL_LIVE_TILES: false,
+SENTINEL_MIN_ZOOM: 14
+```
+
+The Produced Water and Atlas top-right map toolbars have a **Sentinel** switch for a temporary live Sentinel Hub session. Off keeps the default COG/GEE renderer. On routes the current session through Sentinel Hub WMS, arms live tiles, and still blocks WMS below the configured minimum zoom. Sentinel WMS loading is deliberately conservative: larger 512px tiles, one request at a time, and Retry-After cooldown handling for HTTP 429 rate limits.
+
+For a shareable Produced Water view that is locked to the guarded Sentinel path, use `share.html` or `index.html?share=sentinel-only`. That mode forces Sentinel Hub as the only analysis renderer, locks the Sentinel switch on, keeps the minimum-zoom guard available, and will not request COG or GEE analysis tiles.
 
 ### Default map center and bookmarks
 

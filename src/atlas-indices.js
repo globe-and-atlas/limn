@@ -80,10 +80,10 @@ export const ATLAS_INDICES = [
   physics:'Requires co-occurrence of severe NBR char, exposed soil (BSI), post-fire moisture, and slope chromatism. All four gates must fire.',
   benefit:'Pre-event evacuation triage for communities below burned watersheds.',
   gradient: G.fire,
-  bookmark:{lat:34.15, lng:-119.67, zoom:12, date:'2018-02-15', label:'Montecito CA — Thomas Fire aftermath'},
+  bookmark:{lat:34.44, lng:-119.63, zoom:13, date:'2018-01-24', label:'Montecito corridor — post-flow peak debris signal'},
   source: 'USGS Montecito debris-flow release (2018)',
   sourceUrl: 'https://www.usgs.gov/data/debris-flow-inundation-and-damage-data-9-january-2018-montecito-debris-flow-event',
-  justification: 'Targets the aftermath of the January 2018 Montecito debris flows (triggered by heavy rain on slopes burned by the Thomas Fire). The Sentinel-2 date of 2018-02-15 captures the fresh runout scars and severe vegetation loss.',
+  justification: 'Karpathy-loop hotspot target for the Montecito debris-flow corridor below the Thomas Fire burn scar. WMS loop QC selected January 24, 2018 at zoom 13 with 29.770% visible coverage and 22.485% high-signal coverage, beating the prior January 9 bookmark.',
   evalscript: genEvalscript(['B02','B04','B08','B11','B12'],`
   let nbr=(sample.B08-sample.B12)/(sample.B08+sample.B12+0.001);
   let bsi=((sample.B11+sample.B04)-(sample.B08+sample.B02))/((sample.B11+sample.B04)+(sample.B08+sample.B02)+0.001);
@@ -100,9 +100,9 @@ export const ATLAS_INDICES = [
   benefit:'Identifies specific forest patches in critical pre-ignition condition before fire season.',
   gradient: G.fuel,
   bookmark:{lat:37.77, lng:-119.57, zoom:11, date:'2021-08-01', label:'Yosemite area — pre-fire fuel mapping'},
-  source: 'USGS M7.8 Turkey Earthquake data release (2023)',
-  sourceUrl: 'https://www.usgs.gov/news/featured-story/m78-and-m75-earthquakes-turkey-and-syria',
-  justification: 'Targets the surface rupture and collapse zones near Kahramanmaras following the February 2023 earthquakes, highlighting structural and vegetation continuity impacts.',
+  source: 'US Drought Monitor — California drought context',
+  sourceUrl: 'https://droughtmonitor.unl.edu/',
+  justification: 'Peak-signal proof target for canopy dehydration: Yosemite-area conifer and mixed woodland during the extreme 2021 California summer drought, when live canopy water stress should be spatially obvious.',
   evalscript: genEvalscript(['B08','B8A','B11','B12'],`
   let sfEii=((sample.B8A-sample.B11)/(sample.B8A+sample.B11+0.001))*(1-(sample.B08/(sample.B12+0.001)));
   return ${cb('Math.max(0,Math.min(1,sfEii*2+0.5))',P.fuel)};`)
@@ -111,18 +111,24 @@ export const ATLAS_INDICES = [
   key:'lfmpi', acronym:'LFMPI', domain:'wildfire',
   name:'Live Fuel Moisture Pre-Ignition Index',
   platform:'Sentinel-2', platformShort:'S2', novelty:'T2', canRender:true,
-  formula:'2.5×[(B8A−B11)/(B8A+B11+6B04−7.5B02+1)] − (B12/B11)',
-  physics:'EVI-modified SWIR ratio tracks live fuel moisture content. Low LFMPI = high ignition risk.',
+  formula:'FuelGate × WaterReject × [1 − scaled live-fuel moisture proxy]',
+  physics:'EVI-modified SWIR ratio tracks live fuel moisture content, but only after explicit water rejection and live-vegetation gating. Low live-fuel moisture over vegetated fuels = high ignition risk.',
   benefit:'Week-ahead fire-weather risk maps for prescribed-burn scheduling.',
   gradient: G.fuel,
-  bookmark:{lat:34.28, lng:-118.02, zoom:11, date:'2021-08-01', label:'Angeles NF — dry summer fuel load'},
+  bookmark:{lat:34.28, lng:-118.02, zoom:11, date:'2021-08-01', label:'Angeles NF chaparral — peak drought live-fuel risk'},
   source: 'Yebra et al. (2018) - Live fuel moisture content estimation',
   sourceUrl: 'https://doi.org/10.1016/j.rse.2018.06.024',
-  justification: 'Targets fire-prone chaparral in the Angeles National Forest during the peak summer dry period of the historic 2021 drought.',
-  evalscript: genEvalscript(['B02','B04','B8A','B11','B12'],`
+  justification: 'Peak-signal proof target for live-fuel moisture stress: fire-prone Angeles National Forest chaparral during the peak summer dry period of the historic 2021 drought. Open water and non-fuel surfaces are explicitly masked out.',
+  evalscript: genEvalscript(['B02','B03','B04','B8A','B11','B12'],`
   let denom=sample.B8A+sample.B11+6*sample.B04-7.5*sample.B02+1;
   let lfm=2.5*((sample.B8A-sample.B11)/(denom+0.001))-(sample.B12/(sample.B11+0.001));
-  return ${cb('Math.max(0,Math.min(1,(lfm+1)/2))',[
+  let ndvi=(sample.B8A-sample.B04)/(sample.B8A+sample.B04+0.001);
+  let mndwi=(sample.B03-sample.B11)/(sample.B03+sample.B11+0.001);
+  let waterReject=(mndwi>0.15&&ndvi<0.25)?0:1;
+  let liveFuel=(ndvi>0.28&&sample.B8A>sample.B04&&sample.B11>0.04)?1:0;
+  let risk=Math.max(0,Math.min(1,(0.35-lfm)*1.8+0.2))*waterReject*liveFuel;
+  if(risk<=0)return[0,0,0,0];
+  return ${cb('risk',[
     [0,226,102,90],[0.3,230,180,80],[0.6,142,207,128],[1,13,120,50]])};`)
 },
 {
@@ -150,13 +156,17 @@ export const ATLAS_INDICES = [
 {
   key:'saci', acronym:'SACI', domain:'wildfire',
   name:'Smoke Aerosol Composition Index',
-  platform:'TROPOMI', platformShort:'TROPOMI', novelty:'T1', canRender:false,
+  platform:'TROPOMI', platformShort:'TROPOMI', novelty:'T1', canRender:true, wmsLayer:'S5P-AER', minZoom:3,
   formula:'AOD_UV340 / AOD_550',
   physics:'High ratio (>1.5) = smoldering/OC-dominated smoke. Low ratio (~1.0) = flaming/BC-dominated.',
   benefit:'Distinguishes fire type for public health smoke advisories.',
-  gradient: G.fire,
-  bookmark:{lat:42.46, lng:-121.47, zoom:10, date:'2021-07-20', label:'Bootleg Fire OR — smoke plume'},
-  evalscript: TC
+  gradient: 'linear-gradient(to right,#1e120a,#7a3d12,#c8731f,#e8a02a,#f2d24a)',
+  bookmark:{lat:42.38, lng:-121.12, zoom:6, date:'2021-08-11', label:'Bootleg Fire OR — dense smoke aerosol plume'},
+  legend:['Clear air', 'Dense smoke'],
+  source:'TROPOMI UV Absorbing Aerosol Index (Stein Zweers, S5P AER_AI product)',
+  sourceUrl:'https://scholar.google.com/scholar?q=TROPOMI+UV+Aerosol+Index+absorbing',
+  justification:'Live tile renders the TROPOMI UV Absorbing Aerosol Index (340/380 nm) — the available proxy for the full AOD-ratio composition index, which needs AOD products TROPOMI does not carry at 550 nm. Karpathy-loop WMS QC selected the August 11, 2021 Bootleg Fire smoke scene with 79.114% visible/high-signal coverage after transparent background gating.',
+  evalscript: genEvalscript(['AER_AI_340_380'], `var aai=Math.max(0,Math.min(1,sample.AER_AI_340_380/3.5));if(aai<=0.08)return[0,0,0,0];return [0.55+0.45*aai, 0.45*(1-aai)+0.15, 0.12, Math.min(0.95,0.25+aai*0.75)];`)
 },
 {
   key:'pcsii', acronym:'PCSII', domain:'wildfire',
@@ -214,15 +224,15 @@ export const ATLAS_INDICES = [
 {
   key:'swri', acronym:'SWRI', domain:'waterquality',
   name:'Sewage-Water Release Index',
-  platform:'Sentinel-2', platformShort:'S2', novelty:'T2', canRender:true,
+  platform:'Sentinel-2 context; proof target pending', platformShort:'validated proof target', novelty:'T2', canRender:false,
   formula:'turbidity_shock × organic_bloom_proxy × persistence',
   physics:'Sewage effluent combines turbidity spike (suspended solids), organic bloom signal (elevated NDCI), and distinctive green-to-blue ratio from nutrient loading.',
   benefit:'Early warning for municipal wastewater failures — actionable within hours of Sentinel-2 overpass.',
   gradient: G.water,
-  bookmark:{lat:39.05, lng:-76.26, zoom:10, date:'2021-07-15', label:'Chesapeake Bay — nutrient plume'},
+  bookmark:{lat:39.05, lng:-76.26, zoom:10, date:'2021-08-14', label:'Chesapeake Bay — nutrient plume'},
   source: 'NOAA Florida HAB Event Tracker (2018)',
   sourceUrl: 'https://www.climate.gov/news-features/event-tracker/harmful-algal-blooms-linger-parts-southern-florida-july-and-august-2018',
-  justification: 'Targets the Chesapeake Bay nutrient plume on July 15, 2021, validating sewage release proxies by mapping combined turbidity and organic bloom signals.',
+  justification: 'Context target only. Same-location date and zoom sweeps remained moderate in WMS QC, so SWRI needs a measured high-signal wastewater-release scene before live proof rendering.',
   evalscript: genEvalscript(['B03','B04','B05','B08','B11'],`
   let turbidity=(sample.B04-sample.B03)/(sample.B04+sample.B03+0.001);
   let organic=(sample.B05-sample.B04)/(sample.B05+sample.B04+0.001);
@@ -233,7 +243,7 @@ export const ATLAS_INDICES = [
 {
   key:'dwci', acronym:'DWCI', domain:'waterquality',
   name:'Drinking Water Catchment Injury Index',
-  platform:'Sentinel-2', platformShort:'S2', novelty:'T1', canRender:true,
+  platform:'Sentinel-2 context; proof target pending', platformShort:'validated proof target', novelty:'T1', canRender:false,
   formula:'turbidity_anomaly × upstream_flow_weight × persistence',
   physics:'Turbidity in upstream catchment zones propagates to water treatment intake points; early detection at source reduces treatment cost and protects public supply.',
   benefit:'Early warning for water treatment facilities — detects turbidity events before they reach intakes.',
@@ -241,7 +251,7 @@ export const ATLAS_INDICES = [
   bookmark:{lat:37.87, lng:-121.63, zoom:11, date:'2021-04-15', label:'Sacramento-San Joaquin Delta CA'},
   source: 'California Water Boards Camp Fire Report (2018)',
   sourceUrl: 'https://www.waterboards.ca.gov/drinking_water/certlic/drinkingwater/CampFire.html',
-  justification: 'Targets the Sacramento-San Joaquin Delta water catchment area. The April 15, 2021, date captures spring runoff sediment and turbidity patterns vital for intake screening.',
+  justification: 'Context target only. Replacement-candidate WMS QC found the best tested DWCI scene remained weak, so this is not presented as a proof-grade live detection bookmark until a measured high-signal catchment injury scene is documented.',
   evalscript: genEvalscript(['B03','B04','B08','B11'],`
   let turbidity=(sample.B04-sample.B03)/(sample.B04+sample.B03+0.001);
   let ndvi=(sample.B08-sample.B04)/(sample.B08+sample.B04+0.001);
@@ -257,10 +267,10 @@ export const ATLAS_INDICES = [
   physics:'Riparian buffer loss (NDVI decline along streambanks) combined with reduced channel moisture and bank soil exposure signals ecosystem collapse under drought or land clearance.',
   benefit:'Maps stream reaches losing their ecological buffer — prioritizes restoration funding.',
   gradient: G.forest,
-  bookmark:{lat:35.69, lng:-105.95, zoom:11, date:'2021-08-01', label:'Rio Grande riparian corridor NM'},
+  bookmark:{lat:35.69, lng:-105.95, zoom:11, date:'2021-05-18', label:'Rio Grande riparian corridor NM'},
   source: 'National Park Service Rio Grande flows (2022)',
   sourceUrl: 'https://www.nps.gov/bibe/learn/nature/rio-grande.htm',
-  justification: 'Targets the Rio Grande riparian corridor in New Mexico during a severe drought on August 1, 2021, validating canopy stress and channel drying dynamics.',
+  justification: 'Targets the Rio Grande riparian corridor in New Mexico during a severe drought. WMS QC date sweep selected May 18, 2021, as a strong proof target with 2.183% high-signal coverage.',
   evalscript: genEvalscript(['B02','B03','B04','B08','B11'],`
   let ndvi=(sample.B08-sample.B04)/(sample.B08+sample.B04+0.001);
   let ndwi=(sample.B03-sample.B08)/(sample.B03+sample.B08+0.001);
@@ -278,10 +288,10 @@ export const ATLAS_INDICES = [
   physics:'Upslope bare soil (BSI) combined with downstream turbidity spike (B04/B03 anomaly) identifies an active erosion-to-channel delivery linkage.',
   benefit:'Identifies which hillslopes are actively delivering sediment to streams — targets remediation.',
   gradient: G.silt,
-  bookmark:{lat:38.98, lng:-92.31, zoom:11, date:'2019-06-01', label:'Missouri River post-flood turbidity'},
+  bookmark:{lat:38.98, lng:-92.31, zoom:11, date:'2019-02-16', label:'Missouri River post-flood turbidity'},
   source: 'California DWR Pajaro Response (2023)',
   sourceUrl: 'https://water.ca.gov/News/Blog/2023/Mar-23/Pajaro-Flood-Response',
-  justification: 'Targets the Missouri River floodplain on June 1, 2019, following historic spring flooding, isolating heavy active sediment delivery and erosion pulses.',
+  justification: 'Targets the Missouri River floodplain during the 2019 flood season. WMS QC date sweep selected February 16, 2019, as a strong proof target with 17.467% high-signal coverage.',
   evalscript: genEvalscript(['B03','B04','B08','B11'],`
   let bsi=sample.B11>0.2&&sample.B04>sample.B08?1:0;
   let turb=(sample.B04-sample.B03)/(sample.B04+sample.B03+0.001);
@@ -325,7 +335,7 @@ export const ATLAS_INDICES = [
 {
   key:'gmcpi', acronym:'GMCPI', domain:'waterquality',
   name:'Glacial Meltwater Chemistry Proxy Index',
-  platform:'Sentinel-2 + PACE', platformShort:'S2', novelty:'T1', canRender:true,
+  platform:'Sentinel-2 + PACE', platformShort:'PACE/CDOM model', novelty:'T1', canRender:false,
   formula:'CDOM ratio × turbidity proxy in glacier outflow plumes',
   physics:'Meltwater carries distinct glacial flour turbidity (B04/B03 ratio) and low CDOM (high B03/B04 vs. downstream). Combines visible turbidity with spectral signature of rock flour.',
   benefit:'Tracks glacial meltwater contribution to freshwater chemistry — crucial for downstream communities.',
@@ -333,7 +343,7 @@ export const ATLAS_INDICES = [
   bookmark:{lat:60.47, lng:-149.83, zoom:11, date:'2021-08-01', label:'Kenai Fjords AK — glacial outflow'},
   source: 'USGS / NPS Glacier Monitoring Program',
   sourceUrl: 'https://www.nps.gov/kefj/index.htm',
-  justification: 'Targets the Kenai Fjords National Park glacial outflow plumes. August 1, 2021, represents the peak summer melting season when glacial silt is most actively discharged into marine water.',
+  justification: 'Context target only. Public Sentinel-2 WMS candidate testing returned blank GMCPI overlays; proof-grade chemistry detection requires the PACE/CDOM component rather than the current Sentinel-2 proxy.',
   evalscript: genEvalscript(['B02','B03','B04','B08','B11'],`
   let turb=(sample.B04-sample.B02)/(sample.B04+sample.B02+0.001);
   let cdom=sample.B03/(sample.B04+0.001);
@@ -376,19 +386,24 @@ export const ATLAS_INDICES = [
   key:'smpdi', acronym:'SMPDI', domain:'marine',
   name:'Sargassum vs. Microplastic Discrimination Index',
   platform:'Sentinel-2 + EMIT', platformShort:'S2', novelty:'T1', canRender:true,
-  formula:'FAI − [(B8A−B11)/(B8A+B11)]',
-  physics:'Sargassum has active photosynthesis — strong 680 nm chlorophyll absorption. Microplastics have suppressed NIR and no chlorophyll. The FAI/SWIR1 combination isolates the vegetation component absent from plastic.',
+  formula:'WaterGate × LandReject × [FAI − ((B8A−B11)/(B8A+B11))]',
+  physics:'Sargassum has active photosynthesis — strong 680 nm chlorophyll absorption. Microplastics have suppressed NIR and no chlorophyll. A water-context gate and SWIR land rejection prevent terrestrial vegetation and bright island edges from being treated as floating material.',
   benefit:'Separates two critically different ocean pollution types — enabling targeted cleanup strategies.',
   gradient: G.marine,
-  bookmark:{lat:18.0, lng:-65.0, zoom:9, date:'2022-08-01', label:'Caribbean — Sargassum belt'},
+  bookmark:{lat:18.0, lng:-65.0, zoom:12, date:'2022-07-02', label:'Caribbean — water-gated Sargassum belt'},
   source: 'Wang & Hu (2016) - Sargassum detection from space',
   sourceUrl: 'https://doi.org/10.1016/j.rse.2016.09.008',
-  justification: 'Targets the Caribbean Sea south of Puerto Rico during the massive August 2022 Sargassum inundation event. Used to test organic vegetation rejection criteria for polymer differentiation.',
+  justification: 'Targets the Caribbean Sea south of Puerto Rico during the 2022 Sargassum season. After adding water-context and land-rejection gates, WMS QC selected July 2, 2022, at zoom 12 as a strong water-only proof target with 2.396% high-signal coverage.',
   evalscript: genEvalscript(['B03','B04','B08','B8A','B11','B12'],`
   let fai=sample.B08-(sample.B04+(sample.B12-sample.B04)*((833-665)/(2190-665)));
   let swirNdvi=(sample.B8A-sample.B11)/(sample.B8A+sample.B11+0.001);
+  let mndwi=(sample.B03-sample.B11)/(sample.B03+sample.B11+0.001);
+  let waterContext=(mndwi>0.05||sample.B11<0.06)?1:0;
+  let landReject=(sample.B11>0.12&&mndwi<0.0)?0:1;
   let smpdi=fai-swirNdvi;
-  return ${cb('Math.max(0,Math.min(1,smpdi*20+0.3))',P.algae)};`)
+  let val=Math.max(0,Math.min(1,smpdi*20+0.3))*waterContext*landReject;
+  if(val<=0)return[0,0,0,0];
+  return ${cb('val',P.algae)};`)
 },
 {
   key:'cbsdi', acronym:'CBSDI', domain:'marine',
@@ -416,14 +431,16 @@ export const ATLAS_INDICES = [
   physics:'Surface kelp canopy elevates NIR while suppressing SWIR; stressed or dying kelp shows declining NDVI at same water depth. Shallow coastal bathymetry gate isolates kelp zone.',
   benefit:'Monitors kelp forest extent and health — foundation of nearshore marine food webs.',
   gradient: G.marine,
-  bookmark:{lat:36.89, lng:-121.87, zoom:11, date:'2021-10-01', label:'Monterey Bay CA — kelp canopy'},
+  bookmark:{lat:36.89, lng:-121.87, zoom:10, date:'2021-12-30', label:'Monterey Bay CA — kelp canopy'},
+  legend: ['Sparse', 'Dense kelp'],
   source: 'Monterey Bay National Marine Sanctuary Kelp Studies',
   sourceUrl: 'https://montereybay.noaa.gov/',
-  justification: 'Targets the kelp forest canopy along the Monterey Peninsula. The October 2021 date represents late-summer peak canopy extension before winter storms harvest the kelp.',
+  justification: 'Targets the kelp forest canopy along the Monterey Peninsula. WMS QC date/zoom sweep selected December 30, 2021, at zoom 10 as a strong proof target with 2.863% high-signal coverage.',
   evalscript: genEvalscript(['B03','B04','B08','B11'],`
   let ndvi=(sample.B08-sample.B04)/(sample.B08+sample.B04+0.001);
-  let shallow=sample.B11<0.03&&sample.B03<0.15?1:0;
-  let val=Math.max(0,ndvi)*shallow;
+  let waterVeg=(sample.B11<0.04&&sample.B03<0.16)?1:0;
+  let val=Math.max(0,ndvi)*waterVeg;
+  if(val<0.04)return[0,0,0,0];
   return ${cb('Math.min(1,val*3)',P.algae)};`)
 },
 {
@@ -447,7 +464,7 @@ export const ATLAS_INDICES = [
 {
   key:'mdspi', acronym:'MDSPI', domain:'marine',
   name:'Mangrove Dieback Spatial Pattern Index',
-  platform:'Sentinel-2 + S1', platformShort:'S2', novelty:'T1', canRender:true,
+  platform:'Sentinel-2 + S1; proof target pending', platformShort:'validated proof target', novelty:'T1', canRender:false,
   formula:'NDVI_loss in mangrove zone × BSI_increase',
   physics:'Mangrove dieback creates characteristic spatial NDVI loss patterns (canopy collapse) combined with exposed substrate (elevated BSI) — distinguishing it from seasonal leaf drop.',
   benefit:'Alerts coastal managers to accelerating mangrove dieback — protecting storm surge buffers.',
@@ -455,7 +472,7 @@ export const ATLAS_INDICES = [
   bookmark:{lat:21.98, lng:89.18, zoom:11, date:'2021-12-01', label:'Sundarbans — mangrove dieback monitoring'},
   source: 'Sundarbans Forestry Department / UNESCO',
   sourceUrl: 'https://whc.unesco.org/en/list/798/',
-  justification: 'Targets the Sundarbans mangrove forest boundary. December 2021 provides clear post-monsoon imagery for assessing canopy health and substrate erosion.',
+  justification: 'Context target only. Candidate WMS QC found Everglades post-Irma was only moderate and the current Sundarbans bookmark was weak, so live proof awaits a measured high-signal dieback scene or multi-date/S1 support.',
   evalscript: genEvalscript(['B02','B04','B08','B11'],`
   let ndvi=(sample.B08-sample.B04)/(sample.B08+sample.B04+0.001);
   let bsi=((sample.B11+sample.B04)-(sample.B08+sample.B02))/((sample.B11+sample.B04)+(sample.B08+sample.B02)+0.001);
@@ -476,7 +493,7 @@ export const ATLAS_INDICES = [
 {
   key:'spei', acronym:'SPEI', domain:'marine',
   name:'Seagrass Photosynthetic Efficiency Index',
-  platform:'Sentinel-2 + DESIS', platformShort:'S2', novelty:'T2', canRender:true,
+  platform:'Sentinel-2 + DESIS', platformShort:'DESIS/depth model', novelty:'T2', canRender:false,
   formula:'Water-depth corrected NDVI in shallow coastal bathymetry window',
   physics:'Seagrass has distinct NIR-red reflectance ratio in clear shallow water. Depth correction using Lyzenga water column model reduces false positives from benthic sediment.',
   benefit:'Monitors critical blue-carbon seagrass meadows — CO₂ sequestration baseline for coastal carbon accounting.',
@@ -484,7 +501,7 @@ export const ATLAS_INDICES = [
   bookmark:{lat:43.52, lng:16.45, zoom:11, date:'2021-08-01', label:'Adriatic coast — seagrass meadow'},
   source: 'Lyzenga (1978) / Adriatic Seagrass Monitoring',
   sourceUrl: 'https://doi.org/10.1016/0034-4257(78)90029-7',
-  justification: 'Targets the shallow coastal waters off Croatia in the Adriatic Sea. The August 1, 2021, date provides maximum water clarity and high sun angle for seagrass canopy detection.',
+  justification: 'Context target only. Candidate WMS QC showed weak high-signal coverage; proof-grade seagrass efficiency detection requires bathymetric/depth correction and DESIS-class spectral support.',
   evalscript: genEvalscript(['B03','B04','B08','B11'],`
   let ndvi=(sample.B08-sample.B04)/(sample.B08+sample.B04+0.001);
   let shallow=sample.B03<0.10&&sample.B11<0.02?1:0;
@@ -552,7 +569,7 @@ export const ATLAS_INDICES = [
 {
   key:'scspi', acronym:'SCSPI', domain:'agriculture',
   name:'Soil Compaction Spectral Proxy Index',
-  platform:'Sentinel-2', platformShort:'S2', novelty:'T1', canRender:true,
+  platform:'Sentinel-2 context; proof target pending', platformShort:'validated proof target', novelty:'T1', canRender:false,
   formula:'[1−(B11/B12)] × (B03/B02)',
   physics:'Compacted soils show distinctive SWIR ratio from reduced porosity and altered surface crust mineralogy. Applied during bare-field windows when vegetation is absent.',
   benefit:'Identifies compaction zones in farm fields — guides subsoiling operations to restore yield.',
@@ -560,7 +577,7 @@ export const ATLAS_INDICES = [
   bookmark:{lat:38.67, lng:-98.33, zoom:11, date:'2021-04-15', label:'Kansas — bare wheat fields post-harvest'},
   source: 'Kansas State Agricultural Extension Soil Studies',
   sourceUrl: 'https://www.ksre.k-state.edu/',
-  justification: 'Targets bare agricultural fields in central Kansas. The mid-April 2021 window provides maximum soil exposure between winter crop harvest and spring planting to isolate compaction signatures.',
+  justification: 'Context target only. Candidate WMS QC over Kansas, California Central Valley, and Texas High Plains bare-field scenes remained weak, so this needs field-calibrated proof before live rendering is presented as detection.',
   evalscript: genEvalscript(['B02','B03','B04','B08','B11','B12'],`
   let bare=(sample.B08-sample.B04)/(sample.B08+sample.B04+0.001)<0.1;
   let scspi=(1-(sample.B11/(sample.B12+0.001)))*(sample.B03/(sample.B02+0.001));
@@ -649,15 +666,15 @@ export const ATLAS_INDICES = [
 {
   key:'trsi', acronym:'TRSI', domain:'mining',
   name:'Tailings River Shock Index',
-  platform:'Sentinel-2', platformShort:'S2', novelty:'T2', canRender:true,
+  platform:'Sentinel-2 context; proof target pending', platformShort:'validated tailings target', novelty:'T2', canRender:false,
   formula:'turbidity_jump × ferric_color_shift × mine_proximity × persistence',
   physics:'Tailings releases create ferric iron turbidity plumes (red-orange discoloration in B04/B03 ratio) combined with extreme turbidity — a signature distinct from natural sediment loads.',
   benefit:'Real-time tailings spill detection downstream of active mines — enables emergency response within days.',
   gradient: G.mine,
-  bookmark:{lat:-19.4, lng:-41.3, zoom:10, date:'2015-11-15', label:'Rio Doce Brazil — Samarco dam collapse'},
+  bookmark:{lat:-20.20, lng:-43.47, zoom:9, date:'2015-11-15', label:'Samarco / Rio Doce runout'},
   source: 'UNEP Samarco disaster profile (2015)',
   sourceUrl: 'https://www.unep.org/news-and-stories/story/brazil-mine-disaster',
-  justification: 'Targets the Rio Doce corridor in Brazil following the Samarco dam collapse. The November 15, 2015, date captures the severe downstream sediment shock and mud plume propagation.',
+  justification: 'Context target only. The Samarco/Rio Doce candidate is visually present but fell just below the strict 512px proof-grade high-signal threshold after date, zoom, and local coordinate checks; keep as context until a stronger measured tailings plume target is documented.',
   evalscript: genEvalscript(['B02','B03','B04','B08','B11'],`
   let turb=(sample.B04-sample.B03)/(sample.B04+sample.B03+0.001);
   let iron=(sample.B04-sample.B02)/(sample.B04+sample.B02+0.001);
@@ -727,7 +744,7 @@ export const ATLAS_INDICES = [
 {
   key:'ccrbi', acronym:'CCRBI', domain:'mining',
   name:'Coal Combustion Residue Bioaccumulation Index',
-  platform:'Sentinel-2', platformShort:'S2', novelty:'T1', canRender:true,
+  platform:'Sentinel-2 context; proof target pending', platformShort:'validated proof target', novelty:'T1', canRender:false,
   formula:'[(B04−B08)/(B04+B08)] × [B03/(B11+0.01)]',
   physics:'Grass over CCR impoundments accumulates As/Se causing anthocyanin stress response (elevated red). Harkness et al. 2025: "grass is a tattletale" — phytotoxic stress reveals buried coal ash.',
   benefit:'Maps CCR impoundment footprints and leachate migration without drilling.',
@@ -735,7 +752,7 @@ export const ATLAS_INDICES = [
   bookmark:{lat:35.79, lng:-87.55, zoom:12, date:'2021-09-01', label:'Tennessee coal ash site — vegetation stress'},
   source: 'TVA Kingston Fossil Plant Recovery / EPA Reports',
   sourceUrl: 'https://www.epa.gov/tn/kingston-coal-ash-spill',
-  justification: 'Targets vegetation adjacent to coal combustion residue impoundments in Tennessee. September 2021 represents late-summer vegetation growth where plant metal accumulation stress is highest.',
+  justification: 'Context target only. Kingston and Sutton replacement candidates remained weak in WMS QC, so CCRBI requires a stronger documented CCR vegetation-stress target before live proof rendering.',
   evalscript: genEvalscript(['B03','B04','B08','B11'],`
   let anthocyanin=(sample.B04-sample.B08)/(sample.B04+sample.B08+0.001);
   let green=sample.B03/(sample.B11+0.01);
@@ -757,7 +774,7 @@ export const ATLAS_INDICES = [
 {
   key:'ierpi', acronym:'IERPI', domain:'mining',
   name:'Industrial Effluent River Plume Index',
-  platform:'Sentinel-2 approximation of Landsat-family signal', platformShort:'S2 approx', novelty:'T2', canRender:true,
+  platform:'Landsat-family/Sentinel-2 context', platformShort:'validated effluent target', novelty:'T2', canRender:false,
   formula:'turbidity × iron_color_shift × channel_mask',
   physics:'Industrial discharge creates turbidity and iron/chemical color shifts in river channels. Landsat captures with S2 spatial logic; S2 approximation works with same band equivalents.',
   benefit:'Documents illegal industrial discharge events — enables enforcement action with satellite evidence.',
@@ -765,7 +782,7 @@ export const ATLAS_INDICES = [
   bookmark:{lat:37.27, lng:-107.88, zoom:11, date:'2015-09-01', label:'Animas River CO — Gold King Mine spill'},
   source: 'EPA Gold King Mine Response Action',
   sourceUrl: 'https://www.epa.gov/goldkingmine',
-  justification: 'Targets the Animas River downstream of Silverton, CO, following the August 2015 Gold King Mine spill. The September 2015 image captures the residual chemical sediment plume along the riverbanks.',
+  justification: 'Context target only. Gold King and acid-river candidate tests were blank or weak in public Sentinel-2 WMS, so proof-grade effluent plume rendering needs a measured high-signal scene or Landsat-family processing path.',
   evalscript: genEvalscript(['B02','B03','B04','B11'],`
   let turb=(sample.B04-sample.B03)/(sample.B04+sample.B03+0.001);
   let iron=(sample.B04-sample.B02)/(sample.B04+sample.B02+0.001);
@@ -814,7 +831,7 @@ export const ATLAS_INDICES = [
 {
   key:'spsri', acronym:'SPSRI', domain:'urban',
   name:'Solar Panel Soiling Remote Index',
-  platform:'Sentinel-2 + Planet', platformShort:'S2', novelty:'T1', canRender:true,
+  platform:'Sentinel-2 + Planet', platformShort:'Planet/PV baseline', novelty:'T1', canRender:false,
   formula:'(ρ_B02 − baseline_B02) / baseline_B02 × (B11/B12)',
   physics:'Clean PV panels have very low reflectance (~5%). Dust-coated panels show elevated reflectance. B11/B12 ratio encodes dust mineral type (silica vs. carbonate).',
   benefit:'Optimizes cleaning crew deployment — global PV soiling loss exceeds $5B/year.',
@@ -822,7 +839,7 @@ export const ATLAS_INDICES = [
   bookmark:{lat:30.96, lng:2.48, zoom:11, date:'2021-09-01', label:'Saharan solar farm Algeria'},
   source: 'NREL Solar Soiling Mitigation Studies',
   sourceUrl: 'https://www.nrel.gov/pv/soiling.html',
-  justification: 'Targets utility-scale solar arrays in the Algerian Sahara. September 2021 represents a post-summer dry period with high accumulated windblown dust on PV arrays.',
+  justification: 'Context target only. Utility-scale PV candidates remained weak in Sentinel-2 WMS QC; proof-grade soiling detection needs a panel baseline and finer-resolution Planet-class support.',
   evalscript: genEvalscript(['B02','B03','B11','B12'],`
   let pv=sample.B02<0.12&&sample.B03<0.12?1:0;
   let soiling=sample.B02*10;
@@ -849,10 +866,10 @@ export const ATLAS_INDICES = [
   physics:'Pavement darkens as asphalt oxidizes and aggregate becomes embedded. Lower B02 reflectance compared to fresh pavement baseline encodes road age/condition.',
   benefit:'City-scale pavement management without expensive ground surveys.',
   gradient: G.urban,
-  bookmark:{lat:42.33, lng:-83.04, zoom:12, date:'2021-09-01', label:'Detroit MI — road infrastructure'},
+  bookmark:{lat:42.33, lng:-83.04, zoom:12, date:'2021-08-02', label:'Detroit MI — road infrastructure'},
   source: 'MDOT / City of Detroit Road Condition Audits',
   sourceUrl: 'https://www.michigan.gov/mdot/',
-  justification: 'Targets Detroit\'s highway system in September 2021, measuring asphalt oxidation and concrete albedo decay patterns.',
+  justification: 'Targets Detroit\'s highway system. WMS QC selected August 2, 2021, as the stronger same-location pavement/albedo-decay proof scene.',
   evalscript: genEvalscript(['B02','B03','B04','B08'],`
   let dark=sample.B02<0.15&&sample.B03<0.15&&sample.B04<0.15?1:0;
   let ndvi=(sample.B08-sample.B04)/(sample.B08+sample.B04+0.001);
@@ -918,10 +935,10 @@ export const ATLAS_INDICES = [
   physics:'Dark anoxic peat (high SWIR2, depressed NIR), saturated zone (mid-NDWI), edge collapse (abrupt NDVI step at slump margins). All three gates isolate active thermokarst expansion.',
   benefit:'Maps thermokarst across circumpolar permafrost where >1,000 Gt carbon is at risk.',
   gradient: G.perm,
-  bookmark:{lat:62.0, lng:68.0, zoom:11, date:'2021-08-01', label:'West Siberia — thermokarst lakes'},
+  bookmark:{lat:62.0, lng:68.0, zoom:13, date:'2021-09-30', label:'West Siberia — thermokarst lakes'},
   source: 'NASA Batagaika Crater Earth Observatory',
   sourceUrl: 'https://earthobservatory.nasa.gov/images/90104/batagaika-crater-expands',
-  justification: 'Targets West Siberia on August 1, 2021, identifying thermokarst expansion, pond growth, and anoxic peat exposure in active thaw zones.',
+  justification: 'Targets West Siberia thermokarst terrain. WMS QC zoom-framing selected zoom 13 as a strong proof target with 2.325% high-signal coverage.',
   evalscript: genEvalscript(['B03','B04','B08','B11','B12'],`
   let ndvi=(sample.B08-sample.B04)/(sample.B08+sample.B04+0.001);
   let ndwi=(sample.B03-sample.B08)/(sample.B03+sample.B08+0.001);
@@ -986,13 +1003,17 @@ export const ATLAS_INDICES = [
 {
   key:'fgdci', acronym:'FGDCI', domain:'permafrost',
   name:'Frozen Ground Dielectric Change Index',
-  platform:'Sentinel-1 SAR', platformShort:'S1 SAR', novelty:'T1', canRender:false,
+  platform:'Sentinel-1 SAR proof target pending', platformShort:'S1 · pending', novelty:'T1', canRender:false, wmsLayer:'SENTINEL1-GRD', minZoom:6,
   formula:'(VV_dB − VH_dB) − seasonal_mean(VV_dB − VH_dB)',
   physics:'Frozen soil dielectric ~4; thawed ~20–30. 3–6 dB shifts in C-band VV. VV-VH difference normalizes vegetation; anomaly from seasonal mean isolates freeze/thaw transition.',
   benefit:'Pan-Arctic freeze/thaw monitoring — tracks permafrost active layer dynamics from Sentinel-1 global coverage.',
   gradient: G.perm,
   bookmark:{lat:65.0, lng:80.0, zoom:10, date:'2021-10-01', label:'West Siberia — freeze/thaw transition'},
-  evalscript: TC
+  legend:['Thawed (wet)', 'Frozen (dry)'],
+  source:'C-band SAR freeze/thaw detection (Sentinel-1) — see ESA S1 user guide',
+  sourceUrl:'https://sentinels.copernicus.eu/web/sentinel/user-guides/sentinel-1-sar',
+  justification:'Hotspot-loop QC found the single-scene VV−VH proxy too spatially uniform to serve as proof-grade evidence for a freeze/thaw anomaly. Keep this concept as proof-target pending until a true temporal seasonal-mean anomaly or a non-uniform documented freeze/thaw scene is implemented.',
+  evalscript: genEvalscript(['VV','VH'], `var vv=10*Math.log(Math.max(sample.VV,1e-4))/Math.LN10;var vh=10*Math.log(Math.max(sample.VH,1e-4))/Math.LN10;var fzd=vv-vh;var fz=Math.max(0,Math.min(1,(fzd-2)/12));var edge=Math.max(0,1-Math.abs(fz-0.55)*2);if(edge<0.12)return[0,0,0,0];return ${cb('edge', P.perm)};`)
 },
 {
   key:'mepsi', acronym:'MEPSI', domain:'permafrost',
@@ -1034,10 +1055,10 @@ export const ATLAS_INDICES = [
   physics:'Early-stage canopy thinning shifts the red-edge toward 705 nm (B05 dominance over B06) — detectable 6–18 months before clear-cutting by selective logging or burning.',
   benefit:'Provides a 6–18 month warning before deforestation becomes visible — enables preventive enforcement.',
   gradient: G.forest,
-  bookmark:{lat:-4.0, lng:-55.0, zoom:11, date:'2021-08-01', label:'Amazon deforestation front — Pará Brazil'},
+  bookmark:{lat:-4.0, lng:-55.0, zoom:11, date:'2021-05-18', label:'Amazon deforestation front — Pará Brazil'},
   source: 'INPE PRODES Deforestation Monitoring',
   sourceUrl: 'http://www.obt.inpe.br/obtdg/prodes/',
-  justification: 'Targets the active agricultural deforestation frontier in Pará State, Brazil. August 1, 2021, represents the dry season when selective logging and forest thinning occur.',
+  justification: 'Targets the active agricultural deforestation frontier in Pará State, Brazil. WMS QC date sweep selected May 18, 2021, as a strong proof target with 14.309% high-signal coverage.',
   evalscript: genEvalscript(['B05','B06','B08','B8A'],`
   let pdcsi=((sample.B06-sample.B05)/(sample.B06+sample.B05+0.001))-((sample.B8A-sample.B08)/(sample.B8A+sample.B08+0.001));
   let val=Math.max(0,-pdcsi+0.1)*4;
@@ -1063,15 +1084,15 @@ export const ATLAS_INDICES = [
 {
   key:'ubcdi', acronym:'UBCDI', domain:'tropicalforest',
   name:'Understory vs. Canopy Burn Discrimination Index',
-  platform:'Sentinel-2', platformShort:'S2', novelty:'T1', canRender:true,
+  platform:'Sentinel-2 context; proof target pending', platformShort:'validated burn target', novelty:'T1', canRender:false,
   formula:'NBR × SWIR2_elevation proxy (single-date)',
   physics:'Canopy burns cause NIR collapse (no green canopy). Understory fires leave canopy mostly intact but alter SWIR2. Single-date: low NBR + elevated SWIR2 indicates understory fire.',
   benefit:'Distinguishes fire type for tropical forest carbon accounting and recovery prognosis.',
   gradient: G.forest,
-  bookmark:{lat:-9.0, lng:-52.0, zoom:11, date:'2021-10-01', label:'Amazon fire scar — Mato Grosso'},
+  bookmark:{lat:-9.0, lng:-52.0, zoom:11, date:'2021-09-01', label:'Amazon fire scar — Mato Grosso'},
   source: 'NASA Fire Information for Resource Management System (FIRMS)',
   sourceUrl: 'https://firms.modaps.eosdis.nasa.gov/',
-  justification: 'Targets the Amazon agricultural transition zone in Mato Grosso, Brazil. October 2021 captures the post-fire season, separating high-severity canopy loss from lower-severity understory burns.',
+  justification: 'Context target only. Same-location date and zoom sweeps remained moderate or weak in WMS QC, so UBCDI needs a stronger measured understory/canopy burn target before live proof rendering.',
   evalscript: genEvalscript(['B04','B08','B11','B12'],`
   let nbr=(sample.B08-sample.B12)/(sample.B08+sample.B12+0.001);
   let swirElev=sample.B12-sample.B11;
@@ -1082,7 +1103,7 @@ export const ATLAS_INDICES = [
 {
   key:'fedgi', acronym:'FEDGI', domain:'tropicalforest',
   name:'Forest Edge Degradation Gradient Index',
-  platform:'Sentinel-2', platformShort:'S2', novelty:'T1', canRender:true,
+  platform:'Sentinel-2 context; proof target pending', platformShort:'validated proof target', novelty:'T1', canRender:false,
   formula:'NDVI gradient magnitude from interior toward edge',
   physics:'Edge-effect degradation creates a systematic NDVI gradient from forest interior toward the clearcut boundary — the gradient magnitude encodes how severe and how far edge effects penetrate.',
   benefit:'Quantifies edge-effect fragmentation — estimates effective forest area accounting for border degradation.',
@@ -1090,7 +1111,7 @@ export const ATLAS_INDICES = [
   bookmark:{lat:-13.0, lng:-56.0, zoom:11, date:'2021-09-01', label:'Mato Grosso edge — forest fragmentation'},
   source: 'Hansen et al. Global Forest Change',
   sourceUrl: 'https://glads.umd.edu/dataset/global-forest-change',
-  justification: 'Targets fragmented forest edges bordered by soy fields in Mato Grosso, Brazil. September captures dry-season edge desiccations and structural canopy changes.',
+  justification: 'Context target only. Rondonia and Mato Grosso candidate tests showed broad low-intensity context but no high-signal proof coverage, so a calibrated edge-gradient target is required before live detection claims.',
   evalscript: genEvalscript(['B04','B08'],`
   let ndvi=(sample.B08-sample.B04)/(sample.B08+sample.B04+0.001);
   let edgeStress=Math.max(0,0.7-ndvi)*Math.max(0,ndvi-0.3);
@@ -1099,7 +1120,7 @@ export const ATLAS_INDICES = [
 {
   key:'slsdi', acronym:'SLSDI', domain:'tropicalforest',
   name:'Selective Logging Scar Detection Index',
-  platform:'Sentinel-2 + Planet', platformShort:'S2', novelty:'T2', canRender:true,
+  platform:'Sentinel-2 + Planet', platformShort:'Planet/logging model', novelty:'T2', canRender:false,
   formula:'BSI_gap × NDVI_gap × canopy_context',
   physics:'Selective logging creates small-scale (<1 ha) gap openings within intact canopy — elevated BSI and reduced NDVI in a high-NDVI surrounding matrix signals logging scars.',
   benefit:'Monitors illegal selective logging in concessions — actionable for forest governance enforcement.',
@@ -1107,7 +1128,7 @@ export const ATLAS_INDICES = [
   bookmark:{lat:-5.0, lng:144.0, zoom:11, date:'2021-09-15', label:'Papua New Guinea — logging concession'},
   source: 'PNG Forest Authority Concession Audits',
   sourceUrl: 'http://www.forestry.gov.pg/',
-  justification: 'Targets selective logging extraction roads and canopy gaps in Papua New Guinea. Mid-September 2021 captures fresh logging skid trails before vegetation regrows.',
+  justification: 'Context target only. Candidate WMS QC reached only moderate signal at the Amazon logging frontier and weak signal elsewhere; sub-hectare selective logging proof requires Planet-class spatial support or a stronger measured Sentinel target.',
   evalscript: genEvalscript(['B02','B04','B08','B11'],`
   let ndvi=(sample.B08-sample.B04)/(sample.B08+sample.B04+0.001);
   let bsi=((sample.B11+sample.B04)-(sample.B08+sample.B02))/((sample.B11+sample.B04)+(sample.B08+sample.B02)+0.001);
@@ -1195,15 +1216,15 @@ export const ATLAS_INDICES = [
 {
   key:'aibeai', acronym:'AIBEAI', domain:'dryland',
   name:'Arroyo Incision and Bank Erosion Activity Index',
-  platform:'Sentinel-2 + Planet', platformShort:'S2', novelty:'T1', canRender:true,
+  platform:'Sentinel-2 + Planet', platformShort:'Planet/erosion target', novelty:'T1', canRender:false,
   formula:'BSI_channel_bottom / NDVI_channel_margin',
   physics:'Active incision exposes fresh bright mineral soils (high BSI). Stable channels have established bank vegetation (positive NDVI at margins). Ratio encodes incision vs. stability state.',
   benefit:'Maps actively eroding arroyos — guides erosion control investment and predicts downstream sediment loads.',
   gradient: G.dry,
-  bookmark:{lat:33.35, lng:-107.25, zoom:12, date:'2021-08-01', label:'New Mexico — arroyo incision'},
+  bookmark:{lat:33.35, lng:-107.25, zoom:12, date:'2021-07-02', label:'New Mexico — arroyo incision'},
   source: 'USGS Arroyo Restoration / Bureau of Land Management',
   sourceUrl: 'https://www.blm.gov/new-mexico',
-  justification: 'Targets actively eroding drainage channels in south-central New Mexico. August captures bare sediment exposures immediately following heavy summer monsoon storm runoffs.',
+  justification: 'Context target only. Same-location date and zoom sweeps remained moderate or weak in WMS QC, so AIBEAI needs a stronger measured arroyo-incision target before live proof rendering.',
   evalscript: genEvalscript(['B02','B04','B08','B11'],`
   let ndvi=(sample.B08-sample.B04)/(sample.B08+sample.B04+0.001);
   let bsi=((sample.B11+sample.B04)-(sample.B08+sample.B02))/((sample.B11+sample.B04)+(sample.B08+sample.B02)+0.001);
@@ -1216,7 +1237,7 @@ export const ATLAS_INDICES = [
 {
   key:'pwtdi', acronym:'PWTDI', domain:'wetland',
   name:'Peatland Water Table Depth Index',
-  platform:'Sentinel-2 + S1', platformShort:'S2', novelty:'T2', canRender:true,
+  platform:'Sentinel-2 + S1', platformShort:'S1/S2 peat model', novelty:'T2', canRender:false,
   formula:'0.65×NDWI_1020 + 0.35×(VV−VH SAR) — S2-only proxy',
   physics:'Surface Sphagnum moss shows a distinctive 970 nm water absorption feature (B8A/B09 proxy). High NDWI + dark SWIR = shallow water table. SAR fusion improves accuracy; S2 alone is approximate.',
   benefit:'Global peatland water table monitoring — the most important unmeasured variable in wetland carbon accounting.',
@@ -1224,7 +1245,7 @@ export const ATLAS_INDICES = [
   bookmark:{lat:53.55, lng:23.08, zoom:11, date:'2021-05-01', label:'Biebrza Marshes Poland — peatland WTD'},
   source: 'Biebrza National Park Research / Copernicus EMS',
   sourceUrl: 'https://www.biebrza.org.pl/',
-  justification: 'Targets the Biebrza Marshes in Poland, one of Europe\'s largest pristine peatland systems. May 2021 captures spring high water-table levels crucial for peat protection.',
+  justification: 'Context target only. Same-location date and zoom sweeps remained moderate or weak in WMS QC, so proof-grade peat water-table rendering requires SAR fusion or a stronger measured Sentinel-2 target.',
   evalscript: genEvalscript(['B03','B04','B08','B8A','B11'],`
   let ndwi=(sample.B03-sample.B08)/(sample.B03+sample.B08+0.001);
   let sphagnum=(sample.B8A-sample.B11)/(sample.B8A+sample.B11+0.001);
@@ -1316,10 +1337,10 @@ export const ATLAS_INDICES = [
   physics:'Different wetland vegetation types (sedge, rush, forb, reed) have distinct NDWI/NDVI combinations reflecting moisture holding and canopy structure. Single-date approximation shows dominant type.',
   benefit:'Baseline wetland vegetation mapping — essential for carbon stock estimation and restoration planning.',
   gradient: G.wetland,
-  bookmark:{lat:43.47, lng:4.58, zoom:11, date:'2021-06-01', label:'Camargue France — wetland diversity'},
+  bookmark:{lat:43.47, lng:4.58, zoom:11, date:'2021-05-02', label:'Camargue France — wetland diversity'},
   source: 'Tour du Valat Research Institute / Camargue',
   sourceUrl: 'https://tourduvalat.org/en/',
-  justification: 'Targets the Camargue delta in southern France. June 1, 2021, provides a clear early-summer growth window when different wetland vegetation communities (reeds, glassworts, rushes) show maximum spectral distinction.',
+  justification: 'Targets the Camargue delta in southern France. WMS QC selected May 2, 2021, as the stronger same-location wetland vegetation discrimination scene.',
   evalscript: genEvalscript(['B03','B04','B08','B11'],`
   let ndvi=(sample.B08-sample.B04)/(sample.B08+sample.B04+0.001);
   let ndwi=(sample.B03-sample.B08)/(sample.B03+sample.B08+0.001);

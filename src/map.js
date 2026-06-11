@@ -71,6 +71,276 @@ async function buildWmsFetchError(response) {
     return error;
 }
 
+export function getImageryProvider(config = {}) {
+    const provider = String(config.IMAGE_PROVIDER || config.IMAGERY_PROVIDER || 'gee').toLowerCase();
+    if (provider === 'sentinelhub' && config.ALLOW_SENTINEL_FALLBACK !== true) {
+        return 'cog';
+    }
+    return provider;
+}
+
+function getGeeTileEndpoint(config = {}) {
+    const endpoint = config.GEE_TILE_ENDPOINT || '/api/gee/tiles';
+    return String(endpoint).replace(/\/+$/, '');
+}
+
+function getCogTileEndpoint(config = {}) {
+    const endpoint = config.COG_TILE_ENDPOINT || '/api/cog/tiles';
+    return String(endpoint).replace(/\/+$/, '');
+}
+
+function getGeeQueryTime(activeIdx, timeStr) {
+    if (activeIdx === 'pwoi' && !timeStr.includes('/')) {
+        const dateObj = new Date(timeStr);
+        const pastObj = new Date(dateObj);
+        pastObj.setDate(pastObj.getDate() - 30);
+        return `${pastObj.toISOString().split('T')[0]}/${timeStr}`;
+    }
+    return timeStr;
+}
+
+function buildGeeTileUrl(state, config, timeStr, isDiff, overrideIndex = null) {
+    const activeIdx = overrideIndex || state.activeIndex;
+    const endpoint = getGeeTileEndpoint(config);
+    const params = new URLSearchParams({
+        index: activeIdx,
+        time: getGeeQueryTime(activeIdx, timeStr),
+        diff: isDiff ? '1' : '0',
+        cumulative: state.mode === 'compare' && state.compareType === 'cumulative' && !overrideIndex ? '1' : '0',
+        basin: state.activeBasin || 'permian',
+        visualFilter: String(state.visualFilter || 0),
+        sensitivity: String(state.sensitivity || 0)
+    });
+    if (config.GEE_API_KEY) params.set('key', config.GEE_API_KEY);
+    return `${endpoint}/{z}/{x}/{y}?${params.toString()}`;
+}
+
+function buildCogTileUrl(state, config, timeStr, isDiff, overrideIndex = null) {
+    const activeIdx = overrideIndex || state.activeIndex;
+    const endpoint = getCogTileEndpoint(config);
+    const params = new URLSearchParams({
+        index: activeIdx,
+        time: getGeeQueryTime(activeIdx, timeStr),
+        diff: isDiff ? '1' : '0',
+        cumulative: state.mode === 'compare' && state.compareType === 'cumulative' && !overrideIndex ? '1' : '0',
+        basin: state.activeBasin || 'permian',
+        visualFilter: String(state.visualFilter || 0),
+        sensitivity: String(state.sensitivity || 0)
+    });
+    return `${endpoint}/{z}/{x}/{y}?${params.toString()}`;
+}
+
+async function buildGeeFetchError(response) {
+    const text = await response.text().catch(() => '');
+    let detail = text.slice(0, 240);
+    try {
+        const data = JSON.parse(text);
+        detail = data.detail || data.error || data.message || detail;
+    } catch (_) {
+        // Keep the raw body fragment for non-JSON provider errors.
+    }
+
+    const error = new Error(detail ? `HTTP ${response.status}: ${detail}` : `HTTP ${response.status}`);
+    error.name = 'GeeTileError';
+    error.status = response.status;
+    error.statusText = response.statusText;
+    error.detail = detail;
+    return error;
+}
+
+const RateLimitedTile = L.TileLayer.extend({
+    initialize(url, options = {}) {
+        L.TileLayer.prototype.initialize.call(this, url, options);
+        this._queue = [];
+        this._active = 0;
+        this._maxConcurrent = options.maxConcurrent || 2;
+        this._retries = options.retries ?? 4;
+        this._retryDelay = options.retryDelay || 1500;
+    },
+
+    createTile(coords, done) {
+        const img = document.createElement('img');
+        if (this.options.crossOrigin || this.options.crossOrigin === '') {
+            img.crossOrigin = this.options.crossOrigin === true ? '' : this.options.crossOrigin;
+        }
+        this._enqueue(this.getTileUrl(coords), img, done, this._retries);
+        return img;
+    },
+
+    _enqueue(url, img, done, retriesLeft) {
+        this._queue.push({ url, img, done, retriesLeft });
+        this._drain();
+    },
+
+    _drain() {
+        while (this._active < this._maxConcurrent && this._queue.length > 0) {
+            this._active++;
+            this._load(this._queue.shift());
+        }
+    },
+
+    _load({ url, img, done, retriesLeft }) {
+        fetch(url)
+            .then(async response => {
+                if (response.status === 429 && retriesLeft > 0) {
+                    this._active--;
+                    this._drain();
+                    setTimeout(
+                        () => this._enqueue(url, img, done, retriesLeft - 1),
+                        this._retryDelay * Math.max(1, this._retries - retriesLeft + 1)
+                    );
+                    return null;
+                }
+                if (!response.ok) throw await buildGeeFetchError(response);
+                return response.blob();
+            })
+            .then(blob => {
+                if (!blob) return;
+                const objUrl = URL.createObjectURL(blob);
+                img.onload = () => { URL.revokeObjectURL(objUrl); this._release(null, img, done); };
+                img.onerror = () => { URL.revokeObjectURL(objUrl); this._release(new Error('GEE tile decode failed'), img, done); };
+                img.src = objUrl;
+            })
+            .catch(error => this._release(error, img, done));
+    },
+
+    _release(error, img, done) {
+        this._active--;
+        this._drain();
+        done(error, img);
+    }
+});
+
+export function getGEELayer(state, config, timeStr, isDiff, overrideIndex = null) {
+    const activeIdx = overrideIndex || state.activeIndex;
+    const layer = new RateLimitedTile(buildGeeTileUrl(state, config, timeStr, isDiff, overrideIndex), {
+        opacity: overrideIndex ? 0.5 : state.opacity,
+        attribution: 'Google Earth Engine / Copernicus Sentinel-2',
+        tileSize: 512,
+        minZoom: 10,
+        zIndex: overrideIndex ? 20 : 10,
+        crossOrigin: 'anonymous',
+        updateWhenIdle: true,
+        detectRetina: true,
+        maxConcurrent: 2,
+        retries: 4,
+        retryDelay: 1800
+    });
+
+    layer.on('tileerror', (error) => {
+        const err = error?.error || error;
+        console.error('[GEE] Tile Error:', {
+            layer: activeIdx,
+            detail: err?.detail || err?.message || String(err)
+        });
+        if (state.map) {
+            state.map.fire('tileerror', { error: err, layer: activeIdx, provider: 'gee' });
+        }
+    });
+
+    layer.on('tileloadstart', () => {
+        if (state.map) state.map.fire('tileloadstart');
+    });
+
+    layer.on('load', () => {
+        if (state.map) state.map.fire('tileloadfinish');
+    });
+
+    return layer;
+}
+
+export function getCOGLayer(state, config, timeStr, isDiff, overrideIndex = null) {
+    const activeIdx = overrideIndex || state.activeIndex;
+    const layer = new RateLimitedTile(buildCogTileUrl(state, config, timeStr, isDiff, overrideIndex), {
+        opacity: overrideIndex ? 0.5 : state.opacity,
+        attribution: 'Public Sentinel-2 COGs / Element84 Earth Search',
+        tileSize: 256,
+        minZoom: 10,
+        zIndex: overrideIndex ? 20 : 10,
+        crossOrigin: 'anonymous',
+        updateWhenIdle: true,
+        detectRetina: true,
+        maxConcurrent: 2,
+        retries: 2,
+        retryDelay: 1200
+    });
+
+    layer.on('tileerror', (error) => {
+        const err = error?.error || error;
+        console.error('[COG] Tile Error:', {
+            layer: activeIdx,
+            detail: err?.detail || err?.message || String(err)
+        });
+        if (state.map) {
+            state.map.fire('tileerror', { error: err, layer: activeIdx, provider: 'cog' });
+        }
+    });
+
+    layer.on('tileloadstart', () => {
+        if (state.map) state.map.fire('tileloadstart');
+    });
+
+    layer.on('load', () => {
+        if (state.map) state.map.fire('tileloadfinish');
+    });
+
+    return layer;
+}
+
+function getSentinelCreditGuardStatus(state, config) {
+    const enabled = config.SENTINEL_CREDIT_GUARD !== false;
+    if (!enabled) return { blocked: false, reason: 'disabled' };
+
+    const armed = state.sentinelLiveTiles === true || config.SENTINEL_LIVE_TILES === true;
+    if (!armed) return { blocked: true, reason: 'disarmed' };
+
+    const minZoom = Number(state.sentinelMinZoom || config.SENTINEL_MIN_ZOOM || 14);
+    const zoom = Number(state.map?.getZoom?.() ?? 0);
+    if (Number.isFinite(minZoom) && zoom < minZoom) {
+        return { blocked: true, reason: 'zoom', zoom, minZoom };
+    }
+
+    return { blocked: false, reason: 'armed', zoom, minZoom };
+}
+
+function getSentinelGuardLayer(state, status, activeIdx) {
+    const layer = L.gridLayer({
+        attribution: 'Sentinel Hub guarded',
+        tileSize: 256,
+        minZoom: 0,
+        zIndex: 10,
+    });
+    layer.createTile = function createGuardTile(coords, done) {
+        const tile = L.DomUtil.create('div');
+        tile.style.width = '256px';
+        tile.style.height = '256px';
+        setTimeout(() => done(null, tile), 0);
+        return tile;
+    };
+    setTimeout(() => {
+        if (state.map) {
+            state.map.fire('sentinelguard', { status, layer: activeIdx, provider: 'sentinelhub' });
+        }
+    }, 0);
+    return layer;
+}
+
+export function getIndexLayer(state, config, timeStr, isDiff, overrideIndex = null) {
+    const provider = getImageryProvider(config);
+    if (provider === 'cog' || provider === 'sentinel-cog' || provider === 'sentinel2-cog') {
+        return getCOGLayer(state, config, timeStr, isDiff, overrideIndex);
+    }
+    if (provider === 'gee' || provider === 'earthengine' || provider === 'earth-engine') {
+        return getGEELayer(state, config, timeStr, isDiff, overrideIndex);
+    }
+    const activeIdx = overrideIndex || state.activeIndex;
+    const guardStatus = getSentinelCreditGuardStatus(state, config);
+    if (guardStatus.blocked) {
+        return getSentinelGuardLayer(state, guardStatus, activeIdx);
+    }
+    return getWMSLayer(state, config, timeStr, isDiff, overrideIndex);
+}
+
 /**
  * Initializes the Leaflet map.
  * @param {string} id - Map container ID.
@@ -96,7 +366,7 @@ export function getScriptContent(config, activeIndex, isDiff, isCumulative = fal
     let scriptContent = cfg.evalscript;
 
     // Isolate Permian Basin calibration to Produced Water Spill indices only
-    const SPILL_INDEX_KEYS = ['pwi', 'pwoi', 'hpwi', 'lbi', 'fbc', 'reai', 'vcbi', 'aoi', 'cma', 'hmi', 'phi', 'tri', 'bpi', 'mvpi'];
+    const SPILL_INDEX_KEYS = ['pwi', 'pwoi', 'hpwi', 'ehc', 'lbi', 'fbc', 'reai', 'vcbi', 'aoi', 'cma', 'hmi', 'phi', 'tri', 'bpi', 'mvpi'];
     const isSpill = SPILL_INDEX_KEYS.includes(activeIndex);
     const activeBasin = isSpill ? (state.activeBasin || 'permian') : 'standard';
 
@@ -165,10 +435,11 @@ export function getScriptContent(config, activeIndex, isDiff, isCumulative = fal
                 let ndwi = (sample.B03+sample.B11)===0?0:(sample.B03-sample.B11)/(sample.B03+sample.B11);
                 let ndvi = (sample.B08+sample.B04)===0?0:(sample.B08-sample.B04)/(sample.B08+sample.B04);
                 let bsi = (sample.B11+sample.B04+sample.B08+sample.B02)===0?0:((sample.B11+sample.B04)-(sample.B08+sample.B02))/((sample.B11+sample.B04)+(sample.B08+sample.B02));
-                return Math.max(0, ndsi) * Math.max(0, ndwi + 0.5) * Math.max(0, 1.0 - ndvi) * Math.max(0, bsi) * 40.0;
+                if (bsi <= -0.25) return 0;
+                return Math.max(0, ndsi - 0.02) * Math.max(0, ndwi + 0.40) * Math.max(0, 0.45 - ndvi) * Math.max(0, bsi + 0.20) * 20.0;
             })()`;
             palette = PALETTE_LBI;
-            bands = ['B03', 'B04', 'B08', 'B11', 'B12'];
+            bands = ['B02', 'B03', 'B04', 'B08', 'B11', 'B12'];
         }
         if (activeIndex === 'tri') {
             logic = `(function() {
@@ -325,7 +596,7 @@ function evaluatePixel(samples) {
             else if (activeIndex === 'aoi') calc = '-((sample.B04/sample.B02)*(sample.B11/sample.B12))';
             else if (activeIndex === 'ehc') calc = '-(((sample.B02-sample.B12)/(sample.B02+sample.B12)) + ((sample.B11-sample.B12)/(sample.B11+sample.B12)))';
             else if (activeIndex === 'pwi') calc = '-((function(){ let bsiTop=(sample.B11+sample.B04)-(sample.B08+sample.B02); let bsiBot=(sample.B11+sample.B04)+(sample.B08+sample.B02); let bsi=(bsiBot===0)?0:(bsiTop/bsiBot); if(bsi<0.01)return 0; let ndsi=(sample.B11+sample.B12===0)?0:(sample.B11-sample.B12)/(sample.B11+sample.B12); let hcai=(sample.B11+sample.B04===0)?0:(sample.B11-sample.B04)/(sample.B11+sample.B04); let hmri=(sample.B03===0)?0:sample.B12/sample.B03; return Math.max(0,ndsi-0.05)*Math.max(0,(hcai-0.20)*2.5)*Math.max(0,(hmri-1.5)*2.5); })())';
-            else if (activeIndex === 'lbi') calc = '-((function(){ let ndsi=(sample.B11+sample.B12===0)?0:(sample.B11-sample.B12)/(sample.B11+sample.B12); let ndwi=(sample.B03+sample.B11===0)?0:(sample.B03-sample.B11)/(sample.B03+sample.B11); let ndvi=(sample.B08+sample.B04===0)?0:(sample.B08-sample.B04)/(sample.B08+sample.B04); let bsi=(sample.B11+sample.B04+sample.B08+sample.B02===0)?0:((sample.B11+sample.B04)-(sample.B08+sample.B02))/((sample.B11+sample.B04)+(sample.B08+sample.B02)); return Math.max(0,ndsi)*Math.max(0,ndwi+0.5)*Math.max(0,1.0-ndvi)*Math.max(0,bsi); })())';
+            else if (activeIndex === 'lbi') calc = '-((function(){ let ndsi=(sample.B11+sample.B12===0)?0:(sample.B11-sample.B12)/(sample.B11+sample.B12); let ndwi=(sample.B03+sample.B11===0)?0:(sample.B03-sample.B11)/(sample.B03+sample.B11); let ndvi=(sample.B08+sample.B04===0)?0:(sample.B08-sample.B04)/(sample.B08+sample.B04); let bsi=(sample.B11+sample.B04+sample.B08+sample.B02===0)?0:((sample.B11+sample.B04)-(sample.B08+sample.B02))/((sample.B11+sample.B04)+(sample.B08+sample.B02)); if(bsi<=-0.25)return 0; return Math.max(0,ndsi-0.02)*Math.max(0,ndwi+0.40)*Math.max(0,0.45-ndvi)*Math.max(0,bsi+0.20); })())';
             else if (activeIndex === 'tri') calc = '-((function(){ let ndsi=(sample.B11+sample.B12===0)?0:(sample.B11-sample.B12)/(sample.B11+sample.B12); let hmri=(sample.B03===0)?0:sample.B12/sample.B03; let aoi=(sample.B02===0||sample.B12===0)?0:(sample.B04/sample.B02)*(sample.B11/sample.B12); return Math.max(0,ndsi-0.05)*Math.max(0,(hmri-1.5)/2)*Math.max(0,(aoi-1.5)/2); })())';
             else if (activeIndex === 'bpi') calc = '-((function(){ let bsi=(sample.B11+sample.B04+sample.B08+sample.B02===0)?0:((sample.B11+sample.B04)-(sample.B08+sample.B02))/((sample.B11+sample.B04)+(sample.B08+sample.B02)); let ndsi=(sample.B11+sample.B12===0)?0:(sample.B11-sample.B12)/(sample.B11+sample.B12); let hcai=(sample.B11+sample.B04===0)?0:(sample.B11-sample.B04)/(sample.B11+sample.B04); return Math.max(0,bsi)*Math.max(0,ndsi-0.03)*Math.max(0,hcai-0.15); })())';
             else if (activeIndex === 'vsi') calc = '-((function(){ let ndsi=(sample.B11+sample.B12===0)?0:(sample.B11-sample.B12)/(sample.B11+sample.B12); let redEdgeDelta=(sample.B07+sample.B05===0)?0:(sample.B07-sample.B05)/(sample.B07+sample.B05); let msi=(sample.B8A===0)?0:sample.B11/sample.B8A; return Math.max(0,ndsi)*Math.max(0,0.4-redEdgeDelta)*Math.max(0,msi-1.0); })())';
@@ -374,14 +645,33 @@ function evaluatePixel(samples) {
 
 /**
  * Rate-limited WMS tile layer.
- * Queues tile fetches (max 4 concurrent) and retries on HTTP 429 with backoff.
+ * Queues tile fetches and honors Sentinel Hub HTTP 429 cooldowns.
  */
+let sentinelWmsCooldownUntil = 0;
+
+function getRetryAfterMs(response, fallbackMs) {
+    const retryAfter = response.headers.get('retry-after');
+    if (!retryAfter) return fallbackMs;
+    const seconds = Number(retryAfter);
+    if (Number.isFinite(seconds) && seconds > 0) return seconds * 1000;
+    const retryDate = Date.parse(retryAfter);
+    if (Number.isFinite(retryDate)) return Math.max(fallbackMs, retryDate - Date.now());
+    return fallbackMs;
+}
+
+function setSentinelWmsCooldown(delayMs) {
+    sentinelWmsCooldownUntil = Math.max(sentinelWmsCooldownUntil, Date.now() + delayMs);
+}
+
 const RateLimitedWMS = L.TileLayer.WMS.extend({
     initialize(url, options) {
         L.TileLayer.WMS.prototype.initialize.call(this, url, options);
         this._queue = [];
         this._active = 0;
-        this._maxConcurrent = 4;
+        this._cooldownTimer = null;
+        this._maxConcurrent = options.maxConcurrent || 1;
+        this._retries = options.retries ?? 1;
+        this._retryDelay = options.retryDelay || 8000;
     },
 
     createTile(coords, done) {
@@ -389,7 +679,7 @@ const RateLimitedWMS = L.TileLayer.WMS.extend({
         if (this.options.crossOrigin || this.options.crossOrigin === '') {
             img.crossOrigin = this.options.crossOrigin === true ? '' : this.options.crossOrigin;
         }
-        this._enqueue(this.getTileUrl(coords), img, done, 3);
+        this._enqueue(this.getTileUrl(coords), img, done, this._retries);
         return img;
     },
 
@@ -399,6 +689,17 @@ const RateLimitedWMS = L.TileLayer.WMS.extend({
     },
 
     _drain() {
+        const cooldownRemaining = sentinelWmsCooldownUntil - Date.now();
+        if (cooldownRemaining > 0) {
+            if (!this._cooldownTimer) {
+                this._cooldownTimer = setTimeout(() => {
+                    this._cooldownTimer = null;
+                    this._drain();
+                }, cooldownRemaining + 50);
+            }
+            return;
+        }
+
         while (this._active < this._maxConcurrent && this._queue.length > 0) {
             this._active++;
             this._load(this._queue.shift());
@@ -409,9 +710,14 @@ const RateLimitedWMS = L.TileLayer.WMS.extend({
         fetch(url)
             .then(async r => {
                 if (r.status === 429 && retriesLeft > 0) {
+                    const retryDelayMs = getRetryAfterMs(
+                        r,
+                        this._retryDelay * Math.max(1, this._retries - retriesLeft + 1)
+                    );
+                    setSentinelWmsCooldown(retryDelayMs);
+                    this.fire('ratelimit', { retryAfterMs: retryDelayMs });
                     this._active--;
-                    this._drain();
-                    setTimeout(() => this._enqueue(url, img, done, retriesLeft - 1), 2000);
+                    setTimeout(() => this._enqueue(url, img, done, retriesLeft - 1), retryDelayMs);
                     return null;
                 }
                 if (!r.ok) throw await buildWmsFetchError(r);
@@ -488,7 +794,12 @@ export function getWMSLayer(state, config, timeStr, isDiff, overrideIndex = null
         minZoom: 10,
         zIndex: overrideIndex ? 20 : 10,
         crossOrigin: 'anonymous',
-        updateWhenIdle: true
+        updateWhenIdle: true,
+        updateWhenZooming: false,
+        keepBuffer: 0,
+        maxConcurrent: 1,
+        retries: 1,
+        retryDelay: 10000
     });
 
     layer.on('tileerror', (error) => {
@@ -500,7 +811,17 @@ export function getWMSLayer(state, config, timeStr, isDiff, overrideIndex = null
         });
         // Dispatch custom global event if map exists
         if (state.map) {
-            state.map.fire('tileerror', { error: err, layer: activeIdx });
+            state.map.fire('tileerror', { error: err, layer: activeIdx, provider: 'sentinelhub' });
+        }
+    });
+
+    layer.on('ratelimit', (event) => {
+        if (state.map) {
+            state.map.fire('sentinelratelimit', {
+                retryAfterMs: event.retryAfterMs,
+                layer: activeIdx,
+                provider: 'sentinelhub'
+            });
         }
     });
 
@@ -521,9 +842,11 @@ export function getWMSLayer(state, config, timeStr, isDiff, overrideIndex = null
 export function applyIndex(state, config, isScrubbing = false) {
     const { map, activeIndex, monthIndex, mode, compareType, sarFusion } = state;
     const { ALL_DATES } = config;
+    const provider = getImageryProvider(config);
+    const canUpdateExistingTiles = provider === 'sentinelhub';
 
     if (!map) return;
-    if (!isScrubbing) {
+    if (!isScrubbing || !canUpdateExistingTiles) {
         if (state.overlayGroup) { map.removeLayer(state.overlayGroup); state.overlayGroup = null; }
         if (state.leftGroup) { map.removeLayer(state.leftGroup); state.leftGroup = null; }
         if (state.rightGroup) { map.removeLayer(state.rightGroup); state.rightGroup = null; }
@@ -540,45 +863,45 @@ export function applyIndex(state, config, isScrubbing = false) {
     if (mode === 'single') {
         if (!ALL_DATES[monthIndex]) return;
         const timeStr = ALL_DATES[monthIndex].value;
-        if (isScrubbing && state.overlayGroup) {
+        if (isScrubbing && canUpdateExistingTiles && state.overlayGroup) {
             state.overlayGroup.eachLayer(layer => {
                 if (layer.setParams) layer.setParams({ time: timeStr }, false);
             });
         } else {
-            layersToGroup.push(getWMSLayer(state, config, timeStr, false));
-            if (sarFusion && activeIndex !== 's1_sar') layersToGroup.push(getWMSLayer(state, config, timeStr, false, 's1_sar'));
+            layersToGroup.push(getIndexLayer(state, config, timeStr, false));
+            if (sarFusion && activeIndex !== 's1_sar') layersToGroup.push(getIndexLayer(state, config, timeStr, false, 's1_sar'));
             state.overlayGroup = L.layerGroup(layersToGroup).addTo(map);
         }
     } else {
         const t1 = document.getElementById('date-t1').value;
         const t2 = document.getElementById('date-t2').value;
         if (state.compareType === 'swipe') {
-            const l_layer = getWMSLayer(state, config, t1, false);
-            const r_layer = getWMSLayer(state, config, t2, false);
+            const l_layer = getIndexLayer(state, config, t1, false);
+            const r_layer = getIndexLayer(state, config, t2, false);
             layersToGroup.push(l_layer);
             rightLayersGroup.push(r_layer);
             if (sarFusion && activeIndex !== 's1_sar') {
-                layersToGroup.push(getWMSLayer(state, config, t1, false, 's1_sar'));
-                rightLayersGroup.push(getWMSLayer(state, config, t2, false, 's1_sar'));
+                layersToGroup.push(getIndexLayer(state, config, t1, false, 's1_sar'));
+                rightLayersGroup.push(getIndexLayer(state, config, t2, false, 's1_sar'));
             }
             state.leftGroup = L.layerGroup(layersToGroup).addTo(map);
             state.rightGroup = L.layerGroup(rightLayersGroup).addTo(map);
             state.sbsControl = L.control.sideBySide(state.leftGroup.getLayers(), state.rightGroup.getLayers()).addTo(map);
         } else if (state.compareType === 'diff') {
             const timeRange = `${t1}/${t2}`;
-            layersToGroup.push(getWMSLayer(state, config, timeRange, true));
-            if (sarFusion && activeIndex !== 's1_sar') layersToGroup.push(getWMSLayer(state, config, timeRange, true, 's1_sar'));
+            layersToGroup.push(getIndexLayer(state, config, timeRange, true));
+            if (sarFusion && activeIndex !== 's1_sar') layersToGroup.push(getIndexLayer(state, config, timeRange, true, 's1_sar'));
             state.overlayGroup = L.layerGroup(layersToGroup).addTo(map);
         } else if (state.compareType === 'cumulative') {
             const timeRange = `${t1}/${t2}`;
-            layersToGroup.push(getWMSLayer(state, config, timeRange, false));
-            if (sarFusion && activeIndex !== 's1_sar') layersToGroup.push(getWMSLayer(state, config, timeRange, false, 's1_sar'));
+            layersToGroup.push(getIndexLayer(state, config, timeRange, false));
+            if (sarFusion && activeIndex !== 's1_sar') layersToGroup.push(getIndexLayer(state, config, timeRange, false, 's1_sar'));
             state.overlayGroup = L.layerGroup(layersToGroup).addTo(map);
         }
     }
 
     if (!isScrubbing) {
-        updateGifInset(state, config);
+        if (getImageryProvider(config) === 'sentinelhub' && !getSentinelCreditGuardStatus(state, config).blocked) updateGifInset(state, config);
         if (state.anomalousDates && state.anomalousDates.length > 0) {
             let thumbBounds = map.getBounds();
             if (state.drawnItems && state.drawnItems.getLayers().length > 0) thumbBounds = state.drawnItems.getBounds();

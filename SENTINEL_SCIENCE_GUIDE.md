@@ -462,8 +462,8 @@ Used throughout as a masking criterion to identify bare soil vs. vegetated/water
 - **Physical basis:** Requires bare soil, elevated salinity, AND hydrocarbon signal. More specific than HCAI or NDSI alone — targets the co-presence of brine and petroleum residue.
 
 #### LBI — Liquid Brine Index ✧
-- **Formula:** `NDSI × (NDWI + 0.5) × (1 - NDVI) × BSI × 40`
-- **Physical basis:** Most sensitive to active (wet) brine standing pools. Requires a "moisture correction" (NDWI shift positive from the very negative desert baseline), absence of vegetation, and exposed soil.
+- **Formula:** `(NDSI - 0.02) × (NDWI + 0.40) × (0.45 - NDVI) × (BSI + 0.20) × 20`, with a hard reject when `BSI <= -0.25`.
+- **Physical basis:** Most sensitive to active liquid brine standing pools. Requires positive brine contrast, a wetness signal above the Permian dry baseline, low vegetation, and exposed bare/liquid surface context.
 
 #### VSI — Vegetation Stress Index ✧
 - **Formula:** `NDSI × (0.4 - RedEdgeDelta) × (MSI - 1.0) × 10`

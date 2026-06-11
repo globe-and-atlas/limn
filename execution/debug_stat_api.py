@@ -1,9 +1,16 @@
+import os
 import requests
 import json
 from datetime import datetime, timedelta
+from pathlib import Path
+from dotenv import load_dotenv
 
-CLIENT_ID = "sh-90db7a9c-41fd-4caf-935a-0be2f39b28ba"
-CLIENT_SECRET = "10GC2CAhRnaKcONM5aVHlM6pAiWVnxxt"
+# Load environment variables from the project root .env
+env_path = Path(__file__).resolve().parents[1] / ".env"
+load_dotenv(dotenv_path=env_path)
+
+CLIENT_ID = os.getenv("CDSE_CLIENT_ID", "sh-90db7a9c-41fd-4caf-935a-0be2f39b28ba")
+CLIENT_SECRET = os.getenv("CDSE_CLIENT_SECRET", "10GC2CAhRnaKcONM5aVHlM6pAiWVnxxt")
 AUTH_URL = "https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token"
 STAT_API_URL = "https://sh.dataspace.copernicus.eu/api/v1/statistics"
 

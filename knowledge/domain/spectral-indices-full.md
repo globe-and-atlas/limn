@@ -309,7 +309,7 @@ These indices supplement ASAI/OBEC and are computed in the FIS 1-year scan. They
 | Index | Full Name | Formula Summary | Primary Signal |
 |-------|-----------|-----------------|----------------|
 | FBC | Iron-Brine Composite | `sqrt(iron_oxide × NDSI) × (1 − NDVI)` | Fe³⁺ staining from evaporated brine |
-| LBI | Liquid Brine Index | `NDSI × (NDWI+0.5) × (1−NDVI) × BSI × 40` | Active liquid brine, suppresses vegetation |
+| LBI | Liquid Brine Index | `(NDSI−0.02) × (NDWI+0.40) × (0.45−NDVI) × (BSI+0.20) × 20`, with `BSI > -0.25` | Active liquid brine, suppresses vegetation and broad wet-ish background |
 | VSI | Vegetation Stress Index | `NDSI × (0.4 − RedEdgeDelta) × (MSI − 1.0) × 10` | Persistent salt stress on sparse caliche vegetation |
 | BPI | Brine-Petroleum Index | `BSI × (NDSI − 0.03) × (HCAI − 0.15) × 30` | Combined brine + hydrocarbon residue |
 | TRI | Toxic Residue Index | `(NDSI − 0.05) × (HMRI − 1.5) × (AOI − 1.5) × 10²` | Heavy metal precipitation proxy |

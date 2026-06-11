@@ -40,7 +40,21 @@
         L.Mixin.Events = L.Mixin.Events || L.Evented.prototype;
     </script>
     <!-- Leaflet Side-By-Side -->
+    <script>
+        window.__limnOriginalConsoleWarn = console.warn;
+        window.__limnOriginalConsoleError = console.error;
+        const suppressLeafletMixinWarning = (fn) => function (...args) {
+            if (String(args[0] || '').includes('Deprecated include of L.Mixin.Events')) return;
+            return fn.apply(console, args);
+        };
+        console.warn = suppressLeafletMixinWarning(console.warn);
+        console.error = suppressLeafletMixinWarning(console.error);
+    </script>
     <script src="https://cdn.jsdelivr.net/gh/digidem/leaflet-side-by-side@2.0.0/leaflet-side-by-side.min.js"></script>
+    <script>
+        console.warn = window.__limnOriginalConsoleWarn || console.warn;
+        console.error = window.__limnOriginalConsoleError || console.error;
+    </script>
 
     <!-- Leaflet Draw Plugin -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
@@ -59,6 +73,21 @@
         // to prevent downstream crashes in auth.js
         window.CONFIG = window.CONFIG || {};
     </script>
+    <script>
+        (function configureShareMode() {
+            var params = new URLSearchParams(window.location.search);
+            var shareMode = params.get('share') || params.get('mode') || '';
+            if (shareMode !== 'sentinel-only' && shareMode !== 'sentinel') return;
+            window.LIMN_SHARE_SENTINEL_ONLY = true;
+            window.CONFIG = Object.assign(window.CONFIG || {}, {
+                IMAGE_PROVIDER: 'sentinelhub',
+                IMAGERY_PROVIDER: 'sentinelhub',
+                ALLOW_SENTINEL_FALLBACK: true,
+                SENTINEL_CREDIT_GUARD: true,
+                SENTINEL_LIVE_TILES: true
+            });
+        })();
+    </script>
 
     <!-- Custom Styles -->
     <link rel="stylesheet" href="style.css?v=3">
@@ -73,7 +102,7 @@
                 <span class="logo-accent">Limn</span>
             </div>
             <div class="spinner"></div>
-            <div class="loading-text">Initializing Sentinel Hub...</div>
+            <div class="loading-text">Initializing Sentinel-2 tiles...</div>
         </div>
     </div>
 
@@ -144,6 +173,17 @@
                     </svg>
                     Docs
                 </a>
+                <div class="sentinel-guard-mini" aria-label="Sentinel Hub credit guard">
+                    <label class="sentinel-live-toggle" for="toggle-sentinel-live" title="Arm Sentinel Hub WMS tiles">
+                        <input type="checkbox" id="toggle-sentinel-live">
+                        <span>Sentinel</span>
+                    </label>
+                    <div class="sentinel-zoom-mini">
+                        <span id="sentinel-min-zoom-val">Z14+</span>
+                        <input type="range" id="sentinel-min-zoom" min="10" max="17" step="1" value="14" aria-label="Minimum Sentinel Hub zoom slider">
+                    </div>
+                    <span id="sentinel-guard-status" class="sentinel-guard-status">Guarded</span>
+                </div>
             </div>
         </main> <!-- End of map-container -->
 
@@ -504,6 +544,7 @@
                             </div>
                         </div>
                     </section>
+
                 </div>
             </div> <!-- End of tab-content-container -->
             </div> <!-- End of layout-pane-suite-grid -->
@@ -529,10 +570,14 @@
                         <div class="triage-card" data-triage="oilfield-spill">
                             <span class="triage-section-label">Detection Lens</span>
                             <div class="triage-tags">
-                                <button type="button" class="triage-tag-pill" data-index="pwi" data-tooltip="<strong>PWCI — Produced Water Chemical Index</strong><br>A three-way logical AND consensus composite. Requires elevated salinity, hydrocarbons, and heavy metals to suppress bare soil and playa false positives. Calibrated for Permian desert environments.">PWCI</button>
-                                <button type="button" class="triage-tag-pill" data-index="pwoi" data-tooltip="<strong>ASAI — Arid Salinity Anomaly Index</strong><br>High-sensitivity dry-brine logic model. Fuses salinity shifts (NDSI) with soil brightness (BSI) to isolate salt crusts in dry bare desert soils.">ASAI</button>
                                 <button type="button" class="triage-tag-pill" data-index="hpwi" data-tooltip="<strong>OBEC — Oil-Brine Emulsion Composite</strong><br>Physical-chemical consensus composite. Fuses chemical signatures with a visible specular surface smoothness proxy to detect active pooling emulsions.">OBEC</button>
                                 <button type="button" class="triage-tag-pill" data-index="lbi" data-tooltip="<strong>LBI — Liquid Brine Index</strong><br>High-precision ratio tracker with maximum sensitivity to liquid salinity changes and evaporation signatures.">LBI</button>
+                                <button type="button" class="triage-tag-pill" data-index="pwoi" data-tooltip="<strong>ASAI — Arid Salinity Anomaly Index</strong><br>High-sensitivity dry-brine logic model. Fuses salinity shifts (NDSI) with soil brightness (BSI) to isolate salt crusts in dry bare desert soils.">ASAI</button>
+                                <button type="button" class="triage-tag-pill" data-index="pwi" data-tooltip="<strong>PWCI — Produced Water Chemical Index</strong><br>A three-way logical AND consensus composite. Requires elevated salinity, hydrocarbons, and heavy metals to suppress bare soil and playa false positives. Calibrated for Permian desert environments.">PWCI</button>
+                                <button type="button" class="triage-tag-pill" data-index="ehc" data-tooltip="<strong>EHC — Evaporite Halo Composite</strong><br>False-color morphology view: red oil-center proxy, green bare mud footprint, blue salt/crystal ring. Excellent for reading spill shape, not a standalone proof score.">EHC</button>
+                                <button type="button" class="triage-tag-pill" data-index="bpi" data-tooltip="<strong>BPI — Brine-Pavement Index</strong><br>Proven support lens for pad, tank, lease-road, and compacted-surface brine/hydrocarbon signals. Best for facility context rather than open-field plume proof.">BPI</button>
+                                <button type="button" class="triage-tag-pill" data-index="fbc" data-tooltip="<strong>FBC — Ferrugination-Brine Composite</strong><br>Validated support lens for iron staining plus brine chemistry. Useful when produced water leaves rust/mineral alteration rather than active standing liquid.">FBC</button>
+                                <button type="button" class="triage-tag-pill" data-index="vsi" data-tooltip="<strong>VSI — Vegetation Stress Index</strong><br>Validated impact lens for salt injury and vegetation mortality. Strong for aftermath/context, weaker as direct spill chemistry proof.">VSI</button>
                                 <button type="button" class="triage-tag-pill" data-index="mvpi" data-tooltip="<strong>MVPI — Methane Venting Plume Index</strong><br>SWIR gas-absorption proxy targeting localized super-emitter plumes over bright well pads. Fuses B11/B12 ratios with hard water, vegetation, and low-albedo rejection gates.">MVPI</button>
                             </div>
                         </div>
@@ -729,10 +774,25 @@
         </div>
     </div>
 
-    <script type="module" src="src/indices.js?v=76"></script>
-    <script type="module" src="src/charts.js?v=76"></script>
-    <script type="module" src="src/report.js?v=76"></script>
-    <script type="module" src="src/app.js?v=76"></script>
+    <script>
+        window.addEventListener('unhandledrejection', (event) => {
+            const reason = event.reason || {};
+            const name = reason.name || '';
+            if (name === 'FetchError') {
+                console.warn('[Limn] handled fetch rejection', {
+                    name,
+                    message: reason.message || '',
+                    status: reason.status || '',
+                    detail: reason.detail || ''
+                });
+                event.preventDefault();
+            }
+        });
+    </script>
+    <script type="module" src="src/indices.js?v=77"></script>
+    <script type="module" src="src/charts.js?v=77"></script>
+    <script type="module" src="src/report.js?v=77"></script>
+    <script type="module" src="src/app.js?v=77"></script>
     <script>
         // JS-powered tooltip for .chart-info-badge
         // Uses body-level element to avoid modal overflow-y clipping

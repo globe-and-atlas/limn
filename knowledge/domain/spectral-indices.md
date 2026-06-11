@@ -19,7 +19,7 @@ Globe & Atlas custom composites — ordered by combined novelty + effectiveness 
 | `pwoi` | ASAI — Arid Salinity Anomaly Index | B03, B11, B12 | S2 (WMS proxy) | 77.8% (TRRC), 87.5% (verified) | Dry brine mode added 2026-03-28 |
 | `hpwi` | OBEC — Oil-Brine Emulsion Composite | B02, B03, B04, B08, B11, B12 | S2 (WMS proxy) | 66.7% (TRRC) | Formerly HPWI |
 | `pwi` | PWCI — Produced Water Chemical Index | B02-B12 | Sentinel-2 | 81.5% (TRRC) | Three-way AND gate (brine × HC × metals) |
-| `lbi` | Liquid Brine Index | B03, B08, B11, B12 | Sentinel-2 | 63.0% (TRRC) | NDSI × (NDWI+0.5) × (1−NDVI) × BSI |
+| `lbi` | Liquid Brine Index | B02, B03, B04, B08, B11, B12 | Sentinel-2 | 63.0% (TRRC) | `(NDSI−0.02) × (NDWI+0.40) × (0.45−NDVI) × (BSI+0.20)` with `BSI > -0.25` |
 | `fbc` | Iron-Brine Composite | B02-B12 | Sentinel-2 | 66.7% (TRRC) | Fe³⁺ staining proxy |
 | `vcbi` | Veg-Confirmed Brine Index | B05, B07, B08, B11 | Sentinel-2 | — | Vegetation evidence of subsurface brine |
 | `reai` | Red Edge Alteration Index | B05, B07, B8A | Sentinel-2 | — | Red-edge chlorosis from salt loading |
@@ -67,11 +67,17 @@ General-purpose satellite indices — not produced-water specific.
 ### Dry Brine Mode (ASAI + OBEC)
 
 Permian Basin soil has NDWI = −0.39 to −0.51 (B11 >> B03 in bare arid caliche). This drives `norm_smooth` to 0 in both ASAI (formerly PWOI / APEX) and OBEC (formerly HPWI) wet-mode formulas, silencing detection for all dry/evaporated spill sites. Added parallel dry brine path triggered when:
-- NDWI < −0.30 (confirming dry bare soil)
-- NDSI > 0.05 (elevated salt signature)
-- BSI > 0.10 (bare soil, no vegetation)
+- NDWI/smoothness proxy < −0.42 for ASAI dry mode (confirming a very dry surface)
+- NDSI > 0.15 for ASAI dry mode (strong elevated salt signature)
+- BSI > 0.52 for ASAI dry mode (strong bare/crust brightness)
 
 Dry path formula: `(NDSI − 0.04) × min(1, BSI × N) × scale`; result takes `max(wet, dry)`.
+
+### Render Opacity Guards
+
+2026-06-08 fix: PWCI and OBEC render paths now explicitly return transparent output for low mapped values before palette interpolation (`PWCI < 0.05`, `OBEC < 0.08`). ASAI now requires both a smooth/wet proxy and elevated NDSI for the wet path, while ordinary arid background and broad salty bare-soil pixels remain transparent. ASAI's render floor is `0.60`. `colorBlend()` clamps values to `[0,1]` before interpolation to prevent out-of-range palette behavior. Regression coverage: `tests/test_produced_water_rendering.mjs`.
+
+2026-06-09 GEE/LBI follow-up: LBI's original permissive `NDSI × (NDWI+0.5) × (1−NDVI) × BSI` render painted too much wet-ish Permian background in Earth Engine mosaics. Current LBI uses stricter gates: `BSI > -0.25`, `NDSI > 0.02`, `NDWI > -0.40`, `NDVI < 0.45`, and `BSI > -0.20`, scaled by `20` with a render threshold of `0.08`. The same logic is used by the GEE server, Sentinel Hub fallback, compare/diff path, AOI statistics script, and browser evalscript.
 
 ## Calibration Presets (`CALIBRATION_PRESETS` in indices.js)
 

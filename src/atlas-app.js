@@ -14,8 +14,10 @@ import { S5P_DEMO_INDICES, S5P_DEMO_DOMAIN } from './atlas-s5p-demos.js';
 const ATLAS_INDICES = [...NOVEL_INDICES, ...SAR_DEMO_INDICES, ...S5P_DEMO_INDICES];
 const ATLAS_DOMAINS = [...NOVEL_DOMAINS, SAR_DEMO_DOMAIN, S5P_DEMO_DOMAIN];
 
+const DEFAULT_GEE_TILE_ENDPOINT = '/api/gee/tiles';
 const DEFAULT_SH_WMS_URL = 'https://sh.dataspace.copernicus.eu/ogc/wms/959ea2c5-5892-4b36-82b3-76e6bdb93c8a';
 const DEFAULT_WMS_LAYER = 'AGRICULTURE';
+const DEFAULT_SENTINEL_MIN_ZOOM = 14;
 const CONTEXT_TRUE_COLOR_EVALSCRIPT = `//VERSION=3
 function setup() {
   return { input: ['B04', 'B03', 'B02', 'dataMask'], output: { bands: 4 } };
@@ -25,22 +27,69 @@ function evaluatePixel(sample) {
   return [sample.B04*2.5, sample.B03*2.5, sample.B02*2.5, 1];
 }`;
 
+let runtimeAtlasImageProviderOverride = null;
+
 function getAtlasConfig() {
   const cfg = window.CONFIG || {};
   const instanceId = cfg.SH_INSTANCE_ID || cfg.SENTINEL_HUB_INSTANCE_ID || cfg.WMS_INSTANCE_ID;
   const configuredUrl = cfg.SH_WMS_URL || cfg.ATLAS_WMS_URL;
+  const requestedProvider = String(runtimeAtlasImageProviderOverride || cfg.ATLAS_IMAGE_PROVIDER || cfg.IMAGE_PROVIDER || 'gee').toLowerCase();
+  const allowSentinelFallback = runtimeAtlasImageProviderOverride === 'sentinelhub' || cfg.ALLOW_SENTINEL_FALLBACK === true;
+  let imageProvider = requestedProvider === 'cog' && !cfg.ATLAS_IMAGE_PROVIDER && !runtimeAtlasImageProviderOverride
+    ? 'gee'
+    : requestedProvider;
+  if (imageProvider === 'sentinelhub' && !allowSentinelFallback) imageProvider = 'gee';
+
+  const configuredMinZoom = Number(cfg.ATLAS_SENTINEL_MIN_ZOOM || cfg.SENTINEL_MIN_ZOOM || DEFAULT_SENTINEL_MIN_ZOOM);
   return {
+    imageProvider,
+    geeTileEndpoint: String(cfg.ATLAS_GEE_TILE_ENDPOINT || cfg.GEE_TILE_ENDPOINT || DEFAULT_GEE_TILE_ENDPOINT).replace(/\/+$/, ''),
+    geeApiKey: cfg.GEE_API_KEY || '',
     wmsUrl: configuredUrl || (instanceId ? `https://sh.dataspace.copernicus.eu/ogc/wms/${instanceId}` : DEFAULT_SH_WMS_URL),
     wmsLayer: cfg.ATLAS_WMS_LAYER || cfg.SH_WMS_LAYER || DEFAULT_WMS_LAYER,
+    sentinelCreditGuard: cfg.ATLAS_SENTINEL_CREDIT_GUARD ?? cfg.SENTINEL_CREDIT_GUARD ?? true,
+    sentinelLiveTiles: cfg.ATLAS_SENTINEL_LIVE_TILES ?? cfg.SENTINEL_LIVE_TILES ?? false,
+    sentinelMinZoom: Number.isFinite(configuredMinZoom) ? configuredMinZoom : DEFAULT_SENTINEL_MIN_ZOOM,
   };
 }
 
-const atlasConfig = getAtlasConfig();
+let atlasConfig = getAtlasConfig();
+
+function refreshAtlasConfig() {
+  atlasConfig = getAtlasConfig();
+  return atlasConfig;
+}
 
 let map, wmsLayer, activeKey = null;
 let BASE_TILES;
 let pendingTiles = 0;
-const state = { date: '2021-08-01', opacity: 0.85, base: 'esri', maxcc: 30, windowDays: 15, paused: false };
+const state = {
+  date: '2021-08-01',
+  opacity: 0.85,
+  base: 'esri',
+  maxcc: 30,
+  windowDays: 15,
+  paused: false,
+  sentinelLiveTiles: false,
+  sentinelMinZoom: DEFAULT_SENTINEL_MIN_ZOOM,
+  sentinelGuardInitialized: false,
+  sentinelRateLimitedUntil: 0,
+};
+
+window.getAtlasProviderState = () => {
+  refreshAtlasConfig();
+  return {
+    provider: atlasConfig.imageProvider,
+    defaultProvider: getDefaultAtlasProviderLabel().toLowerCase(),
+    runtimeAtlasImageProviderOverride,
+    sentinelLiveTiles: state.sentinelLiveTiles === true,
+    sentinelMinZoom: state.sentinelMinZoom,
+    sentinelRateLimitedUntil: state.sentinelRateLimitedUntil || 0,
+    zoom: map?.getZoom?.() ?? null,
+    guardStatus: map ? getAtlasSentinelGuardStatus() : null,
+    status: document.getElementById('atlas-sentinel-status')?.textContent || '',
+  };
+};
 
 function setTileStatus(message = '', type = 'info') {
   const status = document.getElementById('tile-status');
@@ -49,7 +98,90 @@ function setTileStatus(message = '', type = 'info') {
   status.className = message ? `visible ${type}` : '';
 }
 
-function getIndexLayer(idx) {
+function isGeeProvider() {
+  return ['gee', 'earthengine', 'earth-engine'].includes(atlasConfig.imageProvider);
+}
+
+function isSentinelProvider() {
+  return atlasConfig.imageProvider === 'sentinelhub';
+}
+
+function getDefaultAtlasProviderLabel() {
+  const cfg = window.CONFIG || {};
+  const requestedProvider = String(cfg.ATLAS_IMAGE_PROVIDER || cfg.IMAGE_PROVIDER || 'gee').toLowerCase();
+  if (requestedProvider === 'sentinelhub' && cfg.ALLOW_SENTINEL_FALLBACK !== true) return 'GEE';
+  if (requestedProvider === 'cog' && !cfg.ATLAS_IMAGE_PROVIDER) return 'GEE';
+  return requestedProvider.toUpperCase();
+}
+
+function syncAtlasSentinelState() {
+  if (state.sentinelGuardInitialized) return;
+  refreshAtlasConfig();
+  state.sentinelLiveTiles = atlasConfig.sentinelLiveTiles === true && atlasConfig.imageProvider === 'sentinelhub';
+  state.sentinelMinZoom = atlasConfig.sentinelMinZoom;
+  runtimeAtlasImageProviderOverride = state.sentinelLiveTiles ? 'sentinelhub' : null;
+  refreshAtlasConfig();
+  state.sentinelGuardInitialized = true;
+}
+
+function getAtlasSentinelGuardStatus() {
+  if (!isSentinelProvider()) return { blocked: false, reason: 'provider' };
+  if (atlasConfig.sentinelCreditGuard === false) return { blocked: false, reason: 'disabled' };
+  if (!state.sentinelLiveTiles) return { blocked: true, reason: 'disarmed' };
+  if (state.sentinelRateLimitedUntil > Date.now()) {
+    return { blocked: true, reason: 'cooldown', until: state.sentinelRateLimitedUntil };
+  }
+  const zoom = Number(map?.getZoom?.() ?? 0);
+  const minZoom = Number(state.sentinelMinZoom || atlasConfig.sentinelMinZoom || DEFAULT_SENTINEL_MIN_ZOOM);
+  if (Number.isFinite(minZoom) && zoom < minZoom) return { blocked: true, reason: 'zoom', zoom, minZoom };
+  return { blocked: false, reason: 'armed', zoom, minZoom };
+}
+
+function updateAtlasSentinelUI() {
+  refreshAtlasConfig();
+  const guardEnabled = atlasConfig.sentinelCreditGuard !== false;
+  const isSentinel = isSentinelProvider();
+  const sentinelActive = isSentinel && state.sentinelLiveTiles === true;
+  const minZoom = state.sentinelMinZoom || atlasConfig.sentinelMinZoom || DEFAULT_SENTINEL_MIN_ZOOM;
+  const currentZoom = map?.getZoom?.() ?? 0;
+  const toggle = document.getElementById('atlas-toggle-sentinel-live');
+  const zoomSlider = document.getElementById('atlas-sentinel-min-zoom');
+  const zoomVal = document.getElementById('atlas-sentinel-min-zoom-val');
+  const status = document.getElementById('atlas-sentinel-status');
+  const panel = document.querySelector('.atlas-sentinel-panel');
+
+  if (toggle) {
+    toggle.checked = sentinelActive;
+    toggle.disabled = !guardEnabled;
+    toggle.title = sentinelActive
+      ? 'Switch Atlas back to its default provider'
+      : 'Switch this Atlas session to guarded Sentinel Hub WMS tiles';
+  }
+  if (panel) panel.classList.toggle('is-armed', sentinelActive);
+  if (zoomSlider) {
+    zoomSlider.value = String(minZoom);
+    zoomSlider.disabled = !guardEnabled;
+  }
+  if (zoomVal) zoomVal.textContent = `Z${minZoom}+`;
+
+  if (!status) return;
+  if (!guardEnabled) {
+    status.textContent = 'Guard disabled. Sentinel WMS may request tiles.';
+  } else if (!isSentinel) {
+    status.textContent = `${getDefaultAtlasProviderLabel()} active. Toggle Sentinel for guarded WMS.`;
+  } else if (!state.sentinelLiveTiles) {
+    status.textContent = 'Sentinel disarmed. WMS tiles blocked.';
+  } else if (state.sentinelRateLimitedUntil > Date.now()) {
+    const seconds = Math.max(1, Math.ceil((state.sentinelRateLimitedUntil - Date.now()) / 1000));
+    status.textContent = `Rate limited. Cooling down ${seconds}s.`;
+  } else if (currentZoom < minZoom) {
+    status.textContent = `Armed, blocked until Z${minZoom}+ (current Z${currentZoom}).`;
+  } else {
+    status.textContent = `Sentinel armed at Z${currentZoom}.`;
+  }
+}
+
+function getWmsCarrierLayer(idx) {
   if (!idx.canRender) return atlasConfig.wmsLayer;
   return idx.wmsLayer || atlasConfig.wmsLayer;
 }
@@ -122,15 +254,65 @@ function sensorNote(idx) {
   return `Live rendering needs ${idx.platformShort} — concept entry; showing True Color context here.`;
 }
 
+function extractProviderErrorMessage(text) {
+  if (!text) return '';
+
+  try {
+    const data = JSON.parse(text);
+    return data.detail || data.description || data.message || data.error || '';
+  } catch (_) {
+    // Sentinel Hub WMS errors are usually XML ServiceException reports.
+  }
+
+  const cdataMatch = text.match(/<!\[CDATA\[\s*([\s\S]*?)\s*\]\]>/);
+  if (cdataMatch) return cdataMatch[1].replace(/\s+/g, ' ').trim();
+
+  const serviceMatch = text.match(/<ServiceException[^>]*>\s*([\s\S]*?)\s*<\/ServiceException>/i);
+  if (serviceMatch) {
+    return serviceMatch[1]
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  return text.replace(/\s+/g, ' ').trim().slice(0, 240);
+}
+
+async function buildProviderFetchError(response) {
+  const text = await response.text().catch(() => '');
+  const detail = extractProviderErrorMessage(text);
+  const err = new Error(detail ? `HTTP ${response.status}: ${detail}` : `HTTP ${response.status}`);
+  err.status = response.status;
+  err.statusText = response.statusText;
+  err.detail = detail;
+  err.isQuotaExhausted = /insufficient processing units|additional credits|requests available|quota/i.test(detail);
+  return err;
+}
+
 function getTileErrorMessage(layerName, error) {
   const status = error?.status;
-  if (status) return `Atlas tiles failed for ${layerName} (HTTP ${status}). Check WMS config, layer, quota, and date coverage.`;
-  return `Atlas tiles failed for ${layerName}. Check WMS config, layer, quota, and date coverage.`;
+  const providerLabel = isGeeProvider() ? 'Earth Engine' : 'Sentinel Hub WMS';
+  if (status === 429) {
+    return error?.detail
+      ? `Atlas ${providerLabel} rate limited ${layerName}: ${error.detail}`
+      : `Atlas ${providerLabel} rate limited ${layerName}. Cooling down before retrying.`;
+  }
+  if (status === 403 && error?.isQuotaExhausted) {
+    return `Atlas ${providerLabel} quota/credits unavailable for ${layerName}: ${error.detail}`;
+  }
+  if (status === 403 && error?.detail) {
+    return `Atlas ${providerLabel} denied ${layerName}: ${error.detail}`;
+  }
+  if (error?.detail) {
+    return `Atlas ${providerLabel} tiles failed for ${layerName} (HTTP ${status || 'error'}): ${error.detail}`;
+  }
+  if (status) return `Atlas ${providerLabel} tiles failed for ${layerName} (HTTP ${status}). Check provider config and date coverage.`;
+  return `Atlas ${providerLabel} tiles failed for ${layerName}. Check provider config and date coverage.`;
 }
 
 // --- No-data detection ---------------------------------------------------
-// Sentinel Hub returns a fully transparent PNG (HTTP 200) when the time window
-// has no cloud-free scene. Tiles load via blob:// URLs (same-origin), so
+// Providers can return a fully transparent PNG (HTTP 200) when the time window
+// has no available scene. Tiles load via blob:// URLs (same-origin), so
 // canvas pixel reads are always untainted — no crossOrigin needed.
 const NODATA_CANVAS = document.createElement('canvas');
 NODATA_CANVAS.width = NODATA_CANVAS.height = 8;
@@ -150,41 +332,161 @@ function tileHasData(img) {
   }
 }
 
-// --- Fetch-based WMS tile layer ------------------------------------------
+// --- Fetch-based tile layers ---------------------------------------------
 // Uses fetch() instead of <img src> so we get actual HTTP status codes on
 // failure, and tiles load via blob:// URLs (same-origin, no CORS needed).
 // Mirrors the RateLimitedWMS pattern in map.js.
-const FetchWMS = L.TileLayer.WMS.extend({
+const FetchTile = L.TileLayer.extend({
+  initialize(url, options = {}) {
+    L.TileLayer.prototype.initialize.call(this, url, options);
+    this._queue = [];
+    this._active = 0;
+    this._maxConcurrent = options.maxConcurrent || 2;
+    this._retries = options.retries ?? 4;
+    this._retryDelay = options.retryDelay || 1500;
+  },
+
   createTile(coords, done) {
     const img = document.createElement('img');
-    this._fetchTile(this.getTileUrl(coords), img, done, 2);
+    this._enqueue(this.getTileUrl(coords), img, done, this._retries);
     return img;
   },
 
-  _fetchTile(url, img, done, retriesLeft) {
+  _enqueue(url, img, done, retriesLeft) {
+    this._queue.push({ url, img, done, retriesLeft });
+    this._drain();
+  },
+
+  _drain() {
+    while (this._active < this._maxConcurrent && this._queue.length > 0) {
+      this._active++;
+      this._fetchTile(this._queue.shift());
+    }
+  },
+
+  _release(error, img, done) {
+    this._active--;
+    this._drain();
+    done(error, img);
+  },
+
+  _fetchTile({ url, img, done, retriesLeft }) {
     fetch(url)
       .then(async r => {
         if (r.status === 429 && retriesLeft > 0) {
-          setTimeout(() => this._fetchTile(url, img, done, retriesLeft - 1), 2000);
+          this._active--;
+          this._drain();
+          setTimeout(
+            () => this._enqueue(url, img, done, retriesLeft - 1),
+            this._retryDelay * Math.max(1, this._retries - retriesLeft + 1)
+          );
           return null;
         }
         if (!r.ok) {
-          const text = await r.text().catch(() => '');
-          const err = new Error(`HTTP ${r.status}`);
-          err.status = r.status;
-          err.detail = text.slice(0, 200);
-          throw err;
+          throw await buildProviderFetchError(r);
         }
         return r.blob();
       })
       .then(blob => {
         if (!blob) return;
         const objUrl = URL.createObjectURL(blob);
-        img.onload = () => { URL.revokeObjectURL(objUrl); done(null, img); };
-        img.onerror = () => { URL.revokeObjectURL(objUrl); done(new Error('decode failed'), img); };
+        img.onload = () => { URL.revokeObjectURL(objUrl); this._release(null, img, done); };
+        img.onerror = () => { URL.revokeObjectURL(objUrl); this._release(new Error('decode failed'), img, done); };
         img.src = objUrl;
       })
-      .catch(e => done(e, img));
+      .catch(e => this._release(e, img, done));
+  }
+});
+
+let atlasSentinelWmsCooldownUntil = 0;
+
+function getRetryAfterMs(response, fallbackMs) {
+  const retryAfter = response.headers.get('retry-after');
+  if (!retryAfter) return fallbackMs;
+  const seconds = Number(retryAfter);
+  if (Number.isFinite(seconds) && seconds > 0) return seconds * 1000;
+  const retryDate = Date.parse(retryAfter);
+  if (Number.isFinite(retryDate)) return Math.max(fallbackMs, retryDate - Date.now());
+  return fallbackMs;
+}
+
+function setAtlasSentinelWmsCooldown(delayMs) {
+  atlasSentinelWmsCooldownUntil = Math.max(atlasSentinelWmsCooldownUntil, Date.now() + delayMs);
+}
+
+const FetchWMS = L.TileLayer.WMS.extend({
+  initialize(url, options = {}) {
+    L.TileLayer.WMS.prototype.initialize.call(this, url, options);
+    this._queue = [];
+    this._active = 0;
+    this._cooldownTimer = null;
+    this._maxConcurrent = options.maxConcurrent || 1;
+    this._retries = options.retries ?? 1;
+    this._retryDelay = options.retryDelay || 8000;
+  },
+
+  createTile(coords, done) {
+    const img = document.createElement('img');
+    this._enqueue(this.getTileUrl(coords), img, done, this._retries);
+    return img;
+  },
+
+  _enqueue(url, img, done, retriesLeft) {
+    this._queue.push({ url, img, done, retriesLeft });
+    this._drain();
+  },
+
+  _drain() {
+    const cooldownRemaining = atlasSentinelWmsCooldownUntil - Date.now();
+    if (cooldownRemaining > 0) {
+      if (!this._cooldownTimer) {
+        this._cooldownTimer = setTimeout(() => {
+          this._cooldownTimer = null;
+          this._drain();
+        }, cooldownRemaining + 50);
+      }
+      return;
+    }
+
+    while (this._active < this._maxConcurrent && this._queue.length > 0) {
+      this._active++;
+      this._fetchTile(this._queue.shift());
+    }
+  },
+
+  _release(error, img, done) {
+    this._active--;
+    this._drain();
+    done(error, img);
+  },
+
+  _fetchTile({ url, img, done, retriesLeft }) {
+    fetch(url)
+      .then(async r => {
+        if (r.status === 429 && retriesLeft > 0) {
+          const retryDelayMs = getRetryAfterMs(
+            r,
+            this._retryDelay * Math.max(1, this._retries - retriesLeft + 1)
+          );
+          setAtlasSentinelWmsCooldown(retryDelayMs);
+          this.fire('ratelimit', { retryAfterMs: retryDelayMs });
+          this._active--;
+          setTimeout(() => this._enqueue(url, img, done, retriesLeft - 1), retryDelayMs);
+          return null;
+        }
+        if (!r.ok) {
+          throw await buildProviderFetchError(r);
+        }
+        return r.blob();
+      })
+      .then(blob => {
+        if (!blob) return;
+        const objUrl = URL.createObjectURL(blob);
+        img.onload = () => { URL.revokeObjectURL(objUrl); this._release(null, img, done); };
+        img.onerror = () => { URL.revokeObjectURL(objUrl); this._release(new Error('decode failed'), img, done); };
+        img.src = objUrl;
+      })
+      .catch(e => this._release(e, img, done));
   }
 });
 
@@ -203,39 +505,111 @@ function encodeScript(script) {
   return btoa(Array.from(bytes, b => String.fromCharCode(b)).join(''));
 }
 
-function applyWMS(evalscript, date, opts = {}) {
-  if (wmsLayer) { map.removeLayer(wmsLayer); wmsLayer = null; }
-  if (!evalscript) return;
-
-  pendingTiles = 0;
-  const encoded = encodeScript(evalscript);
+function getTimeWindow(date) {
   const windowDays = state.windowDays;
   const endDate = date;
   const startDate = new Date(new Date(date).getTime() - windowDays * 86400000)
     .toISOString().split('T')[0];
-  const timeStr = `${startDate}/${endDate}`;
-  const layerName = opts.layer || atlasConfig.wmsLayer;
+  return { startDate, endDate, timeStr: `${startDate}/${endDate}`, windowDays };
+}
 
-  updateWindowDisplay(date, windowDays);
-  setTileStatus('');
-
-  // Per-batch counters (closure-scoped to this layer instance).
+function watchTileBatch(layer, layerName) {
   let batchTiles = 0;
   let batchWithData = 0;
   let batchErrored = false;
 
   function settleBatch() {
     if (pendingTiles > 0) return;
-    if (batchErrored) return; // a tileerror already set a more specific message
+    if (batchErrored) return;
     if (batchTiles > 0 && batchWithData === 0) {
       setTileStatus(
-        'No cloud-free scene in this window — widen the window or raise cloud tolerance.',
+        'No scene data in this window — widen the window or raise cloud tolerance.',
         'info'
       );
     } else {
       setTileStatus('');
     }
   }
+
+  layer.on('tileloadstart', () => {
+    pendingTiles++;
+    if (pendingTiles === 1) setTileStatus('Loading…', 'loading');
+  });
+  layer.on('tileload', (event) => {
+    pendingTiles = Math.max(0, pendingTiles - 1);
+    batchTiles++;
+    if (tileHasData(event.tile)) batchWithData++;
+    settleBatch();
+  });
+  layer.on('tileerror', (event) => {
+    pendingTiles = Math.max(0, pendingTiles - 1);
+    batchErrored = true;
+    setTileStatus(getTileErrorMessage(layerName, event.error), 'error');
+  });
+  layer.on('ratelimit', (event) => {
+    const retryAfterMs = Number(event?.retryAfterMs || 15000);
+    state.sentinelRateLimitedUntil = Math.max(state.sentinelRateLimitedUntil || 0, Date.now() + retryAfterMs);
+    updateAtlasSentinelUI();
+    setTileStatus(`Sentinel Hub rate limit reached — cooling down ${Math.ceil(retryAfterMs / 1000)}s.`, 'error');
+  });
+}
+
+function buildGeeUrl(idx, date, opts = {}) {
+  const { timeStr, endDate } = getTimeWindow(date);
+  const params = new URLSearchParams({
+    app: 'atlas',
+    index: idx.key,
+    acronym: idx.acronym || idx.key,
+    time: timeStr,
+    date: endDate,
+    source: idx.canRender ? 'index' : 'context',
+    platform: idx.platformShort || idx.platform || '',
+    minZoom: String(opts.minZoom != null ? opts.minZoom : 10),
+    maxcc: String(state.maxcc)
+  });
+  if (atlasConfig.geeApiKey) params.set('key', atlasConfig.geeApiKey);
+  return `${atlasConfig.geeTileEndpoint}/{z}/{x}/{y}?${params.toString()}`;
+}
+
+function applyGEE(idx, date, opts = {}) {
+  refreshAtlasConfig();
+  if (wmsLayer) { map.removeLayer(wmsLayer); wmsLayer = null; }
+  if (!idx) return;
+
+  pendingTiles = 0;
+  const { windowDays } = getTimeWindow(date);
+  const layerName = idx.acronym || idx.key;
+
+  updateWindowDisplay(date, windowDays);
+  setTileStatus('');
+
+  wmsLayer = new FetchTile(buildGeeUrl(idx, date, opts), {
+    opacity: state.opacity,
+    attribution: 'Google Earth Engine / Limn Atlas',
+    tileSize: 256,
+    minZoom: opts.minZoom != null ? opts.minZoom : 10,
+    updateWhenIdle: true,
+    detectRetina: true,
+    maxConcurrent: 2,
+    retries: 4,
+    retryDelay: 1800,
+  });
+  watchTileBatch(wmsLayer, layerName);
+  wmsLayer.addTo(map);
+}
+
+function applyWMS(evalscript, date, opts = {}) {
+  refreshAtlasConfig();
+  if (wmsLayer) { map.removeLayer(wmsLayer); wmsLayer = null; }
+  if (!evalscript) return;
+
+  pendingTiles = 0;
+  const encoded = encodeScript(evalscript);
+  const { timeStr, windowDays } = getTimeWindow(date);
+  const layerName = opts.layer || atlasConfig.wmsLayer;
+
+  updateWindowDisplay(date, windowDays);
+  setTileStatus('');
 
   wmsLayer = new FetchWMS(atlasConfig.wmsUrl, {
     layers: layerName,
@@ -248,26 +622,47 @@ function applyWMS(evalscript, date, opts = {}) {
     evalscript: encoded,
     opacity: state.opacity,
     attribution: 'Copernicus Sentinel Hub',
-    tileSize: 256,
+    tileSize: 512,
     minZoom: opts.minZoom != null ? opts.minZoom : 10,
     updateWhenIdle: true,
+    updateWhenZooming: false,
+    keepBuffer: 0,
+    maxConcurrent: 1,
+    retries: 1,
+    retryDelay: 10000,
   });
-  wmsLayer.on('tileloadstart', () => {
-    pendingTiles++;
-    if (pendingTiles === 1) setTileStatus('Loading…', 'loading');
-  });
-  wmsLayer.on('tileload', (event) => {
-    pendingTiles = Math.max(0, pendingTiles - 1);
-    batchTiles++;
-    if (tileHasData(event.tile)) batchWithData++;
-    settleBatch();
-  });
-  wmsLayer.on('tileerror', (event) => {
-    pendingTiles = Math.max(0, pendingTiles - 1);
-    batchErrored = true;
-    setTileStatus(getTileErrorMessage(layerName, event.error), 'error');
-  });
+  watchTileBatch(wmsLayer, layerName);
   wmsLayer.addTo(map);
+}
+
+function applyAtlasTiles(idx, date) {
+  refreshAtlasConfig();
+  const opts = { layer: getWmsCarrierLayer(idx), minZoom: idx.minZoom };
+  if (isGeeProvider()) {
+    applyGEE(idx, date, opts);
+    updateAtlasSentinelUI();
+    return;
+  }
+
+  const guardStatus = getAtlasSentinelGuardStatus();
+  if (guardStatus.blocked) {
+    if (wmsLayer) { map.removeLayer(wmsLayer); wmsLayer = null; }
+    pendingTiles = 0;
+    updateWindowDisplay(date, state.windowDays);
+    updateAtlasSentinelUI();
+    if (guardStatus.reason === 'zoom') {
+      setTileStatus(`Sentinel guarded below Z${guardStatus.minZoom}. Zoom in or lower the Sentinel zoom gate.`, 'info');
+    } else if (guardStatus.reason === 'cooldown') {
+      const seconds = Math.max(1, Math.ceil((guardStatus.until - Date.now()) / 1000));
+      setTileStatus(`Sentinel Hub cooling down ${seconds}s after rate limit.`, 'info');
+    } else {
+      setTileStatus('Sentinel WMS is disarmed. Toggle Sentinel on to request live tiles.', 'info');
+    }
+    return;
+  }
+
+  applyWMS(getDisplayEvalscript(idx), date, opts);
+  updateAtlasSentinelUI();
 }
 
 function selectIndex(key) {
@@ -298,7 +693,7 @@ function selectIndex(key) {
     updateWindowDisplay(bm.date, state.windowDays);
     setTileStatus('Tiles paused — click “▶ Render here” to draw this index.', 'info');
   } else {
-    applyWMS(getDisplayEvalscript(idx), bm.date, { layer: getIndexLayer(idx), minZoom: idx.minZoom });
+    applyAtlasTiles(idx, bm.date);
   }
   const note = document.getElementById('sensor-note');
   note.textContent = sensorNote(idx);
@@ -341,11 +736,11 @@ function selectIndex(key) {
   positionLegend();
 }
 
-// Draw the active index at the current view/date (incurs Copernicus usage).
+// Draw the active index at the current view/date (incurs provider tile usage).
 function renderActive() {
   if (!activeKey) return;
   const idx = ATLAS_INDICES.find(i => i.key === activeKey);
-  if (idx) applyWMS(getDisplayEvalscript(idx), state.date, { layer: getIndexLayer(idx), minZoom: idx.minZoom });
+  if (idx) applyAtlasTiles(idx, state.date);
 }
 
 // Control-change refresh (date/cloud/window) — suppressed while paused.
@@ -364,7 +759,7 @@ function setPauseButton() {
   } else {
     btn.textContent = '⏸ Pause tiles';
     btn.classList.remove('armed');
-    btn.title = 'Pause tiles to pan and zoom without using Copernicus credits';
+    btn.title = 'Pause tiles to pan and zoom without provider requests';
   }
 }
 
@@ -490,6 +885,11 @@ function initMap() {
 
   L.control.zoom({ position: 'bottomright' }).addTo(map);
 
+  map.on('zoomend', () => {
+    updateAtlasSentinelUI();
+    if (isSentinelProvider() && !state.paused && activeKey) renderActive();
+  });
+
   // Base layer toggle
   document.getElementById('toggle-base').addEventListener('click', () => {
     const keys = Object.keys(BASE_TILES);
@@ -503,6 +903,9 @@ function initMap() {
 }
 
 function initControls() {
+  syncAtlasSentinelState();
+  updateAtlasSentinelUI();
+
   // Date input
   const dateInput = document.getElementById('date-input');
   dateInput.value = state.date;
@@ -566,14 +969,14 @@ function initControls() {
     });
   });
 
-  // Pause tiles — drop the WMS overlay so pan/zoom uses zero Copernicus credits.
+  // Pause tiles — drop the provider overlay so pan/zoom uses zero tile requests.
   // Toggling back ("Render here") redraws the active index at the current view.
   setPauseButton();
   document.getElementById('toggle-pause').addEventListener('click', () => {
     if (!state.paused) {
       state.paused = true;
       if (wmsLayer) { map.removeLayer(wmsLayer); wmsLayer = null; }
-      setTileStatus('Tiles paused — pan and zoom freely (no Copernicus usage). Click “▶ Render here” to draw the active index.', 'info');
+      setTileStatus('Tiles paused — pan and zoom freely without provider tile requests. Click “▶ Render here” to draw the active index.', 'info');
     } else {
       state.paused = false;
       setTileStatus('');
@@ -581,6 +984,37 @@ function initControls() {
     }
     setPauseButton();
   });
+
+  const sentinelToggle = document.getElementById('atlas-toggle-sentinel-live');
+  if (sentinelToggle) {
+    sentinelToggle.addEventListener('change', (event) => {
+      if (event.target.checked) {
+        runtimeAtlasImageProviderOverride = 'sentinelhub';
+        state.sentinelLiveTiles = true;
+        state.sentinelRateLimitedUntil = 0;
+      } else {
+        if (runtimeAtlasImageProviderOverride === 'sentinelhub') runtimeAtlasImageProviderOverride = null;
+        state.sentinelLiveTiles = false;
+        state.sentinelRateLimitedUntil = 0;
+      }
+      refreshAtlasConfig();
+      updateAtlasSentinelUI();
+      if (!state.paused) renderActive();
+    });
+  }
+
+  const sentinelZoom = document.getElementById('atlas-sentinel-min-zoom');
+  if (sentinelZoom) {
+    sentinelZoom.value = String(state.sentinelMinZoom);
+    sentinelZoom.addEventListener('input', (event) => {
+      state.sentinelMinZoom = Number(event.target.value);
+      updateAtlasSentinelUI();
+    });
+    sentinelZoom.addEventListener('change', () => {
+      updateAtlasSentinelUI();
+      if (isSentinelProvider() && !state.paused) renderActive();
+    });
+  }
 
   // Info toggle — keep the legend visible by lifting it above the info panel
   document.getElementById('toggle-info').addEventListener('click', () => {

@@ -1,5 +1,119 @@
 # API Contracts — Sentinel Explorer
 
+## Sentinel-2 COG Tile Provider
+
+**Produced Water default provider**: `IMAGE_PROVIDER: "cog"`
+
+**Browser tile endpoint contract**: `/api/cog/tiles/{z}/{x}/{y}`
+
+Query params sent by `getCOGLayer()`:
+- `index`: active Limn index key, currently `tc`, `pwi`, `hpwi`, `pwoi`, or `lbi`
+- `time`: `YYYY-MM-DD` or range `YYYY-MM-DD/YYYY-MM-DD`
+- `diff`: accepted for provider parity, but COG mode disables the Diff UI because temporal differencing is not implemented in the COG renderer
+- `cumulative`: accepted for provider parity, but COG mode disables the Cumulative UI because temporal accumulation is not implemented in the COG renderer
+- `basin`: calibration key, usually `permian`
+- `visualFilter`: passed for provider parity; currently ignored by the first COG renderer
+- `sensitivity`: passed for provider parity; currently ignored by the first COG renderer
+
+**Local server**: `npm run start:gee` also serves `/api/cog/tiles/{z}/{x}/{y}`. The COG route delegates to `execution/render_cog_tile.py`, which queries public Element84 Earth Search STAC (`sentinel-2-l2a`), reads only the requested tile window from public Sentinel-2 L2A COG band assets, reprojects via Rasterio `WarpedVRT`, computes Limn index RGBA, and writes a PNG. The server caches rendered PNG tiles under `.tmp/cog_tile_cache/`, with a renderer-version key so presentation/math changes do not reuse stale PNGs.
+
+**COG prewarm endpoint**: `/api/cog/prewarm` renders default demo bookmark/index tiles into `.tmp/cog_tile_cache/`. Optional query params:
+- `limit`: number of default demo targets to prewarm
+- `radius`: tile radius around each target tile
+- `lat`, `lng`, `zoom`, `date`, `indexes`: ad hoc target override
+
+The local server also runs a small background prewarm on startup unless `COG_PREWARM_ON_START=0`.
+
+**COG renderer dependencies**: local Python runtime with `rasterio`, `pystac_client`, `numpy`, `Pillow`, and `pyproj`.
+
+**COG scope**: first implementation supports Produced Water true color plus PWCI (`pwi`), OBEC (`hpwi`), ASAI (`pwoi`), and LBI (`lbi`). Unsupported index keys return HTTP 400 and are disabled or hidden in COG-mode UI. Atlas normalizes a global `IMAGE_PROVIDER: "cog"` to GEE unless `ATLAS_IMAGE_PROVIDER` is explicitly set, because Atlas formulas are not yet ported to the COG renderer.
+
+**COG visual contract**: analytical COG layers render as sparse semi-transparent overlays over the basemap. They are not intended to be full-scene false-color replacements. True color remains nearly opaque for context.
+
+Optional server env:
+- `COG_TILE_CACHE_DIR`
+- `COG_ITEM_CACHE_DIR`
+- `COG_ITEM_CACHE_TTL_SECONDS`
+- `COG_PREWARM_ON_START`
+- `COG_PREWARM_LIMIT`
+- `COG_PREWARM_RADIUS`
+- `COG_STAC_URL`
+- `COG_STAC_COLLECTION`
+- `COG_MAXCC`
+- `COG_RENDER_TIMEOUT_MS`
+- `COG_TILE_SIZE`
+- `PYTHON` or `PYTHON_BIN`
+
+## Google Earth Engine Tile Provider
+
+**Fallback provider**: `IMAGE_PROVIDER: "gee"`
+
+**Browser tile endpoint contract**: `/api/gee/tiles/{z}/{x}/{y}`
+
+Query params sent by `getGEELayer()`:
+- `app`: optional app namespace; `limn` for Produced Water, `atlas` for Limn Atlas
+- `index`: active Limn index key, e.g. `hpwi`, `pwoi`, `lbi`
+- `time`: `YYYY-MM-DD` or range `YYYY-MM-DD/YYYY-MM-DD`
+- `diff`: `1` for change/diff mode, otherwise `0`
+- `cumulative`: `1` for cumulative compare mode, otherwise `0`
+- `basin`: calibration key, usually `permian`
+- `visualFilter`: current visual cleanup slider value
+- `sensitivity`: current sensitivity slider value
+- `key`: optional browser API key if the backend expects it
+
+**Auth boundary**: Earth Engine service-account credentials, private keys, OAuth refresh tokens, and project credentials must stay on the backend. The static browser app must not embed them. The backend should translate the Limn index/time params into an authenticated Earth Engine map request and stream or redirect the final XYZ tile image.
+
+**Local server**: `npm run start:gee` serves the static app and dynamically creates Earth Engine maps for `/api/gee/tiles/{z}/{x}/{y}`. It loads `.env` through `dotenv`, authenticates with a service account, builds a Sentinel-2 SR Harmonized median mosaic for the requested date window, creates a short-lived Earth Engine map ID, caches that map ID for `GEE_MAP_CACHE_TTL_MS`, and proxies tile bytes back to Leaflet.
+
+**Static cache contract**: Local GEE launcher runs are active-development surfaces. The server must send `Cache-Control: no-store` for `.html`, `.js`, `.mjs`, and `.css` so Chrome does not keep stale versioned module imports after tile-loader or UI fixes.
+
+**Tile-rate contract**: Browser Leaflet grids can request many XYZ tiles at once. The GEE server must not pass that burst straight through to Earth Engine. It queues outbound tile byte fetches (`GEE_TILE_MAX_CONCURRENT`, default 2), retries upstream HTTP 429 responses (`GEE_TILE_RETRIES`, default 4), deduplicates simultaneous identical tile requests, and caches successful tile bytes (`GEE_TILE_CACHE_TTL_MS`, default 10 minutes). Produced Water and Atlas GEE layers must use fetch-based tile loaders with their own small queues and 429 retry/backoff instead of raw `<img>` tile loading.
+
+**Single-date imagery contract**: Produced Water GEE tile requests may pass a single nominal date from the UI, but the server must expand it before querying Sentinel-2. Exact-day S2 filters often produce empty transparent tiles because no clear scene exists on that precise date. Defaults are `GEE_SINGLE_DATE_LOOKBACK_DAYS=30`, `GEE_SINGLE_DATE_FORWARD_DAYS=15`, and `maxcc=90` unless overridden.
+
+**Render-quality contract**: GEE tiles are requested with high-DPI/retina tile behavior in both Produced Water and Atlas so desktop retina displays receive higher zoom tiles and scale them down. This improves presentation sharpness but does not change the physical information content: produced-water composites that depend on Sentinel-2 SWIR bands (`B11`, `B12`) remain limited by the native 20 m SWIR resolution. Do not force Earth Engine projection/resampling in the analytical mask path unless a follow-up test proves masks remain nonblank for OBEC, ASAI, LBI, and PWCI; projection forcing can collapse mask coverage.
+
+Required server env:
+- `GEE_PROJECT`
+- `GEE_SERVICE_ACCOUNT_JSON_PATH` pointing to a service-account JSON outside the repo, or `GEE_SERVICE_ACCOUNT_EMAIL` + `GEE_PRIVATE_KEY`
+
+Optional server env:
+- `PORT`
+- `GEE_API_KEY` (not a substitute for service-account auth)
+- `GEE_MAP_CACHE_TTL_MS`
+- `GEE_TILE_CACHE_TTL_MS`
+- `GEE_TILE_CACHE_MAX`
+- `GEE_TILE_MAX_CONCURRENT`
+- `GEE_TILE_RETRIES`
+- `GEE_TILE_RETRY_MS`
+- `GEE_SINGLE_DATE_LOOKBACK_DAYS`
+- `GEE_SINGLE_DATE_FORWARD_DAYS`
+- `GEE_S2_COLLECTION`
+
+Dynamic Produced Water indices currently translated server-side:
+- `pwi` / PWCI
+- `hpwi` / OBEC
+- `pwoi` / ASAI
+- `ehc`
+- `lbi`
+- `bpi`
+- `fbc`
+- `vsi`
+- `mvpi`
+- standard `tc`, `fc`, `ndvi`, `ndwi`, `ndmi`
+
+Atlas sends `app=atlas` and its index key/acronym in tile query params. Atlas currently renders Earth Engine Sentinel-2 true-color context dynamically by default, keeping the app off Sentinel Hub while Atlas-specific formulas are translated incrementally. App-scoped pre-created map overrides such as `GEE_MAP_NAME_ATLAS` or `GEE_MAP_NAME_ATLAS_BH_DFSI` are still supported for custom Atlas maps. Atlas Sentinel Hub WMS is retained only when `IMAGE_PROVIDER` or `ATLAS_IMAGE_PROVIDER` is explicitly set to `sentinelhub`.
+
+Atlas also has a top-right Sentinel WMS switch. Global `IMAGE_PROVIDER: "cog"` is normalized to Atlas GEE because Atlas COG formulas are not ported. The Atlas switch applies a session-only provider override to `sentinelhub`, arms live WMS tiles, and restores the default provider when switched off. Optional Atlas-specific guard settings are `ATLAS_SENTINEL_CREDIT_GUARD`, `ATLAS_SENTINEL_LIVE_TILES`, and `ATLAS_SENTINEL_MIN_ZOOM`; when omitted, Atlas uses the shared Sentinel guard settings.
+
+**Sentinel Hub fallback**: Sentinel Hub fallback is locked off unless both `ALLOW_SENTINEL_FALLBACK: true` and `IMAGE_PROVIDER: "sentinelhub"` are set. This prevents a secret-bearing local `config-v1.js` from accidentally overriding normal browsing back to Sentinel Hub while the account is out of credits. Default GEE mode intentionally skips the mini GIF inset, acquisition probing, AOI history scan, and report generation because those secondary flows still use Sentinel Hub/CDSE Statistics/Catalog APIs.
+
+**Sentinel Hub credit guard**: When Sentinel Hub fallback is active, WMS tiles are still blocked unless `SENTINEL_CREDIT_GUARD` is disabled or live tiles are armed. Defaults are `SENTINEL_CREDIT_GUARD: true`, `SENTINEL_LIVE_TILES: false`, and `SENTINEL_MIN_ZOOM: 14`. The top-right map toolbar exposes a Sentinel switch and minimum zoom slider. Off keeps the default COG/GEE provider. On applies a session-only Sentinel Hub provider override and arms live WMS tiles. When blocked, `getIndexLayer()` returns a local placeholder grid layer and fires a `sentinelguard` map event instead of constructing WMS tile requests. The GIF/acquisition helper path is also skipped while the guard is blocking.
+
+**Sentinel Hub WMS rate contract**: Live Sentinel Hub WMS must be conservative. The WMS tile layer uses 512px tiles, one concurrent fetch, no zoom-time update burst, and HTTP 429 `Retry-After` cooldown handling. When rate limited, it fires `sentinelratelimit` so the toolbar can show a cooldown message instead of continuing to hammer the account.
+
+Atlas follows the same WMS rate contract through its own `FetchWMS` implementation and `ratelimit` event path.
+
 ## Sentinel Hub WMS
 
 **Endpoint**: `https://sh.dataspace.copernicus.eu/ogc/wms/{INSTANCE_ID}`

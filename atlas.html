@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Limn Atlas | Globe & Atlas · Global Spectral Index Library</title>
+  <meta name="description" content="91 novel spectral indices across 12 environmental domains. Click any index to fly to a curated location and date.">
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Config (instance ID) -->
+  <script src="config-v1.js"></script>
+  <script>window.CONFIG = window.CONFIG || {};</script>
+
+  <!-- Base Limn styles (variables, glass panels, etc.) -->
+  <link rel="stylesheet" href="style.css?v=3">
+
+  <style>
+    /* ── Atlas-specific layout ────────────────────────────────────────── */
+    .atlas-layout {
+      display: flex;
+      height: 100vh;
+      width: 100vw;
+      overflow: hidden;
+    }
+
+    /* ── Sidebar ──────────────────────────────────────────────────────── */
+    #atlas-sidebar {
+      width: 300px;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      background: rgba(10, 11, 16, 0.95);
+      border-right: 1px solid rgba(255,255,255,0.08);
+      z-index: 1000;
+      overflow: hidden;
+    }
+
+    .sidebar-header {
+      padding: 16px 16px 12px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      flex-shrink: 0;
+    }
+
+    .sidebar-header .brand {
+      font-family: 'Instrument Sans', sans-serif;
+      font-size: 18px;
+      font-weight: 700;
+      color: #00D2FF;
+      letter-spacing: -0.5px;
+    }
+
+    .sidebar-header .brand-sub {
+      font-size: 11px;
+      color: #64748B;
+      margin-top: 2px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .search-row {
+      padding: 10px 12px 0;
+      flex-shrink: 0;
+    }
+
+    #idx-search {
+      width: 100%;
+      padding: 7px 12px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      color: #fff;
+      font-size: 13px;
+      font-family: 'Instrument Sans', sans-serif;
+      outline: none;
+    }
+    #idx-search:focus { border-color: rgba(0,210,255,0.4); }
+    #idx-search::placeholder { color: #64748B; }
+
+    #domain-list {
+      flex: 1;
+      overflow-y: auto;
+      padding: 8px 0 16px;
+      scrollbar-width: thin;
+      scrollbar-color: rgba(255,255,255,0.12) transparent;
+    }
+    #domain-list::-webkit-scrollbar { width: 4px; }
+    #domain-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 2px; }
+
+    /* Domain section */
+    .domain-section { }
+    .domain-section.collapsed .domain-body { display: none; }
+
+    .domain-header {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 12px;
+      background: none;
+      border: none;
+      color: #94A3B8;
+      font-size: 12px;
+      font-weight: 600;
+      font-family: 'Instrument Sans', sans-serif;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      transition: color 0.15s, background 0.15s;
+      text-align: left;
+    }
+    .domain-header:hover { color: #fff; background: rgba(255,255,255,0.04); }
+
+    .domain-icon { font-size: 14px; }
+
+    .domain-count {
+      margin-left: auto;
+      background: rgba(255,255,255,0.08);
+      border-radius: 10px;
+      padding: 1px 7px;
+      font-size: 10px;
+      color: #64748B;
+    }
+
+    .domain-body {
+      padding: 2px 8px 6px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    /* Index buttons */
+    .atlas-btn {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 7px 10px;
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.07);
+      border-radius: 8px;
+      cursor: pointer;
+      color: #E2E8F0;
+      font-family: 'Instrument Sans', sans-serif;
+      transition: background 0.12s, border-color 0.12s, color 0.12s;
+      text-align: left;
+    }
+    .atlas-btn:hover {
+      background: rgba(0,210,255,0.08);
+      border-color: rgba(0,210,255,0.25);
+      color: #fff;
+    }
+    .atlas-btn.active {
+      background: rgba(0,210,255,0.14);
+      border-color: rgba(0,210,255,0.5);
+      color: #00D2FF;
+    }
+    .atlas-btn.stub { opacity: 0.65; }
+    .atlas-btn.stub .btn-platform { color: #F59E0B; }
+
+    .btn-acronym {
+      font-size: 13px;
+      font-weight: 600;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: -0.3px;
+    }
+
+    .btn-meta {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .btn-platform {
+      font-size: 10px;
+      color: #64748B;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .btn-novelty {
+      font-size: 9px;
+      font-weight: 700;
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-family: 'JetBrains Mono', monospace;
+      letter-spacing: 0.3px;
+    }
+    .tier-t1 { background: rgba(0,210,255,0.15); color: #00D2FF; }
+    .tier-t2 { background: rgba(0,255,178,0.12); color: #00FFB2; }
+    .tier-t3 { background: rgba(255,143,0,0.15); color: #FF8F00; }
+    .tier-demo { background: rgba(148,163,184,0.18); color: #CBD5E1; letter-spacing: 0.5px; }
+
+    /* ── Map area ─────────────────────────────────────────────────────── */
+    #atlas-map-area {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+    }
+
+    #atlas-map {
+      width: 100%;
+      height: 100%;
+    }
+
+    /* ── HUD Controls (top-right) ─────────────────────────────────────── */
+    .atlas-hud {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      z-index: 500;
+    }
+
+    .hud-panel {
+      background: rgba(10, 11, 20, 0.82);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .hud-label {
+      font-size: 10px;
+      color: #64748B;
+      font-family: 'JetBrains Mono', monospace;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      min-width: 44px;
+    }
+
+    .hud-input {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 6px;
+      color: #fff;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      padding: 4px 8px;
+      outline: none;
+    }
+    .hud-input:focus { border-color: rgba(0,210,255,0.4); }
+
+    #opacity-slider {
+      -webkit-appearance: none;
+      width: 80px;
+      height: 4px;
+      border-radius: 2px;
+      background: rgba(255,255,255,0.15);
+      outline: none;
+      cursor: pointer;
+    }
+    #opacity-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      background: #00D2FF;
+      cursor: pointer;
+    }
+
+    .hud-btn {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 7px;
+      color: #94A3B8;
+      font-size: 12px;
+      padding: 5px 10px;
+      cursor: pointer;
+      font-family: 'Instrument Sans', sans-serif;
+      transition: background 0.12s, color 0.12s;
+    }
+    .hud-btn:hover { background: rgba(0,210,255,0.1); color: #00D2FF; }
+    /* Grouped action row (Pause + Map share one panel) */
+    .hud-actions { padding: 6px; gap: 6px; }
+    .hud-actions .hud-btn {
+      flex: 1;
+      text-align: center;
+      white-space: nowrap;
+    }
+    /* "Render here" state — tiles are paused, button redraws on click */
+    .hud-btn.armed {
+      background: rgba(0,210,255,0.16);
+      border-color: rgba(0,210,255,0.5);
+      color: #00D2FF;
+    }
+
+    .atlas-sentinel-panel {
+      align-items: stretch;
+      flex-direction: column;
+      gap: 7px;
+      min-width: 218px;
+    }
+
+    .atlas-sentinel-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .atlas-sentinel-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: #94A3B8;
+      font-size: 11px;
+      font-family: 'JetBrains Mono', monospace;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .atlas-sentinel-toggle input {
+      accent-color: #00D2FF;
+      width: 14px;
+      height: 14px;
+    }
+
+    .atlas-sentinel-panel.is-armed .atlas-sentinel-toggle {
+      color: #00D2FF;
+    }
+
+    .atlas-sentinel-zoom {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .atlas-sentinel-zoom span {
+      color: #64748B;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      min-width: 30px;
+    }
+
+    #atlas-sentinel-min-zoom {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 86px;
+      height: 4px;
+      border-radius: 2px;
+      background: rgba(255,255,255,0.15);
+      outline: none;
+      cursor: pointer;
+    }
+
+    #atlas-sentinel-min-zoom::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      background: #00D2FF;
+      cursor: pointer;
+    }
+
+    .atlas-sentinel-status {
+      color: #64748B;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      line-height: 1.35;
+    }
+
+    /* ── Legend (bottom-left of map) ──────────────────────────────────── */
+    .atlas-legend {
+      position: absolute;
+      bottom: 30px;
+      left: 14px;
+      background: rgba(10, 11, 20, 0.82);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px;
+      padding: 10px 14px;
+      z-index: 650;
+      min-width: 180px;
+      transition: bottom 0.25s ease;
+    }
+
+    .legend-acronym {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 13px;
+      font-weight: 600;
+      color: #00D2FF;
+      margin-bottom: 6px;
+    }
+
+    .legend-bar {
+      height: 6px;
+      border-radius: 3px;
+      width: 100%;
+      background: linear-gradient(to right, #111, #00D2FF);
+      margin-bottom: 3px;
+    }
+
+    .legend-scale {
+      display: flex;
+      justify-content: space-between;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      color: #94A3B8;
+      letter-spacing: 0.2px;
+    }
+
+    #sensor-note {
+      font-size: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      margin-top: 4px;
+      line-height: 1.4;
+      max-width: 260px;
+    }
+    #sensor-note:empty { margin-top: 0; }
+    #sensor-note.cov-note--pending { color: #F59E0B; }
+    #sensor-note.cov-note--sensor  { color: #94A3B8; }
+
+    #tile-status {
+      display: none;
+      font-size: 10px;
+      color: #94A3B8;
+      font-family: 'JetBrains Mono', monospace;
+      margin-top: 5px;
+      line-height: 1.4;
+      max-width: 260px;
+    }
+    #tile-status.visible { display: block; }
+    #tile-status.error { color: #FB7185; }
+    #tile-status.info { color: #94A3B8; }
+    #tile-status.loading { color: #00D2FF; }
+
+    .date-window-display {
+      font-size: 10px;
+      color: #475569;
+      font-family: 'JetBrains Mono', monospace;
+      margin-top: 3px;
+      letter-spacing: -0.2px;
+    }
+
+    .hud-value {
+      font-size: 11px;
+      color: #94A3B8;
+      font-family: 'JetBrains Mono', monospace;
+      min-width: 30px;
+      text-align: right;
+    }
+
+    #maxcc-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 72px;
+      height: 4px;
+      border-radius: 2px;
+      background: rgba(255,255,255,0.15);
+      outline: none;
+      cursor: pointer;
+    }
+    #maxcc-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      background: #00FFB2;
+      cursor: pointer;
+    }
+
+    .window-pills {
+      display: flex;
+      gap: 3px;
+    }
+    .window-pill {
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 5px;
+      color: #64748B;
+      font-size: 11px;
+      font-family: 'JetBrains Mono', monospace;
+      padding: 3px 7px;
+      cursor: pointer;
+      transition: background 0.12s, color 0.12s, border-color 0.12s;
+    }
+    .window-pill:hover { background: rgba(0,210,255,0.08); color: #94A3B8; }
+    .window-pill.active {
+      background: rgba(0,255,178,0.12);
+      border-color: rgba(0,255,178,0.35);
+      color: #00FFB2;
+    }
+
+    /* ── Info Panel (bottom, slides up) ───────────────────────────────── */
+    #info-panel {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(10, 11, 20, 0.92);
+      backdrop-filter: blur(20px);
+      border-top: 1px solid rgba(255,255,255,0.1);
+      z-index: 600;
+      padding: 14px 20px 16px;
+      transition: transform 0.25s ease;
+    }
+    #info-panel.hidden { transform: translateY(100%); }
+
+    .info-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 20px;
+      flex-wrap: wrap;
+    }
+
+    .info-title-block { min-width: 220px; }
+
+    #info-acronym {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 20px;
+      font-weight: 600;
+      color: #00D2FF;
+      line-height: 1.1;
+    }
+
+    #info-name {
+      font-size: 12px;
+      color: #94A3B8;
+      margin-top: 3px;
+      line-height: 1.4;
+    }
+
+    .info-badges {
+      display: flex;
+      gap: 6px;
+      margin-top: 6px;
+      flex-wrap: wrap;
+    }
+
+    .info-badge {
+      font-size: 10px;
+      font-family: 'JetBrains Mono', monospace;
+      padding: 2px 8px;
+      border-radius: 5px;
+      background: rgba(255,255,255,0.07);
+      color: #94A3B8;
+    }
+
+    .info-body { flex: 1; min-width: 260px; }
+
+    .info-field-label {
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: #64748B;
+      font-family: 'JetBrains Mono', monospace;
+      margin-top: 8px;
+    }
+    .info-field-label:first-child { margin-top: 0; }
+
+    .info-field-value {
+      font-size: 12px;
+      color: #CBD5E1;
+      font-family: 'Instrument Sans', sans-serif;
+      line-height: 1.5;
+    }
+
+    #info-formula {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: #00FFB2;
+    }
+
+    #info-bands {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: #00D2FF;
+      letter-spacing: 0.3px;
+    }
+
+    #info-bookmark {
+      font-size: 11px;
+      color: #64748B;
+      font-family: 'JetBrains Mono', monospace;
+      margin-top: 6px;
+    }
+
+    #toggle-info {
+      position: absolute;
+      top: 14px;
+      left: 14px;
+      z-index: 500;
+      background: rgba(10, 11, 20, 0.82);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      color: #64748B;
+      font-size: 12px;
+      padding: 6px 12px;
+      cursor: pointer;
+      font-family: 'Instrument Sans', sans-serif;
+      transition: color 0.12s;
+    }
+    #toggle-info:hover { color: #00D2FF; }
+
+    /* ── Coverage line + About ────────────────────────────────────────── */
+    .coverage-line {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-top: 8px;
+    }
+    #coverage-summary {
+      font-size: 10px;
+      color: #94A3B8;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    #about-btn {
+      background: none;
+      border: none;
+      color: #00D2FF;
+      font-size: 11px;
+      font-family: 'Instrument Sans', sans-serif;
+      cursor: pointer;
+      padding: 0;
+      white-space: nowrap;
+      transition: opacity 0.12s;
+    }
+    #about-btn:hover { opacity: 0.7; }
+
+    /* Coverage dots (shared by sidebar buttons + About panel) */
+    .cov-dot {
+      display: inline-block;
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .cov-dot--live    { background: #00D2FF; box-shadow: 0 0 6px rgba(0,210,255,0.6); }
+    .cov-dot--pending { background: #F59E0B; }
+    .cov-dot--sensor  { background: #64748B; }
+    .cov-dot--demo    { background: transparent; box-shadow: inset 0 0 0 2px #CBD5E1; }
+
+    /* About overlay */
+    #about-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 1500;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(4, 6, 12, 0.6);
+      backdrop-filter: blur(4px);
+    }
+    #about-overlay.hidden { display: none; }
+
+    #about-panel {
+      position: relative;
+      max-width: 560px;
+      max-height: 84vh;
+      overflow-y: auto;
+      background: rgba(12, 14, 22, 0.97);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 14px;
+      padding: 26px 28px 22px;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.5);
+    }
+    #about-panel h2 {
+      font-family: 'Instrument Sans', sans-serif;
+      font-size: 19px;
+      font-weight: 700;
+      color: #fff;
+      margin: 0 0 12px;
+      letter-spacing: -0.4px;
+    }
+    .about-intro {
+      font-size: 13px;
+      color: #CBD5E1;
+      line-height: 1.6;
+      margin: 0 0 18px;
+    }
+    .about-intro strong { color: #fff; }
+
+    .about-section-label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+      color: #64748B;
+      margin: 16px 0 2px;
+    }
+    .about-nov-intro {
+      font-size: 12px;
+      color: #94A3B8;
+      line-height: 1.5;
+      margin: 4px 0 10px;
+    }
+    .about-nov-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 9px;
+      margin-bottom: 9px;
+    }
+    .about-nov-row .btn-novelty { margin-top: 2px; flex-shrink: 0; }
+    .about-nov-row p {
+      font-size: 12px;
+      color: #94A3B8;
+      line-height: 1.5;
+      margin: 0;
+    }
+    .about-nov-row strong { color: #E2E8F0; }
+    .about-nov-count {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      color: #64748B;
+    }
+
+    .about-tier {
+      border-top: 1px solid rgba(255,255,255,0.08);
+      padding: 12px 0;
+    }
+    .about-tier-head {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 5px;
+    }
+    .about-tier-count {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 15px;
+      font-weight: 600;
+      color: #fff;
+      min-width: 26px;
+    }
+    .about-tier-name {
+      font-family: 'Instrument Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 600;
+      color: #E2E8F0;
+    }
+    .about-tier p {
+      font-size: 12px;
+      color: #94A3B8;
+      line-height: 1.55;
+      margin: 0;
+      padding-left: 15px;
+    }
+    .about-foot {
+      font-size: 11px;
+      color: #64748B;
+      font-style: italic;
+      margin: 14px 0 0;
+      line-height: 1.5;
+    }
+    #about-close {
+      position: absolute;
+      top: 12px; right: 14px;
+      background: none;
+      border: none;
+      color: #64748B;
+      font-size: 24px;
+      line-height: 1;
+      cursor: pointer;
+      transition: color 0.12s;
+    }
+    #about-close:hover { color: #fff; }
+
+    /* Coverage dot on sidebar buttons */
+    .btn-acronym .cov-dot { margin-right: 6px; vertical-align: middle; }
+    /* Dim only sensor-limited entries hardest; proof-pending sit between live and sensor */
+    .atlas-btn.cov-pending { opacity: 0.85; }
+    .atlas-btn.cov-pending .btn-platform { color: #F59E0B; }
+  </style>
+</head>
+<body>
+  <div class="atlas-layout">
+
+    <!-- ── Sidebar ───────────────────────────────────────────────────── -->
+    <aside id="atlas-sidebar">
+      <div class="sidebar-header">
+        <div class="brand">Limn Atlas</div>
+        <div class="brand-sub">Globe &amp; Atlas · 91 Novel Indices + Live SAR &amp; Air Quality · 14 Domains</div>
+        <div class="coverage-line">
+          <span id="coverage-summary">—</span>
+          <button id="about-btn" type="button">What&#39;s mappable? ›</button>
+        </div>
+      </div>
+      <div class="search-row">
+        <input id="idx-search" type="text" placeholder="Search indices…" autocomplete="off">
+      </div>
+      <div id="domain-list"></div>
+    </aside>
+
+    <!-- ── Map Area ──────────────────────────────────────────────────── -->
+    <div id="atlas-map-area">
+      <div id="atlas-map"></div>
+
+      <!-- HUD Controls -->
+      <div class="atlas-hud">
+        <div class="hud-panel">
+          <span class="hud-label">Date</span>
+          <input id="date-input" type="date" class="hud-input" value="2021-08-01">
+        </div>
+        <div class="hud-panel">
+          <span class="hud-label">Opacity</span>
+          <input id="opacity-slider" type="range" min="0" max="1" step="0.05" value="0.85">
+        </div>
+        <div class="hud-panel">
+          <span class="hud-label">Cloud</span>
+          <input id="maxcc-slider" type="range" min="10" max="80" step="5" value="30">
+          <span id="maxcc-value" class="hud-value">30%</span>
+        </div>
+        <div class="hud-panel">
+          <span class="hud-label">Window</span>
+          <div class="window-pills">
+            <button class="window-pill" data-days="7">7d</button>
+            <button class="window-pill active" data-days="15">15d</button>
+            <button class="window-pill" data-days="30">30d</button>
+            <button class="window-pill" data-days="60">60d</button>
+          </div>
+        </div>
+        <div class="hud-panel atlas-sentinel-panel" aria-label="Atlas Sentinel Hub credit guard">
+          <div class="atlas-sentinel-row">
+            <span class="hud-label">Sentinel</span>
+            <label class="atlas-sentinel-toggle" for="atlas-toggle-sentinel-live" title="Switch Atlas to guarded Sentinel Hub WMS tiles">
+              <input type="checkbox" id="atlas-toggle-sentinel-live">
+              <span>WMS</span>
+            </label>
+            <div class="atlas-sentinel-zoom">
+              <span id="atlas-sentinel-min-zoom-val">Z14+</span>
+              <input id="atlas-sentinel-min-zoom" type="range" min="3" max="17" step="1" value="14" aria-label="Minimum Atlas Sentinel Hub zoom">
+            </div>
+          </div>
+          <div id="atlas-sentinel-status" class="atlas-sentinel-status">GEE active</div>
+        </div>
+        <div class="hud-panel hud-actions">
+          <button id="toggle-pause" class="hud-btn" title="Pause tiles to pan and zoom without using Copernicus credits">⏸ Pause tiles</button>
+          <button id="toggle-base" class="hud-btn">🗺 Map</button>
+        </div>
+      </div>
+
+      <!-- Toggle info panel -->
+      <button id="toggle-info">ℹ Index Info</button>
+
+      <!-- Legend -->
+      <div class="atlas-legend">
+        <div class="legend-acronym" id="legend-label">—</div>
+        <div class="legend-bar" id="legend-gradient"></div>
+        <div class="legend-scale">
+          <span id="legend-low">Low</span>
+          <span id="legend-high">High</span>
+        </div>
+        <div id="sensor-note"></div>
+        <div id="date-window-display" class="date-window-display"></div>
+        <div id="tile-status" aria-live="polite"></div>
+      </div>
+
+      <!-- Info Panel (slides up from bottom) -->
+      <div id="info-panel">
+        <div class="info-row">
+          <div class="info-title-block">
+            <div id="info-acronym">—</div>
+            <div id="info-name"></div>
+            <div class="info-badges">
+              <span class="info-badge" id="info-platform"></span>
+              <span class="info-badge" id="info-novelty"></span>
+            </div>
+            <div id="info-bookmark"></div>
+          </div>
+          <div class="info-body">
+            <div class="info-field-label">Bands</div>
+            <div class="info-field-value" id="info-bands"></div>
+            <div class="info-field-label">Formula</div>
+            <div class="info-field-value" id="info-formula"></div>
+            <div class="info-field-label">Physics</div>
+            <div class="info-field-value" id="info-physics"></div>
+            <div class="info-field-label">Benefit</div>
+            <div class="info-field-value" id="info-benefit"></div>
+            <div class="info-field-label">Source &amp; Citation</div>
+            <div class="info-field-value" id="info-source"></div>
+            <div class="info-field-label">Peak-Signal Bookmark</div>
+            <div class="info-field-value" id="info-justification"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- About / Coverage overlay -->
+      <div id="about-overlay" class="hidden">
+        <div id="about-panel" role="dialog" aria-modal="true" aria-labelledby="about-title">
+          <button id="about-close" type="button" aria-label="Close">×</button>
+          <h2 id="about-title">How Atlas coverage works</h2>
+          <p class="about-intro">
+            Atlas catalogs <strong>91 novel spectral indices</strong> across 12 environmental
+            domains, plus <strong>live Sentinel-1 SAR and Sentinel-5P air-quality
+            demonstrators</strong>. Each index was designed for the sensors best suited to its
+            phenomenon — so not all map live here. Atlas streams tiles from public Copernicus WMS
+            endpoints: <strong>Sentinel-2 L2A</strong> (optical, 13 bands), <strong>Sentinel-1
+            GRD</strong> (radar, all-weather), and <strong>Sentinel-5P TROPOMI</strong>
+            (atmospheric trace gases). Indices computable from those map live; the rest stay in
+            the catalog as documented concepts so the full body of research remains visible.
+          </p>
+
+          <p class="about-section-label">Of the 91 novel catalog</p>
+
+          <div class="about-tier">
+            <div class="about-tier-head">
+              <span class="cov-dot cov-dot--live"></span>
+              <span class="about-tier-count" id="about-count-live">—</span>
+              <span class="about-tier-name">Live-mappable</span>
+            </div>
+            <p>Novel indices that render live from Copernicus — Sentinel-2 optical, plus the two
+              that graduated to radar/atmospheric (FGDCI on Sentinel-1, SACI on Sentinel-5P) —
+              each paired with a validated peak-signal bookmark. Click one and Atlas flies to the
+              place and date where the signal is unmistakable.</p>
+          </div>
+
+          <div class="about-tier">
+            <div class="about-tier-head">
+              <span class="cov-dot cov-dot--pending"></span>
+              <span class="about-tier-count" id="about-count-pending">—</span>
+              <span class="about-tier-name">Sentinel-2-capable · proof pending</span>
+            </div>
+            <p>The formula runs on Sentinel-2, but a location and date where the signal is
+              unmistakable hasn't been locked in yet. Shown as True Color context until a proof
+              target is validated — then they graduate to live-mappable.</p>
+          </div>
+
+          <div class="about-tier">
+            <div class="about-tier-head">
+              <span class="cov-dot cov-dot--sensor"></span>
+              <span class="about-tier-count" id="about-count-sensor">—</span>
+              <span class="about-tier-name">Sensor-limited</span>
+            </div>
+            <p>These need an instrument the public Sentinel-2 service can't provide:
+              hyperspectral imagers (EMIT, EnMAP, PACE, PRISMA, DESIS), thermal (ECOSTRESS,
+              Landsat&nbsp;TIRS), atmospheric trace-gas (TROPOMI, GOES), SAR / lidar / gravimetry
+              (Sentinel-1, NISAR, ICESat-2, GRACE-FO), or commercial high-res (Planet). They're
+              concept entries — Atlas shows True Color context at a representative location.</p>
+          </div>
+
+          <p class="about-section-label">What the T1 / T2 / T3 badges mean</p>
+          <p class="about-nov-intro">Every novel index carries a novelty badge — how new the
+            <em>formula</em> is, independent of whether it maps live:</p>
+
+          <div class="about-nov-row">
+            <span class="btn-novelty tier-t1">T1</span>
+            <p><strong>First formula</strong> <span class="about-nov-count" id="about-nov-t1"></span> —
+              the detection purpose exists, but no named, standardized formula had been published.
+              Atlas proposes the first one to use, adapt, and build on.</p>
+          </div>
+          <div class="about-nov-row">
+            <span class="btn-novelty tier-t2">T2</span>
+            <p><strong>First standardized formula</strong> <span class="about-nov-count" id="about-nov-t2"></span> —
+              the concept appears in the literature only as a qualitative description. No named
+              formula with defined inputs had been written down. Atlas writes it out.</p>
+          </div>
+          <div class="about-nov-row">
+            <span class="btn-novelty tier-t3">T3</span>
+            <p><strong>Newly computable</strong> <span class="about-nov-count" id="about-nov-t3"></span> —
+              the spectral physics was published years ago, but the sensor needed to compute it
+              only launched 2019–2024 (EMIT, PACE, EnMAP, NISAR). Operational for the first time.</p>
+          </div>
+
+          <p class="about-section-label">Separate from the 91</p>
+
+          <div class="about-tier">
+            <div class="about-tier-head">
+              <span class="cov-dot cov-dot--demo"></span>
+              <span class="about-tier-count" id="about-count-demo">—</span>
+              <span class="about-tier-name">Live sensor demonstrators</span>
+            </div>
+            <p>Not novel indices — established, single-scene techniques (radar water/urban/
+              vegetation; NO₂ and SO₂ retrievals) added purely to show the Sentinel-1 and
+              Sentinel-5P pipelines work. Badged <strong>DEMO</strong> and grouped in their own
+              "· Live" domains, so the novel total stays exactly <strong>91</strong>.</p>
+          </div>
+
+          <p class="about-foot">
+            All figures are computed live from the catalog: the three tiers above always sum to
+            the 91 novel indices, and demonstrators are tallied apart.
+          </p>
+        </div>
+      </div>
+
+    </div><!-- /map-area -->
+  </div><!-- /atlas-layout -->
+
+  <script type="module">
+    import { initAtlas } from './src/atlas-app.js?v=78';
+    document.addEventListener('DOMContentLoaded', () => initAtlas().catch(err => console.error('[Limn Atlas] init failed:', err)));
+  </script>
+</body>
+</html>

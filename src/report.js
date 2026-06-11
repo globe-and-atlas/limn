@@ -5,8 +5,8 @@
 
 import { getCDSEToken } from './auth.js';
 import { INDICES } from './indices.js';
-import { getScriptContent } from './map.js?v=76';
-import { showToast } from './ui.js?v=76';
+import { getScriptContent } from './map.js?v=77';
+import { showToast } from './ui.js?v=77';
 
 const SH_WMS_URL = 'https://sh.dataspace.copernicus.eu/ogc/wms/959ea2c5-5892-4b36-82b3-76e6bdb93c8a';
 

@@ -47,24 +47,25 @@ import {
     hideHoverHighlight
 } from './charts.js';
 import {
-    probeAcquisitions,
+    probeAcquisitions as probeAcquisitionsFromReport,
     openReportModal,
     closeReportModal,
     initRrcSpillOverlay,
     downloadHTMLReport
-} from './report.js?v=76';
+} from './report.js?v=77';
 import {
     initLeafletMap,
     applyIndex as applyIndexDelegate,
     updateGifInset as updateGifInsetDelegate,
     getScriptContent,
-    getWMSLayer
-} from './map.js?v=76';
+    getImageryProvider,
+    getIndexLayer
+} from './map.js?v=77';
 import {
     showToast as showToastDelegate,
     switchTab,
     updateUI as updateUIDelegate
-} from './ui.js?v=76';
+} from './ui.js?v=77';
 
 const AOI_LOCATIONS = {
     dixon: { lat: 31.893285, lng: -101.864031, zoom: 15 },
@@ -92,8 +93,8 @@ const SPILL_BOOKMARKS = [
         eventDate: 'continuous since ~2003',
         dateRole: 'representative continuous imagery date',
         confidence: 'High (Exact GPS)',
-        note: 'The ultimate calibration site. 60-acre hyper-saline lake in Pecos County continuously fed by a legacy 1951 Gulf Oil dry hole. Loop-reviewed proof target: OBEC and ASAI sharply isolate the standing brine lake; strict PWCI intentionally stays off open water.',
-        indices: ['hpwi', 'pwoi'],
+        note: 'The ultimate calibration site. 60-acre hyper-saline lake in Pecos County continuously fed by a legacy 1951 Gulf Oil dry hole. Current proof/support targets: OBEC and ASAI sharply isolate the standing brine lake, while LBI shows the active liquid-brine body. Strict PWCI intentionally stays off open water.',
+        indices: ['hpwi', 'lbi', 'pwoi'],
     },
     {
         id: 'meister-2022',
@@ -112,8 +113,8 @@ const SPILL_BOOKMARKS = [
         eventDate: '2022-01-02/2022-01-14',
         dateRole: 'event-window imagery date',
         confidence: 'High (Exact GPS)',
-        note: 'Abandoned 1946 Gulf Oil dry hole erupted a 100-ft brine geyser due to SWD injection-induced overpressure. Loop-reviewed proof path uses LBI at the documented coordinates and event-window date. PWCI was blank (no co-located HC signature). ASAI was blank under the old strict radarProxy > 0.7 gate; re-check with updated thresholds (radarProxy > 0.50) — geyser plume likely borderline-wet.',
-        indices: ['lbi', 'pwoi'],
+        note: 'Abandoned 1946 Gulf Oil dry hole erupted a 100-ft brine geyser due to SWD injection-induced overpressure. Loop-reviewed proof path uses LBI at the documented coordinates and event-window date. PWCI and ASAI were blank at the measured proof frames, so this bookmark should demo liquid-brine signal rather than dry salt-crust chemistry.',
+        indices: ['lbi'],
     },
     {
         id: 'crane-crevice-2023',
@@ -152,8 +153,8 @@ const SPILL_BOOKMARKS = [
         eventDate: '2024-10-02',
         dateRole: 'event start date',
         confidence: 'Medium (~1km)',
-        note: '100-ft geyser of oily saline brine + H2S gas from a 1961 dry hole, requiring local emergency response. Loop-reviewed proof target: OBEC gives the clearest pad-scale signal; PWCI was blank under strict gates.',
-        indices: ['hpwi'],
+        note: '100-ft geyser of oily saline brine + H2S gas from a 1961 dry hole, requiring local emergency response. Current proof/support targets: OBEC gives the clearest pad-scale signal and LBI shows liquid-brine response; PWCI stays blank under strict gates.',
+        indices: ['hpwi', 'lbi'],
     },
     {
         id: 'apache-balmorhea-2020',
@@ -171,8 +172,8 @@ const SPILL_BOOKMARKS = [
         eventDate: '2020-07-29',
         dateRole: 'post-event residue imagery date',
         confidence: 'Medium (~1km)',
-        note: 'Context-only bookmark. Massive produced water storage tank battery blowout north of Balmorhea. The loop found only weak/moderate broad residue signals here, so this is retained for source context rather than proof-grade index validation.',
-        indices: ['bpi'],
+        note: 'Context-only bookmark. Massive produced water storage tank battery blowout north of Balmorhea. The current baseline found only weak broad residue/facility signal, so this is retained for source context rather than proof-grade index validation.',
+        indices: [],
     },
     {
         id: 'antina-ranch-2021',
@@ -211,7 +212,7 @@ const SPILL_BOOKMARKS = [
         dateRole: 'event date',
         confidence: 'Medium (~1.5km)',
         note: 'El Dorado Crude Station pipeline rupture south of Midland. 400,000+ gal of crude spilled. Negative-control target: PWCI and ASAI stay blank/weak here, supporting produced-water specificity against a crude-oil event.',
-        indices: ['pwi', 'pwoi'],
+        indices: [],
     },
     {
         id: 'eog-klondike-2025',
@@ -229,8 +230,8 @@ const SPILL_BOOKMARKS = [
         eventDate: '2025-06-10',
         dateRole: 'post-event context imagery date',
         confidence: 'Regional (±15km)',
-        note: 'Context-only regional bookmark. Equipment failure overflow at a produced water reuse pit on New Mexico State Trust Land in Lea County, damaging over 20 acres of high-desert scrub. Loop-reviewed ASAI scene is strong, but the source location precision remains regional.',
-        indices: ['pwoi'],
+        note: 'Context-only regional bookmark. Equipment failure overflow at a produced water reuse pit on New Mexico State Trust Land in Lea County, damaging over 20 acres of high-desert scrub. Current context-support lenses are LBI, OBEC, and ASAI; source precision remains regional rather than proof-grade GPS.',
+        indices: ['lbi', 'hpwi', 'pwoi'],
     },
     {
         id: 'oxy-mesa-verde-2025',
@@ -248,8 +249,8 @@ const SPILL_BOOKMARKS = [
         eventDate: '2025-07-15',
         dateRole: 'event date',
         confidence: 'Regional (±5km)',
-        note: 'Context-only regional bookmark. Huge wastewater recycling facility failure on federal land in southeast New Mexico. Loop review found moderate OBEC/ASAI context signal; PWCI stayed blank.',
-        indices: ['hpwi', 'pwoi'],
+        note: 'Context-only regional bookmark. Huge wastewater recycling facility failure on federal land in southeast New Mexico. Current context-support lenses are LBI plus moderate OBEC/ASAI; PWCI stays blank.',
+        indices: ['lbi', 'hpwi', 'pwoi'],
     },
     {
         id: 'black-river-cimarex-2023',
@@ -263,12 +264,12 @@ const SPILL_BOOKMARKS = [
         sourceUrls: [
             'https://ocdimage.emnrd.nm.gov/imaging/Filestore/SantaFe/NF/20250224/nAPP2327753740_02_24_2025_11_30_44.pdf'
         ],
-        evidenceClass: 'produced-water-sub-threshold',
+        evidenceClass: 'produced-water-context',
         eventDate: '2023-10-03',
         dateRole: 'event date',
         confidence: 'High (Exact GPS)',
-        note: 'Cimarex/Coterra closure report documents a third-party truck rollover releasing produced water at the Black River / John D. Forehand Road crossing. 65 BBL (~2,700 gal) is likely sub-pixel for Sentinel-2 at 10m resolution — use to verify specificity (null/weak expected), not as a proof-of-detection target.',
-        indices: ['hpwi', 'lbi', 'pwoi'],
+        note: 'Cimarex/Coterra closure report documents a third-party truck rollover releasing produced water at the Black River / John D. Forehand Road crossing. The release is small for Sentinel-2, so use OBEC/LBI here as exact-location support context rather than a standalone proof-of-volume claim. Current ASAI is blank after stricter dry-brine gating.',
+        indices: ['hpwi', 'lbi'],
     },
     {
         id: 'matador-desoto-spring-2025',
@@ -306,8 +307,8 @@ const SPILL_BOOKMARKS = [
         eventDate: '2026-05-24',
         dateRole: 'event date',
         confidence: 'High (Exact NMOCD row)',
-        note: 'NMOCD row nAPP2614556829 documents a major OXY produced-water release from an injection flowline in Lea County: 942 BBL released and 412 BBL lost. Loop-reviewed proof default uses ASAI; strict PWCI and OBEC were weak or blank in the available scene.',
-        indices: ['pwoi'],
+        note: 'NMOCD row nAPP2614556829 documents a major OXY produced-water release from an injection flowline in Lea County: 942 BBL released and 412 BBL lost. Current baseline support uses LBI; strict PWCI, ASAI, and OBEC are blank or weak in the available scene.',
+        indices: ['lbi'],
     },
     {
         id: 'oxy-sand-dunes-2026',
@@ -331,10 +332,13 @@ const SPILL_BOOKMARKS = [
 ];
 
 const INDEX_SHORT_LABELS = {
-    pwi: 'PWCI', pwoi: 'ASAI', hpwi: 'OBEC', lbi: 'LBI', bpi: 'BPI', mvpi: 'MVPI',
+    pwi: 'PWCI', pwoi: 'ASAI', hpwi: 'OBEC', ehc: 'EHC', lbi: 'LBI', bpi: 'BPI', fbc: 'FBC', vsi: 'VSI', mvpi: 'MVPI',
 };
 const DEFAULT_SPILL_ID = 'lake-boehmer-pecos-orphan';
-const DEFAULT_INDEX = 'pwoi';
+const DEFAULT_INDEX = 'hpwi';
+const COG_PROVIDER_KEYS = new Set(['cog', 'sentinel-cog', 'sentinel2-cog']);
+const COG_SUPPORTED_INDEX_KEYS = new Set(['none', 'tc', 'truecolor', 'true-color', 'pwi', 'hpwi', 'pwoi', 'lbi']);
+const COG_SCREEN_INDEX_KEYS = new Set(['hpwi', 'lbi', 'pwoi', 'pwi']);
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const START_YEAR = 2020;
@@ -362,24 +366,102 @@ while (iterDate <= today) {
 
 
 
-// Copernicus Sentinel Hub configuration
-// Copernicus Sentinel Hub configuration
+// Imagery provider configuration.
 const SH_WMS_URL = 'https://sh.dataspace.copernicus.eu/ogc/wms/959ea2c5-5892-4b36-82b3-76e6bdb93c8a';
 const SH_STAT_API_URL = 'https://sh.dataspace.copernicus.eu/api/v1/statistics';
 
 const APP_VERSION = 'v49';
 
 const internalAppConfig = {
+    IMAGE_PROVIDER: 'cog',
+    GEE_TILE_ENDPOINT: '/api/gee/tiles',
+    COG_TILE_ENDPOINT: '/api/cog/tiles',
+    ALLOW_SENTINEL_FALLBACK: false,
+    SENTINEL_CREDIT_GUARD: true,
+    SENTINEL_LIVE_TILES: false,
+    SENTINEL_MIN_ZOOM: 14,
     SH_WMS_URL,
     SH_STAT_API_URL,
     ALL_DATES,
     INDICES,
     START_YEAR
 };
+let runtimeImageProviderOverride = null;
+
+function isSentinelOnlyShareMode() {
+    if (window.LIMN_SHARE_SENTINEL_ONLY === true) return true;
+    const params = new URLSearchParams(window.location.search || '');
+    const shareMode = params.get('share') || params.get('mode') || '';
+    return shareMode === 'sentinel-only' || shareMode === 'sentinel';
+}
+
+function applySentinelOnlyShareConfig(config) {
+    config.IMAGE_PROVIDER = 'sentinelhub';
+    config.IMAGERY_PROVIDER = 'sentinelhub';
+    config.ALLOW_SENTINEL_FALLBACK = true;
+    config.SENTINEL_CREDIT_GUARD = true;
+    config.SENTINEL_LIVE_TILES = true;
+    return config;
+}
 
 // Modular Delegations
+function getActiveConfig() {
+    const merged = { ...internalAppConfig, ...(window.CONFIG || {}) };
+    if (runtimeImageProviderOverride) {
+        merged.IMAGE_PROVIDER = runtimeImageProviderOverride;
+        merged.IMAGERY_PROVIDER = runtimeImageProviderOverride;
+        if (runtimeImageProviderOverride === 'sentinelhub') {
+            merged.ALLOW_SENTINEL_FALLBACK = true;
+        }
+    }
+    if (isSentinelOnlyShareMode()) applySentinelOnlyShareConfig(merged);
+    const requestedProvider = String(merged.IMAGE_PROVIDER || merged.IMAGERY_PROVIDER || 'gee').toLowerCase();
+    if (requestedProvider === 'sentinelhub' && merged.ALLOW_SENTINEL_FALLBACK !== true) {
+        merged.IMAGE_PROVIDER = internalAppConfig.IMAGE_PROVIDER;
+        merged.IMAGERY_PROVIDER = internalAppConfig.IMAGE_PROVIDER;
+    }
+    return merged;
+}
+
+function getActiveProvider() {
+    return getImageryProvider(getActiveConfig());
+}
+
+function getDefaultProviderLabel() {
+    const cfg = { ...internalAppConfig, ...(window.CONFIG || {}) };
+    if (isSentinelOnlyShareMode()) return 'SENTINEL';
+    const requestedProvider = String(cfg.IMAGE_PROVIDER || cfg.IMAGERY_PROVIDER || internalAppConfig.IMAGE_PROVIDER).toLowerCase();
+    if (requestedProvider === 'sentinelhub' && cfg.ALLOW_SENTINEL_FALLBACK !== true) {
+        return internalAppConfig.IMAGE_PROVIDER.toUpperCase();
+    }
+    return requestedProvider.toUpperCase();
+}
+
+function isCogProviderActive() {
+    return COG_PROVIDER_KEYS.has(getActiveProvider());
+}
+
+function isGeeProviderActive() {
+    return getActiveProvider() !== 'sentinelhub';
+}
+
+function sentinelFeatureUnavailable(featureName) {
+    const providerLabel = isCogProviderActive() ? 'Sentinel-2 COG tiles' : 'Earth Engine tiles';
+    showToast(`${featureName} still uses Sentinel Hub/CDSE. ${providerLabel} are enabled by default, so this action is paused until a provider-neutral analytics endpoint is wired.`, 'warning');
+}
+
+async function probeAcquisitions() {
+    if (isGeeProviderActive()) return;
+    if (isSentinelCreditGuardBlocking()) return;
+    return probeAcquisitionsFromReport();
+}
+
 function applyIndex(isScrubbing = false) {
-    applyIndexDelegate(state, window.CONFIG || internalAppConfig, isScrubbing);
+    enforceCogIndexSupport({ silent: isScrubbing });
+    enforceCogTemporalConstraints();
+    syncSentinelCreditGuardState();
+    state.indexVisible = true;
+    applyIndexDelegate(state, getActiveConfig(), isScrubbing);
     updateUI();
 }
 window.applyIndex = applyIndex;
@@ -387,9 +469,11 @@ window.downloadHTMLReport = downloadHTMLReport;
 
 function updateUI() {
     updateUIDelegate(state, INDICES);
+    setCogUiAvailability();
+    updateSentinelGuardUI();
     
     // Geochemical Basin & Sensitivity Calibration UI Isolation
-    const SPILL_INDEX_KEYS = ['pwi', 'pwoi', 'hpwi', 'lbi', 'fbc', 'reai', 'vcbi', 'aoi', 'cma', 'hmi', 'phi', 'tri', 'bpi', 'mvpi'];
+    const SPILL_INDEX_KEYS = ['pwi', 'pwoi', 'hpwi', 'ehc', 'lbi', 'fbc', 'reai', 'vcbi', 'aoi', 'cma', 'hmi', 'phi', 'tri', 'bpi', 'mvpi'];
     const isSpillIndex = SPILL_INDEX_KEYS.includes(state.activeIndex);
     
     const settingsContainers = document.querySelectorAll('#tab-settings .control-group');
@@ -429,7 +513,8 @@ function updateUI() {
 window.updateUI = updateUI;
 
 function updateGifInset() {
-    updateGifInsetDelegate(state, window.CONFIG || internalAppConfig);
+    if (isGeeProviderActive()) return;
+    updateGifInsetDelegate(state, getActiveConfig());
 }
 
 function showToast(message, type = 'info') {
@@ -451,6 +536,11 @@ function getTileErrorMessage(event) {
     }
     if (err?.status === 403) {
         return err.detail ? `Sentinel Hub denied tile access: ${err.detail}` : 'Sentinel Hub denied tile access with HTTP 403.';
+    }
+    if (err?.status === 429) {
+        return err.detail
+            ? `Sentinel Hub rate limited the tile request: ${err.detail}`
+            : 'Sentinel Hub rate limited tile requests. Limn is cooling down before retrying.';
     }
     if (err?.status) {
         return err.detail
@@ -514,8 +604,13 @@ const state = {
     sarFusion: false, // track the state of the SAR Overlay toggle
     hlsEnabled: false, // NASA HLS temporal booster
     opacity: 0.85,
+    indexVisible: true,
     visualFilter: 0,
     sensitivity: 0, // Dynamic threshold offset (-50 to 50)
+    sentinelLiveTiles: false,
+    sentinelMinZoom: 14,
+    sentinelGuardInitialized: false,
+    sentinelRateLimitedUntil: 0,
     overlayGroup: null,
     leftGroup: null,
     rightGroup: null,
@@ -532,12 +627,35 @@ const state = {
 
 // Expose core objects to global window scope for modular accessibility
 window.state = state;
-window.CONFIG = Object.assign(window.CONFIG || {}, internalAppConfig);
+window.CONFIG = getActiveConfig();
 window.ALL_DATES = ALL_DATES;
 window.MONTHS = MONTHS;
+window.getLimnProviderState = () => ({
+    provider: getActiveProvider(),
+    defaultProvider: getDefaultProviderLabel().toLowerCase(),
+    runtimeImageProviderOverride,
+    sentinelOnlyShareMode: isSentinelOnlyShareMode(),
+    sentinelLiveTiles: state.sentinelLiveTiles === true,
+    sentinelMinZoom: state.sentinelMinZoom,
+    sentinelRateLimitedUntil: state.sentinelRateLimitedUntil || 0,
+    zoom: state.map?.getZoom?.() ?? null,
+    guardBlocking: isSentinelCreditGuardBlocking(),
+    status: document.getElementById('sentinel-guard-status')?.textContent || ''
+});
 
 function getSpillById(spillId) {
     return SPILL_BOOKMARKS.find(spill => spill.id === spillId) || SPILL_BOOKMARKS[0];
+}
+
+function getDemoSpillBookmarks(indexKey = null) {
+    return SPILL_BOOKMARKS.filter(spill => {
+        const indices = spill.indices || [];
+        const providerReadyIndices = isCogProviderActive()
+            ? indices.filter(idx => COG_SUPPORTED_INDEX_KEYS.has(idx))
+            : indices;
+        if (indexKey) return providerReadyIndices.includes(indexKey);
+        return providerReadyIndices.length > 0;
+    });
 }
 
 function getActiveSpill() {
@@ -573,13 +691,14 @@ function updateWorkflowSummary(spill = getActiveSpill(), indexKey = state.active
     if (lensEl) {
         const shortLabel = INDEX_SHORT_LABELS[indexKey] || indexKey.toUpperCase();
         const longName = indexConfig?.name?.replace(/\s*\(formerly.*?\)/i, '') || shortLabel;
-        lensEl.textContent = longName.startsWith(shortLabel) ? longName : `${shortLabel} — ${longName}`;
+        lensEl.textContent = shortLabel;
+        lensEl.title = longName;
     }
     if (siteEl && spill) siteEl.textContent = spill.label;
     if (evidenceEl && spill) {
         const evidenceClass = (spill.evidenceClass || 'screening target').replace(/-/g, ' ');
-        const dateRole = spill.dateRole || spill.displayDate || spill.date;
-        evidenceEl.textContent = `${evidenceClass} · ${dateRole}`;
+        const displayDate = spill.displayDate || spill.date;
+        evidenceEl.textContent = `${displayDate} · ${evidenceClass}`;
     }
 }
 
@@ -589,6 +708,16 @@ function markActiveWorkflowControls() {
     });
     document.querySelectorAll('.triage-bm-btn, .spill-bookmark-btn').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.spillId === state.activeSpillId);
+    });
+    document.querySelectorAll('.triage-bm-row').forEach(row => {
+        row.classList.toggle('active', row.dataset.spillId === state.activeSpillId);
+    });
+    document.querySelectorAll('.triage-bm-chip').forEach(chip => {
+        const isActiveSite = chip.dataset.spillId === state.activeSpillId;
+        const isActiveIndex = chip.dataset.index === state.activeIndex;
+        const isActive = state.indexVisible && isActiveSite && isActiveIndex;
+        chip.classList.toggle('active', isActive);
+        chip.setAttribute('aria-pressed', isActive ? 'true' : 'false');
     });
 }
 
@@ -607,19 +736,190 @@ function selectSpill(spill, { fly = false } = {}) {
     markActiveWorkflowControls();
 }
 
+function hideIndexOverlay() {
+    if (!state.map) return;
+    if (state.sbsControl) {
+        try { state.sbsControl.remove(); } catch (_) {}
+        state.sbsControl = null;
+    }
+    ['overlayGroup', 'leftGroup', 'rightGroup'].forEach(key => {
+        if (state[key]) {
+            state.map.removeLayer(state[key]);
+            state[key] = null;
+        }
+    });
+    state.indexVisible = false;
+    markActiveWorkflowControls();
+}
+
+function getProviderReadyBookmarkIndices(spill) {
+    const indices = spill?.indices || [];
+    return isCogProviderActive()
+        ? indices.filter(idx => COG_SUPPORTED_INDEX_KEYS.has(idx))
+        : indices;
+}
+
+function isIndexProviderReady(indexKey) {
+    return !isCogProviderActive() || COG_SUPPORTED_INDEX_KEYS.has(indexKey);
+}
+
+let lastCogUnsupportedToast = '';
+
+function enforceCogIndexSupport({ silent = false } = {}) {
+    if (!isCogProviderActive() || COG_SUPPORTED_INDEX_KEYS.has(state.activeIndex)) return true;
+    const previousIndex = state.activeIndex;
+    state.activeIndex = DEFAULT_INDEX;
+    state.indexVisible = true;
+    if (!silent && previousIndex !== lastCogUnsupportedToast) {
+        const label = INDEX_SHORT_LABELS[previousIndex] || previousIndex.toUpperCase();
+        showToast(`${label} is not ported to the COG renderer yet. Switched to OBEC for the current demo provider.`, 'warning');
+        lastCogUnsupportedToast = previousIndex;
+    }
+    return false;
+}
+
+function enforceCogTemporalConstraints() {
+    if (!isCogProviderActive()) return;
+    if (state.compareType === 'diff' || state.compareType === 'cumulative') {
+        state.compareType = 'swipe';
+    }
+}
+
+function setCogUiAvailability() {
+    const isCog = isCogProviderActive();
+    document.body.classList.toggle('provider-cog', isCog);
+
+    document.querySelectorAll('.index-btn[data-index]').forEach(btn => {
+        const key = btn.dataset.index;
+        const supported = !isCog || COG_SUPPORTED_INDEX_KEYS.has(key);
+        btn.disabled = !supported;
+        btn.classList.toggle('is-provider-disabled', !supported);
+        btn.setAttribute('aria-disabled', supported ? 'false' : 'true');
+        if (!supported) {
+            btn.title = 'Not available in the current COG renderer.';
+        } else if (btn.title === 'Not available in the current COG renderer.') {
+            btn.removeAttribute('title');
+        }
+    });
+
+    document.querySelectorAll('.triage-tag-pill[data-index]').forEach(pill => {
+        const key = pill.dataset.index;
+        const visible = !isCog || COG_SCREEN_INDEX_KEYS.has(key);
+        pill.hidden = !visible;
+        pill.disabled = !visible;
+        pill.classList.toggle('is-provider-disabled', !visible);
+    });
+
+    const btnSwipe = document.getElementById('btn-swipe');
+    const btnDiff = document.getElementById('btn-diff');
+    const btnCumulative = document.getElementById('btn-cumulative');
+    if (btnSwipe && btnDiff && btnCumulative) {
+        btnSwipe.classList.toggle('active', state.compareType === 'swipe');
+        btnDiff.classList.toggle('active', state.compareType === 'diff');
+        btnCumulative.classList.toggle('active', state.compareType === 'cumulative');
+        [btnDiff, btnCumulative].forEach(btn => {
+            btn.disabled = isCog;
+            btn.classList.toggle('is-provider-disabled', isCog);
+            btn.setAttribute('aria-disabled', isCog ? 'true' : 'false');
+            btn.title = isCog ? 'COG mode supports single-date and swipe compare only.' : '';
+        });
+    }
+}
+
+function syncSentinelCreditGuardState() {
+    if (state.sentinelGuardInitialized) return;
+    const config = getActiveConfig();
+    state.sentinelLiveTiles = config.SENTINEL_LIVE_TILES === true;
+    runtimeImageProviderOverride = config.SENTINEL_LIVE_TILES === true && getImageryProvider(config) === 'sentinelhub'
+        ? 'sentinelhub'
+        : null;
+    if (isSentinelOnlyShareMode()) {
+        runtimeImageProviderOverride = 'sentinelhub';
+        state.sentinelLiveTiles = true;
+    }
+    const configuredMinZoom = Number(config.SENTINEL_MIN_ZOOM || state.sentinelMinZoom || 14);
+    state.sentinelMinZoom = Number.isFinite(configuredMinZoom) ? configuredMinZoom : 14;
+    state.sentinelGuardInitialized = true;
+}
+
+function updateSentinelGuardUI() {
+    const provider = getActiveProvider();
+    const isSentinel = provider === 'sentinelhub';
+    const guardEnabled = getActiveConfig().SENTINEL_CREDIT_GUARD !== false;
+    const minZoom = state.sentinelMinZoom || 14;
+    const currentZoom = state.map?.getZoom?.() ?? 0;
+    const sentinelActive = isSentinel && state.sentinelLiveTiles === true;
+    const toggle = document.getElementById('toggle-sentinel-live');
+    const zoomSlider = document.getElementById('sentinel-min-zoom');
+    const zoomVal = document.getElementById('sentinel-min-zoom-val');
+    const status = document.getElementById('sentinel-guard-status');
+    const guardMini = document.querySelector('.sentinel-guard-mini');
+    const shareMode = isSentinelOnlyShareMode();
+
+    if (toggle) {
+        toggle.checked = shareMode ? true : sentinelActive;
+        toggle.disabled = shareMode || !guardEnabled;
+        toggle.title = shareMode
+            ? 'Sentinel-only share mode is locked to guarded WMS tiles'
+            : sentinelActive
+            ? 'Switch back to the default COG/GEE renderer'
+            : 'Switch this session to guarded Sentinel Hub WMS tiles';
+    }
+    if (guardMini) {
+        guardMini.classList.toggle('is-armed', shareMode || sentinelActive);
+        guardMini.classList.toggle('is-share-mode', shareMode);
+    }
+    if (zoomSlider) {
+        zoomSlider.value = String(minZoom);
+        zoomSlider.disabled = !guardEnabled;
+    }
+    if (zoomVal) zoomVal.textContent = `${minZoom}+`;
+
+    if (!status) return;
+    if (shareMode && state.sentinelRateLimitedUntil > Date.now()) {
+        const seconds = Math.max(1, Math.ceil((state.sentinelRateLimitedUntil - Date.now()) / 1000));
+        status.textContent = `Share mode: cooling down ${seconds}s.`;
+    } else if (shareMode && currentZoom < minZoom) {
+        status.textContent = `Share mode: Sentinel-only, guarded until zoom ${minZoom}+ (current ${currentZoom}).`;
+    } else if (shareMode) {
+        status.textContent = `Share mode: Sentinel-only WMS armed at zoom ${currentZoom}.`;
+    } else if (!guardEnabled) {
+        status.textContent = 'Guard disabled by config. Sentinel Hub requests are allowed.';
+    } else if (!isSentinel) {
+        status.textContent = `${getDefaultProviderLabel()} active. Toggle Sentinel to request guarded WMS tiles.`;
+    } else if (!state.sentinelLiveTiles) {
+        status.textContent = 'Disarmed. Sentinel Hub WMS tiles are blocked.';
+    } else if (state.sentinelRateLimitedUntil > Date.now()) {
+        const seconds = Math.max(1, Math.ceil((state.sentinelRateLimitedUntil - Date.now()) / 1000));
+        status.textContent = `Rate limited. Cooling down ${seconds}s before more Sentinel WMS tiles.`;
+    } else if (currentZoom < minZoom) {
+        status.textContent = `Armed, but blocked until zoom ${minZoom}+ (current ${currentZoom}).`;
+    } else {
+        status.textContent = `Armed. Sentinel Hub WMS may request tiles at zoom ${currentZoom}.`;
+    }
+}
+
+function isSentinelCreditGuardBlocking() {
+    if (getActiveProvider() !== 'sentinelhub') return false;
+    const config = getActiveConfig();
+    if (config.SENTINEL_CREDIT_GUARD === false) return false;
+    const currentZoom = state.map?.getZoom?.() ?? 0;
+    return !state.sentinelLiveTiles || currentZoom < state.sentinelMinZoom;
+}
+
 
 export function renderSpillBookmarks(indexKey = state.activeIndex) {
     const spillList = document.getElementById('spill-bookmark-list');
     if (!spillList) return;
     spillList.innerHTML = '';
 
-    const bookmarks = SPILL_BOOKMARKS;
+    const bookmarks = getDemoSpillBookmarks(indexKey);
 
     // Update section title & disclaimer
     const sectionTitle = document.querySelector('.spill-bookmarks-section h3');
     const sectionDisclaimer = document.querySelector('.spill-disclaimer');
-    if (sectionTitle) sectionTitle.textContent = 'Confirmed Spill Sites';
-    if (sectionDisclaimer) sectionDisclaimer.textContent = 'TRRC/NMED confirmed · coordinates approximate';
+    if (sectionTitle) sectionTitle.textContent = 'Screening Sites';
+    if (sectionDisclaimer) sectionDisclaimer.textContent = 'Only sites with a current measured chip for this lens are listed.';
 
     bookmarks.forEach(spill => {
         const btn = document.createElement('button');
@@ -662,6 +962,10 @@ window.renderSpillBookmarks = renderSpillBookmarks;
 
 // ── INIT ───────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+    if (isSentinelOnlyShareMode()) {
+        document.body.classList.add('sentinel-only-share-mode');
+    }
+
     const vBadge = document.getElementById('app-version-badge');
     if (vBadge) vBadge.textContent = APP_VERSION;
 
@@ -725,7 +1029,11 @@ document.addEventListener('DOMContentLoaded', () => {
     if (t2Sel) t2Sel.selectedIndex = Math.min(10, t2Sel.options.length - 1); // Select a date ~10 steps prior
 
 
-    state.map = initLeafletMap('map', AOI_LOCATIONS[state.activeLoc]);
+    const initialSpill = getActiveSpill();
+    const initialMapLocation = initialSpill
+        ? { lat: initialSpill.lat, lng: initialSpill.lng, zoom: initialSpill.zoom }
+        : AOI_LOCATIONS[state.activeLoc];
+    state.map = initLeafletMap('map', initialMapLocation);
     
     // Bind Map Events for Loading & Errors
     const mapLoader = document.getElementById('map-loader');
@@ -739,12 +1047,33 @@ document.addEventListener('DOMContentLoaded', () => {
         if (mapLoader) mapLoader.classList.remove('active');
         showTileErrorToast(e);
     });
+    state.map.on('sentinelguard', (e) => {
+        updateSentinelGuardUI();
+        const detail = e?.status || {};
+        if (detail.reason === 'disarmed') {
+            showToast('Sentinel Hub live tiles are disarmed. Enable them in Settings to spend credits.', 'info');
+        } else if (detail.reason === 'zoom') {
+            showToast(`Sentinel Hub guarded below zoom ${detail.minZoom}. Zoom in to render WMS tiles.`, 'info');
+        }
+    });
+    state.map.on('sentinelratelimit', (e) => {
+        const retryAfterMs = Number(e?.retryAfterMs || 15000);
+        state.sentinelRateLimitedUntil = Math.max(state.sentinelRateLimitedUntil || 0, Date.now() + retryAfterMs);
+        updateSentinelGuardUI();
+        showDedupedTileToast(`Sentinel Hub rate limit reached. Cooling down ${Math.ceil(retryAfterMs / 1000)}s before retrying WMS tiles.`);
+    });
+    state.map.on('zoomend', () => {
+        updateSentinelGuardUI();
+        if (getActiveProvider() === 'sentinelhub' && state.indexVisible) applyIndex();
+    });
 
     // Initialize Base Layer
     state.baseLayerInst = L.tileLayer(BASE_LAYERS.imagery, { maxZoom: 18 }).addTo(state.map);
     state.baseLayerInst.bringToBack();
 
     bindEvents();
+    syncSentinelCreditGuardState();
+    updateSentinelGuardUI();
 
     // Initial Data Load
     selectSpill(getActiveSpill());
@@ -794,6 +1123,7 @@ function bindEvents() {
 
     mComp.addEventListener('click', () => {
         state.mode = 'compare';
+        enforceCogTemporalConstraints();
         mComp.classList.add('active'); mSing.classList.remove('active');
         cComp.style.display = 'block'; cSing.style.display = 'none';
 
@@ -816,6 +1146,7 @@ function bindEvents() {
             applyIndex();
         });
         document.getElementById('btn-diff').addEventListener('click', () => {
+            if (isCogProviderActive()) return;
             state.compareType = 'diff';
             document.getElementById('btn-diff').classList.add('active');
             document.getElementById('btn-swipe').classList.remove('active');
@@ -823,6 +1154,7 @@ function bindEvents() {
             applyIndex();
         });
         document.getElementById('btn-cumulative').addEventListener('click', () => {
+            if (isCogProviderActive()) return;
             state.compareType = 'cumulative';
             document.getElementById('btn-cumulative').classList.add('active');
             document.getElementById('btn-swipe').classList.remove('active');
@@ -902,6 +1234,11 @@ function bindEvents() {
         }
 
         btn.addEventListener('click', (e) => {
+            if (e.currentTarget.disabled || !isIndexProviderReady(e.currentTarget.dataset.index)) {
+                enforceCogIndexSupport();
+                setCogUiAvailability();
+                return;
+            }
             document.querySelectorAll('.index-btn').forEach(b => b.classList.remove('active'));
             let target = e.currentTarget;
             target.classList.add('active');
@@ -1032,6 +1369,43 @@ function bindEvents() {
         toggleSar.addEventListener('change', (e) => {
             state.sarFusion = e.target.checked;
             applyIndex();
+        });
+    }
+
+    const sentinelToggle = document.getElementById('toggle-sentinel-live');
+    if (sentinelToggle) {
+        sentinelToggle.addEventListener('change', (e) => {
+            if (isSentinelOnlyShareMode()) {
+                runtimeImageProviderOverride = 'sentinelhub';
+                state.sentinelLiveTiles = true;
+                e.target.checked = true;
+                updateSentinelGuardUI();
+                applyIndex();
+                return;
+            }
+            if (e.target.checked) {
+                runtimeImageProviderOverride = 'sentinelhub';
+                state.sentinelLiveTiles = true;
+            } else {
+                if (runtimeImageProviderOverride === 'sentinelhub') runtimeImageProviderOverride = null;
+                state.sentinelLiveTiles = false;
+            }
+            updateSentinelGuardUI();
+            setCogUiAvailability();
+            renderSpillBookmarks(state.activeIndex);
+            applyIndex();
+        });
+    }
+
+    const sentinelZoom = document.getElementById('sentinel-min-zoom');
+    if (sentinelZoom) {
+        sentinelZoom.addEventListener('input', (e) => {
+            state.sentinelMinZoom = Number(e.target.value);
+            updateSentinelGuardUI();
+        });
+        sentinelZoom.addEventListener('change', () => {
+            updateSentinelGuardUI();
+            if (getActiveProvider() === 'sentinelhub') applyIndex();
         });
     }
 
@@ -1195,6 +1569,10 @@ function bindEvents() {
     });
 
     document.getElementById('btn-scan-aoi').addEventListener('click', async () => {
+        if (isGeeProviderActive()) {
+            sentinelFeatureUnavailable('AOI history scan');
+            return;
+        }
         if (!aoiDrawnItem) {
             showToast("Please draw an Area of Interest (Rectangle or Polygon) first.", 'warning');
             return;
@@ -1295,7 +1673,7 @@ function evaluatePixel(sample) {
 
   // B9: LBI — Liquid Brine Index (S2 only, real)
   let ndwi_lbi = sum_ndwi === 0 ? 0 : (sample.B03 - sample.B11) / sum_ndwi;
-  let val_lbi = Math.max(0, ndsi) * Math.max(0, ndwi_lbi + 0.5) * Math.max(0, 1.0 - ndvi) * Math.max(0, bsi) * 40.0;
+  let val_lbi = bsi <= -0.25 ? 0 : Math.max(0, ndsi - 0.02) * Math.max(0, ndwi_lbi + 0.40) * Math.max(0, 0.45 - ndvi) * Math.max(0, bsi + 0.20) * 20.0;
 
   return { default: [val_pwi, val_hpwi, val_apex, val_ndmi, val_ndwi, val_savi, val_vsi, val_tri, val_bpi, val_lbi], dataMask: [1] };
 }`;
@@ -1341,6 +1719,7 @@ function evaluatePixel(sample) {
             // Define "Danger" Thresholds (modified by sensitivity)
             const THRESHOLDS = {
                 pwi: 0.10 - (state.sensitivity / 100 * 0.2),
+                lbi: 0.08,
                 ndmi_spike: 0.35,
                 ndsi: 0.15 - (state.sensitivity / 100 * 0.1)
             };
@@ -1385,7 +1764,7 @@ function evaluatePixel(sample) {
                         if ((pwi  > THRESHOLDS.pwi) ||
                             (hpwi > 0.05) ||
                             (pwoi > 0.05) ||
-                            (lbi  > 0.05) ||
+                            (lbi  > THRESHOLDS.lbi) ||
                             (tri  > 0.05) ||
                             (bpi  > 0.05) ||
                             (ndmi > THRESHOLDS.ndmi_spike && ndwi < 0.1)) {
@@ -1588,6 +1967,10 @@ function evaluatePixel(sample) {
 
     document.getElementById('btn-generate-report').addEventListener('click', async () => {
         if (!aoiDrawnItem) return;
+        if (isGeeProviderActive()) {
+            sentinelFeatureUnavailable('Report generation');
+            return;
+        }
         try {
 
             // 1. Populate Text Metadata
@@ -1631,7 +2014,7 @@ function evaluatePixel(sample) {
                 let allBands = [...new Set([...idx.fisBands, ...extraBands])];
                 let bandsStr = allBands.map(b => `'${b}'`).join(', ');
                 const isSar = state.activeIndex === 's1_sar';
-                const isSpill = ['pwi', 'pwoi', 'hpwi', 'lbi', 'fbc', 'reai', 'vcbi', 'aoi', 'cma', 'hmi', 'phi', 'tri', 'bpi'].includes(state.activeIndex);
+                const isSpill = ['pwi', 'pwoi', 'hpwi', 'ehc', 'lbi', 'fbc', 'reai', 'vcbi', 'aoi', 'cma', 'hmi', 'phi', 'tri', 'bpi'].includes(state.activeIndex);
                 const activeSensitivity = isSpill ? (state.sensitivity || 0) : 0;
 
                 const fisScript = `//VERSION=3
@@ -2244,7 +2627,7 @@ function evaluatePixel(sample) {
                 mapWrapperSingle.style.display = 'block';
                 mapWrapperCompare.style.display = 'none';
 
-                overlayLayer = getWMSLayer(state, internalAppConfig, ALL_DATES[state.monthIndex].value, false);
+                overlayLayer = getIndexLayer(state, getActiveConfig(), ALL_DATES[state.monthIndex].value, false);
                 mapLabel.innerText = 'Area of Interest (AOI)';
                 diffContainer.style.display = 'none';
 
@@ -2319,8 +2702,8 @@ function evaluatePixel(sample) {
                         style: { color: '#1C85A6', weight: 3, fillOpacity: 0.2 }
                     }).addTo(window.reportMapInstT2);
 
-                    getWMSLayer(state, internalAppConfig, rd1Compare, false).addTo(window.reportMapInst);
-                    getWMSLayer(state, internalAppConfig, rd2Compare, false).addTo(window.reportMapInstT2);
+                    getIndexLayer(state, getActiveConfig(), rd1Compare, false).addTo(window.reportMapInst);
+                    getIndexLayer(state, getActiveConfig(), rd2Compare, false).addTo(window.reportMapInstT2);
 
                     // Init diff map below side-by-side
                     if (!reportDiffMapInst) {
@@ -2348,7 +2731,7 @@ function evaluatePixel(sample) {
                     }).addTo(reportDiffMapInst._drawnItems);
 
                     if (reportDiffMapInst.overlayLayer) reportDiffMapInst.removeLayer(reportDiffMapInst.overlayLayer);
-                    reportDiffMapInst.overlayLayer = getWMSLayer(state, internalAppConfig, `${rd1Compare}/${rd2Compare}`, true).addTo(reportDiffMapInst);
+                    reportDiffMapInst.overlayLayer = getIndexLayer(state, getActiveConfig(), `${rd1Compare}/${rd2Compare}`, true).addTo(reportDiffMapInst);
                 }, 150);
             }
 
@@ -2650,7 +3033,13 @@ export function renderFocusedTriage() {
     const triageCards = document.querySelectorAll('.triage-card');
     
     function activateIndex(indexKey, card) {
+        if (!isIndexProviderReady(indexKey)) {
+            enforceCogIndexSupport();
+            setCogUiAvailability();
+            return;
+        }
         state.activeIndex = indexKey;
+        state.indexVisible = true;
         
         // Highlight active index button in original suite list
         document.querySelectorAll('.index-btn').forEach(btn => {
@@ -2714,6 +3103,11 @@ export function renderFocusedTriage() {
         tagPills.forEach(pill => {
             pill.addEventListener('click', (e) => {
                 e.stopPropagation(); // Prevent card level click event from refiring default
+                if (pill.disabled || !isIndexProviderReady(pill.dataset.index)) {
+                    enforceCogIndexSupport();
+                    setCogUiAvailability();
+                    return;
+                }
                 
                 // Clear other active cards and make this card active
                 const currentActiveCards = document.querySelectorAll('.triage-card');
@@ -2730,7 +3124,7 @@ export function renderFocusedTriage() {
 
         // ── Inline bookmark list ──────────────────────────────────────────────
         // Collect bookmarks relevant to this triage card
-        const cardBookmarks = SPILL_BOOKMARKS;
+        const cardBookmarks = getDemoSpillBookmarks();
 
         if (cardBookmarks.length > 0) {
             const bmContainer = document.createElement('div');
@@ -2738,14 +3132,22 @@ export function renderFocusedTriage() {
 
             const bmLabel = document.createElement('span');
             bmLabel.className = 'triage-bm-label';
-            bmLabel.textContent = '📍 Fly to Verified Site';
+            bmLabel.textContent = 'Screening Sites';
             bmContainer.appendChild(bmLabel);
 
             cardBookmarks.forEach(spill => {
-                const btn = document.createElement('button');
-                btn.className = 'triage-bm-btn';
-                btn.dataset.spillId = spill.id || spill.label.replace(/\s+/g, '-').toLowerCase();
-                btn.classList.toggle('active', btn.dataset.spillId === state.activeSpillId);
+                const spillId = spill.id || spill.label.replace(/\s+/g, '-').toLowerCase();
+                const row = document.createElement('div');
+                row.className = 'triage-bm-row';
+                row.dataset.spillId = spillId;
+                row.classList.toggle('active', spillId === state.activeSpillId);
+
+                const navBtn = document.createElement('button');
+                navBtn.type = 'button';
+                navBtn.className = 'triage-bm-btn';
+                navBtn.dataset.spillId = spillId;
+                navBtn.setAttribute('aria-label', `Fly to ${spill.label}, ${spill.displayDate || spill.date}`);
+                navBtn.classList.toggle('active', spillId === state.activeSpillId);
 
                 // Header row: name + date
                 const header = document.createElement('div');
@@ -2762,60 +3164,85 @@ export function renderFocusedTriage() {
                 header.appendChild(nameEl);
                 header.appendChild(dateEl);
 
-                // Chip row: one chip per index
                 const chips = document.createElement('div');
                 chips.className = 'triage-bm-chips';
-                (spill.indices || []).forEach(idxKey => {
-                    const chip = document.createElement('span');
+                getProviderReadyBookmarkIndices(spill).forEach(idxKey => {
+                    const chip = document.createElement('button');
+                    chip.type = 'button';
                     chip.className = `triage-bm-chip triage-bm-chip--${idxKey}`;
+                    chip.dataset.spillId = spillId;
+                    chip.dataset.index = idxKey;
+                    chip.setAttribute('aria-pressed', 'false');
+                    chip.setAttribute('aria-label', `Toggle ${INDEX_SHORT_LABELS[idxKey] || idxKey.toUpperCase()} for ${spill.label}`);
                     chip.textContent = INDEX_SHORT_LABELS[idxKey] || idxKey.toUpperCase();
+                    chip.addEventListener('click', (e) => {
+                        e.stopPropagation();
+
+                        const isSameSite = state.activeSpillId === spillId;
+                        const isSameIndex = state.activeIndex === idxKey;
+                        if (isSameSite && isSameIndex && state.indexVisible) {
+                            hideIndexOverlay();
+                            return;
+                        }
+
+                        if (!isIndexProviderReady(idxKey)) {
+                            enforceCogIndexSupport();
+                            setCogUiAvailability();
+                            return;
+                        }
+
+                        state.activeIndex = idxKey;
+                        state.indexVisible = true;
+                        document.querySelectorAll('.index-btn').forEach(b => {
+                            b.classList.toggle('active', b.dataset.index === idxKey);
+                        });
+
+                        document.querySelectorAll('.triage-card').forEach(c => {
+                            c.classList.remove('active');
+                            c.querySelectorAll('.triage-tag-pill').forEach(p => p.classList.remove('active'));
+                        });
+                        newCard.classList.add('active');
+                        newCard.querySelectorAll('.triage-tag-pill').forEach(p => {
+                            p.classList.toggle('active', p.dataset.index === idxKey);
+                        });
+
+                        selectSpill(spill, { fly: true });
+                        renderSpillBookmarks(idxKey);
+                        markActiveWorkflowControls();
+
+                        if (state.mode !== 'single') {
+                            const mSing = document.getElementById('mode-single');
+                            if (mSing) mSing.click();
+                        } else {
+                            applyIndex();
+                        }
+                        setTimeout(() => probeAcquisitions(), 1600);
+                    });
                     chips.appendChild(chip);
                 });
 
-                btn.appendChild(header);
-                btn.appendChild(chips);
+                navBtn.appendChild(header);
 
-                btn.addEventListener('click', (e) => {
+                navBtn.addEventListener('click', (e) => {
                     e.stopPropagation();
-
-                const primaryIndex = (spill.indices && spill.indices[0]) || defaultIndex;
-
-                // Activate the index
-                state.activeIndex = primaryIndex;
-                    document.querySelectorAll('.index-btn').forEach(b => {
-                        b.classList.toggle('active', b.dataset.index === primaryIndex);
-                    });
-
-                    // Activate this card, clear others
-                document.querySelectorAll('.triage-card').forEach(c => {
-                    c.classList.remove('active');
-                    c.querySelectorAll('.triage-tag-pill').forEach(p => p.classList.remove('active'));
-                });
-                newCard.classList.add('active');
-                    newCard.querySelectorAll('.triage-tag-pill').forEach(p => {
-                        p.classList.toggle('active', p.dataset.index === primaryIndex);
-                    });
 
                     // Activate this button, deactivate siblings
                     bmContainer.querySelectorAll('.triage-bm-btn').forEach(b => b.classList.remove('active'));
-                    btn.classList.add('active');
+                    navBtn.classList.add('active');
 
                     selectSpill(spill, { fly: true });
 
-                    renderSpillBookmarks(primaryIndex);
                     markActiveWorkflowControls();
 
-                    // Apply index / switch to single mode
-                    if (state.mode !== 'single') {
-                        const mSing = document.getElementById('mode-single');
-                        if (mSing) mSing.click();
-                    } else {
+                    if (state.indexVisible) {
                         applyIndex();
                     }
                     setTimeout(() => probeAcquisitions(), 1600);
                 });
 
-                bmContainer.appendChild(btn);
+                row.appendChild(navBtn);
+                row.appendChild(chips);
+                bmContainer.appendChild(row);
             });
 
             newCard.appendChild(bmContainer);
@@ -2830,6 +3257,7 @@ export function renderFocusedTriage() {
     }
     updateWorkflowSummary();
     markActiveWorkflowControls();
+    setCogUiAvailability();
 }
 window.renderFocusedTriage = renderFocusedTriage;
 
@@ -2861,6 +3289,7 @@ export function renderCommandConsole() {
         const matches = Object.keys(INDICES).filter(key => {
             const idx = INDICES[key];
             if (key === 'none') return false;
+            if (!isIndexProviderReady(key)) return false;
             
             // Tag filtering
             if (activeTag && (!tagMap[activeTag] || !tagMap[activeTag].includes(key))) {
@@ -2893,6 +3322,11 @@ export function renderCommandConsole() {
             `;
             
             btn.addEventListener('click', () => {
+                if (!isIndexProviderReady(key)) {
+                    enforceCogIndexSupport();
+                    setCogUiAvailability();
+                    return;
+                }
                 state.activeIndex = key;
                 document.querySelectorAll('#hud-index-results .index-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
@@ -2925,7 +3359,7 @@ export function renderCommandConsole() {
 
     function renderHUDBookmarks(indexKey) {
         bookmarkResults.innerHTML = '';
-        const bookmarks = SPILL_BOOKMARKS;
+        const bookmarks = getDemoSpillBookmarks(indexKey);
 
         if (bookmarks.length > 0) {
             bookmarkGroup.style.display = 'block';
@@ -2953,6 +3387,8 @@ export function renderCommandConsole() {
                 });
                 bookmarkResults.appendChild(btn);
             });
+        } else {
+            bookmarkGroup.style.display = 'none';
         }
     }
 

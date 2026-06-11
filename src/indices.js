@@ -298,12 +298,12 @@ export const INDICES = {
   let bsiDen = (sample.B11 + sample.B04) + (sample.B08 + sample.B02);
   let bsiDry = bsiDen === 0 ? 0 : ((sample.B11 + sample.B04) - (sample.B08 + sample.B02)) / bsiDen;
   let dryScore = 0;
-  if (oVal < -0.34 && ndsiVal > 0.07 && bsiDry > 0.14) {
-      dryScore = Math.max(0, Math.min(1, (ndsiVal - 0.07) / 0.18 * 0.45 + 0.55));
+  if (oVal < -0.42 && ndsiVal > 0.15 && bsiDry > 0.52) {
+      dryScore = Math.max(0, Math.min(1, (ndsiVal - 0.15) / 0.16 * 0.45 + 0.55));
   }
 
   let finalVal = Math.min(Math.max(Math.max(wetScore, 0), dryScore), 1);
-  if (finalVal < 0.45) return [0,0,0,0];
+  if (finalVal < 0.60) return [0,0,0,0];
   ${colorBlend('finalVal', PALETTE_APEX)}
 `),
         // Note: No deepEvalscript for PWOI — WMS cannot handle multi-datasource S1+S2 format.
@@ -321,8 +321,8 @@ export const INDICES = {
       : 0;
   let bsiDen = (sample.B11 + sample.B04) + (sample.B08 + sample.B02);
   let bsiDry = bsiDen === 0 ? 0 : ((sample.B11 + sample.B04) - (sample.B08 + sample.B02)) / bsiDen;
-  let dryScore = (oVal < -0.34 && ndsiVal > 0.07 && bsiDry > 0.14)
-      ? Math.max(0, Math.min(1, (ndsiVal - 0.07) / 0.18 * 0.45 + 0.55))
+  let dryScore = (oVal < -0.42 && ndsiVal > 0.15 && bsiDry > 0.52)
+      ? Math.max(0, Math.min(1, (ndsiVal - 0.15) / 0.16 * 0.45 + 0.55))
       : 0;
   return [Math.min(Math.max(Math.max(wetScore, 0), dryScore), 1)];
 `
@@ -968,7 +968,7 @@ export const INDICES = {
         temporal: '0-3M',
         min: 'Background', max: 'Standing Brine Pool',
         gradient: 'linear-gradient(to right, #000000, #0055ff, #00d2ff, #ffffff)',
-        formula: 'NDSI * NDWI * (1 - NDVI)',
+        formula: '(NDSI - 0.02) * (NDWI + 0.40) * (0.45 - NDVI) * (BSI + 0.20)',
         info: 'Globe & Atlas · Limn composite calibration. Captures standing pools of hazardous produced water. Requires a brine chemical signature (NDSI), a standing water proxy (NDWI adjusted for the very negative desert baseline), and the absence of vegetation (1−NDVI). Filters out legacy dry residues — focuses on active liquid releases.',
         diffLabels: ['Receding Liquid', 'New Pooling Event'],
         evalscript: genEvalscript(['B02', 'B03', 'B04', 'B08', 'B11', 'B12'], `
@@ -985,11 +985,19 @@ export const INDICES = {
   let bsiBot = (sample.B11 + sample.B04) + (sample.B08 + sample.B02);
   let bsi = bsiBot === 0 ? 0 : bsiTop / bsiBot;
   
-  if (bsi <= __BSI_MASK__) return [0,0,0,0]; // Loosened road mask for spill centers
-  
-  // Liquid gate shifted by +0.5 to catch "Wet Soil" signature in rangelands, plus BSI mask
-  let score = Math.max(0, ndsi) * Math.max(0, ndwi + __NDWI_OFFSET__) * Math.max(0, 1.0 - ndvi) * Math.max(0, bsi + __BSI_OFFSET__);
-  let mapped = Math.min(1, score * 15.0);
+  // Deep standing water bypasses the BSI gate — deep water absorbs SWIR
+  // regardless of brine content, driving BSI far negative. Confirm open
+  // water with NDWI and let NDSI carry the brine signal instead.
+  let isStandingWater = ndwi > 0.30;
+  if (bsi <= -0.25 && !isStandingWater) return [0,0,0,0];
+
+  let brineGate = Math.max(0, ndsi - 0.02);
+  let liquidGate = Math.max(0, ndwi + 0.40);
+  let lowVegGate = Math.max(0, 0.45 - ndvi);
+  let surfaceGate = isStandingWater ? 1.0 : Math.max(0, bsi + 0.20);
+  let score = brineGate * liquidGate * lowVegGate * surfaceGate;
+  let mapped = Math.min(1, score * 20.0);
+  if (mapped < 0.08) return [0,0,0,0];
   
   ${colorBlend('mapped', `[
       [0.0, 0, 0, 0],
@@ -998,13 +1006,21 @@ export const INDICES = {
       [1.0, 255, 255, 255]
   ]`)}
 `),
-        fisBands: ['B03', 'B04', 'B08', 'B11', 'B12'],
+        fisBands: ['B02', 'B03', 'B04', 'B08', 'B11', 'B12'],
         fisLogic: `
   let ndsi = (sample.B11 + sample.B12) === 0 ? 0 : (sample.B11 - sample.B12) / (sample.B11 + sample.B12);
   let ndwi = (sample.B03 + sample.B11) === 0 ? 0 : (sample.B03 - sample.B11) / (sample.B03 + sample.B11);
   let ndvi = (sample.B08 + sample.B04) === 0 ? 0 : (sample.B08 - sample.B04) / (sample.B08 + sample.B04);
   let bsi = (sample.B11+sample.B04+sample.B08+sample.B02) === 0 ? 0 : ((sample.B11+sample.B04)-(sample.B08+sample.B02))/((sample.B11+sample.B04)+(sample.B08+sample.B02));
-  return [Math.max(0, ndsi) * Math.max(0, ndwi + __NDWI_OFFSET__) * Math.max(0, 1.0 - ndvi) * Math.max(0, bsi + __BSI_OFFSET__)];
+  let isStandingWater = ndwi > 0.30;
+  if (bsi <= -0.25 && !isStandingWater) return [0];
+  let surfaceGate = isStandingWater ? 1.0 : Math.max(0, bsi + 0.20);
+  return [
+    Math.max(0, ndsi - 0.02) *
+    Math.max(0, ndwi + 0.40) *
+    Math.max(0, 0.45 - ndvi) *
+    surfaceGate
+  ];
 `
     },
     tri: {
@@ -1321,7 +1337,7 @@ export const HIGHLIGHT_THRESHOLDS = {
     hpwi: 0.05,   // Hot-Pixel PW Index — scan flags > 0.05
     pwoi: 0.05,   // PWOI Produced Water Optical Index — scan flags > 0.05
     fbc:  0.10,   // Forensic Brine Composite — scan flags > 0.1
-    lbi:  0.08,   // Proxy for leachate/brine
+    lbi:  0.08,   // Active liquid brine after stricter wet/bare gates
     ndmi: 0.35,   // Normalized Diff Moisture — anomaly when high + dry
     ndwi: 0.15,   // Water 
     si:   0.15,   // Salinity Index

@@ -484,15 +484,16 @@
 
     <div class="index-card" data-stars="1">
         <h3><span>Liquid Brine Index (LBI) ✧</span> <span class="temporal-badge temporal-0-3m">0-3M</span>
-            <span class="formula">NDSI × NDWI × (1 − NDVI) × BSI</span></h3>
+            <span class="formula">(NDSI − 0.02) × (NDWI + 0.40) × (0.45 − NDVI) × (BSI + 0.20)</span></h3>
         <p><strong>Mechanisms &amp; Utility:</strong> Captures actively standing pools of hazardous produced water
             rather than legacy residues. LBI enforces four simultaneous gates: a brine chemical signature (NDSI), a
             standing water proxy (NDWI), absence of vegetation (1−NDVI), and bare-soil confirmation (BSI). The
             four-way product means the index is nearly silent on dry salt flats, clean ponded rainwater, and vegetated
             areas — it fires specifically at bare ground with co-located liquid brine chemistry.</p>
-        <p><strong>Calibration:</strong> The NDWI and BSI offsets are Permian-adjusted (standard preset: NDWI +0.0,
-            BSI +0.0; arid/Permian preset: NDWI +0.5, BSI −0.3) to account for the extreme dry baseline of West Texas
-            soils, which would otherwise suppress valid detections.</p>
+        <p><strong>Calibration:</strong> The current render is intentionally stricter than the original broad LBI
+            screen. It subtracts a small brine floor, uses a reduced Permian wetness offset, rejects vegetated pixels
+            above the low-NDVI gate, and requires the bare/liquid surface proxy to stay above the desert background
+            floor. This keeps active liquid brine legible without painting entire wet-ish fields.</p>
         <p><strong>Scientific Basis:</strong> Built from established salinity and water-index literature, assembled
             specifically for the liquid brine detection use case not addressed by any single
             index.<sup><a href="#fn1">1</a></sup><sup><a href="#fn10">10</a></sup></p>

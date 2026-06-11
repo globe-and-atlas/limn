@@ -1,0 +1,18 @@
+{
+  "name": "limn",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "start:gee": "node server/gee_tile_server.mjs",
+    "test:atlas:gee": "node tests/test_atlas_gee_smoke.mjs",
+    "test:browser": "node tests/test.js",
+    "test:fetch": "node tests/test_fetch.js"
+  },
+  "devDependencies": {
+    "puppeteer-core": "^24.14.0"
+  },
+  "dependencies": {
+    "@google/earthengine": "^1.7.30",
+    "dotenv": "^17.4.2"
+  }
+}
