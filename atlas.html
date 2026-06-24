@@ -692,20 +692,53 @@
       padding: 4px 6px;
     }
 
+    .capture-hook-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
     #capture-hook {
+      flex: 1;
       font-size: 13px;
       line-height: 1.45;
       color: #E2E8F0;
     }
 
+    .capture-tip-btn {
+      flex: 0 0 auto;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      border: 1px solid rgba(148,163,184,0.25);
+      background: transparent;
+      color: #64748B;
+      font-size: 10px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      transition: color 0.15s, border-color 0.15s;
+      margin-top: 2px;
+    }
+    .capture-tip-btn:hover,
+    .capture-tip-btn[aria-expanded="true"] {
+      color: #00D2FF;
+      border-color: rgba(0,210,255,0.4);
+    }
+
     #capture-prompt {
-      margin-top: 8px;
+      display: none;
+      margin-top: 6px;
       border-left: 2px solid rgba(0,255,178,0.5);
       padding-left: 8px;
       font-size: 12px;
       line-height: 1.4;
       color: #94A3B8;
     }
+    #capture-prompt.visible { display: block; }
 
     .capture-save-btn {
       display: block;
@@ -1554,8 +1587,11 @@
             <span class="capture-chip" id="capture-place">—</span>
             <span class="capture-chip" id="capture-mode-label">Satellite context + index overlay</span>
           </div>
-          <div id="capture-hook">—</div>
-          <div id="capture-prompt">—</div>
+          <div class="capture-hook-row">
+            <div id="capture-hook">—</div>
+            <button class="capture-tip-btn" id="capture-tip-toggle" type="button" aria-expanded="false" aria-controls="capture-prompt" title="Posting tip">ℹ</button>
+          </div>
+          <div id="capture-prompt" role="note">—</div>
           <button id="capture-save-btn" class="capture-save-btn" type="button">Save 1200×628 PNG</button>
         </div>
       </div>

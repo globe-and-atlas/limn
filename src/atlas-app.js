@@ -1612,6 +1612,16 @@ function initControls() {
     captureSaveBtn.addEventListener('click', () => saveCapturePng());
   }
 
+  const captureTipToggle = document.getElementById('capture-tip-toggle');
+  if (captureTipToggle) {
+    captureTipToggle.addEventListener('click', () => {
+      const prompt = document.getElementById('capture-prompt');
+      if (!prompt) return;
+      const open = prompt.classList.toggle('visible');
+      captureTipToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+  }
+
   const sentinelToggle = document.getElementById('atlas-toggle-sentinel-live');
   if (sentinelToggle) {
     sentinelToggle.addEventListener('change', (event) => {
