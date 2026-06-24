@@ -243,6 +243,38 @@ try {
     throw new Error('Atlas capture mode should not request provider tiles.');
   }
 
+  await page.click('#toggle-pause');
+  await page.click('#toggle-capture');
+  await page.waitForFunction(() => window.getAtlasCaptureState?.().enabled === true, { timeout: 5000 });
+  const unavailableCapture = await page.evaluate(() => {
+    const buttons = Array.from(document.querySelectorAll('.capture-mode-btn[data-capture-view]'));
+    return {
+      ...window.getAtlasCaptureState(),
+      layoutUnavailable: document.querySelector('.atlas-layout')?.classList.contains('capture-overlay-unavailable') === true,
+      overlayDisabled: buttons.find(btn => btn.dataset.captureView === 'overlay')?.disabled === true,
+      splitDisabled: buttons.find(btn => btn.dataset.captureView === 'split')?.disabled === true,
+      contextDisabled: buttons.find(btn => btn.dataset.captureView === 'context')?.disabled === true,
+      sliderDisabled: document.getElementById('capture-split-slider')?.disabled === true,
+      statusVisible: document.getElementById('capture-status')?.classList.contains('visible') === true,
+    };
+  });
+  if (
+    unavailableCapture.overlayAvailable
+    || unavailableCapture.view !== 'context'
+    || !unavailableCapture.layoutUnavailable
+    || !unavailableCapture.overlayDisabled
+    || !unavailableCapture.splitDisabled
+    || unavailableCapture.contextDisabled
+    || !unavailableCapture.sliderDisabled
+    || !unavailableCapture.statusVisible
+    || !unavailableCapture.status.includes('Render overlay first')
+  ) {
+    throw new Error(`Atlas capture mode should mark unavailable overlays clearly: ${JSON.stringify(unavailableCapture)}`);
+  }
+  await page.click('#exit-capture');
+  await page.click('#toggle-pause');
+  await new Promise(resolve => setTimeout(resolve, 1000));
+
   const focusInitial = await page.evaluate(() => window.getAtlasBookmarkFocusState());
   if (focusInitial.visible) {
     throw new Error('Atlas bookmark focus layer should be off by default.');

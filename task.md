@@ -30,6 +30,34 @@ Adapt Limn Atlas so the selected index can be switched into a clean, LinkedIn-fr
 
 ## Progress Log — Atlas LinkedIn Screenshot Capture Mode
 
+### 2026-06-24 — Started capture usability follow-up
+- Target directive: none found for Atlas screenshot capture; existing Atlas viewer validation guidance applies.
+- Intended execution scripts: `node --check src/atlas-app.js`, `node --check tests/test_atlas_sentinel_toggle.mjs`, `node tests/test_gee_provider.mjs`, `python3 -m py_compile execution/capture_atlas_articles.py`, and `git diff --check`.
+- Expected output artifacts: clearer no-overlay capture state in `src/atlas-app.js`, more legible/touchable capture controls in `atlas.html`, corrected `--skip-catalog` behavior in `execution/capture_atlas_articles.py`, updated regression tests, and Atlas validation notes.
+- Safety: no `.env`, `config-v1.js`, `config.js`, `app-config.js`, tokens, private WMS endpoints, or `.tmp/` outputs will be read, printed, or committed.
+
+## Validation Contract — Capture Usability Follow-Up
+
+- [x] Capture mode identifies when no active overlay layer is available.
+- [x] Capture comparison controls cannot imply that an unavailable overlay is being shown.
+- [x] Capture split controls expose a touch-friendly target size.
+- [x] Split comparison labels remain understandable on compact viewports.
+- [x] The capture article script's `--skip-catalog` option prevents CDSE STAC calls.
+- [x] The capture article script records skipped catalog metadata explicitly.
+- [x] `node --check src/atlas-app.js` passes.
+- [x] `node --check tests/test_atlas_sentinel_toggle.mjs` passes.
+- [x] `node tests/test_gee_provider.mjs` passes.
+- [x] `python3 -m py_compile execution/capture_atlas_articles.py` passes.
+- [x] `git diff --check` passes.
+
+### 2026-06-24 — Completed capture usability follow-up
+- Capture mode now detects when no active overlay layer exists and falls back to Context instead of implying Overlay or Split is visible.
+- Overlay and Split controls are disabled while unavailable; the capture card shows an explicit render-first status and avoids comparison copy until a layer is active.
+- Capture buttons and the split slider now use larger targets, and compact split labels remain visible instead of disappearing below 980px.
+- `--skip-catalog` now skips both CDSE STAC and Sentinel Hub Catalog lookups and writes explicit skipped metadata.
+- Verification passed: `node --check src/atlas-app.js`, `node --check tests/test_atlas_sentinel_toggle.mjs`, `node tests/test_gee_provider.mjs`, `python3 -m py_compile execution/capture_atlas_articles.py`, direct skip-catalog no-network assertion, and `git diff --check`.
+- Browser smoke remains blocked in this sandbox by `listen EPERM: operation not permitted 127.0.0.1`.
+
 ### 2026-06-24 — Started capture-mode polish
 - Target directive: none found for Atlas screenshot capture; existing Atlas viewer validation guidance applies.
 - Intended execution scripts: `node --check src/atlas-app.js`, `node tests/test_gee_provider.mjs`, `node tests/test_atlas_sentinel_toggle.mjs`, and `git diff --check`.

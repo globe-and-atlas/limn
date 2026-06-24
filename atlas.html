@@ -17,6 +17,9 @@
   <script src="config-v1.js"></script>
   <script>window.CONFIG = window.CONFIG || {};</script>
 
+  <!-- html2canvas for PNG export -->
+  <script src="https://unpkg.com/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+
   <!-- Base Limn styles (variables, glass panels, etc.) -->
   <link rel="stylesheet" href="style.css?v=3">
 
@@ -543,7 +546,8 @@
       color: #CBD5E1;
       font-family: 'JetBrains Mono', monospace;
       font-size: 10px;
-      padding: 5px 8px;
+      min-height: 32px;
+      padding: 7px 10px;
       cursor: pointer;
     }
 
@@ -559,6 +563,7 @@
     .capture-controls {
       display: flex;
       align-items: center;
+      flex-wrap: wrap;
       gap: 7px;
       margin: 0 0 10px;
     }
@@ -569,9 +574,11 @@
       background: rgba(255,255,255,0.06);
       color: #94A3B8;
       font-family: 'JetBrains Mono', monospace;
-      font-size: 10px;
+      font-size: 11px;
       line-height: 1;
-      padding: 6px 8px;
+      min-width: 72px;
+      min-height: 34px;
+      padding: 8px 10px;
       cursor: pointer;
     }
 
@@ -586,6 +593,14 @@
       color: #00D2FF;
     }
 
+    .capture-mode-btn:disabled {
+      cursor: not-allowed;
+      opacity: 0.45;
+      color: #64748B;
+      border-color: rgba(148,163,184,0.14);
+      background: rgba(255,255,255,0.035);
+    }
+
     .capture-split-control {
       display: none;
       align-items: center;
@@ -593,7 +608,7 @@
       margin: -2px 0 10px;
       color: #64748B;
       font-family: 'JetBrains Mono', monospace;
-      font-size: 9px;
+      font-size: 10px;
       letter-spacing: 0.3px;
       text-transform: uppercase;
     }
@@ -602,12 +617,17 @@
       display: flex;
     }
 
+    .capture-split-control.disabled {
+      opacity: 0.5;
+    }
+
     #capture-split-slider {
       -webkit-appearance: none;
       appearance: none;
       flex: 1;
-      height: 4px;
-      border-radius: 2px;
+      min-width: 132px;
+      height: 6px;
+      border-radius: 3px;
       background: rgba(255,255,255,0.16);
       outline: none;
       cursor: pointer;
@@ -616,11 +636,42 @@
     #capture-split-slider::-webkit-slider-thumb {
       -webkit-appearance: none;
       appearance: none;
-      width: 12px;
-      height: 12px;
+      width: 18px;
+      height: 18px;
       border-radius: 50%;
       background: #00D2FF;
       cursor: pointer;
+    }
+
+    #capture-split-slider::-moz-range-thumb {
+      width: 18px;
+      height: 18px;
+      border: 0;
+      border-radius: 50%;
+      background: #00D2FF;
+      cursor: pointer;
+    }
+
+    #capture-split-slider:disabled {
+      cursor: not-allowed;
+      opacity: 0.5;
+    }
+
+    #capture-status {
+      display: none;
+      margin: -2px 0 10px;
+      border: 1px solid rgba(251,191,36,0.22);
+      border-radius: 6px;
+      background: rgba(251,191,36,0.08);
+      color: #FCD34D;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      line-height: 1.35;
+      padding: 7px 8px;
+    }
+
+    #capture-status.visible {
+      display: block;
     }
 
     .capture-meta {
@@ -654,6 +705,34 @@
       font-size: 12px;
       line-height: 1.4;
       color: #94A3B8;
+    }
+
+    .capture-save-btn {
+      display: block;
+      width: 100%;
+      margin-top: 12px;
+      padding: 9px 14px;
+      border: 1px solid rgba(0, 210, 255, 0.45);
+      border-radius: 6px;
+      background: rgba(0, 210, 255, 0.10);
+      color: #00D2FF;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.5px;
+      cursor: pointer;
+      transition: background 0.15s, opacity 0.15s;
+      text-align: center;
+    }
+    .capture-save-btn:hover { background: rgba(0, 210, 255, 0.20); }
+    .capture-save-btn:active { background: rgba(0, 210, 255, 0.30); }
+    .capture-save-btn:disabled { opacity: 0.5; cursor: wait; }
+
+    /* Hide UI chrome before PNG export */
+    .atlas-layout.capture-clean .capture-card,
+    .atlas-layout.capture-clean .capture-rail,
+    .atlas-layout.capture-clean .capture-split-divider,
+    .atlas-layout.capture-clean .capture-split-labels {
+      display: none !important;
     }
 
     .capture-rail {
@@ -755,6 +834,13 @@
     .atlas-layout.capture-mode.capture-view-split .capture-split-divider,
     .atlas-layout.capture-mode.capture-view-split .capture-split-labels {
       display: flex;
+    }
+
+    .atlas-layout.capture-mode.capture-overlay-unavailable .capture-rail,
+    .atlas-layout.capture-mode.capture-overlay-unavailable .capture-split-divider,
+    .atlas-layout.capture-mode.capture-overlay-unavailable .capture-split-labels,
+    .atlas-layout.capture-mode.capture-overlay-unavailable .atlas-legend {
+      display: none;
     }
 
     .atlas-layout.capture-mode .atlas-legend {
@@ -861,17 +947,48 @@
       backdrop-filter: blur(20px);
       border-top: 1px solid rgba(255,255,255,0.1);
       z-index: 600;
-      padding: 14px 20px 16px;
+      padding: 0 20px 16px;
       transition: transform 0.25s ease;
+      height: var(--info-panel-h, 220px);
+      overflow: hidden;
     }
     #info-panel.hidden { transform: translateY(100%); }
+
+    #info-resize-handle {
+      position: sticky;
+      top: 0;
+      height: 10px;
+      margin: 0 -20px 8px;
+      cursor: ns-resize;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(10,11,20,0.92);
+      z-index: 2;
+    }
+    #info-resize-handle::after {
+      content: '';
+      width: 36px;
+      height: 3px;
+      border-radius: 2px;
+      background: rgba(255,255,255,0.15);
+      transition: background 0.15s;
+    }
+    #info-resize-handle:hover::after,
+    #info-resize-handle.dragging::after {
+      background: rgba(0,210,255,0.5);
+    }
 
     .info-row {
       display: flex;
       align-items: flex-start;
       gap: 20px;
       flex-wrap: wrap;
+      height: calc(100% - 18px);
+      overflow-y: auto;
     }
+
+    .info-linkedin-section { display: none; }
 
     .info-title-block { min-width: 220px; }
 
@@ -1060,8 +1177,23 @@
     @media (max-width: 980px) {
       .gt-post-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .atlas-layout.capture-mode .capture-rail { display: none; }
-      .atlas-layout.capture-mode .capture-split-labels { display: none; }
-      .capture-card { top: 14px; left: 14px; }
+      .capture-card {
+        top: 14px;
+        left: 14px;
+        width: min(360px, calc(100vw - 28px));
+      }
+      .capture-mode-btn {
+        flex: 1 1 96px;
+        min-height: 44px;
+      }
+      .capture-split-labels {
+        inset: auto 14px 108px 14px;
+      }
+      .capture-split-labels span {
+        font-size: 9px;
+        max-width: 46%;
+        white-space: normal;
+      }
       .atlas-layout.capture-mode .atlas-legend {
         left: 14px;
         bottom: 14px;
@@ -1417,12 +1549,14 @@
             Split
             <input id="capture-split-slider" type="range" min="25" max="75" step="1" value="50">
           </label>
+          <div id="capture-status" role="status"></div>
           <div class="capture-meta">
             <span class="capture-chip" id="capture-place">—</span>
             <span class="capture-chip" id="capture-mode-label">Satellite context + index overlay</span>
           </div>
           <div id="capture-hook">—</div>
           <div id="capture-prompt">—</div>
+          <button id="capture-save-btn" class="capture-save-btn" type="button">Save 1200×628 PNG</button>
         </div>
       </div>
       <div class="capture-rail" aria-hidden="true">
@@ -1438,6 +1572,7 @@
 
       <!-- Info Panel (slides up from bottom) -->
       <div id="info-panel">
+        <div id="info-resize-handle" title="Drag to resize"></div>
         <div class="info-row">
           <div class="info-title-block">
             <div id="info-acronym">—</div>
@@ -1458,8 +1593,8 @@
             <div class="info-field-value" id="info-physics"></div>
             <div class="info-field-label">Benefit</div>
             <div class="info-field-value" id="info-benefit"></div>
-            <div class="info-field-label">LinkedIn Ground Truth</div>
-            <div class="info-field-value" id="info-linkedin-ground-truth">
+            <div class="info-field-label info-linkedin-section">LinkedIn Ground Truth</div>
+            <div class="info-field-value info-linkedin-section" id="info-linkedin-ground-truth">
               <div class="gt-post-card">
                 <div class="gt-post-header">
                   <div>

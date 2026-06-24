@@ -419,4 +419,6 @@
 - **Infrastructure error**: `node tests/test_atlas_sentinel_toggle.mjs` failed before launching the page with `listen EPERM: operation not permitted 127.0.0.1`.
 - **Cause**: The current Codex sandbox does not permit binding a local HTTP server to `127.0.0.1`.
 - **Impact**: The browser smoke could not verify the new Atlas capture-mode UI in this environment.
+- **Repeat observation**: The same command failed with the same `listen EPERM` blocker during the capture usability follow-up after static checks passed.
+- **Visual fallback observation**: The in-app browser rejected direct `file:///Users/danielbally/Git/limn/atlas.html` navigation by URL policy, so file-based visual verification was also unavailable in this environment.
 - **Fix status**: OPEN in this sandbox. Static checks passed, and the browser smoke should be rerun in a local environment that allows localhost binding.

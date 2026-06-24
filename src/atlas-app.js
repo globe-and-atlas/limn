@@ -173,8 +173,10 @@ window.getAtlasCaptureState = () => ({
   activeKey,
   view: state.captureView,
   split: state.captureSplit,
+  overlayAvailable: hasCaptureOverlayLayer(),
   overlayOpacity: wmsLayer?.options?.opacity ?? null,
   overlayClipPath: wmsLayer?.getContainer?.()?.style?.clipPath || '',
+  status: document.getElementById('capture-status')?.textContent || '',
   ...currentCaptureFrame,
 });
 
@@ -486,8 +488,39 @@ function activeCaptureIndex() {
   return ATLAS_INDICES.find(i => i.key === activeKey) || null;
 }
 
+function hasCaptureOverlayLayer() {
+  const layerContainer = wmsLayer?.getContainer?.();
+  const onMap = !map || !wmsLayer || !map.hasLayer ? Boolean(wmsLayer) : map.hasLayer(wmsLayer);
+  return Boolean(wmsLayer && layerContainer && onMap);
+}
+
+function captureUnavailableMessage() {
+  if (state.paused) return 'Render overlay first: tiles are paused.';
+  if (isSentinelProvider()) {
+    const guardStatus = getAtlasSentinelGuardStatus();
+    if (guardStatus.blocked && guardStatus.reason === 'zoom') {
+      return `Render overlay first: Sentinel is guarded below Z${guardStatus.minZoom}.`;
+    }
+    if (guardStatus.blocked && guardStatus.reason === 'cooldown') {
+      return 'Render overlay first: Sentinel is cooling down after a rate limit.';
+    }
+    if (guardStatus.blocked) {
+      return 'Render overlay first: Sentinel tiles are disarmed.';
+    }
+  }
+  return 'Render overlay first to use Overlay or Split.';
+}
+
 function renderCaptureOverlay(idx) {
   currentCaptureFrame = captureFrameForIndex(idx);
+  if (state.captureMode && !hasCaptureOverlayLayer()) {
+    currentCaptureFrame = {
+      ...currentCaptureFrame,
+      modeLabel: 'Satellite context only',
+      hook: 'Render the active overlay before capturing a comparison frame.',
+      prompt: captureUnavailableMessage(),
+    };
+  }
 
   const setText = (id, value) => {
     const el = document.getElementById(id);
@@ -530,24 +563,47 @@ function applyCaptureComparison() {
 }
 
 function syncCaptureControls() {
+  const overlayAvailable = hasCaptureOverlayLayer();
+  if (state.captureMode && !overlayAvailable && state.captureView !== 'context') {
+    state.captureView = 'context';
+  }
+
   const layout = document.querySelector('.atlas-layout');
   if (layout) {
     layout.classList.toggle('capture-view-context', state.captureView === 'context');
     layout.classList.toggle('capture-view-overlay', state.captureView === 'overlay');
     layout.classList.toggle('capture-view-split', state.captureView === 'split');
+    layout.classList.toggle('capture-overlay-unavailable', state.captureMode && !overlayAvailable);
   }
 
   document.querySelectorAll('.capture-mode-btn').forEach(btn => {
+    const view = btn.dataset.captureView;
+    const disabled = !overlayAvailable && view !== 'context';
     const active = btn.dataset.captureView === state.captureView;
     btn.classList.toggle('active', active);
+    btn.disabled = disabled;
+    btn.setAttribute('aria-disabled', disabled ? 'true' : 'false');
     btn.setAttribute('aria-pressed', active ? 'true' : 'false');
   });
 
   const splitControl = document.querySelector('.capture-split-control');
-  if (splitControl) splitControl.classList.toggle('visible', state.captureView === 'split');
+  if (splitControl) {
+    splitControl.classList.toggle('visible', state.captureView === 'split' && overlayAvailable);
+    splitControl.classList.toggle('disabled', !overlayAvailable);
+  }
 
   const splitSlider = document.getElementById('capture-split-slider');
-  if (splitSlider) splitSlider.value = String(state.captureSplit);
+  if (splitSlider) {
+    splitSlider.value = String(state.captureSplit);
+    splitSlider.disabled = !overlayAvailable || state.captureView !== 'split';
+  }
+
+  const status = document.getElementById('capture-status');
+  if (status) {
+    const message = state.captureMode && !overlayAvailable ? captureUnavailableMessage() : '';
+    status.textContent = message;
+    status.classList.toggle('visible', Boolean(message));
+  }
 
   const idx = activeCaptureIndex();
   if (idx) renderCaptureOverlay(idx);
@@ -556,6 +612,7 @@ function syncCaptureControls() {
 
 function setCaptureView(view) {
   if (!['context', 'overlay', 'split'].includes(view)) return;
+  if (view !== 'context' && !hasCaptureOverlayLayer()) view = 'context';
   state.captureView = view;
   syncCaptureControls();
 }
@@ -575,6 +632,101 @@ function setCaptureMode(enabled) {
   if (idx) renderCaptureOverlay(idx);
   syncCaptureControls();
   positionLegend();
+
+  // Sidebar visibility changed — tell Leaflet to recompute its container bounds
+  if (map) setTimeout(() => { map.invalidateSize({ animate: false }); }, 50);
+}
+
+function _captureCenterCrop(src, ctx, targetW, targetH) {
+  const srcAspect = src.width / src.height;
+  const tgtAspect = targetW / targetH;
+  let sx = 0, sy = 0, sw = src.width, sh = src.height;
+  if (srcAspect > tgtAspect) {
+    sw = Math.round(src.height * tgtAspect);
+    sx = Math.round((src.width - sw) / 2);
+  } else {
+    sh = Math.round(src.width / tgtAspect);
+    sy = Math.round((src.height - sh) / 2);
+  }
+  ctx.drawImage(src, sx, sy, sw, sh, 0, 0, targetW, targetH);
+}
+
+async function saveCapturePng() {
+  const btn = document.getElementById('capture-save-btn');
+  const mapArea = document.getElementById('atlas-map-area');
+  const layout = document.querySelector('.atlas-layout');
+  if (!mapArea || !layout || !window.html2canvas) return;
+
+  const origText = btn.textContent;
+  btn.textContent = 'Capturing…';
+  btn.disabled = true;
+
+  // Hide UI chrome; remove clip-path so html2canvas sees the full overlay
+  layout.classList.add('capture-clean');
+  const layerContainer = wmsLayer?.getContainer?.();
+  const savedClip = layerContainer?.style?.clipPath || '';
+  if (layerContainer && savedClip) layerContainer.style.clipPath = '';
+
+  await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+
+  const targetW = 1200, targetH = 628;
+  const captureOpts = { useCORS: false, allowTaint: false, logging: false, scale: window.devicePixelRatio || 1 };
+
+  try {
+    let out;
+
+    if (state.captureView === 'split' && wmsLayer && layerContainer) {
+      // Two-pass: capture base-only then full overlay, composite at split point
+      const savedOpacity = state.opacity;
+
+      wmsLayer.setOpacity(0);
+      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+      const baseRaw = await window.html2canvas(mapArea, captureOpts);
+
+      wmsLayer.setOpacity(savedOpacity);
+      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+      const overlayRaw = await window.html2canvas(mapArea, captureOpts);
+
+      out = document.createElement('canvas');
+      out.width = targetW;
+      out.height = targetH;
+      const ctx = out.getContext('2d');
+
+      _captureCenterCrop(baseRaw, ctx, targetW, targetH);
+
+      const splitX = Math.round(targetW * state.captureSplit / 100);
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(splitX, 0, targetW - splitX, targetH);
+      ctx.clip();
+      _captureCenterCrop(overlayRaw, ctx, targetW, targetH);
+      ctx.restore();
+
+    } else {
+      const raw = await window.html2canvas(mapArea, captureOpts);
+      out = document.createElement('canvas');
+      out.width = targetW;
+      out.height = targetH;
+      _captureCenterCrop(raw, out.getContext('2d'), targetW, targetH);
+    }
+
+    const slug = (currentCaptureFrame?.acronym || 'atlas').toLowerCase().replace(/[^a-z0-9]+/g, '-');
+    const date = state.date || new Date().toISOString().slice(0, 10);
+    const a = document.createElement('a');
+    a.download = `limn-${slug}-${date}.png`;
+    a.href = out.toDataURL('image/png');
+    a.click();
+
+    btn.textContent = 'Saved ✓';
+    setTimeout(() => { btn.textContent = origText; btn.disabled = false; }, 2200);
+  } catch (err) {
+    console.error('Capture export failed:', err);
+    btn.textContent = 'Export failed — try a screenshot';
+    setTimeout(() => { btn.textContent = origText; btn.disabled = false; }, 3000);
+  } finally {
+    if (layerContainer && savedClip) layerContainer.style.clipPath = savedClip;
+    layout.classList.remove('capture-clean');
+  }
 }
 
 function getBookmarkFocusEntries() {
@@ -1075,6 +1227,7 @@ function applyAtlasTiles(idx, date) {
     pendingTiles = 0;
     updateWindowDisplay(date, state.windowDays);
     updateAtlasSentinelUI();
+    syncCaptureControls();
     if (guardStatus.reason === 'zoom') {
       setTileStatus(`Sentinel guarded below Z${guardStatus.minZoom}. Zoom in or lower the Sentinel zoom gate.`, 'info');
     } else if (guardStatus.reason === 'cooldown') {
@@ -1118,6 +1271,7 @@ function selectIndex(key) {
     if (wmsLayer) { map.removeLayer(wmsLayer); wmsLayer = null; }
     updateWindowDisplay(bm.date, state.windowDays);
     setTileStatus('Tiles paused — click “▶ Render here” to draw this index.', 'info');
+    syncCaptureControls();
   } else {
     applyAtlasTiles(idx, bm.date);
   }
@@ -1407,6 +1561,7 @@ function initControls() {
       state.paused = true;
       if (wmsLayer) { map.removeLayer(wmsLayer); wmsLayer = null; }
       setTileStatus('Tiles paused — pan and zoom freely without provider tile requests. Click “▶ Render here” to draw the active index.', 'info');
+      syncCaptureControls();
     } else {
       state.paused = false;
       setTileStatus('');
@@ -1450,6 +1605,11 @@ function initControls() {
       state.captureSplit = Number(event.target.value);
       applyCaptureComparison();
     });
+  }
+
+  const captureSaveBtn = document.getElementById('capture-save-btn');
+  if (captureSaveBtn) {
+    captureSaveBtn.addEventListener('click', () => saveCapturePng());
   }
 
   const sentinelToggle = document.getElementById('atlas-toggle-sentinel-live');
@@ -1500,6 +1660,34 @@ function initControls() {
     positionLegend();
   });
   window.addEventListener('resize', positionLegend);
+
+  // Info panel resize handle
+  const infoPanel = document.getElementById('info-panel');
+  const resizeHandle = document.getElementById('info-resize-handle');
+  if (infoPanel && resizeHandle) {
+    let dragStartY = 0;
+    let dragStartH = 0;
+    resizeHandle.addEventListener('mousedown', (e) => {
+      dragStartY = e.clientY;
+      dragStartH = infoPanel.offsetHeight;
+      resizeHandle.classList.add('dragging');
+      document.body.style.userSelect = 'none';
+      const onMove = (ev) => {
+        const delta = dragStartY - ev.clientY;
+        const next = Math.max(80, Math.min(window.innerHeight * 0.75, dragStartH + delta));
+        infoPanel.style.setProperty('--info-panel-h', `${next}px`);
+        positionLegend();
+      };
+      const onUp = () => {
+        resizeHandle.classList.remove('dragging');
+        document.body.style.userSelect = '';
+        window.removeEventListener('mousemove', onMove);
+        window.removeEventListener('mouseup', onUp);
+      };
+      window.addEventListener('mousemove', onMove);
+      window.addEventListener('mouseup', onUp);
+    });
+  }
 
   const copyLinkedIn = document.getElementById('copy-linkedin-ground-truth');
   if (copyLinkedIn) {

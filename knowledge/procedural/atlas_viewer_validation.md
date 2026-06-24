@@ -1,6 +1,6 @@
 # Atlas Viewer Validation
 
-Last updated: 2026-06-23
+Last updated: 2026-06-24
 
 Use this checklist after changing `atlas.html`, `src/atlas-app.js`, or `src/atlas-indices.js`.
 
@@ -52,6 +52,10 @@ Use this checklist after changing `atlas.html`, `src/atlas-app.js`, or `src/atla
    - Capture mode does not request additional GEE, Sentinel WMS, or COG tiles.
    - Capture comparison modes include context-only, overlay, and split.
    - Split comparison uses an adjustable divider.
+   - Capture mode falls back to context-only when no overlay layer is active.
+   - Overlay and split controls are disabled when no overlay layer is active.
+   - The capture status line explains how to render the overlay when controls are disabled.
+   - Split labels remain visible and understandable on compact screenshot viewports.
    - Capture comparison mode changes do not request additional GEE, Sentinel WMS, or COG tiles.
    - OWSI selects a post-Sentinel-2 date.
    - IERPI displays as an S2 approximation.
@@ -101,5 +105,11 @@ Use this checklist after changing `atlas.html`, `src/atlas-app.js`, or `src/atla
 - Keep the exit control inside the capture overlay because the normal HUD is intentionally hidden while capture mode is active.
 - Do not call `map.invalidateSize()` when entering Capture mode; expanding the map viewport can make Leaflet request replacement overlay tiles.
 - Capture comparison controls must only adjust the existing loaded overlay layer: context sets overlay opacity to `0`, overlay restores `state.opacity`, and split clips the existing overlay container with `clip-path`.
+- If no overlay layer is active because tiles are paused, Sentinel is guarded, or no layer has rendered yet, Capture mode should force context-only, disable Overlay/Split, and show a render-first status.
 - `window.getAtlasCaptureState()` exposes capture state for smoke tests and should stay in sync with the selected index.
 - Browser validation should assert no GEE, Sentinel WMS, or COG tile counts change when entering or exiting capture mode.
+
+## 2026-06-24 — Article Capture Catalog Skip
+
+- `execution/capture_atlas_articles.py --skip-catalog` is a no-metadata-call mode: it skips both public CDSE STAC and authenticated Sentinel Hub Catalog lookup.
+- Sidecar metadata should record `satellite_metadata.status` as `skipped` when this flag is used.

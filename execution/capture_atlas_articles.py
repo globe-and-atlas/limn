@@ -388,8 +388,16 @@ def fetch_catalog_metadata(
     layer: str,
     target_date: str,
     timeout: int,
+    skip_catalog: bool = False,
 ) -> dict[str, Any]:
     collection = catalog_collection_for_layer(layer)
+    if skip_catalog:
+        return {
+            "status": "skipped",
+            "source": "catalog metadata disabled by --skip-catalog",
+            "collection": collection,
+        }
+
     stac_metadata = fetch_cdse_stac_metadata(
         session,
         bbox=bbox,
@@ -451,6 +459,7 @@ def render_capture_set(
     wms_url: str,
     default_layer: str,
     wms_endpoint_label: str,
+    skip_catalog: bool = False,
 ) -> list[dict[str, Any]]:
     if not index.get("canRender"):
         raise ValueError(f"{index['key']} is not a renderable Atlas index")
@@ -500,6 +509,7 @@ def render_capture_set(
             layer=layer,
             target_date=date_str,
             timeout=timeout,
+            skip_catalog=skip_catalog,
         )
 
         metadata = {
@@ -615,7 +625,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--timeout", type=int, default=45)
     parser.add_argument("--wms-url", default="", help="Explicit Sentinel Hub WMS URL. Omit to use local config-v1.js or the public default.")
     parser.add_argument("--wms-layer", default="", help="Default WMS layer for indices without an index-specific wmsLayer.")
-    parser.add_argument("--skip-catalog", action="store_true", help="Skip optional Sentinel Hub Catalog metadata lookup.")
+    parser.add_argument("--skip-catalog", action="store_true", help="Skip optional CDSE STAC and Sentinel Hub Catalog metadata lookups.")
     return parser.parse_args()
 
 
@@ -658,6 +668,7 @@ def main() -> int:
             wms_url=wms_url,
             default_layer=default_layer,
             wms_endpoint_label=args.wms_endpoint_label,
+            skip_catalog=args.skip_catalog,
         )
         all_captures.extend(captures)
         print(f"{index['acronym']}: wrote {len(captures)} captures")
