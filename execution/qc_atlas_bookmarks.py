@@ -141,7 +141,7 @@ def build_wms_url(
         "showlogo": "false",
         "evalscript": encoded_script,
     }
-    return DEFAULT_WMS_URL, params
+    return args.wms_url, params
 
 
 def percentile(values: list[float], pct: float) -> float:
@@ -428,6 +428,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--size", type=int, default=512, help="WMS tile width/height in pixels.")
     parser.add_argument("--window-days", type=int, default=15, help="Days before bookmark date included in WMS time range.")
     parser.add_argument("--maxcc", type=int, default=30, help="Sentinel Hub max cloud cover percentage.")
+    parser.add_argument("--wms-url", default=DEFAULT_WMS_URL, help="Sentinel Hub OGC WMS endpoint to use for bookmark QC.")
     parser.add_argument("--timeout", type=int, default=30, help="HTTP timeout per WMS request in seconds.")
     parser.add_argument("--limit", type=int, default=0, help="Optional renderable index limit for debugging.")
     parser.add_argument("--sweep-days", type=int, default=60, help="Days before/after bookmark date to test for stronger signal.")
@@ -470,7 +471,7 @@ def main() -> int:
         json.dumps(
             {
                 "generated": datetime.now().isoformat(timespec="seconds"),
-                "wms_url": DEFAULT_WMS_URL,
+                "wms_url": args.wms_url,
                 "wms_layer": DEFAULT_WMS_LAYER,
                 "window_days": args.window_days,
                 "maxcc": args.maxcc,

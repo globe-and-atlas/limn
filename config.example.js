@@ -20,6 +20,13 @@ window.CONFIG = {
     ATLAS_SENTINEL_CREDIT_GUARD: true,
     ATLAS_SENTINEL_LIVE_TILES: false,
     ATLAS_SENTINEL_MIN_ZOOM: 14,
+    ATLAS_WMS_SOURCE: "configured", // "configured" or "viewer"; the Atlas HUD can switch this per session
+    // Optional alternate WMS source. Blank uses Limn's built-in alternate
+    // Sentinel Hub OGC WMS configuration id. Override with a real WMS
+    // configuration instance id or full WMS URL; Copernicus Browser/Viewer ids
+    // that begin with "sh-" are not accepted by the OGC WMS endpoint.
+    ATLAS_VIEWER_INSTANCE_ID: "",
+    ATLAS_VIEWER_WMS_URL: "",
 
     // Optional Sentinel Hub / CDSE fallback credentials.
     // Get credentials at: https://dataspace.copernicus.eu/ → Dashboard → OAuth Clients

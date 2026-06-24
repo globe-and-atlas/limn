@@ -1,3 +1,47 @@
+# 2026-06-23 — Atlas LinkedIn Panel Smoke Used Brittle Body Text Check
+
+- Error: `node tests/test_atlas_sentinel_toggle.mjs` failed with `hasPanel:false` while the visual-anchor, observation, why, question, copy button, and draft word-count checks all passed.
+- Cause: The smoke test checked `document.body.innerText.includes('LinkedIn Ground Truth')`, but headless layout did not expose that label text as expected even though the panel contract elements were present.
+- Impact: The browser smoke failed on a broad text assertion instead of the actual stable UI contract.
+- Fix: Switch the browser smoke to assert the stable `#info-linkedin-ground-truth` element and generated ingredient IDs instead of broad body text.
+- Graduated-to: no; local test-selector brittleness.
+
+# 2026-06-16 — Atlas PETI Citation Opened Unrelated Protein-Folding Paper
+
+- Error: The PETI water-quality source link claimed to be a Lake Taihu bloom review, but the URL resolved to a PMC article titled `Dynamical Phase Transitions Reveal Amyloid-like States on Protein Folding Landscapes`.
+- Cause: The Atlas source metadata used a stale/wrong `sourceUrl` for a Lake Erie cyanobacteria bookmark.
+- Impact: Following the PETI citation sent users away from the water-quality evidence trail and undermined the Atlas index demonstration.
+- Fix: Replaced PETI with the NOAA NCCOS Lake Erie 2019 HAB retrospective, replaced CSRC's mismatched Lake Erie source with NASA Earthdata Lake Taihu monitoring, and cache-busted Atlas data imports so the browser refreshes corrected citation metadata.
+- Verification: Browser checks confirmed PETI shows the NOAA link and no protein/PMC citation; CSRC shows NASA Earthdata Lake Taihu and no stale Lake Erie source. Syntax checks, provider tests, Atlas toggle smoke, and `git diff --check` passed.
+- Graduated-to: `knowledge/domain/api-contracts.md`.
+
+# 2026-06-16 — Atlas Evidence Audit Found Broken Primary Bookmark Sources
+
+- Error: Strict three-source evidence auditing found 10 renderable Atlas bookmarks whose primary citation was unreachable due to 404, DNS failure, timeout, or site blocking.
+- Cause: Several bookmarks used generic homepages, stale agency URLs, or WAF-blocked publisher pages as their primary citation.
+- Impact: The visible evidence pack could otherwise appear trustworthy because sensor/service links were reachable while the bookmark-specific citation was broken.
+- Fix: Replaced the broken primary sources with reachable, topic-matched citations for RRFI, CBSDI, CD-UAI, WDA-CSI, EC-ACI, LRD-VSI, PCEI, PDCSI, LISI, and TFIDI. Added `execution/audit_atlas_evidence.py` so future regressions are deterministic.
+- Verification: Final audit reports 44 renderable bookmarks, 44 Gold-ready evidence packs, and 0 cleanup items.
+- Graduated-to: `knowledge/procedural/atlas_evidence_standard.md`.
+
+# 2026-06-16 — Strong Verification Could Be Masked By Generic Evidence Links
+
+- Error: The first evidence audit could mark rows as Gold-ready because generic sensor/service links were reachable, even when the curated bookmark verification layer had dead secondary links.
+- Cause: The audit only required three reachable evidence URLs and primary-source reachability.
+- Impact: A row could appear Strong while one of its Strong-specific event/method/local sources was broken.
+- Fix: `execution/audit_atlas_evidence.py` now fails Strong rows if any curated verification evidence URL is unreachable. Dead secondary links in `src/atlas-verification.js` were removed or replaced.
+- Verification: The stricter audit reports 44 Gold-ready evidence packs, 0 cleanup items, and the upgraded Medium/Medium-Strong rows show as Strong verified.
+- Graduated-to: `knowledge/procedural/atlas_evidence_standard.md`.
+
+# 2026-06-16 — Atlas Viewer Source Used Non-WMS Copernicus Viewer ID
+
+- Error: The Atlas Viewer source attempted to construct an OGC WMS endpoint from `sh-d7374040-889f-4013-aac2-046a15f6d8ba`.
+- Cause: A Copernicus Browser/Viewer id was treated as if it were a Sentinel Hub OGC WMS configuration instance id.
+- Impact: Live Atlas WMS QC through that account could not run; direct probes returned HTTP 404/400 before any bookmark scoring could happen.
+- Fix: Atlas no longer constructs a WMS endpoint from the invalid `sh-d...` id. After the service endpoint id was clarified, the Viewer source now falls back to the verified OGC WMS configuration id `83a6b821-c0ad-43b1-848f-06f7b6b528a7`. The QC script also accepts `--wms-url` for explicit endpoint testing.
+- Verification: Direct `GetCapabilities` for `83a6b821-c0ad-43b1-848f-06f7b6b528a7` returned `200 application/xml`; the stubbed Atlas source-toggle smoke test verifies configured/viewer switching.
+- Graduated-to: `knowledge/domain/api-contracts.md`.
+
 # 2026-06-09 — GEE Tile Burst Returned HTTP 429 and Blank Map
 
 - Error: The launcher-backed GEE app rendered a blank overlay while the console showed repeated `/api/gee/tiles/...` HTTP 429 responses for HPWI/OBEC tiles.
@@ -355,3 +399,24 @@
 - **Cause**: Atlas preserved the raw provider response body on fetch failure, but the visible tile-status formatter ignored provider details and did not parse Sentinel Hub XML `ServiceException` bodies.
 - **Impact**: A PETI screenshot looked like the PETI/AGRICULTURE layer might be unsupported, even though a direct redacted probe of the current configured WMS returned `HTTP 200` with an `image/png` tile for PETI.
 - **Fix status**: RESOLVED. Atlas now parses JSON, CDATA, and XML service-exception error bodies, classifies quota/credit 403s separately, and surfaces the provider detail in the map status.
+
+## 2026-06-13: Atlas Article Capture WMS Probe Returned HTTP 403 — RESOLVED
+
+- **Deterministic error**: The first `execution/capture_atlas_articles.py` run for Sentinel-only Atlas article assets failed before writing captures because the direct Sentinel Hub WMS true-color request returned HTTP 403.
+- **Cause**: The default public Atlas WMS endpoint returned a Sentinel Hub `ServiceException` for insufficient processing units/requests.
+- **Impact**: Article capture generation was blocked when the script used the old default endpoint.
+- **Fix status**: RESOLVED. `execution/capture_atlas_articles.py` now privately reads the local configured Atlas/Sentinel WMS endpoint from `config-v1.js` when present and records only a redacted endpoint label in output metadata.
+
+## 2026-06-13: Atlas Article Capture Catalog Query Returned HTTP 400/403 — RESOLVED
+
+- **Deterministic error**: The Sentinel-only capture script wrote PNG assets successfully through WMS, but every optional Sentinel Hub Catalog side query returned HTTP 400.
+- **Cause**: The first Catalog payload used WMS-style date-only ranges, which Sentinel Hub Catalog rejected with `Cannot parse parameter datetime`. After switching to ISO timestamp ranges, Sentinel Hub Catalog returned a processing-unit/credit 403.
+- **Impact**: PNG captures initially had bookmark date, WMS date window, bbox, layer, and provider metadata, but exact scene/acquisition fields were missing.
+- **Fix status**: RESOLVED. The capture script now uses public CDSE STAC as the primary metadata source for Sentinel scene metadata, returning item ID, acquisition datetime, platform, cloud cover, and sun geometry without using GEE or COG.
+
+## 2026-06-24: Atlas Browser Smoke Blocked by Local Listen Permission — OPEN
+
+- **Infrastructure error**: `node tests/test_atlas_sentinel_toggle.mjs` failed before launching the page with `listen EPERM: operation not permitted 127.0.0.1`.
+- **Cause**: The current Codex sandbox does not permit binding a local HTTP server to `127.0.0.1`.
+- **Impact**: The browser smoke could not verify the new Atlas capture-mode UI in this environment.
+- **Fix status**: OPEN in this sandbox. Static checks passed, and the browser smoke should be rerun in a local environment that allows localhost binding.

@@ -116,8 +116,8 @@ export const ATLAS_INDICES = [
   benefit:'Week-ahead fire-weather risk maps for prescribed-burn scheduling.',
   gradient: G.fuel,
   bookmark:{lat:34.28, lng:-118.02, zoom:11, date:'2021-08-01', label:'Angeles NF chaparral — peak drought live-fuel risk'},
-  source: 'Yebra et al. (2018) - Live fuel moisture content estimation',
-  sourceUrl: 'https://doi.org/10.1016/j.rse.2018.06.024',
+  source: 'Drought.gov California-Nevada October 2021 drought update',
+  sourceUrl: 'https://www.drought.gov/drought-status-updates/drought-status-update-california-nevada-2021-10-15',
   justification: 'Peak-signal proof target for live-fuel moisture stress: fire-prone Angeles National Forest chaparral during the peak summer dry period of the historic 2021 drought. Open water and non-fuel surfaces are explicitly masked out.',
   evalscript: genEvalscript(['B02','B03','B04','B8A','B11','B12'],`
   let denom=sample.B8A+sample.B11+6*sample.B04-7.5*sample.B02+1;
@@ -163,8 +163,8 @@ export const ATLAS_INDICES = [
   gradient: 'linear-gradient(to right,#1e120a,#7a3d12,#c8731f,#e8a02a,#f2d24a)',
   bookmark:{lat:42.38, lng:-121.12, zoom:6, date:'2021-08-11', label:'Bootleg Fire OR — dense smoke aerosol plume'},
   legend:['Clear air', 'Dense smoke'],
-  source:'TROPOMI UV Absorbing Aerosol Index (Stein Zweers, S5P AER_AI product)',
-  sourceUrl:'https://scholar.google.com/scholar?q=TROPOMI+UV+Aerosol+Index+absorbing',
+  source:'NOAA GML long-range smoke from Bootleg and Dixie fires',
+  sourceUrl:'https://gml.noaa.gov/aero/net/bld/2021_fires.html',
   justification:'Live tile renders the TROPOMI UV Absorbing Aerosol Index (340/380 nm) — the available proxy for the full AOD-ratio composition index, which needs AOD products TROPOMI does not carry at 550 nm. Karpathy-loop WMS QC selected the August 11, 2021 Bootleg Fire smoke scene with 79.114% visible/high-signal coverage after transparent background gating.',
   evalscript: genEvalscript(['AER_AI_340_380'], `var aai=Math.max(0,Math.min(1,sample.AER_AI_340_380/3.5));if(aai<=0.08)return[0,0,0,0];return [0.55+0.45*aai, 0.45*(1-aai)+0.15, 0.12, Math.min(0.95,0.25+aai*0.75)];`)
 },
@@ -190,9 +190,9 @@ export const ATLAS_INDICES = [
   benefit:'Public health early warning for toxic cyanobacterial blooms in drinking-water reservoirs.',
   gradient: G.algae,
   bookmark:{lat:41.66, lng:-83.19, zoom:10, date:'2019-08-01', label:'Lake Erie — western algae bloom'},
-  source: 'Science review on Lake Taihu bloom (2007)',
-  sourceUrl: 'https://pmc.ncbi.nlm.nih.gov/articles/PMC4142240/',
-  justification: 'Targets the western basin of Lake Erie. The August 1, 2019, date represents a peak cyanobacteria bloom event near Toledo, used to validate the virtual phycocyanin proxy.',
+  source: 'NOAA NCCOS Lake Erie HAB 2019 retrospective',
+  sourceUrl: 'https://coastalscience.noaa.gov/news/lake-erie-hab-2019-retrospective-bloom-severity-was-7-3-as-predicted-by-the-seasonal-forecast/',
+  justification: 'Targets the western basin of Lake Erie during the documented 2019 Microcystis bloom season. The August 1, 2019 bookmark sits in the high-bloom summer window NOAA summarized at severity 7.3, validating the virtual phycocyanin proxy near Toledo.',
   evalscript: genEvalscript(['B03','B04','B05','B06','B11'],`
   let ndci=(sample.B05-sample.B04)/(sample.B05+sample.B04+0.001);
   let slope=(sample.B06-sample.B04)/(sample.B06+sample.B04+0.001);
@@ -209,9 +209,9 @@ export const ATLAS_INDICES = [
   benefit:'Identifies specific lake zones where direct human contact risk (swimming, fishing) is highest.',
   gradient: G.algae,
   bookmark:{lat:31.22, lng:120.22, zoom:10, date:'2020-08-01', label:'Lake Taihu China — bloom peak'},
-  source: 'NASA Earth Observatory: Algae Bloom on Lake Erie (2014)',
-  sourceUrl: 'https://earthobservatory.nasa.gov/images/84125/algae-bloom-on-lake-erie',
-  justification: 'Targets Lake Taihu, China, during the peak summer bloom of August 1, 2020, demonstrating scum-risk identification and sediment false-positive rejection.',
+  source: 'NASA Earthdata: Cleaner Water from Space (Lake Taihu HAB monitoring)',
+  sourceUrl: 'https://www.earthdata.nasa.gov/news/feature-articles/cleaner-water-from-space',
+  justification: 'Targets Lake Taihu, China, during the peak summer bloom period. NASA Earthdata documents satellite monitoring of Lake Taihu cyanobacterial blooms, making this bookmark a location-matched scum-risk demonstration with sediment false-positive rejection.',
   evalscript: genEvalscript(['B03','B04','B05','B06','B08','B11'],`
   let ndci=(sample.B05-sample.B04)/(sample.B05+sample.B04+0.001);
   let scumBoost=Math.max(0,sample.B08-0.15)*3;
@@ -268,8 +268,8 @@ export const ATLAS_INDICES = [
   benefit:'Maps stream reaches losing their ecological buffer — prioritizes restoration funding.',
   gradient: G.forest,
   bookmark:{lat:35.69, lng:-105.95, zoom:11, date:'2021-05-18', label:'Rio Grande riparian corridor NM'},
-  source: 'National Park Service Rio Grande flows (2022)',
-  sourceUrl: 'https://www.nps.gov/bibe/learn/nature/rio-grande.htm',
+  source: 'USGS Upper Rio Grande streamflow and climate response study',
+  sourceUrl: 'https://pubs.usgs.gov/publication/sir20215138',
   justification: 'Targets the Rio Grande riparian corridor in New Mexico during a severe drought. WMS QC date sweep selected May 18, 2021, as a strong proof target with 2.183% high-signal coverage.',
   evalscript: genEvalscript(['B02','B03','B04','B08','B11'],`
   let ndvi=(sample.B08-sample.B04)/(sample.B08+sample.B04+0.001);
@@ -288,10 +288,10 @@ export const ATLAS_INDICES = [
   physics:'Upslope bare soil (BSI) combined with downstream turbidity spike (B04/B03 anomaly) identifies an active erosion-to-channel delivery linkage.',
   benefit:'Identifies which hillslopes are actively delivering sediment to streams — targets remediation.',
   gradient: G.silt,
-  bookmark:{lat:38.98, lng:-92.31, zoom:11, date:'2019-02-16', label:'Missouri River post-flood turbidity'},
-  source: 'California DWR Pajaro Response (2023)',
-  sourceUrl: 'https://water.ca.gov/News/Blog/2023/Mar-23/Pajaro-Flood-Response',
-  justification: 'Targets the Missouri River floodplain during the 2019 flood season. WMS QC date sweep selected February 16, 2019, as a strong proof target with 17.467% high-signal coverage.',
+  bookmark:{lat:36.90, lng:-121.75, zoom:11, date:'2023-03-17', label:'Pajaro River CA — levee-breach sediment pulse'},
+  source: 'California DWR Pajaro River levee break response (2023)',
+  sourceUrl: 'https://water.ca.gov/News/Blog/2023/Mar-23/DWR-Supports-Flood-Fight-Efforts-at-Pajaro-River-Levee-Break',
+  justification: 'Targets the Pajaro River floodplain one week after the March 2023 levee breach, aligning the erosion-delivery bookmark with a site-specific flood-fight and sediment-response source.',
   evalscript: genEvalscript(['B03','B04','B08','B11'],`
   let bsi=sample.B11>0.2&&sample.B04>sample.B08?1:0;
   let turb=(sample.B04-sample.B03)/(sample.B04+sample.B03+0.001);
@@ -391,8 +391,8 @@ export const ATLAS_INDICES = [
   benefit:'Separates two critically different ocean pollution types — enabling targeted cleanup strategies.',
   gradient: G.marine,
   bookmark:{lat:18.0, lng:-65.0, zoom:12, date:'2022-07-02', label:'Caribbean — water-gated Sargassum belt'},
-  source: 'Wang & Hu (2016) - Sargassum detection from space',
-  sourceUrl: 'https://doi.org/10.1016/j.rse.2016.09.008',
+  source: 'USF Sargassum Watch System Caribbean bulletins',
+  sourceUrl: 'https://optics.marine.usf.edu/projects/saws.html',
   justification: 'Targets the Caribbean Sea south of Puerto Rico during the 2022 Sargassum season. After adding water-context and land-rejection gates, WMS QC selected July 2, 2022, at zoom 12 as a strong water-only proof target with 2.396% high-signal coverage.',
   evalscript: genEvalscript(['B03','B04','B08','B8A','B11','B12'],`
   let fai=sample.B08-(sample.B04+(sample.B12-sample.B04)*((833-665)/(2190-665)));
@@ -414,8 +414,8 @@ export const ATLAS_INDICES = [
   benefit:'Monitors bleaching extent and stage at 10 m — actionable for marine park management within days.',
   gradient: G.marine,
   bookmark:{lat:-18.29, lng:147.70, zoom:11, date:'2020-03-15', label:'Great Barrier Reef — bleaching event'},
-  source: 'AIMS / GBRMPA Bleaching Report 2020',
-  sourceUrl: 'https://www.aims.gov.au/',
+  source: 'Mongabay report on the 2020 Great Barrier Reef bleaching event',
+  sourceUrl: 'https://news.mongabay.com/2020/04/great-barrier-reef-suffers-biggest-bleaching-event-yet/',
   justification: 'Targets the central Great Barrier Reef during the severe mass bleaching event of March 2020, triggered by prolonged elevated sea surface temperatures.',
   evalscript: genEvalscript(['B02','B03','B04'],`
   let stage1=(sample.B03-sample.B04)/(sample.B03+sample.B04+0.001);
@@ -452,9 +452,9 @@ export const ATLAS_INDICES = [
   benefit:'Real-time spill response prioritization — fresh vs. weathered oil requires different cleanup methods.',
   gradient: G.marine,
   bookmark:{lat:28.7, lng:-88.4, zoom:11, date:'2016-05-15', label:'Gulf of Mexico — oil slick weathering context'},
-  source: 'NOAA Office of Response and Restoration',
-  sourceUrl: 'https://response.restoration.noaa.gov/',
-  justification: 'Targets the area near the Deepwater Horizon site in the Gulf of Mexico. The date represents a period of seasonal slick-weathering verification using Sentinel-2 SWIR bands.',
+  source: 'NOAA Deepwater Horizon oil spill case study',
+  sourceUrl: 'https://response.restoration.noaa.gov/deepwater-horizon-oil-spill-case-study',
+  justification: 'Targets the area near the Deepwater Horizon site in the Gulf of Mexico. The bookmark is a persistent oil-slick weathering context target, now tied to NOAA ORR Deepwater Horizon documentation instead of a generic ORR landing page.',
   evalscript: genEvalscript(['B02','B03','B11','B12'],`
   let ndoi=(sample.B02-sample.B12)/(sample.B02+sample.B12+0.001);
   let weather=sample.B11/(sample.B12+0.001);
@@ -517,8 +517,8 @@ export const ATLAS_INDICES = [
   benefit:'Marine permit compliance monitoring — detects unauthorized dredge discharge into protected zones.',
   gradient: G.silt,
   bookmark:{lat:22.37, lng:113.69, zoom:10, date:'2021-04-01', label:'Pearl River estuary — silt plume'},
-  source: 'Australian Senate Gladstone Harbor report (2011)',
-  sourceUrl: 'https://www.aph.gov.au/Parliamentary_Business/Committees/Senate/Environment_and_Communications/Completed_inquiries/2010-13/gladstoneharbour/report/index',
+  source: 'Scientific Reports study on anthropogenic change in Pearl River Estuary sediment dynamics',
+  sourceUrl: 'https://www.nature.com/articles/s41598-021-96183-0',
   justification: 'Targets the Pearl River Estuary near Hong Kong on April 1, 2021, validating coastal dredging and heavy suspended marine sediment plume dynamics.',
   evalscript: genEvalscript(['B03','B04','B08','B11'],`
   let turb=(sample.B04-sample.B03)/(sample.B04+sample.B03+0.001);
@@ -534,10 +534,10 @@ export const ATLAS_INDICES = [
   physics:'Microplastics (PE/PP) show C-H stretch overtones at 1730 nm, suppressed NIR, and no chlorophyll. FAI/SWIR1 combination removes Sargassum and foam false positives.',
   benefit:'Maps marine plastic accumulation zones — guides ocean cleanup operations.',
   gradient: G.marine,
-  bookmark:{lat:54.5, lng:3.0, zoom:9, date:'2021-08-01', label:'North Sea — marine debris zone'},
-  source: 'NOAA IncidentNews X-Press Pearl (2021)',
-  sourceUrl: 'https://incidentnews.noaa.gov/incident/10290',
-  justification: 'Targets the North Sea marine debris zone on August 1, 2021, demonstrating floating microplastic polymer brightness screening and organic rejection.',
+  bookmark:{lat:7.0, lng:79.55, zoom:10, date:'2021-06-02', label:'Sri Lanka west coast — X-Press Pearl plastic pellet spill'},
+  source: 'UNEP X-Press Pearl maritime disaster report',
+  sourceUrl: 'https://www.unep.org/resources/report/x-press-pearl-maritime-disaster-sri-lanka-report-un-environmental-advisory-mission',
+  justification: 'Targets the Sri Lanka west coast immediately after the 2021 X-Press Pearl disaster, aligning the floating-plastic bookmark with UNEP and marine-debris documentation for the pellet spill.',
   evalscript: genEvalscript(['B03','B04','B08','B8A','B11','B12'],`
   let fai=sample.B08-(sample.B04+(sample.B12-sample.B04)*0.13);
   let notVeg=(sample.B08-sample.B04)/(sample.B08+sample.B04+0.001)<0.2?1:0;
@@ -556,8 +556,8 @@ export const ATLAS_INDICES = [
   benefit:'Precision nutrient prescription from orbit — reduces fertilizer over-application and nutrient runoff.',
   gradient: G.forest,
   bookmark:{lat:41.59, lng:-93.62, zoom:11, date:'2021-07-01', label:'Iowa cornfields — nutrient mapping'},
-  source: 'Iowa State University Extension Crop Sciences',
-  sourceUrl: 'https://crops.extension.iastate.edu/',
+  source: 'Iowa State nutrient deficiencies guide',
+  sourceUrl: 'https://www.agronext.iastate.edu/soilfertility/nutrientdeficiencies.html',
   justification: 'Targets the agricultural heartland near Des Moines, Iowa. July 1, 2021, captures the corn canopy at rapid vegetative growth phase when nitrogen/phosphorus deficiency is most pronounced.',
   evalscript: genEvalscript(['B04','B05','B08','B11','B12'],`
   let nSig=(sample.B04-sample.B05)/(sample.B04+sample.B05+0.001);
@@ -622,8 +622,8 @@ export const ATLAS_INDICES = [
   benefit:'Precision timing recommendations for cover crop termination — maximizes nitrogen credit to cash crops.',
   gradient: G.forest,
   bookmark:{lat:40.63, lng:-89.59, zoom:11, date:'2022-04-01', label:'Illinois — spring cover crop green-up'},
-  source: 'USDA Agricultural Research Service',
-  sourceUrl: 'https://www.ars.usda.gov/',
+  source: 'Illinois Department of Agriculture I-COVER program',
+  sourceUrl: 'https://agr.illinois.gov/resources/landwater/i-cover.html',
   justification: 'Targets central Illinois fields during spring green-up (April 1, 2022), catching the critical transition window when cover crops are terminated prior to cash crop sowing.',
   evalscript: genEvalscript(['B02','B04','B08','B11'],`
   let ndvi=(sample.B08-sample.B04)/(sample.B08+sample.B04+0.001);
@@ -651,8 +651,8 @@ export const ATLAS_INDICES = [
   benefit:'Maps the active agricultural-wetland boundary for conservation enforcement and wetland banking.',
   gradient: G.wetland,
   bookmark:{lat:25.84, lng:-80.66, zoom:10, date:'2021-12-01', label:'Florida Everglades — agricultural edge'},
-  source: 'Copernicus EMS Drought in Europe report (2022)',
-  sourceUrl: 'https://edo.jrc.ec.europa.eu/edoc/main.php?id=1000',
+  source: 'Everglades Foundation on Everglades Agricultural Area peat subsidence',
+  sourceUrl: 'https://www.evergladesfoundation.org/post/everglades-restoration-water-and-climate-change',
   justification: 'Targets the Florida Everglades boundary on December 1, 2021, to map agricultural encroachment and peatland drainage edge collapse dynamics.',
   evalscript: genEvalscript(['B03','B04','B05','B08','B11'],`
   let ndci=(sample.B05-sample.B04)/(sample.B05+sample.B04+0.001);
@@ -691,9 +691,9 @@ export const ATLAS_INDICES = [
   benefit:'Forensic mapping of tailings runout extent — guides remediation boundary and community health response.',
   gradient: G.mine,
   bookmark:{lat:-10.69, lng:-76.26, zoom:11, date:'2021-08-01', label:'Cerro de Pasco Peru — mining tailings'},
-  source: 'European Environment Agency Aznalcollar (1998)',
-  sourceUrl: 'https://www.eea.europa.eu/publications/92-9167-052-9-sum/page001.html',
-  justification: 'Targets active tailings impoundments in Cerro de Pasco, Peru, on August 1, 2021, to map jarosite and sulfate mineral staining runouts.',
+  source: 'NASA Earth Observatory: Mining Peru\'s Cerro de Pasco',
+  sourceUrl: 'https://science.nasa.gov/earth/earth-observatory/mining-perus-cerro-de-pasco-144481/',
+  justification: 'Targets active tailings impoundments in Cerro de Pasco, Peru, on August 1, 2021, with the citation now tied to the same mining district and tailings landscape.',
   evalscript: genEvalscript(['B02','B03','B04','B11','B12'],`
   let jarosite=(sample.B04-sample.B02)/(sample.B04+sample.B02+0.001);
   let sulfate=sample.B11/(sample.B12+0.001);
@@ -709,8 +709,8 @@ export const ATLAS_INDICES = [
   benefit:'Continental-scale AMD triage without field sampling — prioritizes site remediation by pH severity.',
   gradient: G.mine,
   bookmark:{lat:40.66, lng:-122.53, zoom:12, date:'2021-09-01', label:'Iron Mountain Mine CA — acid drainage'},
-  source: 'USGS Iron Mountain Superfund Site Records',
-  sourceUrl: 'https://cumulis.epa.gov/supercpad/cursites/csitinfo.cfm?id=0901245',
+  source: 'USGS Iron Mountain environmental effects profile',
+  sourceUrl: 'https://ca.water.usgs.gov/projects/iron_mountain/environment.html',
   justification: 'Targets the Iron Mountain Mine superfund site in California, world-renowned for extremely acidic mine waters. September 1, 2021, captures dry-season precipitates (jarosite/goethite) along the outflow.',
   evalscript: genEvalscript(['B02','B03','B04'],`
   let num=(sample.B04-sample.B03)/(sample.B04+sample.B03+0.001);
@@ -801,8 +801,8 @@ export const ATLAS_INDICES = [
   benefit:'Maps urban heat island intensity at neighborhood scale — guides heat-resilience infrastructure investment.',
   gradient: G.urban,
   bookmark:{lat:33.45, lng:-112.07, zoom:11, date:'2021-07-20', label:'Phoenix AZ metro — urban heat island'},
-  source: 'WMO July 2019 heatwave reports',
-  sourceUrl: 'https://public.wmo.int/en/media/news/july-2019-equalled-and-maybe-surpassed-hottest-month-recorded-history',
+  source: 'WMO July 2019 hottest-month analysis',
+  sourceUrl: 'https://wmo.int/media/july-matched-and-maybe-broke-record-hottest-month-analysis-began',
   justification: 'Targets the Phoenix, AZ, metro area during the peak heat period of July 20, 2021, contrasting evapotranspirative canopy with dry asphalt to map heat island intensity.',
   evalscript: genEvalscript(['B04','B08','B11'],`
   let ndvi=(sample.B08-sample.B04)/(sample.B08+sample.B04+0.001);
@@ -819,9 +819,9 @@ export const ATLAS_INDICES = [
   benefit:'Identifies heat-vulnerable neighborhoods lacking cooling canopy — targets tree-planting programs.',
   gradient: G.urban,
   bookmark:{lat:29.76, lng:-95.37, zoom:11, date:'2021-08-01', label:'Houston TX — urban heat vulnerability'},
-  source: 'NYC Heat Vulnerability Index',
-  sourceUrl: 'https://a816-dohbesp.nyc.gov/IndicatorPublic/data-explorer/climate/?id=2411',
-  justification: 'Targets Houston, TX, on August 1, 2021, mapping neighborhoods with high bare soil/asphalt and low tree canopy cover to evaluate heat-shelter absence.',
+  source: 'NASA VEDA Urban Heating dashboard',
+  sourceUrl: 'https://www.earthdata.nasa.gov/dashboard/data-catalog/urban-heating',
+  justification: 'Targets Houston, TX, on August 1, 2021, mapping neighborhoods with high bare soil/asphalt and low tree canopy cover under a source that explicitly supports urban heating analysis.',
   evalscript: genEvalscript(['B02','B04','B08','B11'],`
   let ndvi=(sample.B08-sample.B04)/(sample.B08+sample.B04+0.001);
   let bsi=((sample.B11+sample.B04)-(sample.B08+sample.B02))/((sample.B11+sample.B04)+(sample.B08+sample.B02)+0.001);
@@ -867,8 +867,8 @@ export const ATLAS_INDICES = [
   benefit:'City-scale pavement management without expensive ground surveys.',
   gradient: G.urban,
   bookmark:{lat:42.33, lng:-83.04, zoom:12, date:'2021-08-02', label:'Detroit MI — road infrastructure'},
-  source: 'MDOT / City of Detroit Road Condition Audits',
-  sourceUrl: 'https://www.michigan.gov/mdot/',
+  source: 'SEMCOG 2021 pavement condition dataset',
+  sourceUrl: 'https://hub.arcgis.com/maps/SEMCOG%3A%3Apavement-condition-2021',
   justification: 'Targets Detroit\'s highway system. WMS QC selected August 2, 2021, as the stronger same-location pavement/albedo-decay proof scene.',
   evalscript: genEvalscript(['B02','B03','B04','B08'],`
   let dark=sample.B02<0.15&&sample.B03<0.15&&sample.B04<0.15?1:0;
@@ -897,9 +897,9 @@ export const ATLAS_INDICES = [
   benefit:'Maps LFG migration extent — identifies properties with buried methane fire/explosion hazard.',
   gradient: G.urban,
   bookmark:{lat:40.57, lng:-74.17, zoom:13, date:'2021-08-01', label:'Fresh Kills Landfill Staten Island NY'},
-  source: 'EPA Chiquita Canyon Landfill updates (2024)',
-  sourceUrl: 'https://www.epa.gov/ca/chiquita-canyon-landfill',
-  justification: 'Targets Fresh Kills Landfill on Staten Island on August 1, 2021, tracking peripheral soil moisture loss and vegetation chlorosis patterns.',
+  source: 'Freshkills Park landfill gas collection and processing',
+  sourceUrl: 'https://freshkillspark.org/landfill-engineering/collection-and-processing',
+  justification: 'Targets Fresh Kills Landfill on Staten Island on August 1, 2021, tracking peripheral soil moisture loss and vegetation chlorosis around a site with documented landfill-gas collection infrastructure.',
   evalscript: genEvalscript(['B04','B05','B08','B8A','B11'],`
   let ndvi=(sample.B08-sample.B04)/(sample.B08+sample.B04+0.001);
   let redEdge=(sample.B05-sample.B04)/(sample.B05+sample.B04+0.001);
@@ -916,9 +916,9 @@ export const ATLAS_INDICES = [
   benefit:'Environmental justice screening — detects leachate impacts on communities downstream of landfills.',
   gradient: G.urban,
   bookmark:{lat:40.73, lng:-73.94, zoom:13, date:'2021-07-15', label:'Newtown Creek NY — urban waterway'},
-  source: 'WWF Malaysia Belum-Temengor reports (2020)',
-  sourceUrl: 'https://www.wwf.org.my/',
-  justification: 'Targets Newtown Creek, NY, on July 15, 2021, detecting leachate migration and runoff indicators in highly urbanized riparian channels.',
+  source: 'NOAA Newtown Creek hazardous-waste profile',
+  sourceUrl: 'https://darrp.noaa.gov/hazardous-waste/newtown-creek',
+  justification: 'Targets Newtown Creek, NY, on July 15, 2021, detecting runoff and degradation indicators in a highly urbanized waterway with EPA Superfund documentation.',
   evalscript: genEvalscript(['B03','B04','B08','B11'],`
   let ndvi=(sample.B08-sample.B04)/(sample.B08+sample.B04+0.001);
   let ndwi=(sample.B03-sample.B08)/(sample.B03+sample.B08+0.001);
@@ -936,9 +936,9 @@ export const ATLAS_INDICES = [
   benefit:'Maps thermokarst across circumpolar permafrost where >1,000 Gt carbon is at risk.',
   gradient: G.perm,
   bookmark:{lat:62.0, lng:68.0, zoom:13, date:'2021-09-30', label:'West Siberia — thermokarst lakes'},
-  source: 'NASA Batagaika Crater Earth Observatory',
-  sourceUrl: 'https://earthobservatory.nasa.gov/images/90104/batagaika-crater-expands',
-  justification: 'Targets West Siberia thermokarst terrain. WMS QC zoom-framing selected zoom 13 as a strong proof target with 2.325% high-signal coverage.',
+  source: 'High carbon emissions from thermokarst lakes of Western Siberia',
+  sourceUrl: 'https://www.nature.com/articles/s41467-019-09592-1',
+  justification: 'Targets West Siberia thermokarst terrain. WMS QC zoom-framing selected zoom 13 as a strong proof target with 2.325% high-signal coverage, now anchored to a Western Siberia thermokarst-lake carbon study.',
   evalscript: genEvalscript(['B03','B04','B08','B11','B12'],`
   let ndvi=(sample.B08-sample.B04)/(sample.B08+sample.B04+0.001);
   let ndwi=(sample.B03-sample.B08)/(sample.B03+sample.B08+0.001);
@@ -955,8 +955,8 @@ export const ATLAS_INDICES = [
   benefit:'Provides the rate signal needed for carbon flux modeling — "how fast is this pond growing."',
   gradient: G.perm,
   bookmark:{lat:68.4, lng:-134.9, zoom:11, date:'2021-08-15', label:'Mackenzie Delta Canada — thermokarst'},
-  source: 'Natural Resources Canada / Permafrost Net',
-  sourceUrl: 'https://natural-resources.canada.ca/',
+  source: 'Natural Resources Canada Mackenzie Valley permafrost monitoring publication',
+  sourceUrl: 'https://ostrnrcan-dostrncan.canada.ca/entities/publication/322833e9-a6fa-41bc-8b67-de66b1b39940',
   justification: 'Targets permafrost slumps and thaw lakes in the Mackenzie Delta, Canada. Mid-August represents peak seasonal thaw before freeze-up begins.',
   evalscript: genEvalscript(['B03','B08','B11','B12'],`
   let ndwi=(sample.B03-sample.B08)/(sample.B03+sample.B08+0.001);
@@ -972,8 +972,8 @@ export const ATLAS_INDICES = [
   benefit:'Satellite proxy for peat carbon vulnerability — identifies zones at highest risk of rapid oxidation.',
   gradient: G.perm,
   bookmark:{lat:55.0, lng:-84.0, zoom:11, date:'2021-09-01', label:'Hudson Bay lowlands — peat exposure'},
-  source: 'Global Peatlands Initiative / NRCan',
-  sourceUrl: 'https://www.unep.org/globalpeatlandsinitiative',
+  source: 'WCS Canada Hudson Bay Lowland peatland synthesis',
+  sourceUrl: 'https://wcscanada.org/about/our-programs/forests-peatlands-and-climate-change/synthesis-of-peatland-knowledge-in-the-hudson-bay-lowland/',
   justification: 'Targets the massive peatland complex of the Hudson Bay Lowlands. September 1, 2021, represents a late-summer dry period exposing peat margins to air-driven oxidation.',
   evalscript: genEvalscript(['B03','B04','B08','B12'],`
   let ndvi=(sample.B08-sample.B04)/(sample.B08+sample.B04+0.001);
@@ -1024,9 +1024,9 @@ export const ATLAS_INDICES = [
   benefit:'Maps active methane-ebullition ponds — the largest unmonitored non-CO₂ greenhouse gas source in Arctic.',
   gradient: G.perm,
   bookmark:{lat:62.5, lng:76.0, zoom:10, date:'2021-08-15', label:'West Siberian Plain — methane pond'},
-  source: 'NASA ABoVE Permafrost Methane Studies',
-  sourceUrl: 'https://above.nasa.gov/',
-  justification: 'Targets the thermokarst-dense West Siberian Plain in mid-August 2021, isolating open sediment-laden ponds known for high methane ebullition rates.',
+  source: 'High carbon emissions from thermokarst lakes of Western Siberia',
+  sourceUrl: 'https://www.nature.com/articles/s41467-019-09592-1',
+  justification: 'Targets the thermokarst-dense West Siberian Plain in mid-August 2021, isolating open sediment-laden ponds in the same Western Siberian lake region documented for high carbon and methane emissions.',
   evalscript: genEvalscript(['B03','B04','B05','B08','B11'],`
   let ndwi=(sample.B03-sample.B08)/(sample.B03+sample.B08+0.001);
   let ndvi=(sample.B08-sample.B04)/(sample.B08+sample.B04+0.001);
@@ -1056,8 +1056,8 @@ export const ATLAS_INDICES = [
   benefit:'Provides a 6–18 month warning before deforestation becomes visible — enables preventive enforcement.',
   gradient: G.forest,
   bookmark:{lat:-4.0, lng:-55.0, zoom:11, date:'2021-05-18', label:'Amazon deforestation front — Pará Brazil'},
-  source: 'INPE PRODES Deforestation Monitoring',
-  sourceUrl: 'http://www.obt.inpe.br/obtdg/prodes/',
+  source: 'INPE TerraBrasilis PRODES and DETER data platform',
+  sourceUrl: 'https://terrabrasilis.dpi.inpe.br/en/home-page/',
   justification: 'Targets the active agricultural deforestation frontier in Pará State, Brazil. WMS QC date sweep selected May 18, 2021, as a strong proof target with 14.309% high-signal coverage.',
   evalscript: genEvalscript(['B05','B06','B08','B8A'],`
   let pdcsi=((sample.B06-sample.B05)/(sample.B06+sample.B05+0.001))-((sample.B8A-sample.B08)/(sample.B8A+sample.B08+0.001));
@@ -1073,8 +1073,8 @@ export const ATLAS_INDICES = [
   benefit:'Maps liana infestation extent — lianas suppress forest carbon storage by 20–30%.',
   gradient: G.forest,
   bookmark:{lat:1.0, lng:113.0, zoom:11, date:'2021-08-01', label:'Borneo — liana-infested forest'},
-  source: 'CIFOR Borneo Tropical Forest Studies',
-  sourceUrl: 'https://www.cifor-icraf.org/',
+  source: 'PMC review on remote sensing for liana infestation detection',
+  sourceUrl: 'https://pmc.ncbi.nlm.nih.gov/articles/PMC12035525/',
   justification: 'Targets degraded secondary tropical forests in Central Kalimantan, Borneo, where lianas have choked the tree canopy following historic commercial selective logging.',
   evalscript: genEvalscript(['B02','B04','B08','B11'],`
   let denom=sample.B08+sample.B11+6*sample.B04-7.5*sample.B02+1;
@@ -1201,8 +1201,8 @@ export const ATLAS_INDICES = [
   benefit:'2–4 week earlier warning of locust outbreak habitat — enables preventive treatment before swarm formation.',
   gradient: G.dry,
   bookmark:{lat:9.0, lng:42.0, zoom:10, date:'2020-02-01', label:'East Africa — 2020 locust outbreak region'},
-  source: 'FAO Locust Watch / UNEP',
-  sourceUrl: 'https://www.fao.org/ag/locusts/en/info/info/index.html',
+  source: 'FAO desert locust crisis response page',
+  sourceUrl: 'https://www.fao.org/emergencies/where-we-work/desert-locust-crisis/',
   justification: 'Targets the dry rangelands of eastern Ethiopia. The February 2020 date captures the critical green-up and soil moisture conditions that triggered the historic East African locust swarms.',
   evalscript: genEvalscript(['B03','B04','B08','B11'],`
   let ndvi=(sample.B08-sample.B04)/(sample.B08+sample.B04+0.001);
@@ -1281,8 +1281,8 @@ export const ATLAS_INDICES = [
   benefit:'Maps tidal flat habitat dynamics — critical for migratory shorebird populations and blue carbon.',
   gradient: G.wetland,
   bookmark:{lat:37.76, lng:119.18, zoom:11, date:'2021-10-01', label:'Yellow River Delta China — tidal flat'},
-  source: 'Yellow River Delta National Nature Reserve / Ramsar',
-  sourceUrl: 'https://www.ramsar.org/',
+  source: 'Frontiers study of Yellow River Delta tidal-flat dynamics',
+  sourceUrl: 'https://www.frontiersin.org/journals/marine-science/articles/10.3389/fmars.2023.1259081/full',
   justification: 'Targets the extensive tidal flats of the Yellow River Delta. October 2021 captures tidally active mudflats vital for migratory birds and coastal carbon research.',
   evalscript: genEvalscript(['B03','B08','B11'],`
   let ndwi=(sample.B03-sample.B08)/(sample.B03+sample.B08+0.001);
@@ -1299,9 +1299,9 @@ export const ATLAS_INDICES = [
   benefit:'Maps peat carbon vulnerability boundaries — where lowered water table exposes peat to oxidation.',
   gradient: G.wetland,
   bookmark:{lat:61.5, lng:69.0, zoom:11, date:'2021-07-15', label:'West Siberia — peatland transition zone'},
-  source: 'Siberian Peatland Carbon Studies / UNESCO',
-  sourceUrl: 'https://whc.unesco.org/en/list/',
-  justification: 'Targets the vast peatlands of the West Siberian Lowlands. Mid-July 2021 captures high-contrast vegetation moisture differences marking the boundary between wet peat bogs and dry forest margins.',
+  source: 'The Cryosphere study of Western Siberian thermokarst lake waters',
+  sourceUrl: 'https://tc.copernicus.org/articles/8/1177/2014/tc-8-1177-2014.pdf',
+  justification: 'Targets the vast peatlands of the West Siberian Lowlands. Mid-July 2021 captures high-contrast vegetation moisture differences at wet-dry peatland margins, now tied to a Western Siberian thermokarst and peatland-lake source.',
   evalscript: genEvalscript(['B03','B08','B8A','B11'],`
   let swirNir=(sample.B11-sample.B8A)/(sample.B11+sample.B8A+0.001);
   let transition=Math.abs(swirNir)>0.05&&Math.abs(swirNir)<0.3?1:0;

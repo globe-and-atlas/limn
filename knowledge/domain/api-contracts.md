@@ -106,6 +106,8 @@ Atlas sends `app=atlas` and its index key/acronym in tile query params. Atlas cu
 
 Atlas also has a top-right Sentinel WMS switch. Global `IMAGE_PROVIDER: "cog"` is normalized to Atlas GEE because Atlas COG formulas are not ported. The Atlas switch applies a session-only provider override to `sentinelhub`, arms live WMS tiles, and restores the default provider when switched off. Optional Atlas-specific guard settings are `ATLAS_SENTINEL_CREDIT_GUARD`, `ATLAS_SENTINEL_LIVE_TILES`, and `ATLAS_SENTINEL_MIN_ZOOM`; when omitted, Atlas uses the shared Sentinel guard settings.
 
+Atlas Sentinel WMS source selection is separate from the Sentinel on/off switch. `ATLAS_WMS_SOURCE: "configured"` uses `SH_WMS_URL`, `ATLAS_WMS_URL`, `SH_INSTANCE_ID`, `SENTINEL_HUB_INSTANCE_ID`, or `WMS_INSTANCE_ID` from `config-v1.js`. `ATLAS_WMS_SOURCE: "viewer"` uses optional overrides `ATLAS_VIEWER_WMS_URL`, `SENTINEL_VIEWER_WMS_URL`, `ATLAS_VIEWER_INSTANCE_ID`, or `SENTINEL_VIEWER_INSTANCE_ID`, then falls back to verified alternate WMS configuration id `83a6b821-c0ad-43b1-848f-06f7b6b528a7`. These values must be real Sentinel Hub OGC WMS endpoints or OGC WMS configuration instance ids; Copernicus Browser/Viewer ids that start with `sh-` are not accepted by the OGC WMS endpoint. The Atlas HUD can switch sources per session. Changing sources does not arm Sentinel by itself; WMS requests are still gated by the live-tile switch, minimum zoom, and cooldown logic.
+
 **Sentinel Hub fallback**: Sentinel Hub fallback is locked off unless both `ALLOW_SENTINEL_FALLBACK: true` and `IMAGE_PROVIDER: "sentinelhub"` are set. This prevents a secret-bearing local `config-v1.js` from accidentally overriding normal browsing back to Sentinel Hub while the account is out of credits. Default GEE mode intentionally skips the mini GIF inset, acquisition probing, AOI history scan, and report generation because those secondary flows still use Sentinel Hub/CDSE Statistics/Catalog APIs.
 
 **Sentinel Hub credit guard**: When Sentinel Hub fallback is active, WMS tiles are still blocked unless `SENTINEL_CREDIT_GUARD` is disabled or live tiles are armed. Defaults are `SENTINEL_CREDIT_GUARD: true`, `SENTINEL_LIVE_TILES: false`, and `SENTINEL_MIN_ZOOM: 14`. The top-right map toolbar exposes a Sentinel switch and minimum zoom slider. Off keeps the default COG/GEE provider. On applies a session-only Sentinel Hub provider override and arms live WMS tiles. When blocked, `getIndexLayer()` returns a local placeholder grid layer and fires a `sentinelguard` map event instead of constructing WMS tile requests. The GIF/acquisition helper path is also skipped while the guard is blocking.
@@ -117,6 +119,8 @@ Atlas follows the same WMS rate contract through its own `FetchWMS` implementati
 ## Sentinel Hub WMS
 
 **Endpoint**: `https://sh.dataspace.copernicus.eu/ogc/wms/{INSTANCE_ID}`
+
+`{INSTANCE_ID}` must be a Sentinel Hub OGC WMS configuration id. The alternate Atlas id `83a6b821-c0ad-43b1-848f-06f7b6b528a7` returns `200 application/xml` for `GetCapabilities`. A Copernicus Browser/Viewer id such as `sh-d7374040-889f-4013-aac2-046a15f6d8ba` is not enough for `GetMap`; direct probes returned HTTP 404/400 when used as an OGC WMS path segment.
 
 Key params sent by `getWMSLayer()`:
 - `layers`: `'AGRICULTURE'` (default), `'SENTINEL1-GRD'` (SAR), or `'SENTINEL-2-L2A,LANDSAT-8-L2A'` (HLS)

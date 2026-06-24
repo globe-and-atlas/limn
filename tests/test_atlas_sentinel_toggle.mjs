@@ -14,7 +14,8 @@ const CHROME_PATHS = [
 ];
 
 let atlasGeeTileHits = 0;
-let atlasWmsTileHits = 0;
+let configuredWmsTileHits = 0;
+let viewerWmsTileHits = 0;
 
 function contentType(filePath) {
   const ext = path.extname(filePath).toLowerCase();
@@ -41,6 +42,7 @@ function createStaticServer() {
         GEE_TILE_ENDPOINT: "/api/gee/tiles",
         ATLAS_GEE_TILE_ENDPOINT: "/api/gee/tiles",
         SH_WMS_URL: "/atlas-wms",
+        ATLAS_VIEWER_WMS_URL: "/viewer-wms",
         SENTINEL_CREDIT_GUARD: true,
         SENTINEL_LIVE_TILES: false,
         SENTINEL_MIN_ZOOM: 14,
@@ -57,7 +59,14 @@ function createStaticServer() {
     }
 
     if (urlPath === '/atlas-wms') {
-      atlasWmsTileHits++;
+      configuredWmsTileHits++;
+      res.writeHead(200, { 'Content-Type': 'image/png' });
+      res.end(TRANSPARENT_PNG);
+      return;
+    }
+
+    if (urlPath === '/viewer-wms') {
+      viewerWmsTileHits++;
       res.writeHead(200, { 'Content-Type': 'image/png' });
       res.end(TRANSPARENT_PNG);
       return;
@@ -107,21 +116,238 @@ try {
   if (initial.provider !== 'gee') {
     throw new Error(`Atlas should default to GEE, got ${initial.provider}`);
   }
-  if (atlasWmsTileHits !== 0) {
-    throw new Error(`Atlas made ${atlasWmsTileHits} WMS requests before Sentinel was toggled on.`);
+  if (initial.wmsSource !== 'configured') {
+    throw new Error(`Atlas should default to the configured WMS source, got ${initial.wmsSource}`);
+  }
+  if (configuredWmsTileHits !== 0 || viewerWmsTileHits !== 0) {
+    throw new Error(`Atlas made WMS requests before Sentinel was toggled on (${configuredWmsTileHits} configured, ${viewerWmsTileHits} viewer).`);
   }
   if (atlasGeeTileHits < 1) {
     throw new Error('Atlas did not request GEE tiles before Sentinel toggle.');
   }
 
+  const hitsBeforeGroundTruthCheck = {
+    gee: atlasGeeTileHits,
+    configured: configuredWmsTileHits,
+    viewer: viewerWmsTileHits,
+  };
+  const groundTruthPanel = await page.evaluate(() => {
+    const draft = document.getElementById('gt-linkedin-draft')?.textContent || '';
+    return {
+      hasPanel: !!document.getElementById('info-linkedin-ground-truth'),
+      hasRule: !!Array.from(document.querySelectorAll('.gt-post-rule'))
+        .some(el => el.textContent.includes('One image. One observation. One reason it matters. One interpretive prompt.')),
+      hasVisualAnchor: !!document.getElementById('gt-visual-anchor')?.textContent?.includes('One Atlas render'),
+      hasObservation: !!document.getElementById('gt-observation')?.textContent?.trim(),
+      hasWhy: !!document.getElementById('gt-why')?.textContent?.trim(),
+      hasQuestion: !!document.getElementById('gt-question')?.textContent?.includes('?'),
+      hasCopyButton: !!document.getElementById('copy-linkedin-ground-truth'),
+      draftWordCount: draft.split(/\s+/).filter(Boolean).length,
+    };
+  });
+  if (!groundTruthPanel.hasPanel || !groundTruthPanel.hasRule || !groundTruthPanel.hasVisualAnchor) {
+    throw new Error(`Atlas LinkedIn Ground Truth panel did not render expected guidance: ${JSON.stringify(groundTruthPanel)}`);
+  }
+  if (!groundTruthPanel.hasObservation || !groundTruthPanel.hasWhy || !groundTruthPanel.hasQuestion || !groundTruthPanel.hasCopyButton) {
+    throw new Error(`Atlas LinkedIn Ground Truth panel is missing post ingredients: ${JSON.stringify(groundTruthPanel)}`);
+  }
+  if (groundTruthPanel.draftWordCount < 30 || groundTruthPanel.draftWordCount > 300) {
+    throw new Error(`Atlas LinkedIn draft should be concise and under 300 words, got ${groundTruthPanel.draftWordCount}`);
+  }
+  if (
+    atlasGeeTileHits !== hitsBeforeGroundTruthCheck.gee
+    || configuredWmsTileHits !== hitsBeforeGroundTruthCheck.configured
+    || viewerWmsTileHits !== hitsBeforeGroundTruthCheck.viewer
+  ) {
+    throw new Error('Atlas LinkedIn Ground Truth panel should not request provider tiles.');
+  }
+
+  const hitsBeforeCaptureToggle = {
+    gee: atlasGeeTileHits,
+    configured: configuredWmsTileHits,
+    viewer: viewerWmsTileHits,
+  };
+  await page.click('#toggle-capture');
+  await page.waitForFunction(() => window.getAtlasCaptureState?.().enabled === true, { timeout: 5000 });
+  const captureMode = await page.evaluate(() => {
+    const state = window.getAtlasCaptureState();
+    return {
+      ...state,
+      layoutActive: document.querySelector('.atlas-layout')?.classList.contains('capture-mode') === true,
+      sidebarHidden: window.getComputedStyle(document.getElementById('atlas-sidebar')).display === 'none',
+      hudHidden: window.getComputedStyle(document.querySelector('.atlas-hud')).display === 'none',
+      infoHidden: window.getComputedStyle(document.getElementById('info-panel')).display === 'none',
+      cardVisible: window.getComputedStyle(document.getElementById('capture-card')).display !== 'none',
+      legendLarge: document.querySelector('.atlas-legend')?.getBoundingClientRect().width >= 250,
+      hasModeButtons: document.querySelectorAll('.capture-mode-btn[data-capture-view]').length === 3,
+      hasSplitSlider: !!document.getElementById('capture-split-slider'),
+    };
+  });
+  if (!captureMode.layoutActive || !captureMode.sidebarHidden || !captureMode.hudHidden || !captureMode.infoHidden || !captureMode.cardVisible) {
+    throw new Error(`Atlas capture mode did not simplify the screenshot frame: ${JSON.stringify(captureMode)}`);
+  }
+  if (!captureMode.acronym || !captureMode.name || !captureMode.place || !captureMode.modeLabel || !captureMode.hook || !captureMode.prompt) {
+    throw new Error(`Atlas capture overlay is missing selected-index context: ${JSON.stringify(captureMode)}`);
+  }
+  if (!captureMode.legendLarge) {
+    throw new Error(`Atlas capture mode should enlarge the legend for screenshots: ${JSON.stringify(captureMode)}`);
+  }
+  if (captureMode.view !== 'overlay' || !captureMode.hasModeButtons || !captureMode.hasSplitSlider) {
+    throw new Error(`Atlas capture mode should default to overlay and expose comparison controls: ${JSON.stringify(captureMode)}`);
+  }
+
+  await page.click('[data-capture-view="context"]');
+  await page.waitForFunction(() => window.getAtlasCaptureState?.().view === 'context', { timeout: 5000 });
+  const contextCapture = await page.evaluate(() => ({
+    ...window.getAtlasCaptureState(),
+    modeLabel: document.getElementById('capture-mode-label')?.textContent || '',
+    legendHidden: window.getComputedStyle(document.querySelector('.atlas-legend')).display === 'none',
+  }));
+  if (contextCapture.overlayOpacity !== 0 || !contextCapture.legendHidden || !contextCapture.modeLabel.includes('context only')) {
+    throw new Error(`Atlas context capture view should hide the index overlay and legend: ${JSON.stringify(contextCapture)}`);
+  }
+
+  await page.click('[data-capture-view="split"]');
+  await page.evaluate(() => {
+    const slider = document.getElementById('capture-split-slider');
+    slider.value = '62';
+    slider.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  await page.waitForFunction(() => {
+    const state = window.getAtlasCaptureState?.();
+    return state?.view === 'split' && state?.split === 62 && state?.overlayClipPath.includes('62%');
+  }, { timeout: 5000 });
+  const splitCapture = await page.evaluate(() => ({
+    ...window.getAtlasCaptureState(),
+    splitVisible: window.getComputedStyle(document.querySelector('.capture-split-divider')).display !== 'none',
+    sliderVisible: document.querySelector('.capture-split-control')?.classList.contains('visible') === true,
+    modeLabel: document.getElementById('capture-mode-label')?.textContent || '',
+  }));
+  if (!splitCapture.splitVisible || !splitCapture.sliderVisible || !splitCapture.modeLabel.includes('Split')) {
+    throw new Error(`Atlas split capture view should expose a divider and split label: ${JSON.stringify(splitCapture)}`);
+  }
+
+  await page.click('[data-capture-view="overlay"]');
+  await page.waitForFunction(() => {
+    const state = window.getAtlasCaptureState?.();
+    return state?.view === 'overlay' && state?.overlayOpacity > 0 && state?.overlayClipPath === '';
+  }, { timeout: 5000 });
+  await page.click('#exit-capture');
+  await page.waitForFunction(() => window.getAtlasCaptureState?.().enabled === false, { timeout: 5000 });
+  await new Promise(resolve => setTimeout(resolve, 400));
+  if (
+    atlasGeeTileHits !== hitsBeforeCaptureToggle.gee
+    || configuredWmsTileHits !== hitsBeforeCaptureToggle.configured
+    || viewerWmsTileHits !== hitsBeforeCaptureToggle.viewer
+  ) {
+    throw new Error('Atlas capture mode should not request provider tiles.');
+  }
+
+  const focusInitial = await page.evaluate(() => window.getAtlasBookmarkFocusState());
+  if (focusInitial.visible) {
+    throw new Error('Atlas bookmark focus layer should be off by default.');
+  }
+  if (focusInitial.expectedCount < 90) {
+    throw new Error(`Atlas bookmark focus layer should see the catalog bookmarks, got ${focusInitial.expectedCount}.`);
+  }
+
+  const hitsBeforeFocusToggle = {
+    gee: atlasGeeTileHits,
+    configured: configuredWmsTileHits,
+    viewer: viewerWmsTileHits,
+  };
+  await page.click('#toggle-bookmark-focus');
+  await page.waitForFunction(() => {
+    const state = window.getAtlasBookmarkFocusState();
+    return state.visible
+      && state.markerCount === state.expectedCount
+      && document.querySelectorAll('.atlas-bookmark-focus-point').length === state.expectedCount;
+  }, { timeout: 5000 });
+  await new Promise(resolve => setTimeout(resolve, 300));
+  if (
+    atlasGeeTileHits !== hitsBeforeFocusToggle.gee
+    || configuredWmsTileHits !== hitsBeforeFocusToggle.configured
+    || viewerWmsTileHits !== hitsBeforeFocusToggle.viewer
+  ) {
+    throw new Error('Atlas bookmark focus toggle should not request provider tiles.');
+  }
+
+  await page.click('#toggle-bookmark-focus');
+  await page.waitForFunction(() => {
+    const state = window.getAtlasBookmarkFocusState();
+    return !state.visible && document.querySelectorAll('.atlas-bookmark-focus-point').length === 0;
+  }, { timeout: 5000 });
+
+  await page.click('#toggle-bookmark-focus');
+  await page.waitForFunction(() => document.querySelectorAll('.atlas-bookmark-focus-point').length > 0, { timeout: 5000 });
+  await page.click('#toggle-pause');
+  const clickedFocusKey = await page.evaluate(() => {
+    const active = window.getAtlasBookmarkFocusState().activeKey;
+    const target = Array.from(document.querySelectorAll('.atlas-bookmark-focus-point'))
+      .find(el => el.dataset.key && el.dataset.key !== active);
+    if (!target) return '';
+    target.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
+    return target.dataset.key;
+  });
+  if (!clickedFocusKey) {
+    throw new Error('Atlas bookmark focus smoke could not find a non-active point to click.');
+  }
+  await page.waitForFunction(
+    key => window.getAtlasBookmarkFocusState().activeKey === key,
+    { timeout: 5000 },
+    clickedFocusKey
+  );
+  await page.click('#toggle-pause');
+  await new Promise(resolve => setTimeout(resolve, 1000));
+
   await page.evaluate(() => {
     const zoom = document.getElementById('atlas-sentinel-min-zoom');
-    zoom.value = '3';
+    zoom.value = '17';
     zoom.dispatchEvent(new Event('input', { bubbles: true }));
     zoom.dispatchEvent(new Event('change', { bubbles: true }));
     const toggle = document.getElementById('atlas-toggle-sentinel-live');
     toggle.checked = true;
     toggle.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  await new Promise(resolve => setTimeout(resolve, 1000));
+
+  const blocked = await page.evaluate(() => window.getAtlasProviderState());
+  if (blocked.provider !== 'sentinelhub' || !blocked.sentinelLiveTiles) {
+    throw new Error(`Atlas should be armed under the zoom guard, got ${JSON.stringify(blocked)}`);
+  }
+  if (blocked.guardStatus?.reason !== 'zoom') {
+    throw new Error(`Atlas should block armed Sentinel below the zoom gate, got ${JSON.stringify(blocked.guardStatus)}`);
+  }
+  if (configuredWmsTileHits !== 0 || viewerWmsTileHits !== 0) {
+    throw new Error(`Atlas requested WMS while armed below zoom gate (${configuredWmsTileHits} configured, ${viewerWmsTileHits} viewer).`);
+  }
+
+  await page.evaluate(() => {
+    const source = document.getElementById('atlas-sentinel-source');
+    source.value = 'viewer';
+    source.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  await new Promise(resolve => setTimeout(resolve, 1000));
+
+  const blockedViewer = await page.evaluate(() => window.getAtlasProviderState());
+  if (blockedViewer.wmsSource !== 'viewer') {
+    throw new Error(`Atlas should allow source selection while blocked by zoom, got ${blockedViewer.wmsSource}`);
+  }
+  if (blockedViewer.guardStatus?.reason !== 'zoom') {
+    throw new Error(`Atlas source switch should preserve the zoom guard, got ${JSON.stringify(blockedViewer.guardStatus)}`);
+  }
+  if (configuredWmsTileHits !== 0 || viewerWmsTileHits !== 0) {
+    throw new Error(`Atlas source switch bypassed the zoom guard (${configuredWmsTileHits} configured, ${viewerWmsTileHits} viewer).`);
+  }
+
+  await page.evaluate(() => {
+    const source = document.getElementById('atlas-sentinel-source');
+    source.value = 'configured';
+    source.dispatchEvent(new Event('change', { bubbles: true }));
+    const zoom = document.getElementById('atlas-sentinel-min-zoom');
+    zoom.value = '3';
+    zoom.dispatchEvent(new Event('input', { bubbles: true }));
+    zoom.dispatchEvent(new Event('change', { bubbles: true }));
   });
   await new Promise(resolve => setTimeout(resolve, 1600));
 
@@ -138,11 +364,35 @@ try {
   if (!sentinel.providerState.sentinelLiveTiles) {
     throw new Error('Atlas Sentinel toggle should arm live tiles.');
   }
+  if (sentinel.providerState.wmsSource !== 'configured') {
+    throw new Error(`Atlas Sentinel toggle should keep the configured WMS source, got ${sentinel.providerState.wmsSource}`);
+  }
   if (!sentinel.attribution.includes('Copernicus Sentinel Hub')) {
     throw new Error(`Atlas attribution did not switch to Sentinel Hub: ${sentinel.attribution}`);
   }
-  if (atlasWmsTileHits < 1) {
-    throw new Error('Atlas Sentinel toggle did not request the guarded WMS endpoint.');
+  if (configuredWmsTileHits < 1) {
+    throw new Error('Atlas Sentinel toggle did not request the configured WMS endpoint.');
+  }
+  if (viewerWmsTileHits !== 0) {
+    throw new Error('Atlas requested the viewer WMS endpoint before the source was switched.');
+  }
+
+  await page.evaluate(() => {
+    const source = document.getElementById('atlas-sentinel-source');
+    source.value = 'viewer';
+    source.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  await new Promise(resolve => setTimeout(resolve, 1600));
+
+  const viewer = await page.evaluate(() => window.getAtlasProviderState());
+  if (viewer.wmsSource !== 'viewer') {
+    throw new Error(`Atlas source selector should switch to viewer, got ${viewer.wmsSource}`);
+  }
+  if (viewer.provider !== 'sentinelhub') {
+    throw new Error(`Atlas source switch should keep Sentinel Hub active, got ${viewer.provider}`);
+  }
+  if (viewerWmsTileHits < 1) {
+    throw new Error('Atlas source selector did not request the viewer WMS endpoint while Sentinel was armed.');
   }
 
   await page.evaluate(() => {
@@ -159,6 +409,20 @@ try {
   if (restored.sentinelLiveTiles) {
     throw new Error('Atlas Sentinel toggle-off should disarm live tiles.');
   }
+  const viewerHitsAfterDisarm = viewerWmsTileHits;
+  await page.evaluate(() => {
+    const source = document.getElementById('atlas-sentinel-source');
+    source.value = 'configured';
+    source.dispatchEvent(new Event('change', { bubbles: true }));
+  });
+  await new Promise(resolve => setTimeout(resolve, 1000));
+  const sourceAfterDisarm = await page.evaluate(() => window.getAtlasProviderState());
+  if (sourceAfterDisarm.wmsSource !== 'configured') {
+    throw new Error(`Atlas source selector should switch while disarmed, got ${sourceAfterDisarm.wmsSource}`);
+  }
+  if (viewerWmsTileHits !== viewerHitsAfterDisarm) {
+    throw new Error('Atlas source switch requested WMS tiles while Sentinel was disarmed.');
+  }
 
   if (pageErrors.length) {
     throw new Error(`Atlas Sentinel toggle saw page errors: ${pageErrors.join(' | ')}`);
@@ -168,4 +432,4 @@ try {
   await new Promise(resolve => server.close(resolve));
 }
 
-console.log(`Atlas Sentinel toggle smoke OK (${atlasGeeTileHits} GEE, ${atlasWmsTileHits} WMS requests)`);
+console.log(`Atlas Sentinel toggle smoke OK (${atlasGeeTileHits} GEE, ${configuredWmsTileHits} configured WMS, ${viewerWmsTileHits} viewer WMS requests)`);

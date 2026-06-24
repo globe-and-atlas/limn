@@ -213,7 +213,7 @@
       display: flex;
       flex-direction: column;
       gap: 8px;
-      z-index: 500;
+      z-index: 700;
     }
 
     .hud-panel {
@@ -290,6 +290,36 @@
       border-color: rgba(0,210,255,0.5);
       color: #00D2FF;
     }
+    .hud-btn.is-active {
+      background: rgba(0,255,178,0.13);
+      border-color: rgba(0,255,178,0.42);
+      color: #00FFB2;
+    }
+
+    .hud-btn.capture-active {
+      background: rgba(0,210,255,0.18);
+      border-color: rgba(0,210,255,0.52);
+      color: #00D2FF;
+    }
+
+    .atlas-bookmark-focus-point {
+      filter: drop-shadow(0 0 5px rgba(0,210,255,0.42));
+      cursor: pointer;
+    }
+
+    .atlas-bookmark-focus-point.is-active {
+      filter: drop-shadow(0 0 8px rgba(0,255,178,0.72));
+    }
+
+    .atlas-bookmark-focus-tooltip {
+      background: rgba(10, 11, 20, 0.92);
+      border: 1px solid rgba(0,210,255,0.28);
+      border-radius: 6px;
+      color: #E2E8F0;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      box-shadow: none;
+    }
 
     .atlas-sentinel-panel {
       align-items: stretch;
@@ -302,6 +332,24 @@
       display: flex;
       align-items: center;
       gap: 8px;
+    }
+
+    .atlas-sentinel-source {
+      width: 100%;
+      border: 1px solid rgba(148,163,184,0.24);
+      border-radius: 6px;
+      background: rgba(15,23,42,0.72);
+      color: #CBD5E1;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      line-height: 1;
+      padding: 6px 8px;
+      outline: none;
+    }
+
+    .atlas-sentinel-source:focus-visible {
+      border-color: rgba(0,210,255,0.72);
+      box-shadow: 0 0 0 2px rgba(0,210,255,0.16);
     }
 
     .atlas-sentinel-toggle {
@@ -437,6 +485,323 @@
       letter-spacing: -0.2px;
     }
 
+    /* ── LinkedIn capture mode ───────────────────────────────────────── */
+    .capture-card {
+      display: none;
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      z-index: 720;
+      width: min(460px, calc(100vw - 56px));
+      background: rgba(7, 10, 18, 0.88);
+      backdrop-filter: blur(18px);
+      border: 1px solid rgba(255,255,255,0.16);
+      border-radius: 8px;
+      box-shadow: 0 18px 48px rgba(0,0,0,0.36);
+      color: #E2E8F0;
+      overflow: hidden;
+    }
+
+    .capture-card-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 14px;
+      padding: 13px 14px 9px;
+      border-bottom: 1px solid rgba(148,163,184,0.16);
+    }
+
+    .capture-kicker {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 0.75px;
+      text-transform: uppercase;
+      color: #00D2FF;
+    }
+
+    #capture-title {
+      margin-top: 3px;
+      font-family: 'Instrument Sans', sans-serif;
+      font-size: 19px;
+      font-weight: 700;
+      line-height: 1.08;
+      color: #fff;
+    }
+
+    #capture-name {
+      margin-top: 3px;
+      font-size: 12px;
+      line-height: 1.35;
+      color: #94A3B8;
+    }
+
+    .capture-exit {
+      flex: 0 0 auto;
+      border: 1px solid rgba(148,163,184,0.22);
+      border-radius: 6px;
+      background: rgba(15,23,42,0.72);
+      color: #CBD5E1;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      padding: 5px 8px;
+      cursor: pointer;
+    }
+
+    .capture-exit:hover {
+      color: #00D2FF;
+      border-color: rgba(0,210,255,0.36);
+    }
+
+    .capture-card-body {
+      padding: 10px 14px 13px;
+    }
+
+    .capture-controls {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      margin: 0 0 10px;
+    }
+
+    .capture-mode-btn {
+      border: 1px solid rgba(148,163,184,0.2);
+      border-radius: 6px;
+      background: rgba(255,255,255,0.06);
+      color: #94A3B8;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      line-height: 1;
+      padding: 6px 8px;
+      cursor: pointer;
+    }
+
+    .capture-mode-btn:hover {
+      color: #E2E8F0;
+      border-color: rgba(0,210,255,0.3);
+    }
+
+    .capture-mode-btn.active {
+      background: rgba(0,210,255,0.14);
+      border-color: rgba(0,210,255,0.48);
+      color: #00D2FF;
+    }
+
+    .capture-split-control {
+      display: none;
+      align-items: center;
+      gap: 8px;
+      margin: -2px 0 10px;
+      color: #64748B;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 0.3px;
+      text-transform: uppercase;
+    }
+
+    .capture-split-control.visible {
+      display: flex;
+    }
+
+    #capture-split-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      flex: 1;
+      height: 4px;
+      border-radius: 2px;
+      background: rgba(255,255,255,0.16);
+      outline: none;
+      cursor: pointer;
+    }
+
+    #capture-split-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #00D2FF;
+      cursor: pointer;
+    }
+
+    .capture-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 9px;
+    }
+
+    .capture-chip {
+      border: 1px solid rgba(148,163,184,0.18);
+      border-radius: 5px;
+      background: rgba(255,255,255,0.06);
+      color: #CBD5E1;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      line-height: 1.25;
+      padding: 4px 6px;
+    }
+
+    #capture-hook {
+      font-size: 13px;
+      line-height: 1.45;
+      color: #E2E8F0;
+    }
+
+    #capture-prompt {
+      margin-top: 8px;
+      border-left: 2px solid rgba(0,255,178,0.5);
+      padding-left: 8px;
+      font-size: 12px;
+      line-height: 1.4;
+      color: #94A3B8;
+    }
+
+    .capture-rail {
+      display: none;
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      z-index: 690;
+      align-items: center;
+      gap: 8px;
+      pointer-events: none;
+    }
+
+    .capture-rail span {
+      background: rgba(7, 10, 18, 0.72);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 6px;
+      color: #CBD5E1;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.35px;
+      padding: 6px 8px;
+      text-transform: uppercase;
+    }
+
+    .capture-rail-line {
+      width: 56px;
+      height: 1px;
+      background: linear-gradient(to right, rgba(148,163,184,0.18), rgba(0,210,255,0.72));
+    }
+
+    .capture-split-divider {
+      display: none;
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: var(--capture-split, 50%);
+      z-index: 680;
+      width: 2px;
+      transform: translateX(-1px);
+      background: rgba(255,255,255,0.88);
+      box-shadow: 0 0 0 1px rgba(0,0,0,0.24), 0 0 18px rgba(0,210,255,0.35);
+      pointer-events: none;
+    }
+
+    .capture-split-divider::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 22px;
+      height: 42px;
+      transform: translate(-50%, -50%);
+      border: 1px solid rgba(255,255,255,0.5);
+      border-radius: 11px;
+      background: rgba(7,10,18,0.68);
+    }
+
+    .capture-split-labels {
+      display: none;
+      position: absolute;
+      inset: auto 20px 24px 316px;
+      z-index: 690;
+      justify-content: space-between;
+      pointer-events: none;
+    }
+
+    .capture-split-labels span {
+      background: rgba(7, 10, 18, 0.72);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 6px;
+      color: #CBD5E1;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      letter-spacing: 0.35px;
+      padding: 6px 8px;
+      text-transform: uppercase;
+    }
+
+    .atlas-layout.capture-mode #atlas-sidebar,
+    .atlas-layout.capture-mode .atlas-hud,
+    .atlas-layout.capture-mode #toggle-info,
+    .atlas-layout.capture-mode #info-panel {
+      display: none;
+    }
+
+    .atlas-layout.capture-mode .capture-card {
+      display: block;
+    }
+
+    .atlas-layout.capture-mode .capture-rail {
+      display: flex;
+    }
+
+    .atlas-layout.capture-mode.capture-view-split .capture-rail {
+      display: none;
+    }
+
+    .atlas-layout.capture-mode.capture-view-split .capture-split-divider,
+    .atlas-layout.capture-mode.capture-view-split .capture-split-labels {
+      display: flex;
+    }
+
+    .atlas-layout.capture-mode .atlas-legend {
+      bottom: 22px;
+      left: 22px;
+      min-width: 270px;
+      padding: 14px 16px;
+      border-radius: 8px;
+      z-index: 710;
+      background: rgba(7, 10, 18, 0.86);
+    }
+
+    .atlas-layout.capture-mode.capture-view-context .atlas-legend {
+      display: none;
+    }
+
+    .atlas-layout.capture-mode .legend-acronym {
+      font-size: 18px;
+      margin-bottom: 9px;
+    }
+
+    .atlas-layout.capture-mode .legend-bar {
+      height: 10px;
+      border-radius: 5px;
+      margin-bottom: 6px;
+    }
+
+    .atlas-layout.capture-mode .legend-scale {
+      font-size: 10px;
+    }
+
+    .atlas-layout.capture-mode #sensor-note,
+    .atlas-layout.capture-mode #date-window-display,
+    .atlas-layout.capture-mode #tile-status {
+      font-size: 10px;
+      max-width: 300px;
+    }
+
+    .atlas-layout.capture-mode .leaflet-control-zoom {
+      display: none;
+    }
+
+    .atlas-layout.capture-mode .leaflet-control-attribution {
+      opacity: 0.42;
+      font-size: 9px;
+    }
+
     .hud-value {
       font-size: 11px;
       color: #94A3B8;
@@ -541,6 +906,26 @@
       color: #94A3B8;
     }
 
+    .info-trust--strong,
+    .info-trust--gold {
+      background: rgba(0,255,178,0.12);
+      color: #00FFB2;
+      border: 1px solid rgba(0,255,178,0.24);
+    }
+
+    .info-trust--silver {
+      background: rgba(148,163,184,0.14);
+      color: #CBD5E1;
+      border: 1px solid rgba(148,163,184,0.26);
+    }
+
+    .info-trust--bronze,
+    .info-trust--context {
+      background: rgba(217,134,79,0.12);
+      color: #d9864f;
+      border: 1px solid rgba(217,134,79,0.24);
+    }
+
     .info-body { flex: 1; min-width: 260px; }
 
     .info-field-label {
@@ -578,6 +963,162 @@
       color: #64748B;
       font-family: 'JetBrains Mono', monospace;
       margin-top: 6px;
+    }
+
+    .gt-post-card {
+      margin-top: 5px;
+      border: 1px solid rgba(0,210,255,0.18);
+      border-radius: 8px;
+      background:
+        linear-gradient(135deg, rgba(0,210,255,0.08), rgba(0,255,178,0.04)),
+        rgba(15,23,42,0.42);
+      overflow: hidden;
+    }
+
+    .gt-post-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 8px 10px;
+      border-bottom: 1px solid rgba(148,163,184,0.14);
+    }
+
+    .gt-post-kicker {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+      color: #00D2FF;
+    }
+
+    .gt-post-rule {
+      margin-top: 2px;
+      font-size: 11px;
+      color: #94A3B8;
+      line-height: 1.35;
+    }
+
+    .gt-copy-btn {
+      flex: 0 0 auto;
+      border: 1px solid rgba(0,255,178,0.28);
+      border-radius: 6px;
+      background: rgba(0,255,178,0.08);
+      color: #00FFB2;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      padding: 5px 8px;
+      cursor: pointer;
+    }
+
+    .gt-copy-btn:hover {
+      background: rgba(0,255,178,0.14);
+      border-color: rgba(0,255,178,0.44);
+    }
+
+    .gt-post-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 1px;
+      background: rgba(148,163,184,0.12);
+    }
+
+    .gt-post-cell {
+      min-width: 0;
+      background: rgba(10,11,20,0.58);
+      padding: 8px 10px;
+    }
+
+    .gt-post-label {
+      display: block;
+      margin-bottom: 3px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 8px;
+      letter-spacing: 0.55px;
+      text-transform: uppercase;
+      color: #64748B;
+    }
+
+    .gt-post-value {
+      font-size: 11px;
+      color: #CBD5E1;
+      line-height: 1.42;
+    }
+
+    .gt-draft {
+      margin: 0;
+      padding: 9px 10px;
+      color: #E2E8F0;
+      background: rgba(2,6,23,0.36);
+      border-top: 1px solid rgba(148,163,184,0.12);
+      font-family: 'Instrument Sans', sans-serif;
+      font-size: 11px;
+      line-height: 1.48;
+      white-space: pre-wrap;
+    }
+
+    @media (max-width: 980px) {
+      .gt-post-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .atlas-layout.capture-mode .capture-rail { display: none; }
+      .atlas-layout.capture-mode .capture-split-labels { display: none; }
+      .capture-card { top: 14px; left: 14px; }
+      .atlas-layout.capture-mode .atlas-legend {
+        left: 14px;
+        bottom: 14px;
+        min-width: 220px;
+      }
+    }
+
+    .evidence-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 6px;
+      margin-top: 2px;
+    }
+
+    .evidence-group-title {
+      margin: 8px 0 3px;
+      color: #64748B;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      letter-spacing: 0.4px;
+      text-transform: uppercase;
+    }
+
+    .evidence-link {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      min-height: 30px;
+      padding: 6px 8px;
+      border: 1px solid rgba(148,163,184,0.14);
+      border-radius: 6px;
+      background: rgba(15,23,42,0.42);
+      color: #CBD5E1;
+      text-decoration: none;
+      overflow: hidden;
+    }
+
+    .evidence-link:hover {
+      border-color: rgba(0,210,255,0.36);
+      color: #E2E8F0;
+    }
+
+    .evidence-type {
+      flex: 0 0 auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      color: #00D2FF;
+      background: rgba(0,210,255,0.1);
+      border-radius: 4px;
+      padding: 2px 5px;
+    }
+
+    .evidence-label {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
 
     #toggle-info {
@@ -826,10 +1367,16 @@
               <input id="atlas-sentinel-min-zoom" type="range" min="3" max="17" step="1" value="14" aria-label="Minimum Atlas Sentinel Hub zoom">
             </div>
           </div>
+          <select id="atlas-sentinel-source" class="atlas-sentinel-source" aria-label="Atlas Sentinel WMS source">
+            <option value="configured">Configured</option>
+            <option value="viewer">Viewer</option>
+          </select>
           <div id="atlas-sentinel-status" class="atlas-sentinel-status">GEE active</div>
         </div>
         <div class="hud-panel hud-actions">
           <button id="toggle-pause" class="hud-btn" title="Pause tiles to pan and zoom without using Copernicus credits">⏸ Pause tiles</button>
+          <button id="toggle-bookmark-focus" class="hud-btn" type="button" aria-pressed="false" title="Show bookmark focus points">Focus pts</button>
+          <button id="toggle-capture" class="hud-btn" type="button" aria-pressed="false" title="Hide controls and frame the selected index for a LinkedIn screenshot">Capture</button>
           <button id="toggle-base" class="hud-btn">🗺 Map</button>
         </div>
       </div>
@@ -850,6 +1397,45 @@
         <div id="tile-status" aria-live="polite"></div>
       </div>
 
+      <!-- LinkedIn screenshot capture overlay -->
+      <div id="capture-card" class="capture-card" aria-live="polite">
+        <div class="capture-card-head">
+          <div>
+            <div class="capture-kicker">LinkedIn capture · 1200×628</div>
+            <div id="capture-title">—</div>
+            <div id="capture-name">—</div>
+          </div>
+          <button id="exit-capture" class="capture-exit" type="button">Exit</button>
+        </div>
+        <div class="capture-card-body">
+          <div class="capture-controls" aria-label="Capture comparison mode">
+            <button class="capture-mode-btn active" type="button" data-capture-view="overlay">Overlay</button>
+            <button class="capture-mode-btn" type="button" data-capture-view="context">Context</button>
+            <button class="capture-mode-btn" type="button" data-capture-view="split">Split</button>
+          </div>
+          <label class="capture-split-control" for="capture-split-slider">
+            Split
+            <input id="capture-split-slider" type="range" min="25" max="75" step="1" value="50">
+          </label>
+          <div class="capture-meta">
+            <span class="capture-chip" id="capture-place">—</span>
+            <span class="capture-chip" id="capture-mode-label">Satellite context + index overlay</span>
+          </div>
+          <div id="capture-hook">—</div>
+          <div id="capture-prompt">—</div>
+        </div>
+      </div>
+      <div class="capture-rail" aria-hidden="true">
+        <span>Satellite context</span>
+        <div class="capture-rail-line"></div>
+        <span id="capture-overlay-label">Index overlay</span>
+      </div>
+      <div class="capture-split-divider" aria-hidden="true"></div>
+      <div class="capture-split-labels" aria-hidden="true">
+        <span>Satellite context</span>
+        <span id="capture-split-overlay-label">Index overlay</span>
+      </div>
+
       <!-- Info Panel (slides up from bottom) -->
       <div id="info-panel">
         <div class="info-row">
@@ -859,6 +1445,7 @@
             <div class="info-badges">
               <span class="info-badge" id="info-platform"></span>
               <span class="info-badge" id="info-novelty"></span>
+              <span class="info-badge info-trust" id="info-trust"></span>
             </div>
             <div id="info-bookmark"></div>
           </div>
@@ -871,8 +1458,39 @@
             <div class="info-field-value" id="info-physics"></div>
             <div class="info-field-label">Benefit</div>
             <div class="info-field-value" id="info-benefit"></div>
-            <div class="info-field-label">Source &amp; Citation</div>
-            <div class="info-field-value" id="info-source"></div>
+            <div class="info-field-label">LinkedIn Ground Truth</div>
+            <div class="info-field-value" id="info-linkedin-ground-truth">
+              <div class="gt-post-card">
+                <div class="gt-post-header">
+                  <div>
+                    <div class="gt-post-kicker">Weekly post shape</div>
+                    <div class="gt-post-rule">One image. One observation. One reason it matters. One interpretive prompt.</div>
+                  </div>
+                  <button id="copy-linkedin-ground-truth" class="gt-copy-btn" type="button">Copy draft</button>
+                </div>
+                <div class="gt-post-grid">
+                  <div class="gt-post-cell">
+                    <span class="gt-post-label">Visual anchor</span>
+                    <span class="gt-post-value" id="gt-visual-anchor">—</span>
+                  </div>
+                  <div class="gt-post-cell">
+                    <span class="gt-post-label">Observation</span>
+                    <span class="gt-post-value" id="gt-observation">—</span>
+                  </div>
+                  <div class="gt-post-cell">
+                    <span class="gt-post-label">Why it matters</span>
+                    <span class="gt-post-value" id="gt-why">—</span>
+                  </div>
+                  <div class="gt-post-cell">
+                    <span class="gt-post-label">Interpretive prompt</span>
+                    <span class="gt-post-value" id="gt-question">—</span>
+                  </div>
+                </div>
+                <pre class="gt-draft" id="gt-linkedin-draft"></pre>
+              </div>
+            </div>
+            <div class="info-field-label">Evidence Pack</div>
+            <div class="info-field-value" id="info-evidence"></div>
             <div class="info-field-label">Peak-Signal Bookmark</div>
             <div class="info-field-value" id="info-justification"></div>
           </div>
@@ -981,7 +1599,7 @@
   </div><!-- /atlas-layout -->
 
   <script type="module">
-    import { initAtlas } from './src/atlas-app.js?v=78';
+    import { initAtlas } from './src/atlas-app.js?v=83';
     document.addEventListener('DOMContentLoaded', () => initAtlas().catch(err => console.error('[Limn Atlas] init failed:', err)));
   </script>
 </body>

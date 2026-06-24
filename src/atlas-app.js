@@ -4,9 +4,10 @@
    No produced-water tools. Each index navigates to a curated bookmark.
    ========================================================================== */
 
-import { ATLAS_INDICES as NOVEL_INDICES, ATLAS_DOMAINS as NOVEL_DOMAINS } from './atlas-indices.js';
-import { SAR_DEMO_INDICES, SAR_DEMO_DOMAIN } from './atlas-sar-demos.js';
-import { S5P_DEMO_INDICES, S5P_DEMO_DOMAIN } from './atlas-s5p-demos.js';
+import { ATLAS_INDICES as NOVEL_INDICES, ATLAS_DOMAINS as NOVEL_DOMAINS } from './atlas-indices.js?v=4';
+import { SAR_DEMO_INDICES, SAR_DEMO_DOMAIN } from './atlas-sar-demos.js?v=2';
+import { S5P_DEMO_INDICES, S5P_DEMO_DOMAIN } from './atlas-s5p-demos.js?v=2';
+import { countsAsAtlasCitation, getAtlasEvidence, getAtlasTrust } from './atlas-evidence.js?v=3';
 
 // The 91 novel indices plus the live Sentinel-1 SAR and Sentinel-5P TROPOMI
 // demonstrators (kept in separate modules so the novel catalog stays exactly
@@ -16,6 +17,7 @@ const ATLAS_DOMAINS = [...NOVEL_DOMAINS, SAR_DEMO_DOMAIN, S5P_DEMO_DOMAIN];
 
 const DEFAULT_GEE_TILE_ENDPOINT = '/api/gee/tiles';
 const DEFAULT_SH_WMS_URL = 'https://sh.dataspace.copernicus.eu/ogc/wms/959ea2c5-5892-4b36-82b3-76e6bdb93c8a';
+const DEFAULT_SENTINEL_VIEWER_INSTANCE_ID = '83a6b821-c0ad-43b1-848f-06f7b6b528a7';
 const DEFAULT_WMS_LAYER = 'AGRICULTURE';
 const DEFAULT_SENTINEL_MIN_ZOOM = 14;
 const CONTEXT_TRUE_COLOR_EVALSCRIPT = `//VERSION=3
@@ -28,11 +30,65 @@ function evaluatePixel(sample) {
 }`;
 
 let runtimeAtlasImageProviderOverride = null;
+let runtimeAtlasWmsSource = null;
+
+function buildSentinelWmsUrl(instanceId) {
+  const value = String(instanceId || '').trim();
+  if (!value) return '';
+  if (/^https?:\/\//i.test(value)) return value;
+  return `https://sh.dataspace.copernicus.eu/ogc/wms/${value}`;
+}
+
+function getConfiguredAtlasWmsUrl(cfg) {
+  const configuredUrl = cfg.SH_WMS_URL || cfg.ATLAS_WMS_URL;
+  if (configuredUrl) return String(configuredUrl);
+  return buildSentinelWmsUrl(cfg.SH_INSTANCE_ID || cfg.SENTINEL_HUB_INSTANCE_ID || cfg.WMS_INSTANCE_ID)
+    || DEFAULT_SH_WMS_URL;
+}
+
+function getAtlasWmsSources(cfg) {
+  const configuredUrl = getConfiguredAtlasWmsUrl(cfg);
+  const viewerUrl = cfg.ATLAS_VIEWER_WMS_URL
+    || cfg.SENTINEL_VIEWER_WMS_URL
+    || buildSentinelWmsUrl(cfg.ATLAS_VIEWER_INSTANCE_ID || cfg.SENTINEL_VIEWER_INSTANCE_ID || DEFAULT_SENTINEL_VIEWER_INSTANCE_ID);
+
+  return [
+    {
+      id: 'configured',
+      label: 'Configured Copernicus',
+      shortLabel: 'Configured',
+      url: String(configuredUrl),
+      enabled: Boolean(configuredUrl),
+    },
+    {
+      id: 'viewer',
+      label: 'Sentinel Viewer',
+      shortLabel: 'Viewer',
+      url: String(viewerUrl || ''),
+      enabled: Boolean(viewerUrl),
+    },
+  ];
+}
+
+function resolveAtlasWmsSource(cfg) {
+  const sources = getAtlasWmsSources(cfg);
+  const requested = String(runtimeAtlasWmsSource || cfg.ATLAS_WMS_SOURCE || 'configured').toLowerCase();
+  return sources.find(source => source.id === requested && source.enabled)
+    || sources.find(source => source.id === 'configured' && source.enabled)
+    || sources.find(source => source.id === 'viewer' && source.enabled)
+    || {
+      id: 'configured',
+      label: 'Configured Copernicus',
+      shortLabel: 'Configured',
+      url: DEFAULT_SH_WMS_URL,
+      enabled: true,
+    };
+}
 
 function getAtlasConfig() {
   const cfg = window.CONFIG || {};
-  const instanceId = cfg.SH_INSTANCE_ID || cfg.SENTINEL_HUB_INSTANCE_ID || cfg.WMS_INSTANCE_ID;
-  const configuredUrl = cfg.SH_WMS_URL || cfg.ATLAS_WMS_URL;
+  const wmsSources = getAtlasWmsSources(cfg);
+  const wmsSource = resolveAtlasWmsSource(cfg);
   const requestedProvider = String(runtimeAtlasImageProviderOverride || cfg.ATLAS_IMAGE_PROVIDER || cfg.IMAGE_PROVIDER || 'gee').toLowerCase();
   const allowSentinelFallback = runtimeAtlasImageProviderOverride === 'sentinelhub' || cfg.ALLOW_SENTINEL_FALLBACK === true;
   let imageProvider = requestedProvider === 'cog' && !cfg.ATLAS_IMAGE_PROVIDER && !runtimeAtlasImageProviderOverride
@@ -45,7 +101,10 @@ function getAtlasConfig() {
     imageProvider,
     geeTileEndpoint: String(cfg.ATLAS_GEE_TILE_ENDPOINT || cfg.GEE_TILE_ENDPOINT || DEFAULT_GEE_TILE_ENDPOINT).replace(/\/+$/, ''),
     geeApiKey: cfg.GEE_API_KEY || '',
-    wmsUrl: configuredUrl || (instanceId ? `https://sh.dataspace.copernicus.eu/ogc/wms/${instanceId}` : DEFAULT_SH_WMS_URL),
+    wmsUrl: wmsSource.url,
+    wmsSource: wmsSource.id,
+    wmsSourceLabel: wmsSource.label,
+    wmsSources,
     wmsLayer: cfg.ATLAS_WMS_LAYER || cfg.SH_WMS_LAYER || DEFAULT_WMS_LAYER,
     sentinelCreditGuard: cfg.ATLAS_SENTINEL_CREDIT_GUARD ?? cfg.SENTINEL_CREDIT_GUARD ?? true,
     sentinelLiveTiles: cfg.ATLAS_SENTINEL_LIVE_TILES ?? cfg.SENTINEL_LIVE_TILES ?? false,
@@ -60,9 +119,12 @@ function refreshAtlasConfig() {
   return atlasConfig;
 }
 
-let map, wmsLayer, activeKey = null;
+let map, wmsLayer, bookmarkFocusLayer, activeKey = null;
 let BASE_TILES;
 let pendingTiles = 0;
+let currentLinkedInGroundTruthDraft = '';
+let currentCaptureFrame = {};
+const bookmarkFocusMarkers = new Map();
 const state = {
   date: '2021-08-01',
   opacity: 0.85,
@@ -70,10 +132,14 @@ const state = {
   maxcc: 30,
   windowDays: 15,
   paused: false,
+  bookmarkFocusVisible: false,
+  captureView: 'overlay',
+  captureSplit: 50,
   sentinelLiveTiles: false,
   sentinelMinZoom: DEFAULT_SENTINEL_MIN_ZOOM,
   sentinelGuardInitialized: false,
   sentinelRateLimitedUntil: 0,
+  captureMode: false,
 };
 
 window.getAtlasProviderState = () => {
@@ -82,14 +148,35 @@ window.getAtlasProviderState = () => {
     provider: atlasConfig.imageProvider,
     defaultProvider: getDefaultAtlasProviderLabel().toLowerCase(),
     runtimeAtlasImageProviderOverride,
+    wmsSource: atlasConfig.wmsSource,
+    wmsSourceLabel: atlasConfig.wmsSourceLabel,
     sentinelLiveTiles: state.sentinelLiveTiles === true,
     sentinelMinZoom: state.sentinelMinZoom,
     sentinelRateLimitedUntil: state.sentinelRateLimitedUntil || 0,
     zoom: map?.getZoom?.() ?? null,
     guardStatus: map ? getAtlasSentinelGuardStatus() : null,
+    bookmarkFocusVisible: state.bookmarkFocusVisible === true,
+    bookmarkFocusCount: bookmarkFocusMarkers.size,
     status: document.getElementById('atlas-sentinel-status')?.textContent || '',
   };
 };
+
+window.getAtlasBookmarkFocusState = () => ({
+  visible: state.bookmarkFocusVisible === true,
+  markerCount: bookmarkFocusMarkers.size,
+  expectedCount: getBookmarkFocusEntries().length,
+  activeKey,
+});
+
+window.getAtlasCaptureState = () => ({
+  enabled: state.captureMode === true,
+  activeKey,
+  view: state.captureView,
+  split: state.captureSplit,
+  overlayOpacity: wmsLayer?.options?.opacity ?? null,
+  overlayClipPath: wmsLayer?.getContainer?.()?.style?.clipPath || '',
+  ...currentCaptureFrame,
+});
 
 function setTileStatus(message = '', type = 'info') {
   const status = document.getElementById('tile-status');
@@ -145,6 +232,7 @@ function updateAtlasSentinelUI() {
   const minZoom = state.sentinelMinZoom || atlasConfig.sentinelMinZoom || DEFAULT_SENTINEL_MIN_ZOOM;
   const currentZoom = map?.getZoom?.() ?? 0;
   const toggle = document.getElementById('atlas-toggle-sentinel-live');
+  const sourceSelect = document.getElementById('atlas-sentinel-source');
   const zoomSlider = document.getElementById('atlas-sentinel-min-zoom');
   const zoomVal = document.getElementById('atlas-sentinel-min-zoom-val');
   const status = document.getElementById('atlas-sentinel-status');
@@ -157,6 +245,15 @@ function updateAtlasSentinelUI() {
       ? 'Switch Atlas back to its default provider'
       : 'Switch this Atlas session to guarded Sentinel Hub WMS tiles';
   }
+  if (sourceSelect) {
+    for (const option of sourceSelect.options) {
+      const source = atlasConfig.wmsSources.find(item => item.id === option.value);
+      option.disabled = !source?.enabled;
+      option.textContent = source?.shortLabel || option.textContent;
+    }
+    sourceSelect.value = atlasConfig.wmsSource;
+    sourceSelect.title = `Sentinel WMS source: ${atlasConfig.wmsSourceLabel}`;
+  }
   if (panel) panel.classList.toggle('is-armed', sentinelActive);
   if (zoomSlider) {
     zoomSlider.value = String(minZoom);
@@ -168,7 +265,7 @@ function updateAtlasSentinelUI() {
   if (!guardEnabled) {
     status.textContent = 'Guard disabled. Sentinel WMS may request tiles.';
   } else if (!isSentinel) {
-    status.textContent = `${getDefaultAtlasProviderLabel()} active. Toggle Sentinel for guarded WMS.`;
+    status.textContent = `${getDefaultAtlasProviderLabel()} active. Sentinel source: ${atlasConfig.wmsSourceLabel}.`;
   } else if (!state.sentinelLiveTiles) {
     status.textContent = 'Sentinel disarmed. WMS tiles blocked.';
   } else if (state.sentinelRateLimitedUntil > Date.now()) {
@@ -177,7 +274,7 @@ function updateAtlasSentinelUI() {
   } else if (currentZoom < minZoom) {
     status.textContent = `Armed, blocked until Z${minZoom}+ (current Z${currentZoom}).`;
   } else {
-    status.textContent = `Sentinel armed at Z${currentZoom}.`;
+    status.textContent = `Sentinel ${atlasConfig.wmsSourceLabel} armed at Z${currentZoom}.`;
   }
 }
 
@@ -243,6 +340,332 @@ function bandsLabel(idx) {
   }
   const bands = indexBands(idx);
   return bands.length ? bands.join(', ') : '—';
+}
+
+function renderEvidencePanel(index) {
+  const trust = getAtlasTrust(index);
+  const trustEl = document.getElementById('info-trust');
+  const evidenceEl = document.getElementById('info-evidence');
+  if (!trustEl || !evidenceEl) return;
+
+  trustEl.textContent = `${trust.label} · ${trust.citationCount} cited sources`;
+  trustEl.className = `info-badge info-trust info-trust--${trust.tier.toLowerCase()}`;
+  trustEl.title = trust.description;
+
+  evidenceEl.replaceChildren();
+  const evidence = getAtlasEvidence(index);
+  const citedSources = evidence.filter(countsAsAtlasCitation);
+  const referenceLinks = evidence.filter(item => item.url && !item.technical && !countsAsAtlasCitation(item));
+  const technicalLinks = evidence.filter(item => item.url && item.technical === true);
+
+  function appendEvidenceGroup(title, items, options = {}) {
+    if (!items.length) return;
+    const groupTitle = document.createElement('div');
+    groupTitle.className = 'evidence-group-title';
+    groupTitle.textContent = title;
+
+    const list = document.createElement('div');
+    list.className = 'evidence-list';
+    items.slice(0, 4).forEach((item, index) => {
+      const link = document.createElement('a');
+      link.className = 'evidence-link';
+      link.href = item.url;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      link.title = item.note || item.label;
+
+      const type = document.createElement('span');
+      type.className = 'evidence-type';
+      type.textContent = options.numbered ? `Source ${index + 1}` : item.type;
+
+      const label = document.createElement('span');
+      label.className = 'evidence-label';
+      label.textContent = item.label;
+
+      link.append(type, label);
+      list.append(link);
+    });
+    evidenceEl.append(groupTitle, list);
+  }
+
+  appendEvidenceGroup('Cited sources', citedSources, { numbered: true });
+  appendEvidenceGroup('Supporting references', referenceLinks);
+  appendEvidenceGroup('Technical checks', technicalLinks);
+}
+
+function firstSentence(text, fallback = '') {
+  const clean = String(text || '').replace(/\s+/g, ' ').trim();
+  if (!clean) return fallback;
+  const match = clean.match(/^(.+?[.!?])(\s|$)/);
+  return (match ? match[1] : clean).trim();
+}
+
+function sentenceCase(text) {
+  const clean = String(text || '').trim();
+  if (!clean) return '';
+  return clean.charAt(0).toLowerCase() + clean.slice(1);
+}
+
+function trimWords(text, limit) {
+  const words = String(text || '').trim().split(/\s+/).filter(Boolean);
+  if (words.length <= limit) return words.join(' ');
+  return `${words.slice(0, limit).join(' ')}...`;
+}
+
+function linkedinGroundTruthForIndex(idx) {
+  const bm = idx.bookmark || {};
+  const bands = bandsLabel(idx);
+  const visualAnchor = `One Atlas render of ${idx.acronym} over ${bm.label || 'the selected bookmark'} on ${bm.date || state.date}.`;
+  const observation = `${idx.acronym} uses ${bands} to make ${sentenceCase(firstSentence(idx.physics, idx.name))}`;
+  const why = firstSentence(idx.benefit, 'It turns an otherwise subtle landscape condition into a visible inspection target.');
+  const question = `Where would ${idx.acronym} clarify the scene, and what nearby look-alikes could make it lie?`;
+  const post = [
+    `One image worth studying this week: ${idx.acronym} over ${bm.label || 'a selected Atlas bookmark'}.`,
+    '',
+    `The observation is simple: ${trimWords(observation, 42)}`,
+    '',
+    `Why it matters: ${trimWords(why, 34)}`,
+    '',
+    `The interpretive prompt I keep coming back to: ${question}`
+  ].join('\n');
+
+  return {
+    visualAnchor,
+    observation,
+    why,
+    question,
+    post: trimWords(post, 295),
+  };
+}
+
+function renderLinkedInGroundTruth(idx) {
+  const draft = linkedinGroundTruthForIndex(idx);
+  currentLinkedInGroundTruthDraft = draft.post;
+
+  const setText = (id, value) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+  };
+
+  setText('gt-visual-anchor', draft.visualAnchor);
+  setText('gt-observation', draft.observation);
+  setText('gt-why', draft.why);
+  setText('gt-question', draft.question);
+  setText('gt-linkedin-draft', draft.post);
+}
+
+function captureFrameForIndex(idx) {
+  const bm = idx.bookmark || {};
+  const place = `${bm.label || 'Selected Atlas bookmark'} · ${bm.date || state.date}`;
+  const modeLabel = captureModeLabel(idx);
+  const hook = trimWords(
+    `Compare the satellite context with the ${idx.acronym} result to see what the index makes easier to inspect than true color alone.`,
+    32
+  );
+  const prompt = `Use Split when posting: context shows the landscape, ${idx.acronym} shows the candidate signal, and the next step is checking look-alikes before trusting it.`;
+
+  return {
+    acronym: idx.acronym,
+    name: idx.name,
+    place,
+    modeLabel,
+    overlayLabel: `${idx.acronym} overlay`,
+    hook,
+    prompt,
+    aspect: '1200x628',
+  };
+}
+
+function captureModeLabel(idx) {
+  if (state.captureView === 'context') return 'Satellite context only';
+  if (state.captureView === 'split') return `Split: context vs ${idx.acronym}`;
+  return `Satellite context + ${idx.acronym} overlay`;
+}
+
+function activeCaptureIndex() {
+  return ATLAS_INDICES.find(i => i.key === activeKey) || null;
+}
+
+function renderCaptureOverlay(idx) {
+  currentCaptureFrame = captureFrameForIndex(idx);
+
+  const setText = (id, value) => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+  };
+
+  setText('capture-title', currentCaptureFrame.acronym);
+  setText('capture-name', currentCaptureFrame.name);
+  setText('capture-place', currentCaptureFrame.place);
+  setText('capture-mode-label', currentCaptureFrame.modeLabel);
+  setText('capture-overlay-label', currentCaptureFrame.overlayLabel);
+  setText('capture-split-overlay-label', currentCaptureFrame.overlayLabel);
+  setText('capture-hook', currentCaptureFrame.hook);
+  setText('capture-prompt', currentCaptureFrame.prompt);
+}
+
+function applyCaptureComparison() {
+  const mapArea = document.getElementById('atlas-map-area');
+  if (mapArea) mapArea.style.setProperty('--capture-split', `${state.captureSplit}%`);
+
+  const layerContainer = wmsLayer?.getContainer?.();
+  if (!wmsLayer || !layerContainer) return;
+
+  if (!state.captureMode) {
+    layerContainer.style.clipPath = '';
+    wmsLayer.setOpacity(state.opacity);
+    return;
+  }
+
+  if (state.captureView === 'context') {
+    layerContainer.style.clipPath = '';
+    wmsLayer.setOpacity(0);
+    return;
+  }
+
+  wmsLayer.setOpacity(state.opacity);
+  layerContainer.style.clipPath = state.captureView === 'split'
+    ? `inset(0 0 0 ${state.captureSplit}%)`
+    : '';
+}
+
+function syncCaptureControls() {
+  const layout = document.querySelector('.atlas-layout');
+  if (layout) {
+    layout.classList.toggle('capture-view-context', state.captureView === 'context');
+    layout.classList.toggle('capture-view-overlay', state.captureView === 'overlay');
+    layout.classList.toggle('capture-view-split', state.captureView === 'split');
+  }
+
+  document.querySelectorAll('.capture-mode-btn').forEach(btn => {
+    const active = btn.dataset.captureView === state.captureView;
+    btn.classList.toggle('active', active);
+    btn.setAttribute('aria-pressed', active ? 'true' : 'false');
+  });
+
+  const splitControl = document.querySelector('.capture-split-control');
+  if (splitControl) splitControl.classList.toggle('visible', state.captureView === 'split');
+
+  const splitSlider = document.getElementById('capture-split-slider');
+  if (splitSlider) splitSlider.value = String(state.captureSplit);
+
+  const idx = activeCaptureIndex();
+  if (idx) renderCaptureOverlay(idx);
+  applyCaptureComparison();
+}
+
+function setCaptureView(view) {
+  if (!['context', 'overlay', 'split'].includes(view)) return;
+  state.captureView = view;
+  syncCaptureControls();
+}
+
+function setCaptureMode(enabled) {
+  state.captureMode = enabled === true;
+  const layout = document.querySelector('.atlas-layout');
+  if (layout) layout.classList.toggle('capture-mode', state.captureMode);
+
+  const toggle = document.getElementById('toggle-capture');
+  if (toggle) {
+    toggle.classList.toggle('capture-active', state.captureMode);
+    toggle.setAttribute('aria-pressed', state.captureMode ? 'true' : 'false');
+  }
+
+  const idx = activeCaptureIndex();
+  if (idx) renderCaptureOverlay(idx);
+  syncCaptureControls();
+  positionLegend();
+}
+
+function getBookmarkFocusEntries() {
+  return ATLAS_INDICES.filter(idx => {
+    const bm = idx.bookmark || {};
+    return Number.isFinite(Number(bm.lat)) && Number.isFinite(Number(bm.lng));
+  });
+}
+
+function bookmarkFocusColor(idx) {
+  const tier = coverageTier(idx);
+  if (isDemo(idx)) return '#00FFB2';
+  if (tier === 'live') return '#00D2FF';
+  if (tier === 'pending') return '#FFB454';
+  return '#94A3B8';
+}
+
+function bookmarkFocusStyle(idx, isActive = false) {
+  const color = isActive ? '#00FFB2' : bookmarkFocusColor(idx);
+  return {
+    radius: isActive ? 7 : 4,
+    color,
+    weight: isActive ? 2.5 : 1.25,
+    opacity: isActive ? 1 : 0.78,
+    fillColor: color,
+    fillOpacity: isActive ? 0.78 : 0.38,
+    className: `atlas-bookmark-focus-point${isActive ? ' is-active' : ''}`,
+    pane: 'atlasBookmarkFocusPane',
+  };
+}
+
+function ensureBookmarkFocusLayer() {
+  if (bookmarkFocusLayer) return bookmarkFocusLayer;
+  bookmarkFocusLayer = L.layerGroup();
+  bookmarkFocusMarkers.clear();
+
+  for (const idx of getBookmarkFocusEntries()) {
+    const bm = idx.bookmark;
+    const marker = L.circleMarker(
+      [Number(bm.lat), Number(bm.lng)],
+      bookmarkFocusStyle(idx, idx.key === activeKey)
+    );
+    marker.bindTooltip(`${idx.acronym} · ${bm.label}`, {
+      direction: 'top',
+      opacity: 0.95,
+      className: 'atlas-bookmark-focus-tooltip',
+    });
+    marker.on('add', () => {
+      const el = marker.getElement?.();
+      if (el) {
+        el.dataset.key = idx.key;
+        el.setAttribute('aria-label', `${idx.acronym} bookmark focus point`);
+      }
+    });
+    marker.on('click', () => selectIndex(idx.key));
+    marker.addTo(bookmarkFocusLayer);
+    bookmarkFocusMarkers.set(idx.key, marker);
+  }
+
+  return bookmarkFocusLayer;
+}
+
+function updateBookmarkFocusButton() {
+  const btn = document.getElementById('toggle-bookmark-focus');
+  if (!btn) return;
+  btn.classList.toggle('is-active', state.bookmarkFocusVisible);
+  btn.setAttribute('aria-pressed', state.bookmarkFocusVisible ? 'true' : 'false');
+  btn.title = state.bookmarkFocusVisible
+    ? 'Hide bookmark focus points'
+    : `Show ${getBookmarkFocusEntries().length} bookmark focus points`;
+}
+
+function updateBookmarkFocusMarkers() {
+  if (!bookmarkFocusLayer) return;
+  for (const idx of getBookmarkFocusEntries()) {
+    const marker = bookmarkFocusMarkers.get(idx.key);
+    if (!marker) continue;
+    marker.setStyle(bookmarkFocusStyle(idx, idx.key === activeKey));
+  }
+}
+
+function setBookmarkFocusVisible(visible) {
+  state.bookmarkFocusVisible = visible === true;
+  const layer = ensureBookmarkFocusLayer();
+  if (state.bookmarkFocusVisible) {
+    if (!map.hasLayer(layer)) layer.addTo(map);
+  } else if (map.hasLayer(layer)) {
+    map.removeLayer(layer);
+  }
+  updateBookmarkFocusMarkers();
+  updateBookmarkFocusButton();
 }
 
 function sensorNote(idx) {
@@ -596,6 +1019,7 @@ function applyGEE(idx, date, opts = {}) {
   });
   watchTileBatch(wmsLayer, layerName);
   wmsLayer.addTo(map);
+  applyCaptureComparison();
 }
 
 function applyWMS(evalscript, date, opts = {}) {
@@ -633,6 +1057,7 @@ function applyWMS(evalscript, date, opts = {}) {
   });
   watchTileBatch(wmsLayer, layerName);
   wmsLayer.addTo(map);
+  applyCaptureComparison();
 }
 
 function applyAtlasTiles(idx, date) {
@@ -678,6 +1103,7 @@ function selectIndex(key) {
     btn.classList.add('active');
     btn.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
+  updateBookmarkFocusMarkers();
 
   // Navigate to bookmark
   const bm = idx.bookmark;
@@ -712,23 +1138,16 @@ function selectIndex(key) {
   document.getElementById('info-name').textContent = idx.name;
   document.getElementById('info-platform').textContent = idx.platform;
   document.getElementById('info-novelty').textContent = `Novelty: ${idx.novelty}`;
+  renderEvidencePanel(idx);
   document.getElementById('info-bands').textContent = bandsLabel(idx);
   document.getElementById('info-formula').textContent = idx.formula;
   document.getElementById('info-physics').textContent = idx.physics;
   document.getElementById('info-benefit').textContent = idx.benefit;
+  renderLinkedInGroundTruth(idx);
+  renderCaptureOverlay(idx);
   document.getElementById('info-bookmark').textContent =
     `📍 ${bm.label} · ${bm.date}`;
 
-  const sourceEl = document.getElementById('info-source');
-  if (idx.source) {
-    if (idx.sourceUrl) {
-      sourceEl.innerHTML = `<a href="${idx.sourceUrl}" target="_blank" rel="noopener noreferrer" style="color: #00D2FF; text-decoration: none; border-bottom: 1px dashed rgba(0,210,255,0.4);">${idx.source} ↗</a>`;
-    } else {
-      sourceEl.textContent = idx.source;
-    }
-  } else {
-    sourceEl.textContent = 'Standard Platform / Sensor Reference';
-  }
   document.getElementById('info-justification').textContent = idx.justification ||
     (idx.canRender ? 'Peak-signal proof target for this renderable index.' : 'Context target for a non-renderable sensor concept.');
 
@@ -823,6 +1242,10 @@ function positionLegend() {
   const legend = document.querySelector('.atlas-legend');
   const info = document.getElementById('info-panel');
   if (!legend || !info) return;
+  if (state.captureMode) {
+    legend.style.bottom = '';
+    return;
+  }
   if (info.classList.contains('hidden')) {
     legend.style.bottom = '';
   } else {
@@ -883,6 +1306,9 @@ function initMap() {
 
   BASE_TILES[state.base].addTo(map);
 
+  map.createPane('atlasBookmarkFocusPane');
+  map.getPane('atlasBookmarkFocusPane').style.zIndex = 575;
+
   L.control.zoom({ position: 'bottomright' }).addTo(map);
 
   map.on('zoomend', () => {
@@ -919,7 +1345,11 @@ function initControls() {
   opSlider.value = state.opacity;
   opSlider.addEventListener('input', () => {
     state.opacity = parseFloat(opSlider.value);
-    if (wmsLayer) wmsLayer.setOpacity(state.opacity);
+    if (state.captureMode) {
+      applyCaptureComparison();
+    } else if (wmsLayer) {
+      wmsLayer.setOpacity(state.opacity);
+    }
   });
 
   // Search filter
@@ -985,6 +1415,43 @@ function initControls() {
     setPauseButton();
   });
 
+  updateBookmarkFocusButton();
+  const bookmarkFocusToggle = document.getElementById('toggle-bookmark-focus');
+  if (bookmarkFocusToggle) {
+    bookmarkFocusToggle.addEventListener('click', () => {
+      setBookmarkFocusVisible(!state.bookmarkFocusVisible);
+    });
+  }
+
+  const captureToggle = document.getElementById('toggle-capture');
+  if (captureToggle) {
+    captureToggle.addEventListener('click', () => {
+      setCaptureMode(!state.captureMode);
+    });
+  }
+
+  const exitCapture = document.getElementById('exit-capture');
+  if (exitCapture) {
+    exitCapture.addEventListener('click', () => {
+      setCaptureMode(false);
+    });
+  }
+
+  document.querySelectorAll('.capture-mode-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      setCaptureView(btn.dataset.captureView);
+    });
+  });
+
+  const captureSplitSlider = document.getElementById('capture-split-slider');
+  if (captureSplitSlider) {
+    captureSplitSlider.value = String(state.captureSplit);
+    captureSplitSlider.addEventListener('input', (event) => {
+      state.captureSplit = Number(event.target.value);
+      applyCaptureComparison();
+    });
+  }
+
   const sentinelToggle = document.getElementById('atlas-toggle-sentinel-live');
   if (sentinelToggle) {
     sentinelToggle.addEventListener('change', (event) => {
@@ -1000,6 +1467,17 @@ function initControls() {
       refreshAtlasConfig();
       updateAtlasSentinelUI();
       if (!state.paused) renderActive();
+    });
+  }
+
+  const sentinelSource = document.getElementById('atlas-sentinel-source');
+  if (sentinelSource) {
+    sentinelSource.addEventListener('change', (event) => {
+      runtimeAtlasWmsSource = event.target.value;
+      state.sentinelRateLimitedUntil = 0;
+      refreshAtlasConfig();
+      updateAtlasSentinelUI();
+      if (isSentinelProvider() && !state.paused) renderActive();
     });
   }
 
@@ -1022,6 +1500,21 @@ function initControls() {
     positionLegend();
   });
   window.addEventListener('resize', positionLegend);
+
+  const copyLinkedIn = document.getElementById('copy-linkedin-ground-truth');
+  if (copyLinkedIn) {
+    copyLinkedIn.addEventListener('click', async () => {
+      if (!currentLinkedInGroundTruthDraft) return;
+      try {
+        await navigator.clipboard.writeText(currentLinkedInGroundTruthDraft);
+        copyLinkedIn.textContent = 'Copied';
+        window.setTimeout(() => { copyLinkedIn.textContent = 'Copy draft'; }, 1600);
+      } catch {
+        copyLinkedIn.textContent = 'Copy failed';
+        window.setTimeout(() => { copyLinkedIn.textContent = 'Copy draft'; }, 1600);
+      }
+    });
+  }
 
   // About / coverage overlay
   const aboutOverlay = document.getElementById('about-overlay');

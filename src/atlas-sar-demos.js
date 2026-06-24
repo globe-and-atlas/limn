@@ -36,10 +36,10 @@ export const SAR_DEMO_INDICES = [
     benefit: 'All-weather flood and surface-water mapping — the operational standard for disaster response when clouds blind optical sensors.',
     gradient: 'linear-gradient(to right,#0d2030,#0d2030,#1c6fa8,#5ec8e6,#aef0ff)',
     legend: ['Land', 'Open water'],
-    bookmark: { lat: 28.98, lng: 116.42, zoom: 10, date: '2021-06-15', label: 'Poyang Lake, China — peak open-water geometry' },
-    source: 'Twele et al. (2016), Int. J. Remote Sensing — Sentinel-1 flood mapping',
-    sourceUrl: 'https://scholar.google.com/scholar?q=Twele+2016+Sentinel-1+flood+mapping',
-    justification: 'Karpathy-loop WMS QC selected the June 15, 2021 Poyang frame at zoom 10 with 62.509% high-signal open-water coverage and clearer river/floodplain geometry than the prior July bookmark.',
+    bookmark: { lat: 29.1, lng: 116.3, zoom: 10, date: '2021-06-15', label: 'Poyang Lake, China — peak open-water geometry' },
+    source: 'NASA Earth Observatory: Poyang Lake Extremes',
+    sourceUrl: 'https://science.nasa.gov/earth/earth-observatory/poyang-lake-extremes-146987/',
+    justification: 'Karpathy-loop WMS QC selected the June 15, 2021 Poyang frame at 29.10, 116.30, zoom 10 with the strongest measured open-water coverage and clearer river/floodplain geometry than the prior July bookmark.',
     evalscript: sarES(['VV'], `
       var db = 10 * Math.log(Math.max(sample.VV, 1e-4)) / Math.LN10;
       var w = Math.max(0, Math.min(1, (-13 - db) / 10));
@@ -57,8 +57,8 @@ export const SAR_DEMO_INDICES = [
     gradient: 'linear-gradient(to right,#1a1208,#5a3410,#a85f18,#e08a26,#ffc34d)',
     legend: ['Smooth/water', 'Dense built-up'],
     bookmark: { lat: 30.04, lng: 31.24, zoom: 11, date: '2021-07-10', label: 'Cairo, Egypt — dense city double-bounce' },
-    source: 'Esch et al. (2017), ISPRS J. Photogramm. — Global Urban Footprint',
-    sourceUrl: 'https://scholar.google.com/scholar?q=Esch+2017+Global+Urban+Footprint+Sentinel-1',
+    source: 'DLR Global Urban Footprint project',
+    sourceUrl: 'https://www.dlr.de/en/eoc/research-transfer/projects-missions/global-urban-footprint-guf',
     justification: 'Karpathy-loop WMS QC selected July 10, 2021 at zoom 11 with 41.553% visible built-up signal and 10.645% high-signal coverage, making the Nile/city/desert contrast more legible than the prior zoom-10 bookmark.',
     evalscript: sarES(['VV'], `
       var db = 10 * Math.log(Math.max(sample.VV, 1e-4)) / Math.LN10;
@@ -77,8 +77,8 @@ export const SAR_DEMO_INDICES = [
     gradient: 'linear-gradient(to right,#7a2e0c,#a8551a,#cc8a2a,#5a9e2a,#2e7d1e)',
     legend: ['Bare/cleared', 'Dense canopy'],
     bookmark: { lat: -11.12, lng: -62.82, zoom: 11, date: '2021-07-26', label: 'Rondônia, Brazil — canopy/clearing SAR contrast' },
-    source: 'Bouvet et al. (2018), Remote Sensing of Environment — S1 tropical forest mapping',
-    sourceUrl: 'https://scholar.google.com/scholar?q=Bouvet+2018+Sentinel-1+tropical+forest',
+    source: 'USGS EROS Rondônia Earthshots',
+    sourceUrl: 'https://eros.usgs.gov/earthshots/rondonia-brazil',
     justification: 'Karpathy-loop WMS QC selected a July 26, 2021 zoom-11 Rondônia frame with 87.804% visible canopy signal and 72.816% high-signal coverage after low-VH background transparency gating. This remains a demonstrator, not a novel proof target.',
     evalscript: sarES(['VH'], `
       var db = 10 * Math.log(Math.max(sample.VH, 1e-4)) / Math.LN10;

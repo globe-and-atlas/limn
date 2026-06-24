@@ -1,5 +1,25 @@
 # Architecture Decisions — sentinel-explorer
 
+## Atlas LinkedIn guidance stays inside the info panel (2026-06-23)
+
+**Decision:** Add LinkedIn-caliber Ground Truth guidance as a selected-index info-panel section instead of creating a new Atlas category or navigation lane.
+
+**Why:** The useful editorial habit is not taxonomy; it is making each renderable index explain one image, one observation, one reason it matters, and one open question. Keeping it inside the selected-index panel makes Atlas teach the posting format without changing the scientific catalog.
+
+**How applied:** `atlas.html` exposes the LinkedIn Ground Truth card, and `src/atlas-app.js` derives the visual anchor, observation, interpretation, question, and copyable draft from existing index metadata.
+
+---
+
+## Atlas WMS source switch stays session-scoped (2026-06-16)
+
+**Decision:** Let Limn Atlas switch between the configured Copernicus WMS endpoint and the Sentinel Viewer WMS endpoint at runtime through the Atlas HUD.
+
+**Why:** The configured account can run out of credits while the viewer endpoint still has usable quota. Editing `config-v1.js` during a live Atlas session is too slow and too easy to get wrong.
+
+**How applied:** `src/atlas-app.js` resolves `configured` and `viewer` WMS sources separately. The source selector changes only the active WMS endpoint; it does not arm Sentinel live tiles or bypass the minimum zoom guard.
+
+---
+
 ## S2-only proxy for APEX/HPWI indices
 
 **Decision:** Use Sentinel-2 only evalscripts for APEX and HPWI indices rather than multi-datasource S1+S2 fusion.

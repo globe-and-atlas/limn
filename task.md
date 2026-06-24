@@ -1,4 +1,430 @@
+# Objective — Atlas LinkedIn Screenshot Capture Mode (2026-06-24)
+
+Adapt Limn Atlas so the selected index can be switched into a clean, LinkedIn-friendly screenshot state that is compelling at 1200x628 and remains legible after feed compression.
+
+## Validation Contract — Atlas LinkedIn Screenshot Capture Mode
+
+- [x] Atlas exposes a visible Capture HUD control.
+- [x] Capture mode hides the sidebar.
+- [x] Capture mode hides the operational HUD controls.
+- [x] Capture mode hides the full info panel.
+- [x] Capture mode shows a dedicated screenshot overlay for the selected index.
+- [x] The screenshot overlay includes the active index acronym.
+- [x] The screenshot overlay includes the active index name.
+- [x] The screenshot overlay includes the active bookmark place and date.
+- [x] The screenshot overlay includes a visual mode label for satellite context plus index overlay.
+- [x] The screenshot overlay includes an interpretive hook.
+- [x] The screenshot overlay includes an index-aware prompt.
+- [x] Capture mode enlarges the legend for LinkedIn legibility.
+- [x] Capture mode can be exited from the screenshot overlay.
+- [x] Capture mode does not request additional Sentinel, GEE, or COG tiles.
+- [x] Capture mode includes a context-only view.
+- [x] Capture mode includes an overlay view.
+- [x] Capture mode includes a split comparison view.
+- [x] Split comparison view exposes an adjustable divider.
+- [x] Capture comparison controls do not request additional Sentinel, GEE, or COG tiles.
+- [x] `node --check src/atlas-app.js` passes.
+- [x] `node tests/test_gee_provider.mjs` passes.
+- [x] `node tests/test_atlas_sentinel_toggle.mjs` passes or any sandbox blocker is documented.
+- [x] `git diff --check` passes.
+
+## Progress Log — Atlas LinkedIn Screenshot Capture Mode
+
+### 2026-06-24 — Started capture-mode polish
+- Target directive: none found for Atlas screenshot capture; existing Atlas viewer validation guidance applies.
+- Intended execution scripts: `node --check src/atlas-app.js`, `node tests/test_gee_provider.mjs`, `node tests/test_atlas_sentinel_toggle.mjs`, and `git diff --check`.
+- Expected output artifacts: Capture-mode UI in `atlas.html`, selected-index capture state in `src/atlas-app.js`, updated browser/static tests, and Atlas validation notes.
+- Safety: no `.env`, `config-v1.js`, `config.js`, `app-config.js`, tokens, private WMS endpoints, or `.tmp/` outputs will be read, printed, or committed.
+
+### 2026-06-24 — Completed capture-mode polish
+- Added the Capture HUD control and a dedicated LinkedIn screenshot overlay with active index acronym, name, bookmark place/date, visual mode label, hook, and index-aware prompt.
+- Capture mode now hides the sidebar, operational HUD, info panel, and Leaflet zoom control while enlarging the legend for feed legibility.
+- Added `window.getAtlasCaptureState()` and browser-smoke assertions proving Capture mode is presentation-only and does not change provider tile counts.
+- Updated Ground Truth wording from generic open question to interpretive prompt.
+- Fresh verifier flagged that `map.invalidateSize()` could request fill-in overlay tiles after the map expanded; removed the invalidation call and added a delayed no-tile assertion after exiting Capture mode.
+- Verification passed: `node --check src/atlas-app.js`, `node --check tests/test_atlas_sentinel_toggle.mjs`, `node tests/test_gee_provider.mjs`, and `git diff --check`.
+- Browser smoke was attempted but blocked in this sandbox by `listen EPERM: operation not permitted 127.0.0.1`; the blocker is logged in `knowledge/ERRORS.md`.
+
+### 2026-06-24 — Added capture comparison controls
+- Replaced the abstract capture prompt with direct context explaining that the screenshot compares satellite context against the active index result.
+- Added Capture card modes for `Overlay`, `Context`, and `Split`.
+- Added a split-position slider so the screenshot can behave like a simple swipe comparison without requesting a second imagery layer.
+- Context mode hides the index overlay and legend; Overlay mode restores the full active overlay; Split mode clips the already-loaded overlay to the right side of the divider.
+- Updated browser-smoke assertions to verify context, overlay, split, split-slider, and no additional provider tile requests after comparison changes.
+- Verification passed: `node --check src/atlas-app.js`, `node --check tests/test_atlas_sentinel_toggle.mjs`, `node tests/test_gee_provider.mjs`, and `git diff --check`.
+- Browser smoke was re-attempted and remains blocked in this sandbox by `listen EPERM: operation not permitted 127.0.0.1`.
+- Fresh verifier approved the capture comparison controls with no blocking findings.
+
+---
+
+# Objective — Atlas LinkedIn Ground Truth Post Guidance (2026-06-23)
+
+Adapt Limn Atlas so each selected index illustrates what makes a LinkedIn-caliber weekly Ground Truth post: one image, one observation, one reason it matters, and one open question or implication.
+
+## Validation Contract — Atlas LinkedIn Ground Truth Post Guidance
+
+- [x] Atlas info panel exposes a visible LinkedIn Ground Truth section for the selected index.
+- [x] The section names one image as the required visual anchor.
+- [x] The section includes a concrete observation derived from the selected index.
+- [x] The section includes a "why it matters" interpretation beyond what the band/index shows.
+- [x] The section includes an open question or implication.
+- [x] The section provides copyable LinkedIn draft text.
+- [x] Copied LinkedIn draft text stays under 300 words.
+- [x] The addition does not add a new Atlas category or change index taxonomy.
+- [x] The addition does not request additional Sentinel, GEE, or COG tiles.
+- [x] `node --check src/atlas-app.js` passes.
+- [x] `node tests/test_gee_provider.mjs` passes.
+- [x] `node tests/test_atlas_sentinel_toggle.mjs` passes.
+- [x] Browser smoke verifies the LinkedIn Ground Truth section renders without console errors.
+
+## Progress Log — Atlas LinkedIn Ground Truth Post Guidance
+
+### 2026-06-23 — Started LinkedIn Ground Truth guidance
+- Target directive: none found for LinkedIn/Ground Truth presentation; `directives/find_hotspots.md` is only related to bookmark context.
+- Intended execution scripts: `node --check src/atlas-app.js`, `node tests/test_gee_provider.mjs`, `node tests/test_atlas_sentinel_toggle.mjs`, and browser smoke.
+- Expected output artifacts: Atlas info-panel LinkedIn Ground Truth guidance, copyable post draft logic, regression-test assertions, task/knowledge updates.
+- Safety: no `.env`, `config-v1.js`, `config.js`, `app-config.js`, OAuth tokens, Sentinel Hub secrets, private WMS endpoints, or `.tmp/` outputs will be read, printed, or committed.
+
+### 2026-06-23 — Completed LinkedIn Ground Truth guidance
+- Added a selected-index LinkedIn Ground Truth card to the Atlas info panel.
+- The card now shows a required visual anchor, observation, why-it-matters interpretation, open question, and copyable draft.
+- The generated draft uses existing index metadata and stays under 300 words in browser smoke.
+- The section remains inside the info panel and does not alter Atlas taxonomy.
+- Verification passed: `node --check src/atlas-app.js`, `node tests/test_gee_provider.mjs`, `node tests/test_atlas_sentinel_toggle.mjs`, and `git diff --check`.
+
+---
+
 # Task: Sentinel Explorer Novelty Claims Review
+
+## Objective — Atlas Incident Source Deep Dive Batch 2
+
+Continue Atlas evidence cleanup by adding a second batch of verifiable cited sources for renderable rows that remained below three reachable incident/domain sources after the first source deep dive.
+
+## Validation Contract — Atlas Incident Source Deep Dive Batch 2
+
+- [x] At least ten additional still-cleanup renderable rows receive new cited incident/domain sources.
+- [x] Rows promoted to Gold-ready have at least three reachable cited incident/domain source URLs.
+- [x] Copernicus Browser links remain technical checks and do not count as cited sources.
+- [x] Sentinel Hub platform/service links remain technical checks and do not count as cited sources.
+- [x] Method-only references remain supporting references where they are not site/event/domain evidence.
+- [x] The evidence audit shows an improved Gold-ready count over the prior 16-row baseline.
+- [x] The evidence audit JSON contains zero failed URL checks for audited renderable evidence.
+- [x] `node --check src/atlas-verification.js` passes.
+- [x] `python3 -m py_compile execution/audit_atlas_evidence.py` passes.
+- [x] `python3 execution/audit_atlas_evidence.py` passes.
+- [x] Atlas provider/browser regression tests pass.
+
+## Progress Log — Atlas Incident Source Deep Dive Batch 2
+
+### 2026-06-17 — Started incident source deep dive batch 2
+- Target directive: none found specifically for incident-source cleanup; `directives/find_hotspots.md` remains related context for bookmark/event alignment.
+- Intended execution scripts: `node --check src/atlas-verification.js`, `node --check src/atlas-indices.js`, `node --check src/atlas-sar-demos.js`, `node --check src/atlas-s5p-demos.js`, `node --check src/atlas-evidence.js`, `node --check src/atlas-app.js`, `python3 -m py_compile execution/audit_atlas_evidence.py`, `python3 execution/audit_atlas_evidence.py`, `node tests/test_gee_provider.mjs`, and `node tests/test_atlas_sentinel_toggle.mjs`.
+- Expected output artifacts: expanded `src/atlas-verification.js` source packs, corrected primary URLs where needed, regenerated `.tmp/atlas_evidence_audit.json`, regenerated `.tmp/atlas_evidence_audit.md`, and updated knowledge/session notes.
+- Safety: no `.env`, `config-v1.js`, service-account JSON, OAuth tokens, Sentinel Hub secrets, private WMS endpoints, or `.tmp/` artifacts will be committed.
+
+### 2026-06-17 — Completed incident source deep dive batch 2
+- Added additional verifiable agency, academic, data, and domain sources for SF-EII, LFMPI, SACI, CSRC, RRFI, FCLI, SMPDI, CD-UAI, PDSDI, CCTTI, WDA-CSI, EC-ACI, HSAI, PCADI, TT-API, TPERI, PCEI, MEPSI, PDCSI, DLPEHI, MHSSP, TFIDI, WDPTZI, IPVSI, WVTDI, S1-URB, S1-VVS, and S5P-NO2.
+- Replaced blocked, stale, or generic primary/source URLs for LFMPI, SACI, SMPDI, CCTTI, PCADI, TPERI, PCEI, DLPEHI, S1-URB, S1-VVS, and S5P-NO2.
+- Pruned or replaced verification URLs that failed automated reachability, including blocked CAL FIRE, MDPI, Google Scholar, and timeout-prone archive links.
+- Final audit result: 44 renderable bookmarks, 44 Gold-ready evidence packs, 0 rows needing evidence cleanup, and 0 failed audited URL checks.
+- Final cited-source distribution: 28 rows with three cited sources, 13 rows with four cited sources, and 3 rows with five cited sources.
+- Verification passed: JS syntax checks, Python compile, strict evidence audit, provider contract, Atlas Sentinel toggle smoke, fresh-process verifier, and `git diff --check`.
+
+### 2026-06-17 — Hardened incident source reachability
+- Replaced three citations that later failed fresh audit reachability: Climate Crime Analysis Cerro de Pasco, Michigan TAMC pavement dashboard, and USGS publication landing page 70250932.
+- Added reachable replacements: SITU Cerro de Pasco environmental-crime documentation, SEMCOG pavement condition open-data layer, and LSU repository mirror of the Mississippi River Delta wetland methane ebullition study.
+- Revalidated final audit result: 44 renderable bookmarks, 44 Gold-ready evidence packs, 0 rows needing evidence cleanup, and 0 failed audited URL checks.
+- Verification passed: JS syntax checks, Python compile, strict evidence audit, provider contract, Atlas Sentinel toggle smoke, and `git diff --check`.
+
+## Objective — Atlas Incident Source Deep Dive
+
+Define "evidence cleanup" and deepen Limn Atlas bookmark evidence with additional verifiable cited sources from news reports, government/agency reports, datasets, and academic articles about the real-world incident, place, or observed phenomenon.
+
+## Validation Contract — Atlas Incident Source Deep Dive
+
+- [x] Evidence cleanup is defined as rows lacking three reachable incident/instance cited-source URLs after method and technical links are excluded.
+- [x] At least ten renderable Atlas bookmarks receive additional incident/instance cited sources.
+- [x] Copernicus Browser links remain visible but do not count as cited sources.
+- [x] Sentinel Hub platform/service links remain visible but do not count as cited sources.
+- [x] Method-only papers remain supporting references unless they document the bookmark incident/place/phenomenon directly.
+- [x] The evidence audit shows an improved Gold-ready count or an improved cited-source count distribution.
+- [x] `node --check src/atlas-verification.js` passes.
+- [x] `node --check src/atlas-evidence.js` passes.
+- [x] `python3 -m py_compile execution/audit_atlas_evidence.py` passes.
+- [x] `python3 execution/audit_atlas_evidence.py` passes.
+- [x] Atlas provider/browser regression tests pass.
+
+## Progress Log — Atlas Incident Source Deep Dive
+
+### 2026-06-17 — Started incident source deep dive
+- Target directive: none found specifically for incident-source cleanup; `directives/find_hotspots.md` remains related context for bookmark/event alignment.
+- Intended execution scripts: `node --check src/atlas-verification.js`, `node --check src/atlas-evidence.js`, `node --check src/atlas-app.js`, `python3 -m py_compile execution/audit_atlas_evidence.py`, `python3 execution/audit_atlas_evidence.py`, `node tests/test_gee_provider.mjs`, and `node tests/test_atlas_sentinel_toggle.mjs`.
+- Expected output artifacts: expanded `src/atlas-verification.js` source packs, regenerated `.tmp/atlas_evidence_audit.json`, regenerated `.tmp/atlas_evidence_audit.md`, and updated knowledge/session notes.
+- Safety: no `.env`, `config-v1.js`, service-account JSON, OAuth tokens, Sentinel Hub secrets, private WMS endpoints, or `.tmp/` artifacts will be committed.
+
+### 2026-06-17 — Completed incident source deep dive
+- Defined evidence cleanup as rows that still lack three reachable incident/instance cited-source URLs after excluding Copernicus Browser, Sentinel Hub platform/service links, and method-only references.
+- Added additional verifiable incident/domain sources for BH-DFSI, PETI, EPDI, CBSDI, KCDSI, OWSI, MP-PDI, NPDefI, TDR-ASI, AMDPHI, LFGVI, LRD-VSI, SABSI, LISI, S1-OWF, and S5P-SO2.
+- Replaced blocked or generic primary URLs for OWSI, NPDefI, AMDPHI, LRD-VSI, S1-OWF, and S5P-SO2.
+- Pruned URLs that blocked automated verification so counted citations are all reachable in the audit.
+- Final audit result: 44 renderable bookmarks, 16 Gold-ready evidence packs, 28 rows still needing cleanup.
+- Verification passed: JS syntax checks, Python compile, strict evidence audit, provider contract, and Atlas Sentinel toggle smoke.
+
+## Objective — Atlas Incident Citation Count Correction
+
+Correct the Atlas evidence model so Copernicus Browser, Sentinel Hub, and other platform/service documentation links remain visible as technical verification links but do not count as numbered cited sources. Numbered cited sources should represent incident/instance-specific support such as social posts, news stories, agency/government reports, local records, datasets, or other sources about the real-world bookmark event.
+
+## Validation Contract — Atlas Incident Citation Count Correction
+
+- [x] Copernicus Browser links are visible as technical verification links.
+- [x] Sentinel Hub sensor documentation links are visible as technical verification links.
+- [x] Sentinel Hub WMS/service documentation links are visible as technical verification links.
+- [x] Copernicus Browser links do not contribute to the cited-source count.
+- [x] Sentinel Hub sensor documentation links do not contribute to the cited-source count.
+- [x] Sentinel Hub WMS/service documentation links do not contribute to the cited-source count.
+- [x] The Atlas trust badge labels the count as cited sources rather than generic sources.
+- [x] The evidence audit reports cited-source counts separately from technical-link counts.
+- [x] The evidence audit's Gold-ready calculation uses cited-source reachability, not total technical URL reachability.
+- [x] `node --check src/atlas-evidence.js` passes.
+- [x] `python3 -m py_compile execution/audit_atlas_evidence.py` passes.
+- [x] Atlas provider/browser regression tests pass.
+
+## Progress Log — Atlas Incident Citation Count Correction
+
+### 2026-06-16 — Started citation count correction
+- Target directive: none found specifically for evidence counting; this supersedes the counting language in the Atlas Three-Source Bookmark Evidence Standard.
+- Intended execution scripts: `node --check src/atlas-evidence.js`, `python3 -m py_compile execution/audit_atlas_evidence.py`, `python3 execution/audit_atlas_evidence.py`, `node tests/test_gee_provider.mjs`, and `node tests/test_atlas_sentinel_toggle.mjs`.
+- Expected output artifacts: corrected evidence helper, corrected audit outputs under `.tmp/`, updated task/knowledge notes, and regression-test coverage.
+- Safety: no `.env`, `config-v1.js`, service-account JSON, OAuth tokens, Sentinel Hub secrets, or private config values will be read, printed, or committed.
+
+### 2026-06-16 — Completed citation count correction
+- Updated `src/atlas-evidence.js` so Copernicus Browser, Sentinel Hub sensor docs, and Sentinel Hub WMS docs are marked as technical links with `countsAsCitation: false`.
+- Updated the Atlas info panel to show numbered `Cited sources` separately from unnumbered `Supporting references` and `Technical checks`.
+- Updated the evidence audit to report citation URL counts, supporting-reference URL counts, and technical URL counts separately.
+- Corrected Gold-ready logic to require three reachable incident/instance cited-source URLs, not three total evidence URLs.
+- Method papers remain visible as supporting references but no longer count as incident/instance citations.
+- Corrected audit result: 44 renderable bookmarks, 0 Gold-ready evidence packs, and 44 rows needing additional incident/instance sources.
+- Verification passed: `node --check src/atlas-evidence.js`, `node --check src/atlas-app.js`, `python3 -m py_compile execution/audit_atlas_evidence.py`, `python3 execution/audit_atlas_evidence.py`, `node tests/test_gee_provider.mjs`, and `node tests/test_atlas_sentinel_toggle.mjs`.
+
+## Objective — Atlas Bookmark Focus Layer
+
+Add a toggleable Atlas map layer that marks the focus point for each index bookmark so the operator can inspect the geographic spread of proof and context targets without requesting new imagery tiles.
+
+## Validation Contract — Atlas Bookmark Focus Layer
+
+- [x] Atlas exposes a visible HUD control for bookmark focus points.
+- [x] The focus-point layer is off by default.
+- [x] Toggling the control on adds one map point for each Atlas index bookmark with valid latitude and longitude.
+- [x] Toggling the control off removes the focus-point layer.
+- [x] The active selected bookmark point is visually distinct from inactive points.
+- [x] Clicking a focus point selects the corresponding Atlas index.
+- [x] Toggling focus points does not request Sentinel WMS tiles.
+- [x] Toggling focus points does not request GEE tiles.
+- [x] `node --check src/atlas-app.js` passes.
+- [x] Atlas browser smoke verifies the focus layer toggle.
+
+## Progress Log — Atlas Bookmark Focus Layer
+
+### 2026-06-16 — Started bookmark focus layer
+- Target directive: none found specifically for bookmark focus overlays; `directives/find_hotspots.md` is related context for bookmark focus semantics.
+- Intended execution scripts: `node --check src/atlas-app.js`, `node tests/test_gee_provider.mjs`, and `node tests/test_atlas_sentinel_toggle.mjs`.
+- Expected output artifacts: toggle control in `atlas.html`, Leaflet focus-point overlay in `src/atlas-app.js`, focused browser regression coverage, and session knowledge checkpoint.
+- Safety: no `.env`, `config-v1.js`, service-account JSON, OAuth tokens, Sentinel Hub secrets, or `.tmp/` outputs will be committed.
+
+### 2026-06-16 — Completed bookmark focus layer
+- Added the `Focus pts` Atlas HUD toggle and a Leaflet vector layer with one point for each of 96 valid Atlas bookmark coordinates.
+- Kept the layer off by default; toggle on/off adds and removes only local vector markers.
+- Marker clicks select the corresponding Atlas index through the existing `selectIndex()` path.
+- Raised the HUD above the info panel so the new control and existing HUD controls remain clickable.
+- Verification passed: `node --check src/atlas-app.js`, `node tests/test_gee_provider.mjs`, `node tests/test_atlas_sentinel_toggle.mjs`, `git diff --check`, and a fresh verifier review.
+
+## Objective — Atlas Weak Evidence Promotion
+
+Elevate the remaining Weak and Weak-Medium renderable Atlas bookmarks to Strong only where the bookmark location/date, primary citation, and curated verification evidence all point to the same real-world phenomenon.
+
+## Validation Contract — Atlas Weak Evidence Promotion
+
+- [x] Each promoted Weak bookmark has a source that matches its bookmark place.
+- [x] Each promoted Weak-Medium bookmark has a source that matches its bookmark place.
+- [x] Each promoted bookmark has at least one curated Strong verification entry.
+- [x] Each curated Strong verification entry has only reachable evidence URLs.
+- [x] The evidence audit reports zero cleanup items.
+- [x] The cold-eyes review reports zero Weak rows.
+- [x] The cold-eyes review reports zero Weak-Medium rows.
+- [x] `node --check` passes for edited Atlas JavaScript.
+- [x] `python3 -m py_compile` passes for the evidence audit script.
+- [x] Atlas provider/toggle regression tests pass.
+
+## Progress Log — Atlas Weak Evidence Promotion
+
+### 2026-06-16 — Elevated remaining weak tiers
+- Promoted EPDI, MP-PDI, TDR-ASI, HSAI, and LFGVI from Weak to Strong after correcting source-place mismatches.
+- Promoted OWSI, LRD-VSI, TT-API, MEPSI, and WDPTZI from Weak-Medium to Strong after replacing generic or mismatched sources with site/region-specific evidence.
+- Regenerated `.tmp/atlas_cold_eyes_verifiability_review.md`: Strong verified 41, Gold evidence 3, Medium-Strong 0, Medium 0, Weak-Medium 0, Weak 0.
+- Verification passed: strict evidence audit, syntax checks, provider contract, Atlas Sentinel toggle smoke, browser checks for EPDI and OWSI, and `git diff --check`.
+
+## Objective — Atlas Three-Source Bookmark Evidence Standard
+
+Add a trust framework so every renderable Atlas bookmark exposes at least three independent evidence sources and can be audited for primary-source reachability.
+
+## Validation Contract — Atlas Three-Source Bookmark Evidence Standard
+
+- [x] Atlas renderable bookmarks expose a visible evidence/trust badge in the info panel.
+- [x] Atlas renderable bookmarks expose a primary source link.
+- [x] Atlas renderable bookmarks expose an imagery/date/location verification link.
+- [x] Atlas renderable bookmarks expose a sensor or service reference link.
+- [x] A deterministic audit script checks every renderable bookmark.
+- [x] The audit requires at least three evidence URLs per renderable bookmark.
+- [x] The audit requires at least three reachable evidence URLs per renderable bookmark.
+- [x] The audit requires the primary bookmark source URL to be reachable.
+- [x] The audit writes JSON output under `.tmp/`.
+- [x] The audit writes Markdown output under `.tmp/`.
+- [x] The browser shows the evidence pack for a selected Atlas index.
+- [x] `node --check` passes for edited Atlas JavaScript.
+- [x] `python3 -m py_compile` passes for the evidence audit script.
+
+## Progress Log — Atlas Three-Source Bookmark Evidence Standard
+
+### 2026-06-16 — Upgraded medium and medium-strong rows
+- Added `src/atlas-verification.js` with curated strong-verification evidence for every row previously classified as Medium or Medium-Strong.
+- Updated `src/atlas-evidence.js` so verification-specific event/method/local sources appear before generic sensor/service references.
+- Tightened `execution/audit_atlas_evidence.py` so Strong rows fail if any curated verification evidence URL is unreachable.
+- Regenerated `.tmp/atlas_cold_eyes_verifiability_review.md`: Strong 34, Medium-Strong 0, Medium 0, Weak-Medium 5, Weak 5.
+- Verification passed: strict evidence audit, syntax checks, provider contract, Atlas Sentinel toggle smoke, browser Strong badge check, and `git diff --check`.
+
+### 2026-06-16 — Completed evidence standard implementation
+- Added `src/atlas-evidence.js` to generate evidence packs with primary source, Copernicus Browser bookmark check, sensor reference, and WMS service reference.
+- Added the `Gold evidence` badge and linked evidence pack to the Atlas info panel.
+- Added `execution/audit_atlas_evidence.py` to audit all renderable Atlas bookmarks without reading private config or secrets.
+- Replaced 10 broken primary source URLs found by the strict evidence audit.
+- Final audit: 44 renderable bookmarks, 44 Gold-ready evidence packs, 0 cleanup items.
+- Verification passed: `node --check src/atlas-app.js`, `node --check src/atlas-indices.js`, `node --check src/atlas-evidence.js`, `python3 -m py_compile execution/audit_atlas_evidence.py`, `node tests/test_gee_provider.mjs`, `node tests/test_atlas_sentinel_toggle.mjs`, browser evidence-panel check, and `git diff --check`.
+
+## Objective — Atlas Citation and Bookmark Audit
+
+Verify Limn Atlas source/citation links and bookmark/date choices so the info panel does not send users to irrelevant papers and each live index demonstrates its signal at a defensible location/date.
+
+## Validation Contract — Atlas Citation and Bookmark Audit
+
+- [x] The audit reads `src/atlas-indices.js`.
+- [x] The audit reads `src/atlas-sar-demos.js`.
+- [x] The audit reads `src/atlas-s5p-demos.js`.
+- [x] The audit does not read `config-v1.js`.
+- [x] The audit does not read `.env`.
+- [x] Every renderable Atlas index with `sourceUrl` is checked for HTTP reachability.
+- [x] Every renderable Atlas index with `sourceUrl` is checked for source-title/topic mismatch.
+- [x] The audit identifies any water-quality citation that resolves to an unrelated protein-folding page.
+- [x] Current bookmark dates are checked against sensor availability.
+- [x] Current bookmark zooms are checked against per-sensor minimum zoom.
+- [x] Current bookmark demonstration status is compared against existing QC metrics where available.
+- [x] Findings are written under `.tmp/`.
+- [x] Corrections are applied only after mismatches are explicitly identified.
+- [x] `node --check src/atlas-indices.js` passes if Atlas index definitions are edited.
+- [x] `node --check src/atlas-sar-demos.js` passes if SAR demo definitions are edited.
+- [x] `node --check src/atlas-s5p-demos.js` passes if S5P demo definitions are edited.
+
+## Progress Log — Atlas Citation and Bookmark Audit
+
+### 2026-06-16 — Started Atlas citation/bookmark audit
+- Target directive: `directives/find_hotspots.md` for the bookmark/date validation portion; none found for citation URL checking.
+- Intended execution scripts: existing `execution/qc_atlas_bookmarks.py` / `execution/hotspot_loop.py` if WMS scoring is needed, plus a focused citation/bookmark audit report under `.tmp/`.
+- Expected output artifacts: mismatch report, bookmark QC summary, corrected Atlas source/citation fields if needed, and knowledge/session notes.
+- Safety: no `.env`, `config-v1.js`, OAuth token, Sentinel Hub secret, service-account JSON, or private config values will be read or printed.
+
+### 2026-06-16 — Completed citation/bookmark audit fixes
+- Wrote source and bookmark findings to `.tmp/atlas_citation_url_audit.json`, `.tmp/atlas_citation_url_audit.md`, and `.tmp/atlas_bookmark_evidence_summary.md`.
+- Fixed PETI after its Lake Erie bloom source URL resolved to an unrelated protein-folding paper.
+- Fixed CSRC so the Lake Taihu bookmark now cites a Lake Taihu satellite-monitoring source.
+- Updated MP-PDI from zoom 9 to zoom 10 to satisfy the Sentinel-2 minimum zoom rule.
+- Updated S1-OWF, S5P-NO2, and S5P-SO2 demo bookmarks to the best previously measured hotspot coordinates.
+- Confirmed `sh-d7374040-889f-4013-aac2-046a15f6d8ba` is not accepted as an OGC WMS configuration endpoint.
+- Verified `83a6b821-c0ad-43b1-848f-06f7b6b528a7` as the alternate OGC WMS configuration id; direct `GetCapabilities` returned `200 application/xml`.
+- Browser verification passed for PETI and CSRC citations after cache-busting Atlas data imports.
+- Fresh-process catalog verifier passed for PETI/CSRC sources, MP-PDI zoom, S1/S5P demo coordinates, and absence of the invalid `sh-d...` WMS id.
+- Verification passed: `node --check src/atlas-app.js`, `node --check src/atlas-indices.js`, `node --check src/atlas-sar-demos.js`, `node --check src/atlas-s5p-demos.js`, `python3 -m py_compile execution/qc_atlas_bookmarks.py`, `node tests/test_gee_provider.mjs`, `node tests/test_atlas_sentinel_toggle.mjs`, fresh-process catalog verifier, and `git diff --check`.
+
+## Objective — Atlas Sentinel Account Switcher
+
+Add an Atlas-only Sentinel WMS source switch so the operator can choose between the configured Copernicus/Sentinel Hub endpoint and the built-in Sentinel Viewer endpoint without editing `config-v1.js`.
+
+## Validation Contract — Atlas Sentinel Account Switcher
+
+- [x] Atlas exposes a visible Sentinel source control in the map HUD.
+- [x] The source control offers the configured Copernicus endpoint when one is present.
+- [x] The source control offers the Sentinel Viewer endpoint.
+- [x] Atlas uses the configured Copernicus endpoint when that source is selected.
+- [x] Atlas uses the Sentinel Viewer endpoint when that source is selected.
+- [x] Switching source while Sentinel is armed refreshes the active Atlas tiles.
+- [x] Switching source while Sentinel is disarmed does not request WMS tiles.
+- [x] The source switch preserves the Sentinel live-tile guard.
+- [x] The source switch preserves the Sentinel minimum zoom guard.
+- [x] The implementation does not commit `config-v1.js`.
+- [x] `node --check src/atlas-app.js` passes.
+- [x] `node tests/test_gee_provider.mjs` passes.
+- [x] `node tests/test_atlas_sentinel_toggle.mjs` passes.
+- [x] Browser verification confirms the source selector renders.
+- [x] A fresh verifier reviews the final output against this contract.
+
+## Progress Log — Atlas Sentinel Account Switcher
+
+### 2026-06-16 — Started Atlas Sentinel account switcher
+- Target directives: none found specifically for account switching; using the existing Atlas Sentinel Toggle and WMS Cooling contract as the precedent.
+- Intended execution scripts: `node --check src/atlas-app.js`, `node tests/test_gee_provider.mjs`, `node tests/test_atlas_sentinel_toggle.mjs`, and browser verification.
+- Expected output artifacts: Atlas HUD/source switch, config template notes, tests, and knowledge/session updates.
+- Safety: no `.env`, `config-v1.js`, OAuth secrets, tokens, or private endpoint values will be printed or committed.
+
+### 2026-06-16 — Implemented Atlas Sentinel account switcher
+- Added the Atlas HUD source selector with `Configured` and `Viewer` options.
+- Added source resolution for configured WMS fields and viewer WMS fields.
+- Kept Sentinel live-tile and minimum zoom guards as the only path to WMS requests.
+- Extended the Atlas Sentinel smoke test to prove configured WMS, viewer WMS, armed switching, and disarmed no-request behavior.
+
+## Objective — Atlas Sentinel Article Captures
+
+Generate Sentinel-only article capture assets for selected Limn Atlas indices: BH-DFSI, SF-EII, PETI, EPDI, RRFI, and TDR-ASI. Each selected index should produce up to four article-ready PNGs plus machine-readable metadata documenting location, bookmark date, WMS render window, provider, layer, bbox, and available satellite scene metadata.
+
+## Validation Contract — Atlas Sentinel Article Captures
+
+- [x] Capture generation uses Sentinel Hub WMS only.
+- [x] Capture generation does not request Google Earth Engine tiles.
+- [x] Capture generation does not request COG tiles.
+- [x] Capture generation resolves `bhdfsi`.
+- [x] Capture generation resolves `sfeii`.
+- [x] Capture generation resolves `peti`.
+- [x] Capture generation resolves `epdi`.
+- [x] Capture generation resolves `rrfi`.
+- [x] Capture generation resolves `tdrasi`.
+- [x] Each resolved index writes no more than four PNG assets.
+- [x] Each resolved index writes at least one PNG asset.
+- [x] Each PNG asset has a metadata JSON entry.
+- [x] Each metadata entry records the index key.
+- [x] Each metadata entry records the index acronym.
+- [x] Each metadata entry records the bookmark label.
+- [x] Each metadata entry records latitude.
+- [x] Each metadata entry records longitude.
+- [x] Each metadata entry records zoom.
+- [x] Each metadata entry records bbox.
+- [x] Each metadata entry records the bookmark date.
+- [x] Each metadata entry records the Sentinel WMS time window.
+- [x] Each metadata entry records the WMS layer.
+- [x] Each metadata entry records the provider as Sentinel Hub WMS.
+- [x] The capture script does not print secret-bearing config values.
+- [x] Output assets are written under `.tmp/atlas_article_captures/`.
+
+## Progress Log — Atlas Sentinel Article Captures
+
+### 2026-06-13 — Started Sentinel-only article capture run
+- Target directives: none found specifically for Atlas article capture; using `knowledge/domain/api-contracts.md` plus the existing Atlas WMS/bookmark contract.
+- Intended execution scripts: new `execution/capture_atlas_articles.py`, existing Atlas index registry loading through Node, direct Sentinel Hub WMS requests, optional Sentinel Hub Catalog metadata lookup if credentials are available, and static Python compile verification.
+- Expected output artifacts: PNG captures and sidecar metadata under `.tmp/atlas_article_captures/`.
+- Safety: no `.env`, `config-v1.js`, service-account JSON, OAuth token, or secret config values will be printed or committed.
+
+### 2026-06-13 — Completed Sentinel-only article capture run
+- Added `execution/capture_atlas_articles.py` to generate direct Sentinel Hub WMS article assets from the Atlas registry.
+- Generated 24 PNG captures for BH-DFSI, SF-EII, PETI, EPDI, RRFI, and TDR-ASI under `.tmp/atlas_article_captures/20260613-selected-sentinel/`.
+- Wrote per-image JSON sidecars plus `manifest.json` and `manifest.md`.
+- Attached Sentinel scene metadata from public CDSE STAC, including item ID, acquisition datetime, platform, cloud cover, and sun geometry where present.
+- Verified 6 resolved targets, 4 PNGs per target, 24 valid PNGs, 24 metadata entries, zero GEE/COG usage flags, and no secret-bearing config values in sidecars.
 
 ## Objective — Shareable Sentinel-Only Produced Water App
 

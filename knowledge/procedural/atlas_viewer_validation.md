@@ -1,6 +1,6 @@
 # Atlas Viewer Validation
 
-Last updated: 2026-06-07
+Last updated: 2026-06-23
 
 Use this checklist after changing `atlas.html`, `src/atlas-app.js`, or `src/atlas-indices.js`.
 
@@ -35,6 +35,24 @@ Use this checklist after changing `atlas.html`, `src/atlas-app.js`, or `src/atla
    - The page loads 91 buttons and 12 domain sections.
    - The first renderable index selects automatically.
    - Punctuation-free acronym search works, e.g. `bhdfsi` finds `BH-DFSI`.
+   - The `Focus pts` HUD toggle is off by default.
+   - Toggling `Focus pts` on adds one vector point for each valid Atlas bookmark coordinate.
+   - Toggling `Focus pts` off removes the vector points.
+   - Toggling `Focus pts` does not request GEE or Sentinel WMS tiles.
+   - Clicking a focus point selects the corresponding Atlas index.
+   - The LinkedIn Ground Truth panel renders for the selected index.
+   - The LinkedIn Ground Truth panel includes one visual anchor, one observation, one reason it matters, and one interpretive prompt.
+   - The generated LinkedIn draft stays below 300 words.
+   - The LinkedIn Ground Truth panel does not request additional provider tiles.
+   - The Capture HUD control enters a LinkedIn screenshot mode.
+   - Capture mode hides the sidebar, HUD, and full info panel.
+   - Capture mode shows the selected index acronym, name, bookmark place/date, visual mode label, interpretive hook, and prompt.
+   - Capture mode enlarges the legend for feed-compressed screenshots.
+   - Capture mode exits from the overlay without changing the selected index.
+   - Capture mode does not request additional GEE, Sentinel WMS, or COG tiles.
+   - Capture comparison modes include context-only, overlay, and split.
+   - Split comparison uses an adjustable divider.
+   - Capture comparison mode changes do not request additional GEE, Sentinel WMS, or COG tiles.
    - OWSI selects a post-Sentinel-2 date.
    - IERPI displays as an S2 approximation.
    - LFMPI displays a peak drought live-fuel risk bookmark.
@@ -60,3 +78,28 @@ Use this checklist after changing `atlas.html`, `src/atlas-app.js`, or `src/atla
 - If those settings are absent, Atlas falls back to the existing Limn Atlas WMS endpoint and `AGRICULTURE` layer.
 - Individual index definitions may declare `wmsLayer` when a specific Sentinel Hub layer is required.
 - Tile failures should surface in the `#tile-status` legend area instead of silently leaving only the basemap visible.
+
+## 2026-06-16 — Bookmark Focus Overlay
+
+- Atlas bookmark focus points are local Leaflet vector markers created with `L.circleMarker`, so the overlay can be toggled without provider tile requests.
+- Keep the focus layer off by default to avoid crowding the map on first load.
+- Marker clicks should call the same index-selection path as sidebar buttons so date, view, legend, info panel, and active state stay synchronized.
+- `node tests/test_atlas_sentinel_toggle.mjs` now verifies the focus overlay alongside the Sentinel source-switch smoke.
+
+## 2026-06-23 — LinkedIn Ground Truth Guidance
+
+- Atlas now treats each selected index as a weekly LinkedIn Ground Truth candidate: one image, one observation, one reason it matters, and one interpretive prompt.
+- The guidance is an info-panel layer, not a new Atlas category. Do not add a separate sidebar taxonomy for LinkedIn, Map Notes, or Field Notes until the archive has enough posts to justify it.
+- The generated draft uses existing index metadata only: `acronym`, bookmark label/date, `bandsLabel()`, `physics`, and `benefit`.
+- The copy action writes the generated draft to the browser clipboard and does not request Sentinel, GEE, or COG tiles.
+- `node tests/test_atlas_sentinel_toggle.mjs` verifies the panel ingredients, draft word count, no console errors, and no extra provider tile requests.
+
+## 2026-06-24 — LinkedIn Screenshot Capture Mode
+
+- Atlas Capture mode is presentation-only: it toggles `.atlas-layout.capture-mode`, hides the sidebar/HUD/info panel, and does not call the provider rendering path.
+- The capture overlay is driven by the selected index metadata and includes acronym, name, bookmark place/date, a view-aware mode label, a direct comparison hook, and an index-aware interpretive prompt.
+- Keep the exit control inside the capture overlay because the normal HUD is intentionally hidden while capture mode is active.
+- Do not call `map.invalidateSize()` when entering Capture mode; expanding the map viewport can make Leaflet request replacement overlay tiles.
+- Capture comparison controls must only adjust the existing loaded overlay layer: context sets overlay opacity to `0`, overlay restores `state.opacity`, and split clips the existing overlay container with `clip-path`.
+- `window.getAtlasCaptureState()` exposes capture state for smoke tests and should stay in sync with the selected index.
+- Browser validation should assert no GEE, Sentinel WMS, or COG tile counts change when entering or exiting capture mode.
