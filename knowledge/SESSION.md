@@ -56,3 +56,11 @@
 - CORRECTED my earlier error: "LBI 63%/1.3% FP" mixed thresholds (recall@0.01 where FP=86%, FP@0.08 where recall=9%); at fixed thresholds LBI ~22%/20%. Withdrew option (c).
 - Recommendation to author: (a) honest earned negative-result/methodology paper, scoped to S2/500m/single-scene
 - Commit 7ec3981 (+ session earlier: preprint-v1.1 tag, 26cc32d,b7ba495,575c21d,2c92413,5e38158,33db25e,22b2fae) — all pushed to globe-and-atlas/limn
+- 2026-07-20 14:10 — commit: docs: session checkpoint — threshold sweep verdict | knowledge/SESSION.md
+- 2026-07-20 14:31 — commit: docs: reposition whitepaper as methodology/negative-result paper (v2.0) | PUBLIC_SCIENCE_GUIDE.md,reports/preprint_qc_2026-07-19.md
+
+### 2026-07-20 - Path (a) executed: whitepaper reframed as negative-result paper (Claude Code CLI / Fable 5)
+- Retitled/re-abstracted PUBLIC_SCIENCE_GUIDE as methodology+negative-result paper (v2.0); added Contributions/Scope/Limitations front matter; tagged preprint-v2.0
+- §7 adds LBI narrow-positive: LBI specific (0% caliche bg >0.3, mean 0.034) → plausible STANDING-brine detector (different target), pending targeted validation; NOT a general PW detector
+- Index legitimacy verdict: real advances = multi-gate methodology + verified-site program + the negative result; LBI narrowly (standing brine); component ratios legit but not novel (prior art); PWCI/ASAI/OBEC don't discriminate
+- Commit 7dabd18 + tag preprint-v2.0, pushed to globe-and-atlas/limn
