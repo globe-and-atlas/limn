@@ -1,9 +1,9 @@
-# Limn: Multi-Gate Multispectral Anomaly Detection and Geochemical Consensus Calibration for Produced Water Spills in Arid Basins
+# Multi-Gate Spectral Consensus for Produced-Water Screening in Arid Basins: Architecture, a Verified-Site Program, and the Limits of Sentinel-2 Detection
 
 **Author & Primary Inventor:** Daniel Bally  
 **Affiliation:** Globe & Atlas  
-**Publication Date:** May 2026  
-**Revision:** v1.1 — July 2026 (formula-fidelity and validation-transparency corrections; see Revision History)  
+**Publication Date:** May 2026 · **Revision:** v2.0 — July 2026  
+**Paper type:** Methodology and negative-result study  
 **License:** Public Whitepaper / Technical Specification  
 
 ---
@@ -12,7 +12,28 @@
 
 Produced water represents the largest volume liquid waste stream associated with oil and gas extraction, carrying high concentrations of ancient formation halides (brine salts), aromatic and aliphatic hydrocarbons, and dissolved heavy metal precipitants. Rapid spatial detection of these spills in arid and semi-arid regions (such as the Permian Basin) is severely hindered by high-albedo caliche backgrounds, dry playas, and civil construction signatures that mimic spill anomalies in single-band indices. 
 
-This paper introduces **Limn**, a high-performance multispectral GIS methodology utilizing Copernicus Sentinel-2 satellite imagery to detect produced water spills via **Multi-Gate Geochemical Consensus Calibration**. By multiplying independent spectral proxies for salinity, hydrocarbon absorption, and mineralogical heavy metal alteration into non-linear, multi-gate logical AND structures, Limn is designed to suppress the background false-positive floor of bare desert soils. (Section 7 reports the current validation status candidly: this design goal is not yet met simultaneously with useful recall by any calibration shipped to date, and Limn is presented as an experimental screening methodology rather than a validated detector.) We detail the physics, mathematical formulations, and intellectual property boundaries of five novel composites designed, calibrated, and authored by Daniel Bally: the **Produced Water Chemical Index (PWCI)**, the **Arid Salinity Anomaly Index (ASAI)**, the **Oil-Brine Emulsion Composite (OBEC)**, the **Evaporite Halo Composite (EHC)**, and the **Methane Venting Plume Index (MVPI)**.
+This paper presents **Limn**, a multispectral methodology built on Copernicus Sentinel-2 imagery that pursues produced-water screening via **Multi-Gate Geochemical Consensus** — multiplying independent spectral proxies for salinity, hydrocarbon absorption, and mineralogical alteration into non-linear logical-AND structures intended to suppress the bare-desert false-positive floor that defeats single-band indices. We contribute three things and are explicit about a fourth. **First**, the multi-gate consensus architecture itself, as a design pattern for arid-terrain anomaly screening. **Second**, a disciplined verified-site program: documented produced-water events with regulator filing references and exact coordinates, suitable as a public validation substrate. **Third**, and central to this revision, a **rigorous negative result**: under a full threshold sweep (1,224 gate configurations and per-index recall-vs-false-positive frontiers on a 32-record spill set and 150 background points), *no* configuration of these Sentinel-2 spectral composites separates produced water from Permian caliche at a usable operating point — the flagship consensus index shows essentially zero discrimination. We report this plainly rather than behind favorable thresholds. **Fourth**, we identify where narrow legitimate signal does survive — notably the Liquid Brine Index for large *standing*-brine bodies, a distinct and more tractable target. The composites (PWCI, ASAI, OBEC, EHC, MVPI, and the Liquid Brine Index) and their physics are documented in full; the honest conclusion is that Limn is an **experimental screening methodology and a demonstration of a spectral limit**, not a validated produced-water detector.
+
+---
+
+## Contributions, Scope & Limitations (read first)
+
+This is a **methodology and negative-result paper**, revised in July 2026 after an internal audit and a full validation study corrected the original (May 2026) draft. Readers should hold the following in view throughout:
+
+**What this paper contributes:**
+
+1. **A design pattern** — multi-gate geochemical consensus (logical-AND of independent spectral proxies) for suppressing false positives in arid anomaly screening (Section 3).
+2. **A verified-site program** — produced-water events with regulator filing references and exact coordinates, a reusable public validation substrate (Section 7).
+3. **A rigorous, reproducible negative result** — a full threshold sweep showing that these Sentinel-2 composites do not separate produced water from Permian caliche at any operating point (Section 7).
+4. **A narrowly scoped positive finding** — the Liquid Brine Index is highly *specific* (near-zero response on caliche background) and is a plausible detector for large *standing*-brine bodies, a distinct target from diffuse produced-water spills (Section 7).
+
+**What this paper does NOT claim:**
+
+- It does **not** claim a validated produced-water detector. The flagship composites (PWCI, ASAI, OBEC) do not discriminate at a usable recall/false-positive point; any positive is an investigative lead only.
+- It makes **no** quantitative accuracy or false-positive-suppression claim beyond the measured figures in Section 7, which are calibration diagnostics.
+- The negative result is **bounded**: it concerns these S2 spectral composites at a 500 m single-scene reflectance scale over the Permian Basin. It does not speak to higher-resolution, multi-temporal, SAR, or hyperspectral methods, which remain open.
+
+**Prior art vs. original work:** the component band ratios (NDVI, NDWI, NDMI, NDSI, BSI, SAVI, NDCI, NDTI, NDOI, clay/ferric ratios) are established literature, correctly implemented but not novel. The original contributions are the consensus *architecture*, the calibration study, the verified-site program, and the negative result — not the individual ratios. Full boundaries in Section 6.
 
 ---
 
@@ -384,6 +405,16 @@ To test whether this is merely a tuning problem — a discriminating calibration
 
 The honest conclusion is therefore stronger than "not yet tuned": for these Sentinel-2 spectral composites, at a 500 m sampling box and single-scene reflectance means, **no threshold configuration delivers simultaneous useful recall and low false-positive rate**. The multi-gate architecture is a sound design principle (Section 3), but these particular bands at this scale do not carry enough separating signal to realize it against the Permian caliche background. This is a bounded negative result — it does not rule out higher-resolution, multi-temporal, SAR, or hyperspectral approaches — but it is the truthful current status. Accordingly this release makes **no detection-accuracy or false-positive claim**; Limn is presented as an experimental screening methodology and an investigative-lead tool, not a validated detector. Full method and figures: `reports/threshold_sweep_2026-07-20.md`, `reports/preprint_qc_2026-07-19.md`, and the `execution/*_false_positive_summary.md` artifacts.
 
+### Where legitimate signal survives: the Liquid Brine Index and standing brine
+
+The negative result concerns *diffuse produced-water spills on bare soil* — the hard problem where chemical consensus was supposed to help and does not. It does **not** condemn every index equally. The **Liquid Brine Index (LBI)** behaves differently and is worth separating out:
+
+- On the 150 background points, LBI has a mean of **0.034** and a 90th percentile of 0.056; **0% of caliche background exceeds 0.3**. Unlike PWCI/ASAI/OBEC (which respond to dry caliche and produce 20–37% of background above 0.3), LBI is genuinely **specific** — it does not false-alarm on bare desert.
+- Its weakness in the general sweep is **recall**, not false positives: most records in the 32-site set are small or dry spills, which LBI is not designed to catch. Its actual target is *persistent standing liquid brine* — evaporation ponds, brine lakes, large blowout pools — a spectrally distinct and more tractable problem (open, highly saline water has an unambiguous signature).
+- Consistent with this, the verified-site QC finds LBI the strongest measured signal precisely at the standing-brine sites (e.g. Lake Boehmer, the Meister Ranch geyser pool).
+
+This is a **narrowly scoped, honestly caveated positive finding**, not a validated claim: LBI is a specific candidate detector for large standing-brine bodies, pending a targeted validation on a brine-body-labeled set (distinct from the diffuse-spill set used here). It is called out separately precisely so it is not oversold as a general produced-water detector — the error this revision exists to correct.
+
 > **Calibration-configuration caveat.** The 81.5% / 77.8% / 66.7% rates were produced by the **validated pipeline** configuration (Sections 4). The **interactive map viewer** ships a precision-first calibration (stricter basin-preset thresholds, hard bare-soil masks, steeper stretch, and a June 2026 noise-suppression pass on the dry-brine gates). The viewer therefore renders far more conservatively than the pipeline and will show blank where the pipeline detects; its live behavior is a high-precision triage view, not the recall figures above. Re-validation of the shipped viewer configuration against the 11-site set is ongoing.
 
 ### Summary of Validated Pipeline Thresholds (PWCI):
@@ -420,6 +451,14 @@ Honesty about where the work stands, however, is essential. As Section 7 documen
 ---
 
 ## Revision History
+
+**v2.0 — July 2026 (repositioned as a methodology / negative-result paper).** After a background false-positive study and a full threshold sweep, the evidence showed that no configuration of these Sentinel-2 composites discriminates produced water from Permian caliche at a usable operating point. This revision:
+
+- Retitled and re-abstracted the paper as a methodology and negative-result study; added a front-matter **Contributions, Scope & Limitations** section.
+- Added the threshold-sweep verdict to Section 7 (PWCI Youden's J ≈ 0.00; best composite ASAI ~53% recall / ~30% FP) and the measured false-positive floors (pipeline PWCI 96.7%; viewer ~0% but blank at real sites too).
+- Added the narrowly scoped positive finding: the Liquid Brine Index is specific (near-zero on caliche) and a plausible standing-brine detector, pending targeted validation.
+- Corrected an internal threshold-mismatch error (the earlier "LBI 63% recall at 1.3% FP" paired two different thresholds).
+- Repositioned all claims: no validated detector, no accuracy or false-positive-suppression claim; contributions are the architecture, the verified-site program, and the negative result.
 
 **v1.1 — July 2026 (formula-fidelity and validation-transparency pass).** Following an internal QC audit against the codebase and validation pipeline, this revision:
 

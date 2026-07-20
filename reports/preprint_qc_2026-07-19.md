@@ -155,3 +155,5 @@ The decision before any external distribution:
 - **(c) ~~Reframe around indices that work~~ — withdrawn.** The sweep shows the non-flagship indices do not discriminate either at fixed thresholds; there is no strong positive detector to build around. The verified-site *program* (sourcing, coordinates, QC discipline) remains a genuine asset and can anchor (a).
 
 Recommendation: **(a)**, scoped carefully. Nothing should go out under a "validated / low-false-positive detector" framing — the data now positively contradicts it.
+
+**Resolved (2026-07-20): path (a) executed.** PUBLIC_SCIENCE_GUIDE.md was retitled and repositioned as a methodology / negative-result paper (v2.0): new title, rewritten abstract, a front-matter "Contributions, Scope & Limitations" section, the threshold-sweep verdict and the narrowly-scoped Liquid Brine Index finding in §7. The paper now leads with the honest thesis rather than "five novel detectors." Remaining author choices are voice/venue and whether to pursue (b) as follow-on research; the document itself is distribution-ready as an honest negative result.
