@@ -23,3 +23,17 @@
 - 2026-07-19 22:21 — commit: feat: relocate capture info into map legend, fix swipe/mirror clipping | atlas.html,knowledge/ERRORS.md,knowledge/INDEX.md,knowledge/REFLECTIONS.jsonl,knowledge/SESSION.md
 - 2026-07-19 22:23 — commit: docs: record globe-and-atlas/limn as canonical remote | knowledge/DECISIONS.md
 - 2026-07-19 22:25 — commit: fix: override transitive uuid to 11.1.1 (CVE-2026-41907) | knowledge/domain/deps.md,package-lock.json,package.json
+- 2026-07-19 22:59 — commit: docs: add preprint QC audit report (formulas, validation claims, proof sites) | knowledge/SESSION.md,reports/preprint_qc_2026-07-19.md
+- 2026-07-19 23:10 — commit: docs: correct preprint formulas, calibration claims, and validation numbers | PUBLIC_SCIENCE_GUIDE.md,README.md,SENTINEL_SCIENCE_GUIDE.md,help.html,knowledge/DECISIONS.md
+- 2026-07-20 06:31 — commit: feat: add background/false-positive sampling for produced-water composites | execution/batch_analyze_spills.py,execution/sample_background.py,execution/summarize_false_positives.py,knowledge/ERRORS.md
+- 2026-07-20 06:55 — commit: feat: run background false-positive study; correct §7 with measured FP floor | PUBLIC_SCIENCE_GUIDE.md,execution/background_raw.csv,execution/false_positive_summary.md,execution/summarize_false_positives.py,knowledge/DECISIONS.md
+
+### 2026-07-19/20 - False-positive study (Claude Code CLI / Fable 5)
+- Tagged whitepaper preprint-v1.1; fixed all doc-fidelity findings (formulas, calibration split, removed fabricated FP numbers, README/help.html/indices.js)
+- Fixed NameError (missing pathlib.Path import) in execution/batch_analyze_spills.py — validation pipeline was non-runnable
+- Built + ran execution/sample_background.py (150 Permian background points, seed 42) + summarize_false_positives.py
+- KEY RESULT: pipeline-calibration FP floor is catastrophic — PWCI 96.7%, ASAI/OBEC 71.3% at t=0.01 (median PWCI background score = 1.000). Refutes removed "0.04% FP" claim; high-recall pipeline calibration does not discriminate.
+- Diagnosed + fixed a token-expiry bug mid-run (upfront-only CDSE token 401s after ~10 min → near-total no-data); added periodic refresh
+- OPEN top-priority follow-up: measure shipped VIEWER calibration FP (stricter τ) against same 150 points — needs raw bands persisted
+- OPEN author decision: how to position 96.7% pipeline FP in public whitepaper §7
+- All work committed + pushed to globe-and-atlas/limn (canonical): 26cc32d, b7ba495, 575c21d, 2c92413 + tag preprint-v1.1
