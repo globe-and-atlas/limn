@@ -47,3 +47,12 @@
 - Open R&D: calibration search for useful-recall + low-FP; non-flagship indices (LBI 1.3%/VSI 6.0%/BPI 7.3% FP) do discriminate
 - Author positioning decision surfaced (QC report): (a) honest WIP paper, (b) hold until discriminating calib, (c) reframe around what works
 - Commits: 33db25e (+ earlier 26cc32d,b7ba495,575c21d,2c92413,5e38158), tag preprint-v1.1 — all pushed to globe-and-atlas/limn
+- 2026-07-20 09:17 — commit: docs: session checkpoint — viewer-calibration FP | knowledge/SESSION.md
+- 2026-07-20 14:10 — commit: feat: threshold sweep proves no discriminating calibration exists | PUBLIC_SCIENCE_GUIDE.md,execution/false_positive_summary.md,execution/fetch_spill_bands.py,execution/spill_bands.csv,execution/summarize_false_positives.py
+
+### 2026-07-20 - Threshold sweep: no discriminating calibration exists (Claude Code CLI / Fable 5)
+- Fetched raw bands for all 32 TRRC records (fetch_spill_bands.py); swept PWCI 3 gates (1224 combos) + per-index ROC frontier at FIXED thresholds vs 150 bg
+- VERDICT: no config discriminates. PWCI ~19% recall/9% FP, J~0.00 (81.5% was firing on 97% bg). Best any composite = ASAI ~53%/30%. S2 bands @500m single-scene don't separate produced water from caliche at ANY threshold. Bounded negative result.
+- CORRECTED my earlier error: "LBI 63%/1.3% FP" mixed thresholds (recall@0.01 where FP=86%, FP@0.08 where recall=9%); at fixed thresholds LBI ~22%/20%. Withdrew option (c).
+- Recommendation to author: (a) honest earned negative-result/methodology paper, scoped to S2/500m/single-scene
+- Commit 7ec3981 (+ session earlier: preprint-v1.1 tag, 26cc32d,b7ba495,575c21d,2c92413,5e38158,33db25e,22b2fae) — all pushed to globe-and-atlas/limn
