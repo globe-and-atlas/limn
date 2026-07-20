@@ -25,9 +25,19 @@ The preprint (§7) claims calibration "against 27 confirmed produced water spill
 
 Every published performance number (81.5%, 77.8%, 66.7%, "~89%") is computed against this file. **Until each record is matched to a real RRC filing ID, the "TRRC-verified" language is not defensible in public.**
 
-### C2. The false-positive numbers (42.3% → 0.04%) have no supporting artifact
+### C2. The false-positive numbers (42.3% → 0.04%) have no supporting artifact — and the true floor is the opposite of the claim
 
-Nothing in the repo computes a false-positive rate. `evaluate_validation.py` / `optimize_thresholds.py` measure **detection on spill sites only** — there is no negative/background sampling run anywhere (grep across all code, docs, .tmp artifacts: the numbers 42.3% and 0.04% appear only in the preprint itself). These two headline numbers are unsupported.
+At audit time nothing in the repo computed a false-positive rate; `evaluate_validation.py` / `optimize_thresholds.py` measure **detection on spill sites only** (the numbers 42.3% and 0.04% appeared only in the preprint). Those two headline numbers were fabricated.
+
+**Update (2026-07-19, resolved):** a background false-positive study was built and run — `execution/sample_background.py` (150 random Permian points, seed 42, excluding a buffer around every known site) + `execution/summarize_false_positives.py`, reusing the exact pipeline index math. Measured false-positive floor at the validation calibration / 0.01 threshold:
+
+| Composite | Recall (spill sites) | **FP on background** |
+|---|---|---|
+| PWCI | 81.5% | **96.7%** (median background score = 1.000) |
+| ASAI | 77.8% | **71.3%** |
+| OBEC | 66.7% | **71.3%** |
+
+So the preprint's claimed 0.04% floor is off by **three-plus orders of magnitude** from reality for the pipeline calibration: PWCI fires on essentially all bare-caliche background. The published recall numbers describe a configuration that does not discriminate. (These FP numbers use the pipeline index math; the stricter shipped-viewer calibration's own FP is not yet measured — see follow-ups. Non-flagship indices at their app thresholds do far better: LBI 1.3%, VSI 6.0%, BPI 7.3%.)
 
 ### C3. The published PWCI formula is a chimera; its performance was measured on a different formula
 
@@ -109,8 +119,11 @@ Multiple proof rows carry `imagery date == event date` exactly (Meister 2022-01-
 
 ## Recommended actions before further distribution
 
-1. **Stop citing 42.3% / 0.04% / ~89%** until a background false-positive run and a defined consensus metric exist.
-2. **Re-validate with the current viewer calibration** (or align the shipped Permian preset with the validated pipeline values) and state explicitly which formula variant the numbers describe.
-3. **Rebase validation claims on the traceable verified-site set** (NMOCD rows with IDs + the documented TX events), or attach real RRC incident IDs to each of the 27 records; reword "TRRC-verified" until then.
-4. Rewrite §5 eco formulas to match an implementation (or label them as conceptual specifications); fix TRSI's NDTI definition; define NDOI; fix "four"→"five" and the β_i orphan.
-5. Reconcile PWCI's three inconsistent threshold statements (preprint, presets, in-app formula string) and either document the dry-brine modes as implemented or implement them as documented.
+1. ~~Stop citing 42.3% / 0.04% / ~89%~~ **DONE (2026-07-19):** fabricated FP numbers removed from all docs; ~89% relabeled as union not consensus; a real 150-point background FP study was run (see C2) — the measured pipeline floor is 71–97%, which is now stated honestly in §7.
+2. **Re-validate with the current viewer calibration** — still open, now the top priority. The pipeline FP floor is catastrophic (C2); the shipped viewer uses stricter thresholds/gates and is expected to be far better, but its FP is **not yet measured**. Persist raw bands in `background_raw.csv` and score the viewer evalscripts against the same 150 points to get the number that actually describes the product.
+3. **Rebase validation claims on the traceable verified-site set** (NMOCD rows with IDs + the documented TX events), or attach real RRC incident IDs to each of the 27 records; reword "TRRC-verified" until then. *(Docs now label the 27-record set a development benchmark; ID attachment still open.)*
+4. ~~Rewrite §5 eco formulas; fix TRSI NDTI; define NDOI; fix four→five and β_i orphan~~ **DONE (2026-07-19, v1.1).**
+5. ~~Reconcile PWCI's three inconsistent threshold statements~~ **DONE (2026-07-19):** preprint, in-app formula string, and help.html now all describe the pipeline-vs-viewer split consistently. Implementing the documented dry-brine modes identically across pipeline and viewer remains a code follow-up.
+
+### Author decision needed
+The measured **96.7% PWCI background false-positive rate** (pipeline calibration) is now stated in the public whitepaper §7. This is honest but consequential for a flagship publication. Before any new external distribution, decide whether to (a) publish with this transparency as-is, (b) hold §7 numbers until the viewer-calibration FP is measured and lead with that instead, or (c) restructure the paper around the viewer as the operational detector. This is a positioning call for the author, not a code fix.

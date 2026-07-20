@@ -9,7 +9,9 @@
 
 **Why:** QC (`reports/preprint_qc_2026-07-19.md`) found the May-2026 preprint published a PWCI formula that was a splice of both (never benchmarked as written), unsupported false-positive numbers (42.3%/0.04% — no negative-sampling run exists), an untraceable "27 TRRC-verified" dataset (`data/rrc_spills.json` self-describes as a curated snapshot with generalized coordinates), and §5 eco formulas matching no code version. Removing/qualifying these protects the publication's credibility.
 
-**Follow-ups still open (not code-fixable in this pass):** (1) run an actual background/false-positive study before any FP claim returns; (2) re-validate the shipped viewer calibration against the 11-site exact-coordinate set; (3) attach real RRC incident IDs to the 27-record benchmark or keep it labeled as a development benchmark.
+**Follow-ups:** (1) ~~run a background/false-positive study~~ **DONE 2026-07-19** — `execution/sample_background.py` + `summarize_false_positives.py`, 150 Permian background points. Result: pipeline-calibration FP floor is PWCI 96.7% / ASAI 71.3% / OBEC 71.3% (median PWCI background score = 1.000). This *quantitatively refutes* the removed "0.04% FP" claim and shows the high-recall pipeline calibration does not discriminate; stated honestly in whitepaper §7 and QC report C2. (2) **OPEN, now top priority:** measure the *shipped viewer* calibration's FP (stricter τ=0.10/0.30/2.0 + hardened gates) against the same 150 points — requires persisting raw bands in `background_raw.csv` and scoring the viewer evalscripts. (3) attach real RRC incident IDs to the 27-record benchmark, or keep it labeled a development benchmark.
+
+**Author positioning decision (surfaced, not mine to make):** whether the public whitepaper leads with the 96.7% pipeline FP transparency, holds §7 until viewer FP is measured, or restructures around the viewer as the operational detector.
 
 ---
 
