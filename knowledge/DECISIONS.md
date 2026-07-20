@@ -16,7 +16,13 @@
 - Viewer calibration: FP **0.0%** on all three (max rendered PWCI across 150 pts = 0.00000), but renders blank at all 11 verified spill sites too. Fires almost nowhere. Mechanism: strict triple-gate (HMRI>2.0) + cubic stretch + 0.05 blank gate crush everything; only 10/150 points even clear the raw gate and none survive the stretch.
 - Conclusion: Limn's flagship composites do not yet achieve useful recall AND low FP in any shipped config. Whitepaper §7/§8 repositioned to "experimental screening methodology, not validated detector."
 
-**Still open (R&D, not doc fixes):** find a discriminating calibration via a proper recall-vs-FP sweep on both the 27-record and 11-site sets; attach real RRC incident IDs to the 27-record benchmark. Non-flagship indices (LBI 1.3% FP, VSI 6.0%, BPI 7.3% at app thresholds) DO discriminate and are a candidate paper spine.
+**Threshold sweep DONE 2026-07-20** (`execution/sweep_thresholds.py`, `reports/threshold_sweep_2026-07-20.md`) — fetched raw bands for all 32 TRRC records (`fetch_spill_bands.py` → `spill_bands.csv`), swept PWCI's 3 internal gates (1,224 combos) + per-index ROC frontier at fixed thresholds.
+
+**VERDICT — no discriminating calibration exists:** PWCI best operating point ~19% recall / ~9% FP, continuous-score Youden's J ≈ 0.00 (the 81.5% "recall" was firing on 97% of background). Best of any composite = ASAI ~53% recall / ~30% FP. The "middle calibration probably exists" hypothesis is refuted: these S2 bands at 500 m single-scene scale do not separate produced water from Permian caliche at any threshold. Bounded negative result (leaves higher-res/temporal/SAR/hyperspectral open).
+
+**CORRECTION:** earlier "LBI 63% recall at 1.3% FP" was a threshold-mismatch error (recall at t=0.01 where FP=86%, paired with FP at t=0.08 where recall=9%). At fixed thresholds LBI peaks ~22%/20%. `summarize_false_positives.py` now warns against pairing its columns. This also withdrew earlier option (c) "reframe around indices that work" — none discriminate well.
+
+**Recommendation to author = (a):** publish as an honest, earned negative-result / methodology paper (scope claim to S2/500 m/single-scene; multi-gate architecture + verified-site program + rigorous spectral-limit demonstration are the contribution). Still open: attach real RRC incident IDs; explore a different sensing modality if a detector is wanted.
 
 **Author positioning decision (surfaced, not mine to make):** publish as honest work-in-progress/negative-result methodology (a); hold distribution until a discriminating calibration exists (b); or reframe around the indices/verified-site program that do work (c). See QC report "Author decision needed".
 

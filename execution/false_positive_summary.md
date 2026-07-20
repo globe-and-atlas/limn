@@ -4,7 +4,9 @@ Background points sampled: **150** (ordinary Permian Basin terrain, no produced-
 
 False-positive rate = fraction of background points whose composite score exceeds the given threshold. Recall is spill-site detection from the 2026-03-28 validation run.
 
-| Index | Recall (spill sites) | FP @ 0.01 (validation) | FP @ app threshold | App threshold |
+> **WARNING — do not pair columns across thresholds.** Recall is measured at t=0.01; `FP @ app threshold` is measured at a *different* (higher) threshold. Reading 'recall X% at FP Y%' across these columns is an invalid operating point (e.g. LBI 63% recall is at t=0.01 where FP=86%, not at the 1.3% FP threshold). For true recall-vs-FP at fixed thresholds see reports/threshold_sweep_2026-07-20.md.
+
+| Index | Recall (spill sites, t=0.01) | FP @ 0.01 (validation) | FP @ app threshold | App threshold |
 |---|---|---|---|---|
 | ASAI | 77.8% | 71.3% | 71.3% | 0.05 |
 | OBEC | 66.7% | 71.3% | 70.0% | 0.05 |

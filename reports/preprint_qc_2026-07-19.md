@@ -135,13 +135,23 @@ Multiple proof rows carry `imagery date == event date` exactly (Meister 2022-01-
 4. ~~Rewrite §5 eco formulas; fix TRSI NDTI; define NDOI; fix four→five and β_i orphan~~ **DONE (2026-07-19, v1.1).**
 5. ~~Reconcile PWCI's three inconsistent threshold statements~~ **DONE (2026-07-19):** preprint, in-app formula string, and help.html now all describe the pipeline-vs-viewer split consistently. Implementing the documented dry-brine modes identically across pipeline and viewer remains a code follow-up.
 
+### C5. The threshold sweep resolves it: no discriminating calibration exists (2026-07-20)
+
+To test whether a working calibration sits between the two shipped extremes, `execution/sweep_thresholds.py` swept PWCI's three internal gates across 1,224 combinations and traced every composite's recall-vs-FP frontier at fixed thresholds (32-record TRRC set, 150 background points; `reports/threshold_sweep_2026-07-20.md`). Verdict:
+
+- **PWCI does not discriminate at any threshold** — best operating point ~19% recall at ~9% FP; continuous-score Youden's J ≈ 0.00 (recall and FP move together). The 81.5% "recall" was firing on 97% of background.
+- **No composite reaches a usable point** — best is ASAI ~53% recall / ~30% FP.
+- The earlier hypothesis (a discriminating middle calibration probably exists) is **refuted**: for these S2 bands at 500 m single-scene scale, no threshold separates produced water from Permian caliche.
+
+**Correction to an earlier draft claim:** a prior note cited "LBI 63% recall at 1.3% FP" as a working detector. That is wrong — it paired recall at t=0.01 (where LBI FP is 86%) with FP at t=0.08 (where LBI recall is 9%). At any fixed threshold LBI peaks around 22% recall / 20% FP. `summarize_false_positives.py` now carries a warning against pairing its recall and FP@app columns.
+
 ### Author decision needed
 
-Both calibrations are now measured, and the finding is more fundamental than a numbers-presentation question: **neither shipped calibration is a working detector** (pipeline 96.7% FP / high recall; viewer 0% FP / ~0 recall). The whitepaper §7 and §8 now state this honestly and reposition Limn as an experimental screening methodology rather than a validated detector.
+Both calibrations are measured **and** the full threshold space is searched. The finding is now settled and fundamental: **no configuration of these Sentinel-2 composites is a working detector.** The whitepaper §7/§8 state this as a bounded negative result and reposition Limn as an experimental screening methodology.
 
-The decision before any new external distribution is therefore a scope/positioning call, not a wording tweak:
-- **(a) Publish as an honest work-in-progress / negative-result methodology paper** — defensible and scientifically respectable; the architecture and the candid validation are the contribution.
-- **(b) Hold external distribution until the calibration search yields a discriminating configuration** (useful recall + low FP simultaneously), then publish performance. This is the R&D task in recommendation 2 and has no guaranteed timeline.
-- **(c) Reframe around what *does* work:** the non-flagship indices show real discrimination at app thresholds (LBI 1.3% FP, VSI 6.0%, BPI 7.3%) and the 11-site verified program is strong — a paper built on those, with PWCI/ASAI/OBEC as in-progress, would be honest and still substantive.
+The decision before any external distribution:
+- **(a) Publish as an honest negative-result / methodology paper — now the recommended path.** The sweep makes the negative result *earned* and generalizable ("these S2 spectral composites at this scale cannot separate produced water from caliche at any threshold"), not a premature "we mis-tuned." This is a legitimate, citable contribution: the multi-gate architecture, the verified-site program, and a rigorous demonstration of the spectral limit. Scope the claim to S2/500 m/single-scene and explicitly leave higher-res/temporal/SAR/hyperspectral open.
+- **(b) Hold and pursue a different sensing modality** (multi-temporal change detection, SAR, sub-10 m or hyperspectral) before publishing any detector claim. Larger effort, no timeline.
+- **(c) ~~Reframe around indices that work~~ — withdrawn.** The sweep shows the non-flagship indices do not discriminate either at fixed thresholds; there is no strong positive detector to build around. The verified-site *program* (sourcing, coordinates, QC discipline) remains a genuine asset and can anchor (a).
 
-This is the author's call. The repo state is now internally consistent and safe to sit on indefinitely; nothing further should go out publicly under a "validated / near-zero false-positive detector" framing.
+Recommendation: **(a)**, scoped carefully. Nothing should go out under a "validated / low-false-positive detector" framing — the data now positively contradicts it.
