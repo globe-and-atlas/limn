@@ -3,6 +3,7 @@
 **Author & Primary Inventor:** Daniel Bally  
 **Affiliation:** Globe & Atlas  
 **Publication Date:** May 2026  
+**Revision:** v1.1 — July 2026 (formula-fidelity and validation-transparency corrections; see Revision History)  
 **License:** Public Whitepaper / Technical Specification  
 
 ---
@@ -85,8 +86,7 @@ $$\text{Index}_{\text{Consensus}} = \prod_{i=1}^{n} \max(0, \text{Proxy}_i - \ta
 
 Where:
 *   $\text{Proxy}_i$ represents an independent spectral band ratio or index.
-*   $\beta_i$ represents the floor scale modifier.
-*   $\tau_i$ is the strict regional background threshold for that specific proxy.
+*   $\tau_i$ is the strict regional background threshold for that specific proxy. (In practice each gated term may also carry a scale multiplier $\beta_i$, i.e. $\max(0, \text{Proxy}_i - \tau_i) \times \beta_i$; the per-index sections give the calibrated values.)
 *   The $\max(0, \cdot)$ envelope acts as a **hard logical gate**: if even a single proxy fails to exceed its regional background threshold ($\tau_i$), its score becomes $0$, reducing the entire composite calculation to $0$.
 
 Only when **all independent chemical indicators** exceed their respective thresholds does the consensus index evaluate to a non-zero value, isolating the unique, multi-chemical footprint of produced water.
@@ -95,7 +95,9 @@ Only when **all independent chemical indicators** exceed their respective thresh
 
 ## 4. Novel Custom Produced Water Composites (Daniel Bally, Globe & Atlas)
 
-The following four spectral index models are original produced water architectures designed, calibrated, and authored by **Daniel Bally**.
+The following five spectral index models are original produced water architectures designed, calibrated, and authored by **Daniel Bally**.
+
+> **Formula provenance note (v1.1):** Two calibrations of these composites exist. The **validated pipeline calibration** is the configuration whose detection rates are reported in Section 7 (batch validation, 2026-03-28). The **interactive viewer calibration** applies stricter basin presets tuned for low-noise visual triage; it trades recall for precision and is not the configuration the Section 7 rates describe. Each formulation below documents the validated pipeline form and notes where the viewer differs.
 
 ---
 
@@ -120,8 +122,12 @@ The PWCI is the core geochemical consensus index. It requires the simultaneous p
 4.  **Logical Multi-Gate Multiplication:**
     $$\text{PWCI}_{\text{raw}} = \text{BrineScore} \times \text{HydrocarbonScore} \times \text{MetalScore}$$
 
-5.  **Cubic Non-Linear Contrast Stretching:**
-    $$\text{PWCI}_{\text{final}} = \min(1.0, (\text{PWCI}_{\text{raw}} \times 20.0)^3)$$
+5.  **Non-Linear Contrast Stretching with Bare-Soil Weight (validated pipeline form):**
+    $$w_{\text{BSI}} = \min(1.0, \max(0.3, \text{BSI} \times 5.0 + 0.3))$$
+    $$\text{PWCI}_{\text{final}} = \min(1.0, (\text{PWCI}_{\text{raw}} \times 50.0)^{1.2} \times w_{\text{BSI}})$$
+    The soft bare-soil weight prevents mixed or vegetation-edge pixels from zeroing an otherwise valid three-gate consensus. This is the exact configuration whose 81.5% detection rate is reported in Section 7.
+
+6.  **Interactive viewer variant:** the map viewer renders PWCI with a hard bare-soil mask, stricter basin-preset thresholds (Permian preset: $\tau$ = 0.10 / 0.30 / 2.0 with ×2 score multipliers), and a steeper cubic stretch $\min(1.0, (\text{raw} \times 20.0)^3)$. This precision-first configuration suppresses nearly all background at the cost of recall — it will render blank at many sites the pipeline configuration detects — and its detection rate is not the Section 7 figure.
 
 ```
                PWCI Signal Response
@@ -137,35 +143,48 @@ The PWCI is the core geochemical consensus index. It requires the simultaneous p
          0.0 -----|-/-----------------> Raw Spill Intensity
 ```
 
-*   **Physical Basis:** The cubic scale creates a sharp "knee." Marginal soil anomalies and noise cube to zero, while genuine spill signals with multi-chemical elevation quickly saturate to $1.0$, creating a high-contrast binary map of contamination.
+*   **Physical Basis:** The super-linear stretch creates a sharp "knee." Marginal soil anomalies and noise collapse toward zero, while genuine spill signals with multi-chemical elevation quickly saturate to $1.0$, creating a high-contrast map of contamination. The viewer's cubic variant makes this knee steeper still.
 
 ---
 
 ### ASAI: Arid Salinity Anomaly Index
 
-The ASAI is designed for high-sensitivity detection in hyper-arid soils. It operates in two distinct meteorological modes, utilizing a dry-brine logic gate when moisture levels fall below regional baselines.
+The ASAI is designed for high-sensitivity detection in hyper-arid soils. It operates in two distinct meteorological modes — a wet-path smoothness/salinity fusion and a dry-brine logic gate that fires when moisture indicators fall below regional baselines. The final score is the maximum of the two modes.
 
-#### Dry-Brine Mode Equation:
-$$\text{ASAI}_{\text{dry}} = \max(0, \text{NDSI} - 0.04) \times \max(0, \text{BSI} - 0.10) \times \text{NDWI}_{\text{offset}}$$
+#### Dry-Brine Mode (validated pipeline form):
+
+The dry path activates only when a three-condition arid gate is satisfied:
+
+$$\text{Gate}_{\text{dry}}: \quad \text{NDWI} < -0.30 \;\land\; \text{NDSI} > 0.05 \;\land\; \text{BSI} > 0.10$$
+
+When the gate is open, the dry score is:
+
+$$\text{ASAI}_{\text{dry}} = \min(1.0,\; \max(0, \text{NDSI} - 0.04) \times \min(1.0, \text{BSI} \times 4.0) \times 15.0)$$
 
 Where:
 *   $\text{BSI}$ (Bare Soil Index) ensures that only high-albedo soil receives analysis:
     $$\text{BSI} = \frac{(B11 + B04) - (B08 + B02)}{(B11 + B04) + (B08 + B02)}$$
-*   **Physical Basis:** In highly desiccated bare soil, standard water indices are suppressed. ASAI isolates the salt-crust accumulation over dry caliche by correlating the soil's brightness (BSI) with shortwave salinity shifts (NDSI), preventing natural gypsum playas from triggering false positives.
+*   $\text{NDWI} = (B03 - B11)/(B03 + B11)$ acts as the desiccation gate — deeply negative NDWI certifies dry bare ground before any salinity claim is made.
+*   **Physical Basis:** In highly desiccated bare soil, standard water indices are suppressed. ASAI isolates the salt-crust accumulation over dry caliche by correlating the soil's brightness (BSI) with shortwave salinity shifts (NDSI), preventing natural gypsum playas from triggering false positives. Adding this mode raised validation detection from 29.6% to 77.8% (Section 7).
+*   **Interactive viewer variant:** the current viewer applies a precision-tuned dry gate that is substantially stricter (NDSI > 0.15, BSI > 0.52, smoothness < −0.42, with a 0.60 display floor) following a June 2026 noise-suppression calibration pass. The Section 7 rate describes the pipeline form above, not this stricter viewer configuration.
 
 ---
 
 ### OBEC: Oil-Brine Emulsion Composite
 
-OBEC is a physical-chemical consensus composite. It fuses the dielectric properties of emulsions with surface smoothness proxies to identify fresh, liquid-phase blowouts.
+OBEC is a physical-chemical consensus composite. It fuses the chemical absorption signature of oil-brine emulsions with an optical surface smoothness proxy to identify fresh, liquid-phase blowouts.
 
 #### Mathematical Formulation:
-$$\text{OBEC} = \text{ChemicalSignal} \times \text{SmoothnessProxy} \times 6.0$$
+$$\text{OBEC} = \min(1.0,\; \text{ChemicalSignal} \times \text{SmoothnessProxy} \times 6.0)$$
 
 Where:
-*   $$\text{ChemicalSignal} = \max(0, \text{NDOI} + \text{NDSI})$$
-*   $$\text{SmoothnessProxy} = \max\left(0, \frac{B03}{B11} - 0.15\right)$$
-*   **Physical Basis:** Fresh produced water spills form highly reflective, smooth liquid sheets. The ratio of Band 3 (visible green) to Band 11 (SWIR-1) approximates specular surface reflectance. Fusing this optical smoothness proxy with chemical absorption ratios ensures that dry saline soils are ignored while fresh, flowing emulsions are highlighted.
+*   $\text{NDOI}$ (Normalized Difference Oil Index) contrasts blue reflectance against SWIR-2 hydrocarbon absorption:
+    $$\text{NDOI} = \frac{B02 - B12}{B02 + B12}$$
+*   $$\text{ChemicalSignal} = \min\left(1.0,\; \max(0, \text{NDOI}) + \max(0, \text{NDSI} - 0.03) \times 0.8\right)$$
+*   $\text{SmoothnessProxy}$ remaps the green-vs-SWIR normalized difference into a $[0,1]$ smoothness score:
+    $$\text{SmoothnessProxy} = \text{clamp}\left(\frac{\frac{B03 - B11}{B03 + B11} + 0.3}{0.6},\; 0,\; 1\right)$$
+*   **Dry-brine parallel path:** in the validated pipeline, a secondary path fires under the same arid gate as ASAI (NDWI < −0.30, NDSI > 0.05, BSI > 0.10), scoring evaporated salt crusts as $\min(1, \max(0,\text{NDSI}-0.04) \times \min(1,\text{BSI}\times3.5) \times 14)$; the final OBEC is the maximum of the wet and dry paths. This path contributed to the Section 7 detection rate.
+*   **Physical Basis:** Fresh produced water spills form highly reflective, smooth liquid sheets. Elevated green reflectance relative to Band 11 (SWIR-1) approximates specular surface reflectance. Fusing this optical smoothness proxy with chemical absorption ratios ensures that dry saline soils are ignored by the wet path while fresh, flowing emulsions are highlighted.
 
 ---
 
@@ -210,13 +229,16 @@ Where:
     $$\text{WaterReject} = \begin{cases} 0 & \text{if } B03 > B11 \\ 1 & \text{otherwise} \end{cases}$$
 *   $\text{VegReject}$ filters out biological/canopy stress look-alikes:
     $$\text{VegReject} = \begin{cases} 0 & \text{if } NDVI > 0.15 \\ 1 & \text{otherwise} \end{cases}$$
-*   **Physical Basis:** Methane gas ($CH_4$) displays a highly concentrated, narrow molecular absorption feature centered around $2300 \text{ nm}$, which significantly attenuates the returned solar signal in Sentinel-2's SWIR-2 Band 12 while leaving SWIR-1 Band 11 unaffected. By rationing B11/B12 over highly reflective bare well pads ($\text{SWIR Mean} > 0.20$) and executing rigid water and vegetation suppression gates, MVPI delivers a high-frequency spatial screening tool for gas super-emitters and pipeline venting blowouts.
+*   **Physical Basis:** Methane gas ($CH_4$) displays a highly concentrated, narrow molecular absorption feature centered around $2300 \text{ nm}$, which significantly attenuates the returned solar signal in Sentinel-2's SWIR-2 Band 12 while leaving SWIR-1 Band 11 unaffected. By rationing B11/B12 over highly reflective bare well pads ($\text{SWIR Mean} > 0.20$) and executing rigid water and vegetation suppression gates, MVPI delivers a high-frequency spatial screening tool for gas super-emitters and pipeline venting blowouts. (The rendered output applies a final ×3.0 display scaling before clamping to $[0,1]$.)
+*   **Retrieval Limitations (v1.1):** Two caveats bound MVPI's screening role. First, an elevated single-scene B11/B12 ratio is **spectrally degenerate with evaporite surfaces**: hydrated salt crusts also depress B12 relative to B11 (the very NDSI signature Sections 2 and 4 exploit), so saline ground can trigger the methane ratio without any gas present. Candidate plumes over salt-affected pads require cross-checking against NDSI/ASAI and, ideally, a pre-event reference scene. Second, established Sentinel-2 methane retrievals (Varon et al., 2021) rely on **multi-pass temporal differencing** rather than single-scene ratios; MVPI's single-scene formulation is a coarse spatial triage layer, not a quantitative plume retrieval, and positive frames should be confirmed against a methane-free reference date.
 
 ---
 
 ## 5. Novel ✧✧ Public-Good Ecological Composites (Daniel Bally, Globe & Atlas)
 
-Beyond localized industrial produced water blowouts, the Limn methodology integrates four public-good environmental emergency screening tools. These composites apply **multi-gate consensus and rejection logic** to complex ecological and civil environments:
+Beyond localized industrial produced water blowouts, the Limn methodology integrates four public-good environmental emergency screening tools. These composites apply **multi-gate consensus and rejection logic** to complex ecological and civil environments.
+
+> **Implementation status (v1.1):** CSRC and LFGVI are live, renderable composites in the Limn Atlas. TRSI and SWRI are **context targets with proof rendering pending** — their formulations are implemented, but no measured scene has yet passed the project's proof-grade signal threshold, so they are presented as screening architectures, not validated detectors. All formulas below are the shipped implementations.
 
 ---
 
@@ -226,19 +248,20 @@ The CSRC targets small-water eutrophication hazards, providing a public-health d
 
 #### Mathematical Formulation:
 
-1.  **Water Body Pixels Isolation Gate:**
-    $$\text{NDWI} = \frac{B03 - B08}{B03 + B08}$$
-    $$\text{WaterGate} = \max(0, \text{NDWI} - 0.15)$$
+1.  **Water Body Pixels Isolation Gate** (binary green-vs-SWIR test):
+    $$\text{WaterGate} = \begin{cases} 1 & \text{if } B03 > B11 \\ 0 & \text{otherwise} \end{cases}$$
 
 2.  **Chlorophyll NDCI (Normalized Difference Chlorophyll Index):**
     $$\text{NDCI} = \frac{B05 - B04}{B05 + B04}$$
-    $$\text{ChlorophyllScore} = \max(0, \text{NDCI} - 0.05)$$
 
-3.  **NIR Scum Scattering Multiplier:**
-    $$\text{ScumMultiplier} = \max\left(1.0, \frac{B08}{B04}\right)$$
+3.  **NIR Scum Scattering Boost** (additive floating-scum term):
+    $$\text{ScumBoost} = \max(0, B08 - 0.15) \times 3.0$$
 
-4.  **Multi-Gate Consensus Synthesis:**
-    $$\text{CSRC} = \text{WaterGate} \times \text{ChlorophyllScore} \times \text{ScumMultiplier} \times \text{ConfounderReject}$$
+4.  **Sediment Turbidity Rejection** (suppresses red-shifted inorganic turbidity):
+    $$\text{TurbidityReject} = 1 - \min\left(1,\; \max\left(0, \frac{B04 - B03}{B04 + B03}\right) \times 5.0\right)$$
+
+5.  **Multi-Gate Consensus Synthesis:**
+    $$\text{CSRC} = \min\left(1.0,\; \max(0, \text{NDCI} + \text{ScumBoost}) \times \text{TurbidityReject} \times \text{WaterGate} \times 3.0\right)$$
 
 *   **Physical Basis:** Cyanobacteria blooms accumulate heavy chlorophyll concentrations (NDCI). As blooms mature, they float to the surface, forming dense, highly reflective organic scums that exhibit intense Near-Infrared (Band 8) scattering. By multiplying the chlorophyll response by an NIR scum scattering multiplier and routing it through strict water pixels and clay turbidity rejection gates, CSRC maps toxic scum formations in small municipal water reservoirs with high reliability.
 
@@ -246,16 +269,17 @@ The CSRC targets small-water eutrophication hazards, providing a public-health d
 
 ### TRSI: Tailings River Shock Index
 
-The TRSI is designed as a rapid river emergency alarm following tailings dam failures or heavy chemical-runoff spill events.
+The TRSI is designed as a rapid river emergency alarm following tailings dam failures or heavy chemical-runoff spill events. *(Status: context target — proof rendering pending.)*
 
 #### Mathematical Formulation:
-$$\text{TRSI} = \text{WaterGate} \times \max(0, \text{NDTI} - 0.10) \times \max(0, \text{FerricIndex} - 1.2)$$
+$$\text{TRSI} = \min\left(1.0,\; \max(0, \text{NDTI} + 0.05) \times \max(0, \text{FerricND}) \times \text{WaterGate} \times 15.0\right)$$
 
 Where:
-*   $\text{NDTI}$ (Normalized Difference Turbidity Index) isolates suspension spikes:
-    $$\text{NDTI} = \frac{B04 - B11}{B04 + B11}$$
-*   $\text{FerricIndex}$ maps iron-rich chemical staining signatures:
-    $$\text{FerricIndex} = \frac{B04}{B02}$$
+*   $\text{NDTI}$ (Normalized Difference Turbidity Index, red-vs-green form after Lacaux et al.) isolates suspension spikes:
+    $$\text{NDTI} = \frac{B04 - B03}{B04 + B03}$$
+*   $\text{FerricND}$ maps iron-rich chemical staining as a red-vs-blue normalized difference:
+    $$\text{FerricND} = \frac{B04 - B02}{B04 + B02}$$
+*   $\text{WaterGate} = [B11 < B04]$ restricts scoring to sediment-laden water pixels.
 *   **Physical Basis:** Tailings dam breaches saturate active river channels with heavy silt turbidity (NDTI) and red-to-orange iron oxide mineral signatures. Multiplying these independent indicators inside active water pixels creates a high-contrast emergency warning tool that separates ordinary seasonal muddy runoff from toxic mineral spills.
 
 ---
@@ -265,30 +289,33 @@ Where:
 The LFGVI identifies early forest canopy stress and dying vegetation in circular patterns surrounding landfills, highlighting subsurface methane and landfill gas migration.
 
 #### Mathematical Formulation:
-$$\text{LFGVI} = \text{RedEdgeDecline} \times \text{MoistureLoss} \times \text{SpatialRingGate}$$
+$$\text{LFGVI} = \min\left(1.0,\; \max(0, 0.5 - \text{NDVI}) \times \max(0, 0.2 - \text{RedEdge}) \times \max(0, 0.3 - \text{NDMI}) \times 20.0\right)$$
 
 Where:
-*   $\text{RedEdgeDecline}$ captures chlorophyll stress in the vital vegetation red edge:
-    $$\text{RedEdgeDecline} = \frac{B05 - B06}{B05 + B06}$$
-*   $\text{MoistureLoss}$ measures canopy dehydration:
-    $$\text{MoistureLoss} = \frac{B11 - B08}{B11 + B08}$$
-*   **Physical Basis:** Subsurface gas leaks displace oxygen in the root zone, causing rapid localized root stress, leaf yellowing (chlorosis), and moisture desiccation. Fusing red-edge decline and moisture loss into a radial pattern matching spatial landfill boundaries provides a distinct public safety triage indicator.
+*   $\text{NDVI} = (B08 - B04)/(B08 + B04)$ captures overall canopy vigor decline.
+*   $\text{RedEdge}$ captures chlorophyll stress in the vital vegetation red edge:
+    $$\text{RedEdge} = \frac{B05 - B04}{B05 + B04}$$
+*   $\text{NDMI}$ measures canopy moisture, whose depression signals dehydration:
+    $$\text{NDMI} = \frac{B8A - B11}{B8A + B11}$$
+*   Each $\max(0, \tau - \cdot)$ term is a **deficit gate**: the composite scores only pixels simultaneously below all three vigor/moisture baselines.
+*   **Physical Basis:** Subsurface gas leaks displace oxygen in the root zone, causing rapid localized root stress, leaf yellowing (chlorosis), and moisture desiccation. The annular (ring-shaped) spatial pattern around landfill boundaries is identified at the **interpretation stage** — the analyst inspects the per-pixel stress map for radial morphology; ring detection is not encoded in the per-pixel formula.
 
 ---
 
 ### SWRI: Sewage-Water Release Index
 
-The SWRI separates raw urban wastewater overflows and sewage releases from clean baseline or ordinary soil runoff in concrete channels.
+The SWRI separates raw urban wastewater overflows and sewage releases from clean baseline or ordinary soil runoff in concrete channels. *(Status: context target — proof rendering pending.)*
 
 #### Mathematical Formulation:
-$$\text{SWRI} = \text{ChannelWaterGate} \times \max(0, \text{TurbidityShock} - 1.5) \times \max(0, \text{OrganicBloom} - 0.10)$$
+$$\text{SWRI} = \min\left(1.0,\; \max(0, \text{Turbidity} + 0.05) \times \max(0, \text{OrganicBloom} + 0.05) \times \text{WaterGate} \times 30.0\right)$$
 
 Where:
-*   $\text{TurbidityShock}$ measures high-turbidity organic waste concentration:
-    $$\text{TurbidityShock} = \frac{B11}{B02}$$
-*   $\text{OrganicBloom}$ tracks rapid bacterial/organic green bloom spikes:
-    $$\text{OrganicBloom} = \frac{B03 - B04}{B03 + B04}$$
-*   **Physical Basis:** Sewer overflows introduce severe turbidity spikes accompanied by rapid localized algal/bacterial growth. Differentiating this organic waste signature from generic muddy river water is accomplished by multiplying the SWIR turbidity shock by the visible red-green organic bloom proxy.
+*   $\text{Turbidity}$ measures suspended-solids loading (red-vs-green normalized difference):
+    $$\text{Turbidity} = \frac{B04 - B03}{B04 + B03}$$
+*   $\text{OrganicBloom}$ tracks rapid bacterial/organic bloom spikes via the chlorophyll red edge (NDCI form):
+    $$\text{OrganicBloom} = \frac{B05 - B04}{B05 + B04}$$
+*   $\text{WaterGate} = [B03 > B11]$ restricts scoring to water pixels.
+*   **Physical Basis:** Sewer overflows introduce severe turbidity spikes accompanied by rapid localized algal/bacterial growth. Differentiating this organic waste signature from generic muddy river water is accomplished by multiplying the turbidity shock by the red-edge organic bloom proxy inside active water pixels.
 
 ---
 
@@ -331,22 +358,31 @@ For public scientific clarity, Limn separates standard public-domain satellite s
 
 ## 7. Arid Background Calibration & Threshold Validation
 
-The calibration of Limn was performed against **27 confirmed produced water spill sites** in the Permian Basin, Texas, verified by Texas Railroad Commission (TRRC) field inspection reports. 
+The validated pipeline calibration of Limn was benchmarked against a working set of **27 Permian Basin produced-water spill records** compiled from public Texas Railroad Commission (TRRC) violation and inspection data, with coordinates generalized per RRC data policy. This set is a **development benchmark, not an independently audited ground-truth registry**: the records do not all carry individual incident identifiers, and the reported detection rates below should be read as internal calibration results rather than peer-reviewed accuracy figures. A separate, higher-confidence validation set of **11 named sites** with exact coordinates and regulator filing references (NMOCD spill-database rows and documented Texas events — Lake Boehmer, Meister Ranch, FM 329 Crevice, Toyah, Matador Desoto Spring, OXY Lea Flowline, and others) is maintained for site-level proof and is the basis for the interactive demo bookmarks.
 
-Without Multi-Gate Consensus (using standard NDWI or NDSI), the caliche soil and dry clay playas generated a continuous background false-positive rate of **42.3%** across the study area.
+### Measured detection performance (batch validation, 2026-03-28, n = 27, threshold 0.01):
 
-By applying the Limn PWCI multi-gate model, the background false-positive floor was reduced to **0.04%**, while maintaining a high-precision spill detection rate of **81.5%** on bare soil well pads.
+| Composite | Detection rate | Notes |
+|---|---|---|
+| PWCI (pipeline calibration) | 81.5% | Highest single-index recall |
+| ASAI (with dry-brine mode) | 77.8% | Up from 29.6% before the dry-brine mode was added |
+| OBEC | 66.7% | Independent confirmation index |
 
-### Summary of Regional Calibration Thresholds:
+These are **spill-site recall rates only.** No background/negative-sampling run has yet been performed, so this document makes **no quantitative false-positive claim**; the multi-gate architecture's background-suppression benefit is described qualitatively in Section 3 and remains to be quantified in a future study. Multi-gate design reduces — but this release does not numerically bound — the caliche false-positive floor.
+
+> **Calibration-configuration caveat.** The 81.5% / 77.8% / 66.7% rates were produced by the **validated pipeline** configuration (Sections 4). The **interactive map viewer** ships a precision-first calibration (stricter basin-preset thresholds, hard bare-soil masks, steeper stretch, and a June 2026 noise-suppression pass on the dry-brine gates). The viewer therefore renders far more conservatively than the pipeline and will show blank where the pipeline detects; its live behavior is a high-precision triage view, not the recall figures above. Re-validation of the shipped viewer configuration against the 11-site set is ongoing.
+
+### Summary of Validated Pipeline Thresholds (PWCI):
 *   **Halite hydration floor ($\text{NDSI} > 0.03$):** Captures brine salts above the natural gypsum background.
-*   **Hydrocarbon baseline ($\text{HCAI} > 0.05$):** Excludes bare red clay soil organic matter.
-*   **Mineralogical alteration boundary ($\text{HMRI} > 1.1$):** Filters out standard concrete, gravel, and caliche pads.
+*   **Hydrocarbon baseline ($\text{HCAI} > 0.05$, ×5.0 gain):** Excludes bare red clay soil organic matter.
+*   **Mineralogical alteration boundary ($\text{HMRI} > 1.1$, ×3.0 gain):** Filters out standard concrete, gravel, and caliche pads.
+*   *(The interactive viewer's Permian preset raises these to 0.10 / 0.30 / 2.0 for low-noise visual triage.)*
 
 ---
 
 ## 8. Conclusion & References
 
-Limn represents a significant advancement in satellite-based environmental policing and public safety triage. By shifting from standard single-band indices to the **Multi-Gate Geochemical Consensus Calibration** engineered by **Daniel Bally**, investigators can rapidly identify toxic produced water blowouts and localized environmental hazards with extreme spatial precision and near-zero false-positive rates.
+Limn represents a significant advancement in satellite-based environmental screening and public safety triage. By shifting from standard single-band indices to the **Multi-Gate Geochemical Consensus Calibration** engineered by **Daniel Bally**, investigators gain a rapid, low-noise screening layer for toxic produced water blowouts and localized environmental hazards. The multi-gate architecture is designed to sharply suppress the bare-desert false-positive floor that defeats single-band indices; quantifying that suppression against a formal background sample, and independently auditing the calibration benchmark, are the primary objectives of ongoing validation work. Limn is a screening and triage tool — positive detections are investigative leads to be confirmed with field or higher-resolution data, not standalone regulatory determinations.
 
 ### References & Citations
 
@@ -361,8 +397,24 @@ Limn represents a significant advancement in satellite-based environmental polic
 9.  **Liang, Q., Zhang, Y., Ma, R., Loiselle, S., Li, J., & Hu, M. (2017).** *A MODIS-Based Novel Method to Distinguish Surface Cyanobacterial Scums and Aquatic Macrophytes in Lake Taihu.* *Remote Sensing*, 9(2), 133 (Prior-art benchmark for algae scum separation).
 10. **Drury, S. A. (1987).** *Image Interpretation in Geology.* Allen & Unwin (Context for geological clay $B11/B12$ and ferric iron $B04/B02$ ratios).
 11. **Texas Railroad Commission (TRRC). (2024–2026).** *Digital Spill Log Field Reports, Districts 8 and 8A (Permian Basin).* (Ground-truth validation database).
-12. **Varon, D. J., Jervis, D., McKeever, J., et al. (2021).** *High-resolution monitoring of methane emissions from space with Sentinel-2.* *Atmospheric Measurement Techniques*, 14(4), 2771–2785 (Prior-art benchmark for B11/B12 SWIR methane retrieval).
+12. **Varon, D. J., Jervis, D., McKeever, J., et al. (2021).** *High-resolution monitoring of methane emissions from space with Sentinel-2.* *Atmospheric Measurement Techniques*, 14(4), 2771–2785 (Prior-art benchmark for B11/B12 SWIR methane retrieval; note that this method uses multi-pass temporal differencing, not single-scene ratios).
 
+> **Citation note (v1.1):** Reference 11 refers to the compiled TRRC violation/inspection working set described in Section 7, not a single named report series. References 5 (Khan et al.), 6 (Rikimaru et al.), and 12 (Varon et al.) are provided as prior-art context for the respective band ratios and should be consulted directly for exact titles and venues before formal citation.
+
+---
+
+## Revision History
+
+**v1.1 — July 2026 (formula-fidelity and validation-transparency pass).** Following an internal QC audit against the codebase and validation pipeline, this revision:
+
+- Corrected the PWCI, ASAI, and OBEC formulations to match the validated implementation (contrast stretch, dry-brine gate conditions, smoothness proxy, and chemical-signal terms), and explicitly separated the **validated pipeline calibration** from the stricter **interactive viewer calibration**.
+- Rewrote the Section 5 ecological composite formulas (CSRC, TRSI, LFGVI, SWRI) to match shipped code, defined NDOI, corrected the NDTI definition, and flagged TRSI/SWRI as context targets pending proof rendering.
+- Removed the unsupported false-positive figures (previously "42.3% → 0.04%"); no background/negative-sampling study has been run, so no quantitative false-positive claim is made.
+- Reframed the "27 TRRC-verified sites" as a compiled development benchmark (coordinates generalized, not all incident-ID-audited) and introduced the 11-site exact-coordinate proof set.
+- Corrected the "~89% consensus" language (README) — genuine flagship consensus rates are lower and are stated as such.
+- Added the MVPI salt cross-talk and single-scene retrieval caveats; fixed editorial errors ("four"→"five" composites; the orphaned $\beta_i$ term).
+
+The v1.0 architecture, authorship, and physical-basis claims are unchanged; v1.1 corrects quantitative and formula-transcription accuracy only.
 
 ---
 *For inquiries or licensing of the Limn composite technologies, contact Daniel Bally at Globe & Atlas.*

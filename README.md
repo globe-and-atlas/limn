@@ -13,9 +13,9 @@ Built on free Copernicus satellite data (Sentinel-2 optical + Sentinel-1 SAR), i
 - **Computes multi-temporal differences** — compare any two dates to see what changed
 - **Accumulates signals** with cumulative MAX mode — catches spills that dried up before your query date
 - **Scans an area of interest** with the Statistics API — draw a polygon, get an anomaly timeline across 8 indices simultaneously
-- **Bookmarks 18 TRRC-confirmed spill sites** across the Permian Basin as verified test locations
+- **Bookmarks documented spill sites** across the Permian Basin (Texas TRRC and New Mexico NMOCD sources) as verified test locations, each with a regulator filing or news-source reference
 
-The centerpiece indices — PWCI (formerly PWI), ASAI (formerly PWOI), and OBEC (formerly HPWI) — were validated against 27 Texas Railroad Commission confirmed produced water spill sites. Multi-index consensus detection reaches ~89% accuracy.
+The centerpiece indices — PWCI (formerly PWI), ASAI (formerly PWOI), and OBEC (formerly HPWI) — were benchmarked against a 27-record Permian Basin working set compiled from public TRRC violation/inspection data (development benchmark, coordinates generalized). In the 2026-03-28 pipeline validation, per-index spill-site recall was PWCI 81.5%, ASAI 77.8%, OBEC 66.7%; combining ASAI and OBEC as a two-index union raises coverage to ~89% (union, not consensus). No background/false-positive study has been run yet, so these are recall figures only. See [PUBLIC_SCIENCE_GUIDE.md](PUBLIC_SCIENCE_GUIDE.md) §7 and [reports/preprint_qc_2026-07-19.md](reports/preprint_qc_2026-07-19.md) for the full calibration-vs-viewer caveats.
 
 ---
 
@@ -127,9 +127,9 @@ All calibration values are injected as JavaScript constants into evalscripts at 
 
 | Index | Focus | Validated |
 |---|---|---|
-| PWCI ✧✧ — Produced Water Chemical Index | Three-way AND gate: brine × hydrocarbons × heavy metals (formerly PWI) | 81.5% on 27 TRRC sites |
-| ASAI ✧✧ — Arid Salinity Anomaly Index | Optical SAR proxy: surface smoothness + dry brine mode (formerly PWOI / APEX) | 77.8% (87.5% on 8 GPS-verified) |
-| OBEC ✧ — Oil-Brine Emulsion Composite | Chemical signal × surface smoothness cross-validator (formerly HPWI) | 66.7% |
+| PWCI ✧✧ — Produced Water Chemical Index | Three-way AND gate: brine × hydrocarbons × heavy metals (formerly PWI) | 81.5% recall, 27-record benchmark (pipeline calibration) |
+| ASAI ✧✧ — Arid Salinity Anomaly Index | Optical SAR proxy: surface smoothness + dry brine mode (formerly PWOI / APEX) | 77.8% recall (87.5% on 8 GPS-verified) |
+| OBEC ✧ — Oil-Brine Emulsion Composite | Chemical signal × surface smoothness cross-validator (formerly HPWI) | 66.7% recall |
 | FBC ✧ — Ferrugination-Brine Composite | Iron oxidation × brine co-location | — |
 | VCBI ✧ — Vegetation-Confirmed Brine Index | Brine-kill zone leading edge detection | — |
 | LBI ✧ — Liquid Brine Index | Active standing brine pools | — |
@@ -152,7 +152,7 @@ See [SENTINEL_SCIENCE_GUIDE.md](SENTINEL_SCIENCE_GUIDE.md) for the full scientif
 
 - **Sentinel-2 L2A (optical):** 13 spectral bands, 10–60m resolution, 5-day revisit, free via CDSE
 - **Sentinel-1 GRD (SAR):** VV/VH polarization, C-band (~5.5 cm), 5×20m, cloud-penetrating
-- **TRRC (Texas Railroad Commission):** Source for the 27 confirmed spill sites used in validation
+- **TRRC (Texas Railroad Commission):** Public source for the 27-record produced-water working set used in pipeline validation (coordinates generalized per RRC data policy; development benchmark, not an audited registry)
 - **Archive depth:** Sentinel-2A launched June 2015 — full history available
 
 ---

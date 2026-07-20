@@ -1,5 +1,18 @@
 # Architecture Decisions — sentinel-explorer
 
+## Preprint claims reconciled to pipeline-vs-viewer reality (2026-07-19)
+
+**Decision:** Public docs (PUBLIC_SCIENCE_GUIDE.md, README.md, SENTINEL_SCIENCE_GUIDE.md, help.html) now explicitly distinguish two calibrations and state the detection numbers as recall-only.
+
+- **Validated pipeline calibration** (`execution/batch_analyze_spills.py`): PWCI τ=0.03/0.05/1.1 with ×5/×3 gains and pow(raw×50,1.2)×soft-BSI stretch; ASAI/OBEC dry gate NDWI<−0.30 ∧ NDSI>0.05 ∧ BSI>0.10. This is the source of PWCI 81.5% / ASAI 77.8% / OBEC 66.7% (2026-03-28, n=27).
+- **Interactive viewer calibration** (`src/indices.js` + Permian preset): PWCI τ=0.10/0.30/2.0 with ×2/×2 gains, hard BSI mask, cubic (raw×20)³ stretch; ASAI dry gate hardened 2026-06-07/08 to NDSI>0.15, BSI>0.52, smoothness<−0.42, 0.60 floor. Precision-first; renders blank at many pipeline-detected sites.
+
+**Why:** QC (`reports/preprint_qc_2026-07-19.md`) found the May-2026 preprint published a PWCI formula that was a splice of both (never benchmarked as written), unsupported false-positive numbers (42.3%/0.04% — no negative-sampling run exists), an untraceable "27 TRRC-verified" dataset (`data/rrc_spills.json` self-describes as a curated snapshot with generalized coordinates), and §5 eco formulas matching no code version. Removing/qualifying these protects the publication's credibility.
+
+**Follow-ups still open (not code-fixable in this pass):** (1) run an actual background/false-positive study before any FP claim returns; (2) re-validate the shipped viewer calibration against the 11-site exact-coordinate set; (3) attach real RRC incident IDs to the 27-record benchmark or keep it labeled as a development benchmark.
+
+---
+
 ## Canonical remote is globe-and-atlas/limn (2026-07-19)
 
 **Decision:** `public` (<https://github.com/globe-and-atlas/limn>) is the legit/canonical remote; `origin` (dbally-gis/limn) is legacy. Local `main` now tracks `public/main`, so plain `git push` / `git pull` go to globe-and-atlas.

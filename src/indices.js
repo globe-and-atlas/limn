@@ -903,7 +903,7 @@ export const INDICES = {
         temporal: '0-3M',
         min: 'Background', max: 'Chemical Anomaly',
         gradient: 'linear-gradient(to right, #000000, #00FFFF, #FF00FF, #CCFF00)',
-        formula: '(NDSI - 0.05) * (HCAI - 0.20) * (HMRI - 1.5) [Balanced Recovery]',
+        formula: '(NDSI - τ₁) × (HCAI - τ₂)×2 × (HMRI - τ₃)×2, cubic stretch [τ from active basin preset; Permian: 0.10 / 0.30 / 2.0]',
         info: 'Globe & Atlas · Limn composite calibration. Requires simultaneous elevation of Salinity (NDSI), Hydrocarbons (HCAI), and Heavy Metals (HMRI) — a three-way AND gate that suppresses caliche background noise and construction anomalies. Cubic scaling suppresses marginal noise while isolating high-confidence chemical anomalies. Formerly known as Produced Water Index (PWI).',
         diffLabels: ['Stable (No Detection)', 'Chemical Anomaly Detected'],
         evalscript: genEvalscript(['B02', 'B03', 'B04', 'B08', 'B11', 'B12'], `
