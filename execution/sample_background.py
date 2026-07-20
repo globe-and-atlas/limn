@@ -150,7 +150,11 @@ def main() -> None:
             stats = fetch_stats(token, lon, lat, args.date)
             if stats:
                 idx = calculate_indices(stats)
-                results.append({"lon": lon, "lat": lat, "date": args.date, **idx})
+                # Persist raw band means alongside pipeline indices so the CSV is
+                # self-sufficient for scoring any calibration (e.g. the shipped
+                # viewer evalscripts) without re-fetching. Band keys (B02..B12)
+                # do not collide with index keys.
+                results.append({"lon": lon, "lat": lat, "date": args.date, **idx, **stats})
                 pd.DataFrame(results).to_csv(out_path, index=False)
                 fetched += 1
                 print("DONE.")

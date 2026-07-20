@@ -37,7 +37,17 @@ At audit time nothing in the repo computed a false-positive rate; `evaluate_vali
 | ASAI | 77.8% | **71.3%** |
 | OBEC | 66.7% | **71.3%** |
 
-So the preprint's claimed 0.04% floor is off by **three-plus orders of magnitude** from reality for the pipeline calibration: PWCI fires on essentially all bare-caliche background. The published recall numbers describe a configuration that does not discriminate. (These FP numbers use the pipeline index math; the stricter shipped-viewer calibration's own FP is not yet measured — see follow-ups. Non-flagship indices at their app thresholds do far better: LBI 1.3%, VSI 6.0%, BPI 7.3%.)
+So the preprint's claimed 0.04% floor is off by **three-plus orders of magnitude** from reality for the pipeline calibration: PWCI fires on essentially all bare-caliche background. The published recall numbers describe a configuration that does not discriminate. (Non-flagship indices at their app thresholds do far better: LBI 1.3%, VSI 6.0%, BPI 7.3%.)
+
+**Update 2 (2026-07-19, viewer calibration measured):** `execution/score_viewer_calibration.py` ports the shipped src/indices.js PWCI/ASAI/OBEC evalscripts (Permian preset, sensitivity 0) and scores the same 150 background points:
+
+| Composite | Pipeline FP | **Viewer FP** | Viewer recall |
+|---|---|---|---|
+| PWCI | 96.7% | **0.0%** | ≈0 (blank at all 11 verified sites) |
+| ASAI | 71.3% | **0.0%** | ≈0 |
+| OBEC | 71.3% | **0.0%** | ≈0 |
+
+Max rendered viewer PWCI across all 150 points is exactly 0.00000. But this is not discrimination: only 10/150 points even clear the raw triple-gate, and the cubic stretch + 0.05 blank gate crush all of them to zero — the same mechanism that leaves PWCI blank at every real verified spill site (per the June QC). **The two calibrations fail in opposite directions: pipeline fires almost everywhere (96.7% FP, high recall); viewer fires almost nowhere (0% FP, ~0 recall). Neither is a working detector.** This — not either number alone — is the load-bearing finding: Limn's flagship composites do not yet achieve simultaneous useful recall and low false-positive rate in any shipped calibration. Now stated as the honest position in whitepaper §7 and §8.
 
 ### C3. The published PWCI formula is a chimera; its performance was measured on a different formula
 
@@ -120,10 +130,18 @@ Multiple proof rows carry `imagery date == event date` exactly (Meister 2022-01-
 ## Recommended actions before further distribution
 
 1. ~~Stop citing 42.3% / 0.04% / ~89%~~ **DONE (2026-07-19):** fabricated FP numbers removed from all docs; ~89% relabeled as union not consensus; a real 150-point background FP study was run (see C2) — the measured pipeline floor is 71–97%, which is now stated honestly in §7.
-2. **Re-validate with the current viewer calibration** — still open, now the top priority. The pipeline FP floor is catastrophic (C2); the shipped viewer uses stricter thresholds/gates and is expected to be far better, but its FP is **not yet measured**. Persist raw bands in `background_raw.csv` and score the viewer evalscripts against the same 150 points to get the number that actually describes the product.
+2. ~~Re-validate with the current viewer calibration~~ **DONE (2026-07-19):** viewer FP measured at 0.0% for all three flagships (C2 Update 2) — but the viewer also detects ≈nothing (blank at all verified sites). The real open problem is now clear and larger: **find a calibration that discriminates at all.** Neither shipped config does. This is an R&D task (threshold/gain/gate search with a proper recall-vs-FP sweep on both the 27-record and 11-site sets, with raw bands persisted for both), not a doc fix.
 3. **Rebase validation claims on the traceable verified-site set** (NMOCD rows with IDs + the documented TX events), or attach real RRC incident IDs to each of the 27 records; reword "TRRC-verified" until then. *(Docs now label the 27-record set a development benchmark; ID attachment still open.)*
 4. ~~Rewrite §5 eco formulas; fix TRSI NDTI; define NDOI; fix four→five and β_i orphan~~ **DONE (2026-07-19, v1.1).**
 5. ~~Reconcile PWCI's three inconsistent threshold statements~~ **DONE (2026-07-19):** preprint, in-app formula string, and help.html now all describe the pipeline-vs-viewer split consistently. Implementing the documented dry-brine modes identically across pipeline and viewer remains a code follow-up.
 
 ### Author decision needed
-The measured **96.7% PWCI background false-positive rate** (pipeline calibration) is now stated in the public whitepaper §7. This is honest but consequential for a flagship publication. Before any new external distribution, decide whether to (a) publish with this transparency as-is, (b) hold §7 numbers until the viewer-calibration FP is measured and lead with that instead, or (c) restructure the paper around the viewer as the operational detector. This is a positioning call for the author, not a code fix.
+
+Both calibrations are now measured, and the finding is more fundamental than a numbers-presentation question: **neither shipped calibration is a working detector** (pipeline 96.7% FP / high recall; viewer 0% FP / ~0 recall). The whitepaper §7 and §8 now state this honestly and reposition Limn as an experimental screening methodology rather than a validated detector.
+
+The decision before any new external distribution is therefore a scope/positioning call, not a wording tweak:
+- **(a) Publish as an honest work-in-progress / negative-result methodology paper** — defensible and scientifically respectable; the architecture and the candid validation are the contribution.
+- **(b) Hold external distribution until the calibration search yields a discriminating configuration** (useful recall + low FP simultaneously), then publish performance. This is the R&D task in recommendation 2 and has no guaranteed timeline.
+- **(c) Reframe around what *does* work:** the non-flagship indices show real discrimination at app thresholds (LBI 1.3% FP, VSI 6.0%, BPI 7.3%) and the 11-site verified program is strong — a paper built on those, with PWCI/ASAI/OBEC as in-progress, would be honest and still substantive.
+
+This is the author's call. The repo state is now internally consistent and safe to sit on indefinitely; nothing further should go out publicly under a "validated / near-zero false-positive detector" framing.

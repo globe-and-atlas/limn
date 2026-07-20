@@ -9,9 +9,16 @@
 
 **Why:** QC (`reports/preprint_qc_2026-07-19.md`) found the May-2026 preprint published a PWCI formula that was a splice of both (never benchmarked as written), unsupported false-positive numbers (42.3%/0.04% — no negative-sampling run exists), an untraceable "27 TRRC-verified" dataset (`data/rrc_spills.json` self-describes as a curated snapshot with generalized coordinates), and §5 eco formulas matching no code version. Removing/qualifying these protects the publication's credibility.
 
-**Follow-ups:** (1) ~~run a background/false-positive study~~ **DONE 2026-07-19** — `execution/sample_background.py` + `summarize_false_positives.py`, 150 Permian background points. Result: pipeline-calibration FP floor is PWCI 96.7% / ASAI 71.3% / OBEC 71.3% (median PWCI background score = 1.000). This *quantitatively refutes* the removed "0.04% FP" claim and shows the high-recall pipeline calibration does not discriminate; stated honestly in whitepaper §7 and QC report C2. (2) **OPEN, now top priority:** measure the *shipped viewer* calibration's FP (stricter τ=0.10/0.30/2.0 + hardened gates) against the same 150 points — requires persisting raw bands in `background_raw.csv` and scoring the viewer evalscripts. (3) attach real RRC incident IDs to the 27-record benchmark, or keep it labeled a development benchmark.
+**Follow-ups:** (1) ~~run a background/false-positive study~~ and (2) ~~measure viewer-calibration FP~~ **BOTH DONE 2026-07-19.** Scripts: `execution/sample_background.py` (150 Permian background points, raw bands persisted), `summarize_false_positives.py` (pipeline), `score_viewer_calibration.py` (faithful port of shipped src/indices.js evalscripts, Permian preset).
 
-**Author positioning decision (surfaced, not mine to make):** whether the public whitepaper leads with the 96.7% pipeline FP transparency, holds §7 until viewer FP is measured, or restructures around the viewer as the operational detector.
+**KEY FINDING — neither shipped calibration discriminates:**
+- Pipeline calibration: recall PWCI 81.5% / ASAI 77.8% / OBEC 66.7%, but FP PWCI **96.7%** / ASAI **71.3%** / OBEC **71.3%** (median PWCI background score = 1.000). Fires almost everywhere.
+- Viewer calibration: FP **0.0%** on all three (max rendered PWCI across 150 pts = 0.00000), but renders blank at all 11 verified spill sites too. Fires almost nowhere. Mechanism: strict triple-gate (HMRI>2.0) + cubic stretch + 0.05 blank gate crush everything; only 10/150 points even clear the raw gate and none survive the stretch.
+- Conclusion: Limn's flagship composites do not yet achieve useful recall AND low FP in any shipped config. Whitepaper §7/§8 repositioned to "experimental screening methodology, not validated detector."
+
+**Still open (R&D, not doc fixes):** find a discriminating calibration via a proper recall-vs-FP sweep on both the 27-record and 11-site sets; attach real RRC incident IDs to the 27-record benchmark. Non-flagship indices (LBI 1.3% FP, VSI 6.0%, BPI 7.3% at app thresholds) DO discriminate and are a candidate paper spine.
+
+**Author positioning decision (surfaced, not mine to make):** publish as honest work-in-progress/negative-result methodology (a); hold distribution until a discriminating calibration exists (b); or reframe around the indices/verified-site program that do work (c). See QC report "Author decision needed".
 
 ---
 
