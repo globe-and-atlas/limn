@@ -26,3 +26,10 @@ Last updated: 2026-06-09
 - `tests/test.js` launches the local macOS Chrome app and starts an in-process static server on a random localhost port.
 - The test server stubs `config-v1.js` as `window.CONFIG = window.CONFIG || {};` so browser smoke tests do not read secret runtime config.
 - Keep `package.json` without `"type": "module"` unless the CommonJS test files are migrated; the app uses browser ES modules, while the Node tests currently use CommonJS.
+
+## uuid override for CVE-2026-41907 (2026-07-19)
+
+- Dependabot flagged transitive `uuid@8.3.2` (via `@google/earthengine` → `googleapis@92` → `googleapis-common@5`): missing buffer bounds check in v3/v5/v6 when `buf` is provided; patched in 11.1.1.
+- Latest `@google/earthengine` (1.7.35) still pins `googleapis ^92`, so no upgrade path fixes it naturally.
+- Fix: `"overrides": { "uuid": "^11.1.1" }` in `package.json`. Verified `@google/earthengine` loads and both GEE/atlas test suites pass with uuid 11 (googleapis-common only calls `v4()`, which survives the 8→11 major jump).
+- Keep the override until earthengine/googleapis moves to uuid ≥11 upstream; re-check when bumping `@google/earthengine`.
