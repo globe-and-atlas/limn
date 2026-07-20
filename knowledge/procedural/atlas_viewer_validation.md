@@ -54,6 +54,9 @@ Use this checklist after changing `atlas.html`, `src/atlas-app.js`, or `src/atla
    - Split comparison uses an adjustable divider.
    - Capture mode falls back to context-only when no overlay layer is active.
    - Overlay and split controls are disabled when no overlay layer is active.
+   - Overlay and split controls are disabled when Atlas is on the GEE fallback.
+   - Capture mode labels GEE as context-only because `server/gee_tile_server.mjs` returns true color for `app=atlas`.
+   - Capture mode labels Sentinel WMS as the interpretation provider before enabling split comparison.
    - The capture status line explains how to render the overlay when controls are disabled.
    - Split labels remain visible and understandable on compact screenshot viewports.
    - Capture comparison mode changes do not request additional GEE, Sentinel WMS, or COG tiles.
@@ -106,6 +109,8 @@ Use this checklist after changing `atlas.html`, `src/atlas-app.js`, or `src/atla
 - Do not call `map.invalidateSize()` when entering Capture mode; expanding the map viewport can make Leaflet request replacement overlay tiles.
 - Capture comparison controls must only adjust the existing loaded overlay layer: context sets overlay opacity to `0`, overlay restores `state.opacity`, and split clips the existing overlay container with `clip-path`.
 - If no overlay layer is active because tiles are paused, Sentinel is guarded, or no layer has rendered yet, Capture mode should force context-only, disable Overlay/Split, and show a render-first status.
+- Atlas GEE tiles are true-color context only for `app=atlas`; do not offer Capture Overlay/Split as index interpretation until Sentinel WMS is the active provider.
+- Sentinel WMS Capture views may boost the already-loaded overlay layer with CSS filter/opacity for LinkedIn legibility, but this must not request replacement provider tiles.
 - `window.getAtlasCaptureState()` exposes capture state for smoke tests and should stay in sync with the selected index.
 - Browser validation should assert no GEE, Sentinel WMS, or COG tile counts change when entering or exiting capture mode.
 
@@ -113,3 +118,13 @@ Use this checklist after changing `atlas.html`, `src/atlas-app.js`, or `src/atla
 
 - `execution/capture_atlas_articles.py --skip-catalog` is a no-metadata-call mode: it skips both public CDSE STAC and authenticated Sentinel Hub Catalog lookup.
 - Sidecar metadata should record `satellite_metadata.status` as `skipped` when this flag is used.
+
+## 2026-06-25 — Corrected Swipe & Mirror Views
+
+- **Swipe View Clip Path Alignment:** Calculating `se` bounds via actual DOM properties (`map.getContainer().clientWidth` and `clientHeight`) rather than `map.getSize()` avoids the 300px offset caused by the sidebar hiding. Adding a 200px buffer to the right, top, and bottom coordinates prevents sub-pixel gaps.
+- **Mirror View Sync:** Panning or zooming a side-by-side mirror map requires locking all interactive events (dragging, scroll wheel, touch zoom, etc.) on the mirror map to keep them perfectly in sync in real-time. Explicitly calling `setView` and `invalidateSize` on both maps immediately after resizing the DOM ensures they represent the same geographical area and scale.
+- **HUD & Info Panel Layout:** Relocating `#capture-card` to the top-right corner cleans up the bottom screen, and adding a collapse toggle button makes it compact. The screenshot info panel `#capture-info-box` is added in the top-left to embed Date, Location, and Formula in the screenshot. It collapses to a minimal `ⓘ` button in the UI, and both trigger and close button are hidden during clean export state `.capture-clean`.
+- **Opacity in Mirror:** The opacity slider is enabled and interactive in Mirror view, letting users adjust the overlay opacity on the main map.
+- **Wide Viewport Export Crop Fix:** Storing computed crop offsets in CSS custom variables (`--capture-offset-x`, `--capture-offset-y`) and aligning `#capture-info-box`, `#capture-info-trigger`, and `.atlas-legend` relative to them ensures they are never cropped out in exported screenshots on wide screens.
+- **Visual Overlap Mitigation:** Shifting `.capture-rail` to the bottom-center and `.capture-split-labels` left/right spans to align dynamically using `--capture-split` at `bottom: 24px` prevents layout collisions with the top control panels and aligns them adjacent to the dividing line.
+- **Premium Info Box Styling:** Widening the `#capture-info-box` to `520px` and utilizing a clean grid structure with uppercase metadata labels, inline SVG icons (calendar, globe, code brackets), a branding kicker, a sensor platform badge, and a highlighted formula pill prevents visual crowding and formats it beautifully for LinkedIn.

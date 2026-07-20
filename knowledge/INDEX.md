@@ -17,7 +17,7 @@
 - [validation-summary.md](procedural/validation-summary.md) — 2026-03-08 validation run: FBC/HPWI/PWI detection rates on 32 RRC spill sites
 - [ui-layouts.md](procedural/ui-layouts.md) — 2026-06-08 notes on retired top bookmark rail, embedded bookmark locations, and desktop-first Produced Water Screen Spill flow
 - [public-doc-voice.md](procedural/public-doc-voice.md) — 2026-05-24 guidance separating public science language from private ownership notes
-- [atlas_viewer_validation.md](procedural/atlas_viewer_validation.md) — 2026-06-24 validation checklist for Limn Atlas WMS config, catalog metadata, search, focus-point overlay, LinkedIn Ground Truth guidance, Capture mode, and browser smoke tests
+- [atlas_viewer_validation.md](procedural/atlas_viewer_validation.md) — 2026-06-25 validation checklist for Limn Atlas WMS config, catalog metadata, search, focus-point overlay, LinkedIn Ground Truth guidance, Capture mode, and browser smoke tests
 - [atlas_article_captures.md](procedural/atlas_article_captures.md) — 2026-06-13 Sentinel-only Atlas article capture workflow, output contract, and CDSE STAC metadata notes
 - [limn_spill_bookmark_qc.md](procedural/limn_spill_bookmark_qc.md) — 2026-06-07 source/date/precision validation for Permian produced-water spill bookmarks
 - [limn_hotspot_loop.md](procedural/limn_hotspot_loop.md) — 2026-06-07 Karpathy-loop workflow for measured produced-water bookmark/index refinement

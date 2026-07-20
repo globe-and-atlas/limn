@@ -208,6 +208,10 @@
       height: 100%;
     }
 
+    #atlas-map-mirror {
+      height: 100%;
+    }
+
     /* ── HUD Controls (top-right) ─────────────────────────────────────── */
     .atlas-hud {
       position: absolute;
@@ -438,6 +442,23 @@
       margin-bottom: 6px;
     }
 
+    .legend-name {
+      font-family: 'Instrument Sans', sans-serif;
+      font-size: 11px;
+      font-weight: 500;
+      color: #94A3B8;
+      margin-top: -3px;
+      margin-bottom: 2px;
+      line-height: 1.3;
+    }
+
+    .legend-location,
+    .legend-coords,
+    .legend-formula,
+    .legend-bands {
+      display: none;
+    }
+
     .legend-bar {
       height: 6px;
       border-radius: 3px;
@@ -489,75 +510,139 @@
     }
 
     /* ── LinkedIn capture mode ───────────────────────────────────────── */
+    /* Frame guide: spotlight on the 1200×628 crop region */
+    #capture-frame-guide {
+      display: none;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: transparent;
+      box-shadow: 0 0 0 9999px rgba(7, 10, 18, 0.46);
+      border: 1.5px solid rgba(0, 210, 255, 0.5);
+      z-index: 670;
+      pointer-events: none;
+    }
+    .atlas-layout.capture-mode #capture-frame-guide { display: block; }
+
     .capture-card {
       display: none;
       position: absolute;
-      top: 20px;
-      left: 20px;
+      top: 24px;
+      right: 24px;
       z-index: 720;
-      width: min(460px, calc(100vw - 56px));
-      background: rgba(7, 10, 18, 0.88);
-      backdrop-filter: blur(18px);
-      border: 1px solid rgba(255,255,255,0.16);
-      border-radius: 8px;
-      box-shadow: 0 18px 48px rgba(0,0,0,0.36);
+      width: min(360px, calc(100vw - 48px));
+      background: rgba(7, 10, 18, 0.90);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,0.13);
+      border-radius: 10px;
+      box-shadow: 0 20px 56px rgba(0,0,0,0.48);
       color: #E2E8F0;
       overflow: hidden;
+    }
+
+    .capture-card.collapsed {
+      width: auto;
+      border-radius: 20px;
+    }
+
+    .capture-card.collapsed .capture-card-title-group {
+      display: none !important;
+    }
+
+    .capture-card.collapsed .capture-card-head {
+      border-bottom: none;
+      padding: 6px;
+    }
+
+    .capture-card.collapsed .capture-card-body {
+      display: none !important;
+    }
+
+    .capture-card-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
     }
 
     .capture-card-head {
       display: flex;
       justify-content: space-between;
-      align-items: flex-start;
-      gap: 14px;
-      padding: 13px 14px 9px;
-      border-bottom: 1px solid rgba(148,163,184,0.16);
+      align-items: center;
+      gap: 10px;
+      padding: 11px 12px 10px;
+      border-bottom: 1px solid rgba(148,163,184,0.12);
+    }
+
+    .capture-collapse-btn {
+      flex: 0 0 auto;
+      width: 32px;
+      height: 32px;
+      border: 1px solid rgba(148,163,184,0.18);
+      border-radius: 50%;
+      background: transparent;
+      color: #64748B;
+      font-size: 16px;
+      line-height: 1;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      transition: color 0.15s, border-color 0.15s;
+    }
+
+    .capture-collapse-btn:hover {
+      color: #E2E8F0;
+      border-color: rgba(148,163,184,0.45);
     }
 
     .capture-kicker {
       font-family: 'JetBrains Mono', monospace;
-      font-size: 9px;
+      font-size: 11px;
       letter-spacing: 0.75px;
       text-transform: uppercase;
       color: #00D2FF;
+      opacity: 0.7;
     }
 
     #capture-title {
-      margin-top: 3px;
       font-family: 'Instrument Sans', sans-serif;
-      font-size: 19px;
+      font-size: 16px;
       font-weight: 700;
-      line-height: 1.08;
+      line-height: 1.1;
       color: #fff;
     }
 
     #capture-name {
-      margin-top: 3px;
-      font-size: 12px;
-      line-height: 1.35;
-      color: #94A3B8;
+      display: none;
     }
 
     .capture-exit {
       flex: 0 0 auto;
-      border: 1px solid rgba(148,163,184,0.22);
-      border-radius: 6px;
-      background: rgba(15,23,42,0.72);
-      color: #CBD5E1;
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 10px;
-      min-height: 32px;
-      padding: 7px 10px;
+      width: 32px;
+      height: 32px;
+      border: 1px solid rgba(148,163,184,0.18);
+      border-radius: 50%;
+      background: transparent;
+      color: #64748B;
+      font-size: 14px;
+      line-height: 1;
       cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+      transition: color 0.15s, border-color 0.15s;
     }
 
     .capture-exit:hover {
-      color: #00D2FF;
-      border-color: rgba(0,210,255,0.36);
+      color: #E2E8F0;
+      border-color: rgba(148,163,184,0.45);
     }
 
     .capture-card-body {
-      padding: 10px 14px 13px;
+      padding: 12px 12px 13px;
     }
 
     .capture-controls {
@@ -577,9 +662,10 @@
       font-size: 11px;
       line-height: 1;
       min-width: 72px;
-      min-height: 34px;
-      padding: 8px 10px;
+      min-height: 38px;
+      padding: 10px 10px;
       cursor: pointer;
+      transition: background 0.15s, border-color 0.15s, color 0.15s;
     }
 
     .capture-mode-btn:hover {
@@ -601,8 +687,8 @@
       background: rgba(255,255,255,0.035);
     }
 
-    .capture-split-control {
-      display: none;
+    .capture-slider-row {
+      display: flex;
       align-items: center;
       gap: 8px;
       margin: -2px 0 10px;
@@ -613,15 +699,14 @@
       text-transform: uppercase;
     }
 
-    .capture-split-control.visible {
-      display: flex;
+    .capture-split-control {
+      display: none;
     }
+    .capture-split-control.visible { display: flex; }
+    .capture-split-control.disabled { opacity: 0.5; }
 
-    .capture-split-control.disabled {
-      opacity: 0.5;
-    }
-
-    #capture-split-slider {
+    #capture-split-slider,
+    #capture-opacity-slider {
       -webkit-appearance: none;
       appearance: none;
       flex: 1;
@@ -633,7 +718,8 @@
       cursor: pointer;
     }
 
-    #capture-split-slider::-webkit-slider-thumb {
+    #capture-split-slider::-webkit-slider-thumb,
+    #capture-opacity-slider::-webkit-slider-thumb {
       -webkit-appearance: none;
       appearance: none;
       width: 18px;
@@ -643,7 +729,8 @@
       cursor: pointer;
     }
 
-    #capture-split-slider::-moz-range-thumb {
+    #capture-split-slider::-moz-range-thumb,
+    #capture-opacity-slider::-moz-range-thumb {
       width: 18px;
       height: 18px;
       border: 0;
@@ -677,8 +764,8 @@
     .capture-meta {
       display: flex;
       flex-wrap: wrap;
-      gap: 6px;
-      margin-bottom: 9px;
+      gap: 5px;
+      margin-bottom: 11px;
     }
 
     .capture-chip {
@@ -687,41 +774,47 @@
       background: rgba(255,255,255,0.06);
       color: #CBD5E1;
       font-family: 'JetBrains Mono', monospace;
-      font-size: 10px;
+      font-size: 12px;
       line-height: 1.25;
-      padding: 4px 6px;
+      padding: 4px 7px;
+    }
+
+    #capture-provider-label {
+      border-color: rgba(0,210,255,0.28);
+      color: #00D2FF;
+      background: rgba(0,210,255,0.08);
     }
 
     .capture-hook-row {
       display: flex;
       align-items: flex-start;
       gap: 8px;
-      margin-top: 8px;
+      margin-bottom: 13px;
     }
 
     #capture-hook {
       flex: 1;
-      font-size: 13px;
+      font-size: 17px;
+      font-weight: 600;
       line-height: 1.45;
-      color: #E2E8F0;
+      color: #F1F5F9;
     }
 
     .capture-tip-btn {
       flex: 0 0 auto;
-      width: 18px;
-      height: 18px;
+      width: 32px;
+      height: 32px;
       border-radius: 50%;
-      border: 1px solid rgba(148,163,184,0.25);
+      border: 1px solid rgba(148,163,184,0.22);
       background: transparent;
       color: #64748B;
-      font-size: 10px;
       cursor: pointer;
       display: flex;
       align-items: center;
       justify-content: center;
       padding: 0;
       transition: color 0.15s, border-color 0.15s;
-      margin-top: 2px;
+      margin-top: 1px;
     }
     .capture-tip-btn:hover,
     .capture-tip-btn[aria-expanded="true"] {
@@ -731,48 +824,58 @@
 
     #capture-prompt {
       display: none;
-      margin-top: 6px;
-      border-left: 2px solid rgba(0,255,178,0.5);
+      margin-bottom: 13px;
+      border-left: 2px solid rgba(0,255,178,0.45);
       padding-left: 8px;
       font-size: 12px;
-      line-height: 1.4;
+      line-height: 1.5;
       color: #94A3B8;
     }
     #capture-prompt.visible { display: block; }
 
+    .capture-divider {
+      height: 1px;
+      background: rgba(148,163,184,0.12);
+      margin: 0 0 11px;
+    }
+
     .capture-save-btn {
       display: block;
       width: 100%;
-      margin-top: 12px;
-      padding: 9px 14px;
-      border: 1px solid rgba(0, 210, 255, 0.45);
-      border-radius: 6px;
-      background: rgba(0, 210, 255, 0.10);
-      color: #00D2FF;
+      margin-top: 11px;
+      padding: 13px 14px;
+      border: none;
+      border-radius: 7px;
+      background: #00D2FF;
+      color: #07080F;
       font-family: 'JetBrains Mono', monospace;
       font-size: 11px;
-      letter-spacing: 0.5px;
+      font-weight: 600;
+      letter-spacing: 0.8px;
+      text-transform: uppercase;
       cursor: pointer;
       transition: background 0.15s, opacity 0.15s;
       text-align: center;
     }
-    .capture-save-btn:hover { background: rgba(0, 210, 255, 0.20); }
-    .capture-save-btn:active { background: rgba(0, 210, 255, 0.30); }
-    .capture-save-btn:disabled { opacity: 0.5; cursor: wait; }
+    .capture-save-btn:hover { background: #33DEFF; }
+    .capture-save-btn:active { background: #00B8DF; }
+    .capture-save-btn:disabled { opacity: 0.45; cursor: wait; }
 
     /* Hide UI chrome before PNG export */
     .atlas-layout.capture-clean .capture-card,
     .atlas-layout.capture-clean .capture-rail,
     .atlas-layout.capture-clean .capture-split-divider,
-    .atlas-layout.capture-clean .capture-split-labels {
+    .atlas-layout.capture-clean .capture-split-labels,
+    .atlas-layout.capture-clean #capture-frame-guide {
       display: none !important;
     }
 
     .capture-rail {
       display: none;
       position: absolute;
-      top: 20px;
-      right: 20px;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
       z-index: 690;
       align-items: center;
       gap: 8px;
@@ -827,9 +930,10 @@
     .capture-split-labels {
       display: none;
       position: absolute;
-      inset: auto 20px 24px 316px;
+      bottom: 24px;
+      left: 0;
+      right: 0;
       z-index: 690;
-      justify-content: space-between;
       pointer-events: none;
     }
 
@@ -845,6 +949,18 @@
       text-transform: uppercase;
     }
 
+    .capture-split-labels span:first-child {
+      position: absolute;
+      right: calc(100% - var(--capture-split, 50%) + 12px);
+      bottom: 0;
+    }
+
+    .capture-split-labels span:last-child {
+      position: absolute;
+      left: calc(var(--capture-split, 50%) + 12px);
+      bottom: 0;
+    }
+
     .atlas-layout.capture-mode #atlas-sidebar,
     .atlas-layout.capture-mode .atlas-hud,
     .atlas-layout.capture-mode #toggle-info,
@@ -852,21 +968,227 @@
       display: none;
     }
 
+    @keyframes capture-card-in {
+      from { opacity: 0; transform: translateY(-8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
     .atlas-layout.capture-mode .capture-card {
       display: block;
+      animation: capture-card-in 0.2s ease-out forwards;
+    }
+
+    .atlas-layout.capture-mode.capture-view-context .capture-overlay-control {
+      display: none;
     }
 
     .atlas-layout.capture-mode .capture-rail {
       display: flex;
     }
 
-    .atlas-layout.capture-mode.capture-view-split .capture-rail {
+    .atlas-layout.capture-mode.capture-view-split .capture-rail,
+    .atlas-layout.capture-mode.capture-view-mirror .capture-rail {
       display: none;
     }
 
     .atlas-layout.capture-mode.capture-view-split .capture-split-divider,
-    .atlas-layout.capture-mode.capture-view-split .capture-split-labels {
+    .atlas-layout.capture-mode.capture-view-split .capture-split-labels,
+    .atlas-layout.capture-mode.capture-view-mirror .capture-split-divider,
+    .atlas-layout.capture-mode.capture-view-mirror .capture-split-labels {
       display: flex;
+    }
+
+    .atlas-layout.capture-mode.capture-view-mirror .capture-split-control {
+      display: none;
+    }
+
+    /* Screenshot info overlay */
+    .capture-info-box {
+      display: none;
+      position: absolute;
+      top: 24px;
+      left: 24px;
+      z-index: 710;
+      width: min(520px, calc(100vw - 48px));
+      background: rgba(7, 10, 18, 0.90);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,0.16);
+      border-radius: 12px;
+      padding: 16px 18px;
+      color: #E2E8F0;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.45);
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .atlas-layout.capture-mode .capture-info-box {
+      display: flex;
+      left: calc(var(--capture-offset-x, 24px) + 24px);
+      top: calc(var(--capture-offset-y, 24px) + 24px);
+    }
+
+    .capture-info-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(148,163,184,0.12);
+      padding-bottom: 6px;
+      gap: 10px;
+    }
+
+    #capture-info-title {
+      font-family: 'Instrument Sans', sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .capture-info-close {
+      width: 20px;
+      height: 20px;
+      border: none;
+      background: transparent;
+      color: #64748B;
+      font-size: 11px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0;
+    }
+
+    .capture-info-close:hover {
+      color: #fff;
+    }
+
+    .capture-info-body {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .capture-info-row {
+      display: grid;
+      grid-template-columns: 90px minmax(0, 1fr);
+      gap: 12px;
+      align-items: baseline;
+      padding: 6px 0;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .capture-info-row:last-child {
+      border-bottom: none;
+    }
+
+    .capture-info-kicker {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: #00D2FF;
+      opacity: 0.55;
+      margin-bottom: 2px;
+    }
+
+    .info-sensor-badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      padding: 2px 6px;
+      border-radius: 4px;
+      background: rgba(0, 210, 255, 0.12);
+      border: 1px solid rgba(0, 210, 255, 0.25);
+      color: #00D2FF;
+      margin-left: 8px;
+      display: inline-block;
+      vertical-align: middle;
+      white-space: nowrap;
+      flex-shrink: 0;
+    }
+
+    .info-icon {
+      color: #64748B;
+      flex-shrink: 0;
+    }
+
+    .info-meta-label {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 10px;
+      font-weight: 600;
+      color: #64748B;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .capture-info-item {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: #E2E8F0;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      overflow-wrap: break-word;
+    }
+
+    .capture-info-item.formula-value {
+      color: #00D2FF;
+      font-weight: 500;
+      background: rgba(0, 210, 255, 0.06);
+      padding: 4px 8px;
+      border-radius: 4px;
+      border: 1px solid rgba(0, 210, 255, 0.12);
+      display: inline-block;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+      vertical-align: middle;
+    }
+
+    /* Collapse trigger */
+    .capture-info-trigger-btn {
+      display: none;
+      position: absolute;
+      top: 24px;
+      left: 24px;
+      z-index: 710;
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: rgba(7, 10, 18, 0.85);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255,255,255,0.15);
+      color: #fff;
+      font-size: 16px;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+      padding: 0;
+    }
+
+    .capture-info-trigger-btn:hover {
+      background: rgba(0, 210, 255, 0.15);
+      border-color: rgba(0, 210, 255, 0.4);
+    }
+
+    .atlas-layout.capture-mode .capture-info-trigger-btn {
+      left: calc(var(--capture-offset-x, 24px) + 24px);
+      top: calc(var(--capture-offset-y, 24px) + 24px);
+    }
+
+    .atlas-layout.capture-clean #capture-info-trigger,
+    .atlas-layout.capture-clean .capture-info-close {
+      display: none !important;
+    }
+
+    .atlas-layout.capture-mode .leaflet-layer.capture-interpretation-layer {
+      filter: saturate(1.45) contrast(1.22) brightness(1.04);
     }
 
     .atlas-layout.capture-mode.capture-overlay-unavailable .capture-rail,
@@ -877,13 +1199,61 @@
     }
 
     .atlas-layout.capture-mode .atlas-legend {
-      bottom: 22px;
-      left: 22px;
-      min-width: 270px;
+      left: calc(var(--capture-offset-x, 22px) + 22px);
+      bottom: calc(var(--capture-offset-y, 22px) + 22px);
+      min-width: 300px;
+      max-width: 380px;
       padding: 14px 16px;
       border-radius: 8px;
       z-index: 710;
       background: rgba(7, 10, 18, 0.86);
+    }
+
+    .atlas-layout.capture-mode .legend-name {
+      font-size: 12px;
+      margin-bottom: 2px;
+      color: #E2E8F0;
+    }
+
+    .atlas-layout.capture-mode .legend-location {
+      display: block;
+      font-family: 'Instrument Sans', sans-serif;
+      font-size: 11px;
+      margin-bottom: 2px;
+      color: #E2E8F0;
+    }
+
+    .atlas-layout.capture-mode .legend-coords {
+      display: block;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9.5px;
+      margin-bottom: 8px;
+      color: #94A3B8;
+    }
+
+    .atlas-layout.capture-mode .legend-formula {
+      display: block;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9.5px;
+      color: #00D2FF;
+      background: rgba(0, 210, 255, 0.06);
+      border: 1px solid rgba(0, 210, 255, 0.12);
+      padding: 3px 6px;
+      border-radius: 4px;
+      margin-bottom: 6px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 100%;
+      box-sizing: border-box;
+    }
+
+    .atlas-layout.capture-mode .legend-bands {
+      display: block;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9.5px;
+      color: #94A3B8;
+      margin-bottom: 10px;
     }
 
     .atlas-layout.capture-mode.capture-view-context .atlas-legend {
@@ -1211,16 +1581,24 @@
       .gt-post-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
       .atlas-layout.capture-mode .capture-rail { display: none; }
       .capture-card {
+        top: auto;
+        right: auto;
+        bottom: 14px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: min(360px, calc(100vw - 28px));
+      }
+      .capture-info-box,
+      .capture-info-trigger-btn {
         top: 14px;
         left: 14px;
-        width: min(360px, calc(100vw - 28px));
       }
       .capture-mode-btn {
         flex: 1 1 96px;
         min-height: 44px;
       }
       .capture-split-labels {
-        inset: auto 14px 108px 14px;
+        inset: 14px 14px auto 14px;
       }
       .capture-split-labels span {
         font-size: 9px;
@@ -1492,9 +1870,11 @@
       <div id="domain-list"></div>
     </aside>
 
-    <!-- ── Map Area ──────────────────────────────────────────────────── -->
     <div id="atlas-map-area">
       <div id="atlas-map"></div>
+      <div id="atlas-map-mirror" style="display: none;"></div>
+
+
 
       <!-- HUD Controls -->
       <div class="atlas-hud">
@@ -1552,6 +1932,11 @@
       <!-- Legend -->
       <div class="atlas-legend">
         <div class="legend-acronym" id="legend-label">—</div>
+        <div class="legend-name" id="legend-name-label"></div>
+        <div class="legend-location" id="legend-location-label"></div>
+        <div class="legend-coords" id="legend-coords-label"></div>
+        <div class="legend-formula" id="legend-formula-label"></div>
+        <div class="legend-bands" id="legend-bands-label"></div>
         <div class="legend-bar" id="legend-gradient"></div>
         <div class="legend-scale">
           <span id="legend-low">Low</span>
@@ -1562,37 +1947,58 @@
         <div id="tile-status" aria-live="polite"></div>
       </div>
 
+      <div id="capture-frame-guide" aria-hidden="true"></div>
+
       <!-- LinkedIn screenshot capture overlay -->
       <div id="capture-card" class="capture-card" aria-live="polite">
         <div class="capture-card-head">
-          <div>
-            <div class="capture-kicker">LinkedIn capture · 1200×628</div>
+          <div class="capture-card-title-group">
             <div id="capture-title">—</div>
             <div id="capture-name">—</div>
           </div>
-          <button id="exit-capture" class="capture-exit" type="button">Exit</button>
+          <div class="capture-card-actions">
+            <button id="capture-collapse-btn" class="capture-collapse-btn" type="button" title="Minimize panel">−</button>
+            <button id="exit-capture" class="capture-exit" type="button" title="Exit capture mode">✕</button>
+          </div>
         </div>
         <div class="capture-card-body">
+          <div class="capture-hook-row">
+            <div id="capture-hook">—</div>
+            <button class="capture-tip-btn" id="capture-tip-toggle" type="button" aria-expanded="false" aria-controls="capture-prompt" title="Posting tip">
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="7" cy="7" r="6" stroke="currentColor" stroke-width="1.4"/>
+                <line x1="7" y1="6" x2="7" y2="10.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/>
+                <circle cx="7" cy="3.75" r="0.75" fill="currentColor"/>
+              </svg>
+            </button>
+          </div>
+          <div id="capture-prompt" role="note">—</div>
+
+          <div class="capture-divider"></div>
+
           <div class="capture-controls" aria-label="Capture comparison mode">
             <button class="capture-mode-btn active" type="button" data-capture-view="overlay">Overlay</button>
             <button class="capture-mode-btn" type="button" data-capture-view="context">Context</button>
-            <button class="capture-mode-btn" type="button" data-capture-view="split">Split</button>
+            <button class="capture-mode-btn" type="button" data-capture-view="split">Swipe</button>
+            <button class="capture-mode-btn" type="button" data-capture-view="mirror">Mirror</button>
           </div>
-          <label class="capture-split-control" for="capture-split-slider">
+          <label class="capture-slider-row capture-split-control" for="capture-split-slider">
             Split
             <input id="capture-split-slider" type="range" min="25" max="75" step="1" value="50">
           </label>
+          <label class="capture-slider-row capture-overlay-control" for="capture-opacity-slider">
+            Opacity
+            <input id="capture-opacity-slider" type="range" min="0.1" max="1" step="0.05" value="0.85">
+          </label>
           <div id="capture-status" role="status"></div>
+
           <div class="capture-meta">
             <span class="capture-chip" id="capture-place">—</span>
-            <span class="capture-chip" id="capture-mode-label">Satellite context + index overlay</span>
+            <span class="capture-chip" id="capture-mode-label">—</span>
+            <span class="capture-chip" id="capture-provider-label">Provider</span>
           </div>
-          <div class="capture-hook-row">
-            <div id="capture-hook">—</div>
-            <button class="capture-tip-btn" id="capture-tip-toggle" type="button" aria-expanded="false" aria-controls="capture-prompt" title="Posting tip">ℹ</button>
-          </div>
-          <div id="capture-prompt" role="note">—</div>
-          <button id="capture-save-btn" class="capture-save-btn" type="button">Save 1200×628 PNG</button>
+
+          <button id="capture-save-btn" class="capture-save-btn" type="button">Save PNG</button>
         </div>
       </div>
       <div class="capture-rail" aria-hidden="true">

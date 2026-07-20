@@ -1,3 +1,56 @@
+# Objective — Relocate Title to Legend and Remove Info Box (2026-06-25)
+
+Recalibrate capture mode by removing the top-left Screenshot Info Overlay entirely and placing the spelled-out index title inside the map legend panel.
+
+## Validation Contract — Relocate Title to Legend
+- [x] Top-left Screenshot Info Overlay (`#capture-info-box`) is removed from `atlas.html`.
+- [x] Info overlay toggle trigger button (`#capture-info-trigger`) is removed from `atlas.html`.
+- [x] Legend panel in `atlas.html` includes a `.legend-name` container to display the spelled-out index title.
+- [x] Legend name container is dynamically populated with the full index name (`idx.name`) in `src/atlas-app.js`.
+- [x] Legend name styling and font sizes fit both standard and capture layouts elegantly.
+- [x] Legend panel in `atlas.html` includes a `.legend-location` container to display the place name.
+- [x] Legend panel in `atlas.html` includes a `.legend-coords` container to display coordinates.
+- [x] Legend location and coordinates are populated dynamically on separate lines in `src/atlas-app.js`.
+- [x] Legend panel in `atlas.html` includes a `.legend-formula` container to display the band math equation.
+- [x] Legend panel in `atlas.html` includes a `.legend-bands` container to display active bands.
+- [x] Legend width is widened to `min-width: 300px; max-width: 380px;` in capture mode CSS.
+- [x] `node --check src/atlas-app.js` passes.
+- [x] `node tests/test_atlas_sentinel_toggle.mjs` passes.
+
+---
+
+# Objective — Refine Capture Screenshot Info Box for LinkedIn (2026-06-25)
+
+Refine the top-left Screenshot Info Box styling for better visual presentation on LinkedIn.
+
+## Validation Contract — Refine Capture Screenshot Info Box
+- [x] Top-left info box kicker text says "LIMN" (or "LIMN · GLOBE & ATLAS") instead of "LIMN SPECTRAL INTELLIGENCE · GLOBE & ATLAS".
+- [x] Sentinel-2 (or other sensor) platform tag is forced onto a single line without wrapping.
+- [x] Zoom level indicator (e.g. `· Z14`) is removed from the location text.
+- [x] Formula is forced onto a single line and truncates with ellipsis if it overflows the available width.
+- [x] `node --check src/atlas-app.js` passes.
+- [x] `node tests/test_atlas_sentinel_toggle.mjs` passes.
+- [x] Dedicated BANDS row with a styled layers SVG icon is added to the capture info box in `atlas.html`.
+- [x] The BANDS row is populated dynamically with the active Sentinel-2 bands in `src/atlas-app.js`.
+
+---
+
+# Objective — Fix Atlas Capture Swipe and Mirror Views (2026-06-25)
+
+Correct the Limn Atlas capture mode so that "Swipe" and "Mirror" comparison views display the underlying basemap context correctly without clipping it, and ensure GEE mode restricts interpretation controls to context-only.
+
+## Validation Contract — Fix Atlas Capture Swipe and Mirror Views
+
+- [x] A custom Leaflet pane `atlasWmsPane` is created in `src/atlas-app.js`.
+- [x] Both `FetchTile` (GEE mode) and `FetchWMS` (Sentinel WMS mode) are initialized inside `atlasWmsPane`.
+- [x] `hasCaptureInterpretationLayer()` returns false when GEE mode is active.
+- [x] Swipe and Mirror capture views clip the custom pane without clipping the basemap.
+- [x] `node --check src/atlas-app.js` passes.
+- [x] `node tests/test_atlas_sentinel_toggle.mjs` passes.
+- [x] `git diff --check` passes.
+
+---
+
 # Objective — Atlas LinkedIn Screenshot Capture Mode (2026-06-24)
 
 Adapt Limn Atlas so the selected index can be switched into a clean, LinkedIn-friendly screenshot state that is compelling at 1200x628 and remains legible after feed compression.
@@ -29,6 +82,36 @@ Adapt Limn Atlas so the selected index can be switched into a clean, LinkedIn-fr
 - [x] `git diff --check` passes.
 
 ## Progress Log — Atlas LinkedIn Screenshot Capture Mode
+
+### 2026-06-24 — Started capture interpretation fix
+- Target directive: none found for Atlas screenshot capture; existing Atlas viewer validation guidance applies.
+- Intended execution scripts: `node --check src/atlas-app.js`, `node --check tests/test_atlas_sentinel_toggle.mjs`, `node tests/test_gee_provider.mjs`, and `git diff --check`.
+- Expected output artifacts: Capture mode distinguishes true-color-only GEE context from Sentinel WMS index interpretation, Split/Overlay are disabled when the active Atlas layer is not an index render, WMS capture overlays receive a legibility boost, and tests/knowledge are updated.
+- Safety: no `.env`, `config-v1.js`, `config.js`, `app-config.js`, tokens, private WMS endpoints, or `.tmp/` outputs will be read, printed, or committed.
+
+## Validation Contract — Capture Interpretation Fix
+
+- [x] Atlas GEE fallback is identified as true-color context, not index interpretation.
+- [x] Capture Split is unavailable when the active Atlas layer is GEE true-color context.
+- [x] Capture Overlay is unavailable when the active Atlas layer is GEE true-color context.
+- [x] Capture status explains that Sentinel WMS is required for index interpretation.
+- [x] Capture metadata shows the active interpretation provider state.
+- [x] Sentinel WMS capture overlays are visually boosted for LinkedIn legibility.
+- [x] Entering or exiting Capture mode does not call `map.invalidateSize()`.
+- [x] `node --check src/atlas-app.js` passes.
+- [x] `node --check tests/test_atlas_sentinel_toggle.mjs` passes.
+- [x] `node tests/test_gee_provider.mjs` passes.
+- [x] `git diff --check` passes.
+
+### 2026-06-24 — Completed capture interpretation fix
+- Confirmed root cause: Atlas GEE requests intentionally return true color for `app=atlas`, so default GEE Capture Split could show two context halves instead of index interpretation.
+- Capture now treats GEE as context-only, disables Overlay/Split there, and tells the user to switch Sentinel WMS on before Capture for real Atlas index interpretation.
+- Capture now shows the active provider state in the screenshot card.
+- Sentinel WMS Capture Overlay/Split now receives a CSS/opacity legibility boost without requesting replacement provider tiles.
+- Removed the reintroduced `map.invalidateSize()` call from Capture entry.
+- Fresh verifier flagged that Split PNG export used the lower UI opacity instead of the boosted interpretation opacity; export now shares the same boost helper and re-syncs Capture presentation after saving.
+- Verification passed: `node --check src/atlas-app.js`, `node --check tests/test_atlas_sentinel_toggle.mjs`, `node tests/test_gee_provider.mjs`, and `git diff --check`.
+- Browser smoke remains blocked in this sandbox by `listen EPERM: operation not permitted 127.0.0.1`.
 
 ### 2026-06-24 — Started capture usability follow-up
 - Target directive: none found for Atlas screenshot capture; existing Atlas viewer validation guidance applies.

@@ -120,6 +120,8 @@ function refreshAtlasConfig() {
 }
 
 let map, wmsLayer, bookmarkFocusLayer, activeKey = null;
+let mapMirror = null;
+let mirrorBaseLayer = null;
 let BASE_TILES;
 let pendingTiles = 0;
 let currentLinkedInGroundTruthDraft = '';
@@ -135,11 +137,14 @@ const state = {
   bookmarkFocusVisible: false,
   captureView: 'overlay',
   captureSplit: 50,
+  captureOpacity: 0.85,
   sentinelLiveTiles: false,
   sentinelMinZoom: DEFAULT_SENTINEL_MIN_ZOOM,
   sentinelGuardInitialized: false,
   sentinelRateLimitedUntil: 0,
   captureMode: false,
+  captureCardCollapsed: false,
+  captureInfoCollapsed: false,
 };
 
 window.getAtlasProviderState = () => {
@@ -174,8 +179,11 @@ window.getAtlasCaptureState = () => ({
   view: state.captureView,
   split: state.captureSplit,
   overlayAvailable: hasCaptureOverlayLayer(),
+  interpretationAvailable: hasCaptureInterpretationLayer(),
+  providerLabel: captureProviderLabel(),
   overlayOpacity: wmsLayer?.options?.opacity ?? null,
-  overlayClipPath: wmsLayer?.getContainer?.()?.style?.clipPath || '',
+  overlayMask: wmsLayer?.getPane?.()?.style?.maskImage || '',
+  overlayClipPath: state.captureView === 'split' ? `inset(0 0 0 ${state.captureSplit}%)` : '',
   status: document.getElementById('capture-status')?.textContent || '',
   ...currentCaptureFrame,
 });
@@ -494,8 +502,29 @@ function hasCaptureOverlayLayer() {
   return Boolean(wmsLayer && layerContainer && onMap);
 }
 
+function hasCaptureInterpretationLayer() {
+  const idx = activeCaptureIndex();
+  return Boolean(hasCaptureOverlayLayer() && idx?.canRender && isSentinelProvider());
+}
+
+function captureProviderLabel() {
+  refreshAtlasConfig();
+  if (isGeeProvider()) return 'GEE context only';
+  if (isSentinelProvider()) return `Sentinel WMS · ${atlasConfig.wmsSourceLabel || 'configured'}`;
+  return `${getDefaultAtlasProviderLabel()} context`;
+}
+
+function captureInterpretationOpacity() {
+  return state.captureOpacity;
+}
+
 function captureUnavailableMessage() {
   if (state.paused) return 'Render overlay first: tiles are paused.';
+  const idx = activeCaptureIndex();
+  if (idx && !idx.canRender) return 'This entry is context-only — choose a live index to compare.';
+  if (!isSentinelProvider()) {
+    return 'Switch Sentinel WMS on before Capture to compare index overlays.';
+  }
   if (isSentinelProvider()) {
     const guardStatus = getAtlasSentinelGuardStatus();
     if (guardStatus.blocked && guardStatus.reason === 'zoom') {
@@ -504,20 +533,18 @@ function captureUnavailableMessage() {
     if (guardStatus.blocked && guardStatus.reason === 'cooldown') {
       return 'Render overlay first: Sentinel is cooling down after a rate limit.';
     }
-    if (guardStatus.blocked) {
-      return 'Render overlay first: Sentinel tiles are disarmed.';
-    }
+    if (guardStatus.blocked) return 'Render overlay first: Sentinel tiles are disarmed.';
   }
   return 'Render overlay first to use Overlay or Split.';
 }
 
 function renderCaptureOverlay(idx) {
   currentCaptureFrame = captureFrameForIndex(idx);
-  if (state.captureMode && !hasCaptureOverlayLayer()) {
+  if (state.captureMode && !hasCaptureInterpretationLayer()) {
     currentCaptureFrame = {
       ...currentCaptureFrame,
       modeLabel: 'Satellite context only',
-      hook: 'Render the active overlay before capturing a comparison frame.',
+      hook: 'Render a Sentinel WMS index layer before capturing a comparison frame.',
       prompt: captureUnavailableMessage(),
     };
   }
@@ -531,6 +558,7 @@ function renderCaptureOverlay(idx) {
   setText('capture-name', currentCaptureFrame.name);
   setText('capture-place', currentCaptureFrame.place);
   setText('capture-mode-label', currentCaptureFrame.modeLabel);
+  setText('capture-provider-label', captureProviderLabel());
   setText('capture-overlay-label', currentCaptureFrame.overlayLabel);
   setText('capture-split-overlay-label', currentCaptureFrame.overlayLabel);
   setText('capture-hook', currentCaptureFrame.hook);
@@ -539,32 +567,274 @@ function renderCaptureOverlay(idx) {
 
 function applyCaptureComparison() {
   const mapArea = document.getElementById('atlas-map-area');
-  if (mapArea) mapArea.style.setProperty('--capture-split', `${state.captureSplit}%`);
 
   const layerContainer = wmsLayer?.getContainer?.();
+  const layerPane = wmsLayer?.getPane?.();
   if (!wmsLayer || !layerContainer) return;
+  const interpretationAvailable = hasCaptureInterpretationLayer();
+
+  const isMirror = state.captureView === 'mirror';
+  const splitPct = isMirror ? 50 : state.captureSplit;
+  if (mapArea) mapArea.style.setProperty('--capture-split', `${splitPct}%`);
+
+  function clearMask() {
+    if (layerPane) {
+      layerPane.style.width = '';
+      layerPane.style.height = '';
+      layerPane.style.maskImage = '';
+      layerPane.style.webkitMaskImage = '';
+      layerPane.style.clipPath = '';
+      layerPane.style.webkitClipPath = '';
+    }
+  }
 
   if (!state.captureMode) {
-    layerContainer.style.clipPath = '';
+    clearMask();
+    layerContainer.classList.remove('capture-interpretation-layer');
     wmsLayer.setOpacity(state.opacity);
     return;
   }
 
   if (state.captureView === 'context') {
-    layerContainer.style.clipPath = '';
+    clearMask();
+    layerContainer.classList.remove('capture-interpretation-layer');
     wmsLayer.setOpacity(0);
     return;
   }
 
-  wmsLayer.setOpacity(state.opacity);
-  layerContainer.style.clipPath = state.captureView === 'split'
-    ? `inset(0 0 0 ${state.captureSplit}%)`
-    : '';
+  if (state.captureView === 'overlay') {
+    clearMask();
+    layerContainer.classList.add('capture-interpretation-layer');
+    wmsLayer.setOpacity(captureInterpretationOpacity());
+    return;
+  }
+
+  layerContainer.classList.toggle('capture-interpretation-layer', interpretationAvailable);
+  wmsLayer.setOpacity(captureInterpretationOpacity());
+
+  if (state.captureView === 'split') {
+    // Swipe/Split: clip overlay layer pane using viewport coordinates converted to layer space
+    const container = map.getContainer();
+    const width = container.clientWidth;
+    const height = container.clientHeight;
+    const nw = map.containerPointToLayerPoint([0, 0]);
+    const se = map.containerPointToLayerPoint([width, height]);
+    const splitPx = Math.round(width * splitPct / 100);
+    const clipX = map.containerPointToLayerPoint([splitPx, 0]).x;
+
+    const clipPathVal = `polygon(${clipX}px ${nw.y - 200}px, ${se.x + 200}px ${nw.y - 200}px, ${se.x + 200}px ${se.y + 200}px, ${clipX}px ${se.y + 200}px)`;
+    layerPane.style.clipPath = clipPathVal;
+    layerPane.style.webkitClipPath = clipPathVal;
+  } else {
+    clearMask();
+  }
+}
+
+function syncMirrorMap() {
+  const mirrorEl = document.getElementById('atlas-map-mirror');
+  const mainEl = document.getElementById('atlas-map');
+  const wasMirror = mirrorEl && mirrorEl.style.display !== 'none';
+  const clean = document.querySelector('.atlas-layout')?.classList.contains('capture-clean');
+  const isMirror = state.captureView === 'mirror' && state.captureMode && !clean;
+
+  if (!isMirror) {
+    if (wasMirror) {
+      // Hide mirror map and restore main map to 100%
+      if (mirrorEl) mirrorEl.style.display = 'none';
+      if (mainEl) {
+        mainEl.style.width = '100%';
+        mainEl.style.height = '100%';
+        mainEl.style.position = '';
+        mainEl.style.left = '';
+        mainEl.style.top = '';
+      }
+      if (map) map['invalidateSize']({ animate: false });
+    }
+    return;
+  }
+
+  // We are in mirror view
+  const center = map.getCenter();
+  const zoom = map.getZoom();
+
+  if (!wasMirror) {
+    if (mirrorEl && mainEl) {
+      mirrorEl.style.display = 'block';
+      mirrorEl.style.width = '50%';
+      mirrorEl.style.height = '100%';
+      mirrorEl.style.position = 'absolute';
+      mirrorEl.style.left = '0';
+      mirrorEl.style.top = '0';
+
+      mainEl.style.width = '50%';
+      mainEl.style.height = '100%';
+      mainEl.style.position = 'absolute';
+      mainEl.style.left = '50%';
+      mainEl.style.top = '0';
+    }
+  }
+
+  if (!mapMirror) {
+    mapMirror = L.map('atlas-map-mirror', {
+      center: center,
+      zoom: zoom,
+      zoomControl: false,
+      attributionControl: false,
+      dragging: false,
+      touchZoom: false,
+      doubleClickZoom: false,
+      scrollWheelZoom: false,
+      boxZoom: false,
+      keyboard: false
+    });
+  }
+
+  // Sync active base layer
+  if (mirrorBaseLayer) {
+    mapMirror.removeLayer(mirrorBaseLayer);
+  }
+  const activeUrl = BASE_TILES[state.base]._url;
+  const activeOpts = { ...BASE_TILES[state.base].options, attribution: '' };
+  mirrorBaseLayer = L.tileLayer(activeUrl, activeOpts);
+  mirrorBaseLayer.addTo(mapMirror);
+
+  map['invalidateSize']({ animate: false });
+  mapMirror['invalidateSize']({ animate: false });
+
+  map.setView(center, zoom, { animate: false });
+  mapMirror.setView(center, zoom, { animate: false });
+}
+
+function syncCaptureCardCollapse() {
+  const card = document.getElementById('capture-card');
+  if (!card) return;
+  card.classList.toggle('collapsed', state.captureCardCollapsed);
+
+  const btn = document.getElementById('capture-collapse-btn');
+  if (btn) {
+    btn.textContent = state.captureCardCollapsed ? '+' : '−';
+    btn.setAttribute('title', state.captureCardCollapsed ? 'Expand panel' : 'Minimize panel');
+  }
+}
+
+function updateCaptureInfoBox() {
+  const infoBox = document.getElementById('capture-info-box');
+  if (!infoBox) return;
+
+  const idx = activeCaptureIndex();
+  if (!idx) {
+    infoBox.style.display = 'none';
+    return;
+  }
+
+  const center = map.getCenter();
+  const zoom = map.getZoom();
+  const lat = center.lat.toFixed(4);
+  const lng = center.lng.toFixed(4);
+
+  const bm = idx.bookmark || {};
+  const placeName = bm.label || 'Custom Location';
+
+  const titleEl = document.getElementById('capture-info-title');
+  if (titleEl) titleEl.textContent = `${idx.acronym} · ${idx.name}`;
+
+  const sensorEl = document.getElementById('capture-info-sensor');
+  if (sensorEl) {
+    let platformText = idx.platform || 'Sentinel-2';
+    if (platformText.includes('Sentinel-2') || platformText.includes('S2')) {
+      if (platformText.includes('S1') || platformText.includes('Sentinel-1')) {
+        platformText = 'Sentinel-2 + Sentinel-1';
+      } else if (platformText.includes('Landsat')) {
+        platformText = 'Sentinel-2 + Landsat';
+      } else if (platformText.includes('EMIT')) {
+        platformText = 'Sentinel-2 + EMIT';
+      } else if (platformText.includes('PACE')) {
+        platformText = 'Sentinel-2 + PACE';
+      } else if (platformText.includes('DESIS')) {
+        platformText = 'Sentinel-2 + DESIS';
+      } else if (platformText.includes('EnMAP')) {
+        platformText = 'Sentinel-2 + EnMAP';
+      } else if (platformText.includes('ECOSTRESS')) {
+        platformText = 'Sentinel-2 + ECOSTRESS';
+      } else if (platformText.includes('PRISMA')) {
+        platformText = 'Sentinel-2 + PRISMA';
+      } else {
+        platformText = 'Sentinel-2';
+      }
+    }
+    sensorEl.textContent = platformText;
+  }
+
+  const dateEl = document.getElementById('capture-info-date');
+  if (dateEl) dateEl.textContent = `${state.date}`;
+
+  const locEl = document.getElementById('capture-info-location');
+  if (locEl) locEl.textContent = `${placeName} (${lat}, ${lng})`;
+
+  const bandsEl = document.getElementById('capture-info-bands');
+  if (bandsEl) bandsEl.textContent = bandsLabel(idx);
+
+  const formulaEl = document.getElementById('capture-info-formula');
+  if (formulaEl) {
+    formulaEl.textContent = `${idx.formula || 'N/A'}`;
+    formulaEl.title = idx.formula || '';
+  }
+}
+
+function updateLegendMetadata() {
+  const locEl = document.getElementById('legend-location-label');
+  const coordsEl = document.getElementById('legend-coords-label');
+  const formulaEl = document.getElementById('legend-formula-label');
+  const bandsEl = document.getElementById('legend-bands-label');
+
+  const idx = activeCaptureIndex();
+  if (!idx) {
+    if (locEl) locEl.textContent = '';
+    if (coordsEl) coordsEl.textContent = '';
+    if (formulaEl) { formulaEl.textContent = ''; formulaEl.title = ''; }
+    if (bandsEl) bandsEl.textContent = '';
+    return;
+  }
+
+  const center = map.getCenter();
+  const lat = center.lat.toFixed(4);
+  const lng = center.lng.toFixed(4);
+
+  const bm = idx.bookmark || {};
+  const placeName = bm.label || 'Custom Location';
+
+  if (locEl) locEl.textContent = placeName;
+  if (coordsEl) coordsEl.textContent = `${lat}, ${lng}`;
+
+  if (formulaEl) {
+    formulaEl.textContent = idx.formula || 'N/A';
+    formulaEl.title = idx.formula || '';
+  }
+
+  if (bandsEl) {
+    bandsEl.textContent = `Bands: ${bandsLabel(idx)}`;
+  }
+}
+
+function syncCaptureInfoBox() {
+  const infoBox = document.getElementById('capture-info-box');
+  const trigger = document.getElementById('capture-info-trigger');
+  if (!infoBox || !trigger) return;
+
+  const showBox = state.captureMode && !state.captureInfoCollapsed;
+  const showTrigger = state.captureMode && state.captureInfoCollapsed;
+
+  infoBox.style.display = showBox ? 'flex' : 'none';
+  trigger.style.display = showTrigger ? 'flex' : 'none';
+
+  if (showBox) {
+    updateCaptureInfoBox();
+  }
 }
 
 function syncCaptureControls() {
-  const overlayAvailable = hasCaptureOverlayLayer();
-  if (state.captureMode && !overlayAvailable && state.captureView !== 'context') {
+  const interpretationAvailable = hasCaptureInterpretationLayer();
+  if (state.captureMode && !interpretationAvailable && state.captureView !== 'context') {
     state.captureView = 'context';
   }
 
@@ -573,12 +843,13 @@ function syncCaptureControls() {
     layout.classList.toggle('capture-view-context', state.captureView === 'context');
     layout.classList.toggle('capture-view-overlay', state.captureView === 'overlay');
     layout.classList.toggle('capture-view-split', state.captureView === 'split');
-    layout.classList.toggle('capture-overlay-unavailable', state.captureMode && !overlayAvailable);
+    layout.classList.toggle('capture-view-mirror', state.captureView === 'mirror');
+    layout.classList.toggle('capture-overlay-unavailable', state.captureMode && !interpretationAvailable);
   }
 
   document.querySelectorAll('.capture-mode-btn').forEach(btn => {
     const view = btn.dataset.captureView;
-    const disabled = !overlayAvailable && view !== 'context';
+    const disabled = !interpretationAvailable && view !== 'context';
     const active = btn.dataset.captureView === state.captureView;
     btn.classList.toggle('active', active);
     btn.disabled = disabled;
@@ -588,19 +859,19 @@ function syncCaptureControls() {
 
   const splitControl = document.querySelector('.capture-split-control');
   if (splitControl) {
-    splitControl.classList.toggle('visible', state.captureView === 'split' && overlayAvailable);
-    splitControl.classList.toggle('disabled', !overlayAvailable);
+    splitControl.classList.toggle('visible', state.captureView === 'split' && interpretationAvailable);
+    splitControl.classList.toggle('disabled', !interpretationAvailable);
   }
 
   const splitSlider = document.getElementById('capture-split-slider');
   if (splitSlider) {
     splitSlider.value = String(state.captureSplit);
-    splitSlider.disabled = !overlayAvailable || state.captureView !== 'split';
+    splitSlider.disabled = !interpretationAvailable || state.captureView !== 'split';
   }
 
   const status = document.getElementById('capture-status');
   if (status) {
-    const message = state.captureMode && !overlayAvailable ? captureUnavailableMessage() : '';
+    const message = state.captureMode && !interpretationAvailable ? captureUnavailableMessage() : '';
     status.textContent = message;
     status.classList.toggle('visible', Boolean(message));
   }
@@ -608,17 +879,22 @@ function syncCaptureControls() {
   const idx = activeCaptureIndex();
   if (idx) renderCaptureOverlay(idx);
   applyCaptureComparison();
+  syncCaptureInfoBox();
 }
 
 function setCaptureView(view) {
-  if (!['context', 'overlay', 'split'].includes(view)) return;
-  if (view !== 'context' && !hasCaptureOverlayLayer()) view = 'context';
+  if (!['context', 'overlay', 'split', 'mirror'].includes(view)) return;
+  if (view !== 'context' && !hasCaptureInterpretationLayer()) view = 'context';
   state.captureView = view;
+  syncMirrorMap();
   syncCaptureControls();
 }
 
 function setCaptureMode(enabled) {
   state.captureMode = enabled === true;
+  if (!state.captureMode && state.captureView === 'mirror') {
+    state.captureView = 'overlay';
+  }
   const layout = document.querySelector('.atlas-layout');
   if (layout) layout.classList.toggle('capture-mode', state.captureMode);
 
@@ -630,11 +906,51 @@ function setCaptureMode(enabled) {
 
   const idx = activeCaptureIndex();
   if (idx) renderCaptureOverlay(idx);
+  syncMirrorMap();
   syncCaptureControls();
   positionLegend();
 
-  // Sidebar visibility changed — tell Leaflet to recompute its container bounds
-  if (map) setTimeout(() => { map.invalidateSize({ animate: false }); }, 50);
+  state.captureCardCollapsed = false;
+  state.captureInfoCollapsed = false;
+  syncCaptureCardCollapse();
+  syncCaptureInfoBox();
+
+  if (map) setTimeout(() => {
+    updateCaptureFrameGuide();
+  }, 50);
+}
+
+function updateCaptureFrameGuide() {
+  const guide = document.getElementById('capture-frame-guide');
+  const mapArea = document.getElementById('atlas-map-area');
+  if (!guide || !mapArea) return;
+  const mapW = mapArea.clientWidth;
+  const mapH = mapArea.clientHeight;
+  const targetAspect = 1200 / 628;
+  const srcAspect = mapW / mapH;
+  let frameW, frameH;
+  if (srcAspect > targetAspect) {
+    frameH = mapH;
+    frameW = Math.round(mapH * targetAspect);
+  } else {
+    frameW = mapW;
+    frameH = Math.round(mapW / targetAspect);
+  }
+  guide.style.width = `${frameW}px`;
+  guide.style.height = `${frameH}px`;
+
+  const offsetX = Math.max(0, Math.round((mapW - frameW) / 2));
+  const offsetY = Math.max(0, Math.round((mapH - frameH) / 2));
+  mapArea.style.setProperty('--capture-offset-x', `${offsetX}px`);
+  mapArea.style.setProperty('--capture-offset-y', `${offsetY}px`);
+
+  if (state.captureMode) {
+    if (state.captureView === 'split') {
+      applyCaptureComparison();
+    } else if (state.captureView === 'mirror') {
+      syncMirrorMap();
+    }
+  }
 }
 
 function _captureCenterCrop(src, ctx, targetW, targetH) {
@@ -661,11 +977,17 @@ async function saveCapturePng() {
   btn.textContent = 'Capturing…';
   btn.disabled = true;
 
-  // Hide UI chrome; remove clip-path so html2canvas sees the full overlay
+  // Hide UI chrome; clear pane mask+dimensions so html2canvas sees the full overlay
   layout.classList.add('capture-clean');
+  syncMirrorMap();
   const layerContainer = wmsLayer?.getContainer?.();
-  const savedClip = layerContainer?.style?.clipPath || '';
-  if (layerContainer && savedClip) layerContainer.style.clipPath = '';
+  const layerPane = wmsLayer?.getPane?.();
+  if (layerPane) {
+    layerPane.style.width = '';
+    layerPane.style.height = '';
+    layerPane.style.maskImage = '';
+    layerPane.style.webkitMaskImage = '';
+  }
 
   await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
 
@@ -675,32 +997,50 @@ async function saveCapturePng() {
   try {
     let out;
 
-    if (state.captureView === 'split' && wmsLayer && layerContainer) {
-      // Two-pass: capture base-only then full overlay, composite at split point
-      const savedOpacity = state.opacity;
+    if ((state.captureView === 'split' || state.captureView === 'mirror') && wmsLayer && layerContainer) {
+      const savedOpacity = wmsLayer.options?.opacity ?? state.opacity;
+      const exportOpacity = hasCaptureInterpretationLayer() ? captureInterpretationOpacity() : state.opacity;
 
       wmsLayer.setOpacity(0);
       await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
       const baseRaw = await window.html2canvas(mapArea, captureOpts);
 
-      wmsLayer.setOpacity(savedOpacity);
+      wmsLayer.setOpacity(exportOpacity);
       await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
       const overlayRaw = await window.html2canvas(mapArea, captureOpts);
+      wmsLayer.setOpacity(savedOpacity);
 
       out = document.createElement('canvas');
       out.width = targetW;
       out.height = targetH;
       const ctx = out.getContext('2d');
 
-      _captureCenterCrop(baseRaw, ctx, targetW, targetH);
+      if (state.captureView === 'mirror') {
+        // Both panels show the same geographic center — render each at full 1200×628 then slice center half
+        const half = Math.round(targetW / 2);
+        const sliceX = Math.round((targetW - half) / 2); // x=300 for 1200→600
 
-      const splitX = Math.round(targetW * state.captureSplit / 100);
-      ctx.save();
-      ctx.beginPath();
-      ctx.rect(splitX, 0, targetW - splitX, targetH);
-      ctx.clip();
-      _captureCenterCrop(overlayRaw, ctx, targetW, targetH);
-      ctx.restore();
+        const baseCanvas = document.createElement('canvas');
+        baseCanvas.width = targetW; baseCanvas.height = targetH;
+        _captureCenterCrop(baseRaw, baseCanvas.getContext('2d'), targetW, targetH);
+
+        const overlayCanvas = document.createElement('canvas');
+        overlayCanvas.width = targetW; overlayCanvas.height = targetH;
+        _captureCenterCrop(overlayRaw, overlayCanvas.getContext('2d'), targetW, targetH);
+
+        ctx.drawImage(baseCanvas, sliceX, 0, half, targetH, 0, 0, half, targetH);
+        ctx.drawImage(overlayCanvas, sliceX, 0, half, targetH, half, 0, half, targetH);
+      } else {
+        // Swipe: full-width base, overlay clipped to right of split point
+        _captureCenterCrop(baseRaw, ctx, targetW, targetH);
+        const splitX = Math.round(targetW * state.captureSplit / 100);
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(splitX, 0, targetW - splitX, targetH);
+        ctx.clip();
+        _captureCenterCrop(overlayRaw, ctx, targetW, targetH);
+        ctx.restore();
+      }
 
     } else {
       const raw = await window.html2canvas(mapArea, captureOpts);
@@ -724,8 +1064,10 @@ async function saveCapturePng() {
     btn.textContent = 'Export failed — try a screenshot';
     setTimeout(() => { btn.textContent = origText; btn.disabled = false; }, 3000);
   } finally {
-    if (layerContainer && savedClip) layerContainer.style.clipPath = savedClip;
     layout.classList.remove('capture-clean');
+    syncMirrorMap();
+    // applyCaptureComparison restores the correct mask (including pane dimensions)
+    applyCaptureComparison();
   }
 }
 
@@ -1159,6 +1501,7 @@ function applyGEE(idx, date, opts = {}) {
   setTileStatus('');
 
   wmsLayer = new FetchTile(buildGeeUrl(idx, date, opts), {
+    pane: 'atlasWmsPane',
     opacity: state.opacity,
     attribution: 'Google Earth Engine / Limn Atlas',
     tileSize: 256,
@@ -1188,6 +1531,7 @@ function applyWMS(evalscript, date, opts = {}) {
   setTileStatus('');
 
   wmsLayer = new FetchWMS(atlasConfig.wmsUrl, {
+    pane: 'atlasWmsPane',
     layers: layerName,
     format: 'image/png',
     transparent: true,
@@ -1283,6 +1627,9 @@ function selectIndex(key) {
   const grad = document.getElementById('legend-gradient');
   grad.style.background = idx.gradient || 'linear-gradient(to right, #111, #fff)';
   document.getElementById('legend-label').textContent = idx.acronym;
+  const nameLabel = document.getElementById('legend-name-label');
+  if (nameLabel) nameLabel.textContent = idx.name || '';
+  updateLegendMetadata();
   const scale = Array.isArray(idx.legend) && idx.legend.length === 2 ? idx.legend : ['Low', 'High'];
   document.getElementById('legend-low').textContent = scale[0];
   document.getElementById('legend-high').textContent = scale[1];
@@ -1463,11 +1810,40 @@ function initMap() {
   map.createPane('atlasBookmarkFocusPane');
   map.getPane('atlasBookmarkFocusPane').style.zIndex = 575;
 
+  map.createPane('atlasWmsPane');
+  map.getPane('atlasWmsPane').style.zIndex = 350;
+
   L.control.zoom({ position: 'bottomright' }).addTo(map);
 
   map.on('zoomend', () => {
     updateAtlasSentinelUI();
     if (isSentinelProvider() && !state.paused && activeKey) renderActive();
+  });
+
+  map.on('move', () => {
+    if (state.captureMode && state.captureView === 'mirror' && mapMirror) {
+      mapMirror.setView(map.getCenter(), map.getZoom(), { animate: false });
+    }
+    if (state.captureMode && state.captureView === 'split') {
+      applyCaptureComparison();
+    }
+    if (state.captureMode && !state.captureInfoCollapsed) {
+      updateCaptureInfoBox();
+    }
+    updateLegendMetadata();
+  });
+
+  map.on('viewreset', () => {
+    if (state.captureMode && state.captureView === 'mirror' && mapMirror) {
+      mapMirror.setView(map.getCenter(), map.getZoom(), { animate: false });
+    }
+    if (state.captureMode && state.captureView === 'split') {
+      applyCaptureComparison();
+    }
+    if (state.captureMode && !state.captureInfoCollapsed) {
+      updateCaptureInfoBox();
+    }
+    updateLegendMetadata();
   });
 
   // Base layer toggle
@@ -1612,6 +1988,15 @@ function initControls() {
     captureSaveBtn.addEventListener('click', () => saveCapturePng());
   }
 
+  const captureOpacitySlider = document.getElementById('capture-opacity-slider');
+  if (captureOpacitySlider) {
+    captureOpacitySlider.value = String(state.captureOpacity);
+    captureOpacitySlider.addEventListener('input', () => {
+      state.captureOpacity = parseFloat(captureOpacitySlider.value);
+      applyCaptureComparison();
+    });
+  }
+
   const captureTipToggle = document.getElementById('capture-tip-toggle');
   if (captureTipToggle) {
     captureTipToggle.addEventListener('click', () => {
@@ -1619,6 +2004,30 @@ function initControls() {
       if (!prompt) return;
       const open = prompt.classList.toggle('visible');
       captureTipToggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+    });
+  }
+
+  const captureCollapseBtn = document.getElementById('capture-collapse-btn');
+  if (captureCollapseBtn) {
+    captureCollapseBtn.addEventListener('click', () => {
+      state.captureCardCollapsed = !state.captureCardCollapsed;
+      syncCaptureCardCollapse();
+    });
+  }
+
+  const captureInfoCollapseBtn = document.getElementById('capture-info-collapse-btn');
+  if (captureInfoCollapseBtn) {
+    captureInfoCollapseBtn.addEventListener('click', () => {
+      state.captureInfoCollapsed = true;
+      syncCaptureInfoBox();
+    });
+  }
+
+  const captureInfoTrigger = document.getElementById('capture-info-trigger');
+  if (captureInfoTrigger) {
+    captureInfoTrigger.addEventListener('click', () => {
+      state.captureInfoCollapsed = false;
+      syncCaptureInfoBox();
     });
   }
 
@@ -1670,6 +2079,11 @@ function initControls() {
     positionLegend();
   });
   window.addEventListener('resize', positionLegend);
+  let _frameGuideResizeTimer;
+  window.addEventListener('resize', () => {
+    clearTimeout(_frameGuideResizeTimer);
+    _frameGuideResizeTimer = setTimeout(updateCaptureFrameGuide, 100);
+  });
 
   // Info panel resize handle
   const infoPanel = document.getElementById('info-panel');

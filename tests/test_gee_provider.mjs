@@ -35,8 +35,15 @@ assert.match(atlasApp, /function setCaptureMode/, 'Atlas app should expose a ded
 assert.match(atlasApp, /function setCaptureView/, 'Atlas app should expose capture comparison view switching');
 assert.match(atlasApp, /function applyCaptureComparison/, 'Atlas capture comparison should use existing overlay presentation state');
 assert.match(atlasApp, /function hasCaptureOverlayLayer/, 'Atlas capture mode should detect unavailable overlay layers');
+assert.match(atlasApp, /function hasCaptureInterpretationLayer/, 'Atlas capture mode should distinguish true-color context from index interpretation');
+assert.match(atlasApp, /GEE context only/, 'Atlas capture mode should label the GEE fallback as context-only');
+assert.match(atlasApp, /Switch Sentinel WMS on before Capture/, 'Atlas capture mode should explain that Sentinel WMS is required for Atlas index interpretation');
+assert.match(atlasApp, /capture-interpretation-layer/, 'Atlas capture mode should apply a legibility boost class to real index overlays');
+assert.match(atlasApp, /function captureInterpretationOpacity/, 'Atlas capture mode should share boosted opacity between live view and PNG export');
+assert.match(atlasApp, /const exportOpacity = hasCaptureInterpretationLayer\(\) \? captureInterpretationOpacity\(\) : state\.opacity/, 'Atlas split PNG export should preserve the Sentinel WMS interpretation boost');
 assert.match(atlasApp, /capture-overlay-unavailable/, 'Atlas capture mode should expose an unavailable-overlay layout state');
 assert.match(atlasApp, /btn\.disabled = disabled/, 'Atlas capture mode should disable unavailable overlay controls');
+assert.doesNotMatch(atlasApp, /map\.invalidateSize/, 'Atlas capture mode should not invalidate the map and trigger replacement tiles');
 assert.match(atlasApp, /window\.getAtlasCaptureState/, 'Atlas app should expose capture-mode state for browser smoke tests');
 assert.match(atlasHtml, /id="info-trust"/, 'Atlas info panel should expose the evidence trust badge');
 assert.match(atlasHtml, /id="info-evidence"/, 'Atlas info panel should expose evidence links');
@@ -50,6 +57,8 @@ assert.match(atlasHtml, /data-capture-view="overlay"/, 'Atlas capture card shoul
 assert.match(atlasHtml, /data-capture-view="split"/, 'Atlas capture card should include a split comparison view');
 assert.match(atlasHtml, /id="capture-split-slider"/, 'Atlas capture card should expose an adjustable split divider');
 assert.match(atlasHtml, /id="capture-status"/, 'Atlas capture card should expose status for unavailable overlay states');
+assert.match(atlasHtml, /id="capture-provider-label"/, 'Atlas capture card should show the active interpretation provider state');
+assert.match(atlasHtml, /leaflet-layer\.capture-interpretation-layer/, 'Atlas capture CSS should boost real index overlays');
 assert.match(atlasHtml, /min-height:\s*44px/, 'Atlas capture controls should have touch-friendly compact targets');
 assert.doesNotMatch(atlasHtml, /\.atlas-layout\.capture-mode \.capture-split-labels \{ display: none; \}/, 'Atlas compact capture mode should keep split labels understandable');
 assert.match(atlasCaptureScript, /skip_catalog: bool = False/, 'Atlas capture script should thread skip-catalog into metadata lookup');

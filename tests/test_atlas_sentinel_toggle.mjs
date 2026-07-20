@@ -178,9 +178,13 @@ try {
       hudHidden: window.getComputedStyle(document.querySelector('.atlas-hud')).display === 'none',
       infoHidden: window.getComputedStyle(document.getElementById('info-panel')).display === 'none',
       cardVisible: window.getComputedStyle(document.getElementById('capture-card')).display !== 'none',
-      legendLarge: document.querySelector('.atlas-legend')?.getBoundingClientRect().width >= 250,
-      hasModeButtons: document.querySelectorAll('.capture-mode-btn[data-capture-view]').length === 3,
+      legendHidden: window.getComputedStyle(document.querySelector('.atlas-legend')).display === 'none',
+      hasModeButtons: document.querySelectorAll('.capture-mode-btn[data-capture-view]').length === 4,
       hasSplitSlider: !!document.getElementById('capture-split-slider'),
+      providerLabel: document.getElementById('capture-provider-label')?.textContent || '',
+      overlayDisabled: document.querySelector('[data-capture-view="overlay"]')?.disabled === true,
+      splitDisabled: document.querySelector('[data-capture-view="split"]')?.disabled === true,
+      statusVisible: document.getElementById('capture-status')?.classList.contains('visible') === true,
     };
   });
   if (!captureMode.layoutActive || !captureMode.sidebarHidden || !captureMode.hudHidden || !captureMode.infoHidden || !captureMode.cardVisible) {
@@ -189,49 +193,21 @@ try {
   if (!captureMode.acronym || !captureMode.name || !captureMode.place || !captureMode.modeLabel || !captureMode.hook || !captureMode.prompt) {
     throw new Error(`Atlas capture overlay is missing selected-index context: ${JSON.stringify(captureMode)}`);
   }
-  if (!captureMode.legendLarge) {
-    throw new Error(`Atlas capture mode should enlarge the legend for screenshots: ${JSON.stringify(captureMode)}`);
-  }
-  if (captureMode.view !== 'overlay' || !captureMode.hasModeButtons || !captureMode.hasSplitSlider) {
-    throw new Error(`Atlas capture mode should default to overlay and expose comparison controls: ${JSON.stringify(captureMode)}`);
-  }
-
-  await page.click('[data-capture-view="context"]');
-  await page.waitForFunction(() => window.getAtlasCaptureState?.().view === 'context', { timeout: 5000 });
-  const contextCapture = await page.evaluate(() => ({
-    ...window.getAtlasCaptureState(),
-    modeLabel: document.getElementById('capture-mode-label')?.textContent || '',
-    legendHidden: window.getComputedStyle(document.querySelector('.atlas-legend')).display === 'none',
-  }));
-  if (contextCapture.overlayOpacity !== 0 || !contextCapture.legendHidden || !contextCapture.modeLabel.includes('context only')) {
-    throw new Error(`Atlas context capture view should hide the index overlay and legend: ${JSON.stringify(contextCapture)}`);
+  if (
+    captureMode.view !== 'context'
+    || captureMode.interpretationAvailable
+    || !captureMode.legendHidden
+    || !captureMode.hasModeButtons
+    || !captureMode.hasSplitSlider
+    || !captureMode.overlayDisabled
+    || !captureMode.splitDisabled
+    || !captureMode.statusVisible
+    || !captureMode.providerLabel.includes('GEE context only')
+    || !captureMode.status.includes('Sentinel WMS')
+  ) {
+    throw new Error(`Atlas GEE capture should be context-only and should not offer false Split interpretation: ${JSON.stringify(captureMode)}`);
   }
 
-  await page.click('[data-capture-view="split"]');
-  await page.evaluate(() => {
-    const slider = document.getElementById('capture-split-slider');
-    slider.value = '62';
-    slider.dispatchEvent(new Event('input', { bubbles: true }));
-  });
-  await page.waitForFunction(() => {
-    const state = window.getAtlasCaptureState?.();
-    return state?.view === 'split' && state?.split === 62 && state?.overlayClipPath.includes('62%');
-  }, { timeout: 5000 });
-  const splitCapture = await page.evaluate(() => ({
-    ...window.getAtlasCaptureState(),
-    splitVisible: window.getComputedStyle(document.querySelector('.capture-split-divider')).display !== 'none',
-    sliderVisible: document.querySelector('.capture-split-control')?.classList.contains('visible') === true,
-    modeLabel: document.getElementById('capture-mode-label')?.textContent || '',
-  }));
-  if (!splitCapture.splitVisible || !splitCapture.sliderVisible || !splitCapture.modeLabel.includes('Split')) {
-    throw new Error(`Atlas split capture view should expose a divider and split label: ${JSON.stringify(splitCapture)}`);
-  }
-
-  await page.click('[data-capture-view="overlay"]');
-  await page.waitForFunction(() => {
-    const state = window.getAtlasCaptureState?.();
-    return state?.view === 'overlay' && state?.overlayOpacity > 0 && state?.overlayClipPath === '';
-  }, { timeout: 5000 });
   await page.click('#exit-capture');
   await page.waitForFunction(() => window.getAtlasCaptureState?.().enabled === false, { timeout: 5000 });
   await new Promise(resolve => setTimeout(resolve, 400));
@@ -425,6 +401,52 @@ try {
   }
   if (viewerWmsTileHits < 1) {
     throw new Error('Atlas source selector did not request the viewer WMS endpoint while Sentinel was armed.');
+  }
+
+  const hitsBeforeWmsCapture = {
+    gee: atlasGeeTileHits,
+    configured: configuredWmsTileHits,
+    viewer: viewerWmsTileHits,
+  };
+  await page.click('#toggle-capture');
+  await page.waitForFunction(() => window.getAtlasCaptureState?.().enabled === true, { timeout: 5000 });
+  await page.click('[data-capture-view="split"]');
+  await page.evaluate(() => {
+    const slider = document.getElementById('capture-split-slider');
+    slider.value = '62';
+    slider.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  await page.waitForFunction(() => {
+    const state = window.getAtlasCaptureState?.();
+    return state?.view === 'split' && state?.split === 62 && state?.overlayClipPath.includes('62%');
+  }, { timeout: 5000 });
+  const wmsSplitCapture = await page.evaluate(() => ({
+    ...window.getAtlasCaptureState(),
+    splitVisible: window.getComputedStyle(document.querySelector('.capture-split-divider')).display !== 'none',
+    sliderVisible: document.querySelector('.capture-split-control')?.classList.contains('visible') === true,
+    modeLabel: document.getElementById('capture-mode-label')?.textContent || '',
+    providerLabel: document.getElementById('capture-provider-label')?.textContent || '',
+    boostedLayer: !!document.querySelector('.leaflet-layer.capture-interpretation-layer'),
+  }));
+  if (
+    !wmsSplitCapture.interpretationAvailable
+    || !wmsSplitCapture.splitVisible
+    || !wmsSplitCapture.sliderVisible
+    || !wmsSplitCapture.modeLabel.includes('Split')
+    || !wmsSplitCapture.providerLabel.includes('Sentinel WMS')
+    || !wmsSplitCapture.boostedLayer
+  ) {
+    throw new Error(`Atlas Sentinel WMS capture should expose boosted Split interpretation: ${JSON.stringify(wmsSplitCapture)}`);
+  }
+  await page.click('#exit-capture');
+  await page.waitForFunction(() => window.getAtlasCaptureState?.().enabled === false, { timeout: 5000 });
+  await new Promise(resolve => setTimeout(resolve, 400));
+  if (
+    atlasGeeTileHits !== hitsBeforeWmsCapture.gee
+    || configuredWmsTileHits !== hitsBeforeWmsCapture.configured
+    || viewerWmsTileHits !== hitsBeforeWmsCapture.viewer
+  ) {
+    throw new Error('Atlas Sentinel WMS capture mode should not request provider tiles.');
   }
 
   await page.evaluate(() => {

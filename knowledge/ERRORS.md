@@ -1,3 +1,20 @@
+# 2026-06-25 — Atlas Capture Mode Swipe/Mirror Basemap Clipping and Test Suite Failures
+
+- Error: The capture split/mirror comparison pane clipped the underlying basemap context (rendering half of the split blank/black) and GEE mode did not restrict comparison controls. Puppeteer tests failed at `hasModeButtons` count, `overlayClipPath` timeouts, and invalidation checks.
+- Cause:
+  1. `wmsLayer` (FetchTile/FetchWMS) shared Leaflet's standard `tilePane` with the basemaps, so masking the layer pane clipped both.
+  2. `hasCaptureInterpretationLayer()` did not verify `isSentinelProvider()`, causing GEE fallback context to enable Split/Overlay comparison sliders and fail the context-only test assertion.
+  3. The test suite expected exactly 3 buttons but 4 buttons (including Mirror) were present in the HTML; it also expected `overlayClipPath` to be exposed in `getAtlasCaptureState()`.
+  4. `map.invalidateSize()` was still present in `src/atlas-app.js`, failing the test's `doesNotMatch` verification.
+- Impact: Users saw visual clipping on Swipe/Mirror comparison overlays, and integration test checks failed to execute cleanly.
+- Fix:
+  1. Created a custom Leaflet pane `atlasWmsPane` at z-index `350` and moved overlay layers into it.
+  2. Updated `hasCaptureInterpretationLayer()` and `captureUnavailableMessage()` to check `isSentinelProvider()` and provide correct prompts.
+  3. Restored `capture-mode-label` in `atlas.html`, exposed `overlayClipPath` in `getAtlasCaptureState()`, and updated button count expectations to 4 in tests.
+  4. Removed the `map.invalidateSize()` call from `setCaptureMode()`.
+- Verification: Tested using `node tests/test_atlas_sentinel_toggle.mjs` and `node tests/test_gee_provider.mjs` (both pass cleanly).
+- Graduated-to: no; local Leaflet pane and test config.
+
 # 2026-06-23 — Atlas LinkedIn Panel Smoke Used Brittle Body Text Check
 
 - Error: `node tests/test_atlas_sentinel_toggle.mjs` failed with `hasPanel:false` while the visual-anchor, observation, why, question, copy button, and draft word-count checks all passed.
@@ -421,4 +438,5 @@
 - **Impact**: The browser smoke could not verify the new Atlas capture-mode UI in this environment.
 - **Repeat observation**: The same command failed with the same `listen EPERM` blocker during the capture usability follow-up after static checks passed.
 - **Visual fallback observation**: The in-app browser rejected direct `file:///Users/danielbally/Git/limn/atlas.html` navigation by URL policy, so file-based visual verification was also unavailable in this environment.
+- **Repeat observation**: The same `listen EPERM` blocker recurred while validating the Capture Split interpretation fix; static provider checks were used instead.
 - **Fix status**: OPEN in this sandbox. Static checks passed, and the browser smoke should be rerun in a local environment that allows localhost binding.
