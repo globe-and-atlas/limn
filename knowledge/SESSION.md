@@ -37,3 +37,13 @@
 - OPEN top-priority follow-up: measure shipped VIEWER calibration FP (stricter τ) against same 150 points — needs raw bands persisted
 - OPEN author decision: how to position 96.7% pipeline FP in public whitepaper §7
 - All work committed + pushed to globe-and-atlas/limn (canonical): 26cc32d, b7ba495, 575c21d, 2c92413 + tag preprint-v1.1
+- 2026-07-20 06:55 — commit: docs: session checkpoint — false-positive study | knowledge/SESSION.md
+- 2026-07-20 09:17 — commit: feat: measure viewer-calibration FP; neither calibration discriminates | PUBLIC_SCIENCE_GUIDE.md,execution/background_raw.csv,execution/sample_background.py,execution/score_viewer_calibration.py,execution/viewer_false_positive_summary.md
+
+### 2026-07-20 - Viewer-calibration FP measured (Claude Code CLI / Fable 5)
+- Persisted raw bands, re-fetched 150 background pts, ported shipped viewer evalscripts (score_viewer_calibration.py)
+- RESULT: viewer FP = 0.0% all 3 flagships (max rendered PWCI = 0.00000) BUT viewer blank at all 11 verified spill sites → neither shipped calibration discriminates (pipeline fires everywhere, viewer nowhere)
+- Repositioned whitepaper as experimental screening methodology, not validated detector (abstract/§7/§8)
+- Open R&D: calibration search for useful-recall + low-FP; non-flagship indices (LBI 1.3%/VSI 6.0%/BPI 7.3% FP) do discriminate
+- Author positioning decision surfaced (QC report): (a) honest WIP paper, (b) hold until discriminating calib, (c) reframe around what works
+- Commits: 33db25e (+ earlier 26cc32d,b7ba495,575c21d,2c92413,5e38158), tag preprint-v1.1 — all pushed to globe-and-atlas/limn
