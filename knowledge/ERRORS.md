@@ -1,3 +1,13 @@
+# 2026-07-19 — batch_analyze_spills.py NameError: Path not defined (validation pipeline broken)
+
+- Error: `execution/batch_analyze_spills.py` raised `NameError: name 'Path' is not defined` at import (line 12, `env_path = Path(__file__)...`). The script could not run or be imported.
+- Cause: The module used `pathlib.Path` for `.env` loading but never imported it (`from pathlib import Path` was missing). A prior refactor removed the import while leaving the usage.
+- Impact: The offline validation pipeline that produces the published recall numbers (PWCI 81.5% etc.) was non-runnable in its current form; also blocked reuse of `calculate_indices` by the new false-positive sampler.
+- Fix: Added `from pathlib import Path` to the imports. Verified with `python3 -c "import batch_analyze_spills"` (imports cleanly).
+- Graduated-to: Deterministic import error — noted here; no domain doc needed. Reinforces the workspace pathlib convention (CLAUDE.md).
+
+---
+
 # 2026-06-25 — Atlas Capture Mode Swipe/Mirror Basemap Clipping and Test Suite Failures
 
 - Error: The capture split/mirror comparison pane clipped the underlying basemap context (rendering half of the split blank/black) and GEE mode did not restrict comparison controls. Puppeteer tests failed at `hasModeButtons` count, `overlayClipPath` timeouts, and invalidation checks.
