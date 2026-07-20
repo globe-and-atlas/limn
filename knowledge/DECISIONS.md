@@ -1,5 +1,15 @@
 # Architecture Decisions — sentinel-explorer
 
+## Canonical remote is globe-and-atlas/limn (2026-07-19)
+
+**Decision:** `public` (<https://github.com/globe-and-atlas/limn>) is the legit/canonical remote; `origin` (dbally-gis/limn) is legacy. Local `main` now tracks `public/main`, so plain `git push` / `git pull` go to globe-and-atlas.
+
+**Why:** Owner confirmed globe-and-atlas/limn is the authoritative copy; origin had drifted and is no longer the publication home.
+
+**How applied:** `git branch -u public/main` set on 2026-07-19. Push to `origin` only if explicitly asked.
+
+---
+
 ## Atlas LinkedIn guidance stays inside the info panel (2026-06-23)
 
 **Decision:** Add LinkedIn-caliber Ground Truth guidance as a selected-index info-panel section instead of creating a new Atlas category or navigation lane.
