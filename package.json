@@ -10,6 +10,7 @@
     "test:science-status": "node tests/test_scientific_status.mjs",
     "test:core:parity": "node tests/test_core_formula_parity.mjs",
     "test:core:ui": "node tests/test_core_ui_contract.mjs",
+    "test:cog:visibility": "python3 tests/test_cog_screening_visibility.py",
     "test:browser": "node tests/test.js",
     "test:fetch": "node tests/test_fetch.js"
   },

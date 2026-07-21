@@ -257,6 +257,40 @@ def colorize(score: np.ndarray, valid: np.ndarray, palette: list[tuple[int, int,
     return np.dstack([rgb.astype("uint8"), alpha])
 
 
+def colorize_screening(
+    score: np.ndarray,
+    valid: np.ndarray,
+    palette: list[tuple[int, int, int]],
+    threshold: float,
+) -> np.ndarray:
+    """Show screening coverage without promoting non-candidates to detections.
+
+    Clear pixels that do not pass the index threshold receive a neutral veil;
+    non-zero sub-threshold response is muted; threshold-passing candidates keep
+    the index palette. This changes display alpha only, never the score or gate.
+    """
+    score = clamp01(score)
+    n = len(palette) - 1
+    scaled = score * n
+    lo = np.clip(np.floor(scaled).astype("int16"), 0, n)
+    hi = np.clip(lo + 1, 0, n)
+    frac = (scaled - lo)[..., None]
+    colors = np.array(palette, dtype="float32")
+    response_rgb = colors[lo] * (1 - frac) + colors[hi] * frac
+
+    neutral = np.array([35, 43, 54], dtype="float32")
+    proximity = clamp01(score / max(0.0001, threshold))[..., None]
+    muted_rgb = neutral * (1 - proximity * 0.55) + response_rgb * (proximity * 0.55)
+    candidate = (score >= threshold) & valid
+    rgb = np.where(candidate[..., None], response_rgb, muted_rgb)
+
+    alpha = np.where(valid, 38.0, 0.0)
+    alpha = np.where((score > 0) & valid, 38.0 + proximity[..., 0] * 34.0, alpha)
+    candidate_ramp = clamp01((score - threshold) / max(0.0001, 1 - threshold))
+    alpha = np.where(candidate, 105.0 + candidate_ramp * 130.0, alpha)
+    return np.dstack([rgb.astype("uint8"), alpha.astype("uint8")])
+
+
 def render_true_color(b: dict[str, np.ndarray], valid: np.ndarray) -> np.ndarray:
     rgb = np.dstack([b["B04"], b["B03"], b["B02"]])
     rgb = clamp01((rgb - 0.02) / (0.35 - 0.02))
@@ -336,7 +370,7 @@ def render_index(
             * np.maximum(0, (hmri - ratio_offset) * 2)
         )
         score = np.where(bsi > bsi_mask, clamp01(np.power(raw * 20, 3)), 0)
-        return colorize(score, valid, [(0, 255, 255), (255, 0, 255), (204, 255, 0)], max(0.05, display_floor))
+        return colorize_screening(score, valid, [(0, 255, 255), (255, 0, 255), (204, 255, 0)], max(0.05, display_floor))
 
     if index_key == "hpwi":
         ndoi = normdiff(b["B02"], b["B12"])
@@ -346,7 +380,7 @@ def render_index(
             * clamp01((ndwi + 0.3) / 0.6)
             * 6
         )
-        return colorize(score, valid, [(75, 0, 130), (231, 76, 60), (241, 196, 15)], max(0.08, display_floor))
+        return colorize_screening(score, valid, [(75, 0, 130), (231, 76, 60), (241, 196, 15)], max(0.08, display_floor))
 
     if index_key == "pwoi":
         radar_proxy = clamp01((ndwi + 0.3) / 0.6)
@@ -358,7 +392,7 @@ def render_index(
             0,
         )
         score = clamp01(np.maximum(wet, dry))
-        return colorize(score, valid, [(0, 16, 42), (0, 210, 255), (255, 0, 255), (140, 0, 255)], max(0.60, display_floor))
+        return colorize_screening(score, valid, [(0, 16, 42), (0, 210, 255), (255, 0, 255), (140, 0, 255)], max(0.60, display_floor))
 
     if index_key == "lbi":
         standing_water = ndwi > 0.30
@@ -371,7 +405,7 @@ def render_index(
             * surface_gate
             * 20
         )
-        return colorize(score, valid, [(0, 85, 255), (0, 210, 255), (255, 255, 255)], max(0.08, display_floor))
+        return colorize_screening(score, valid, [(0, 85, 255), (0, 210, 255), (255, 255, 255)], max(0.08, display_floor))
 
     return render_true_color(b, valid)
 

@@ -438,7 +438,7 @@ HIGHLIGHT_THRESHOLDS = { pwi:0.10, hpwi:0.05, pwoi:0.05, fbc:0.10, lbi:0.08, ndm
 
 The app supports **three** tile providers, chosen by `config.IMAGE_PROVIDER`:
 
-1. **`cog`** (default for demos) — proxies to a backend COG endpoint `/api/cog/tiles/{z}/{x}/{y}?...` (Element84 Earth Search public Sentinel-2 COGs). 256px tiles.
+1. **`cog`** (default for Produced Water) — proxies to a backend COG endpoint `/api/cog/tiles/{z}/{x}/{y}?...` (Element84 Earth Search public Sentinel-2 COGs). Ten-meter-only formulas use 256px/10 m grid requests; formulas containing 20 m SWIR or red-edge bands use a 512px Leaflet tile backed by the next-lower XYZ level, preserving the native 20 m information scale while avoiding false oversampling.
 2. **`gee`** — proxies to `/api/gee/tiles/{z}/{x}/{y}?...` (a Google Earth Engine backend). 512px tiles, retina.
 3. **`sentinelhub`** — direct **WMS** calls to Copernicus Sentinel Hub (spends credits; gated behind a "credit guard"). This is the provider that uses the evalscripts directly client-side.
 
@@ -457,7 +457,11 @@ The app supports **three** tile providers, chosen by `config.IMAGE_PROVIDER`:
 ### 9.2 Rate limiting
 
 Both WMS and GEE/COG tiles use a custom `L.TileLayer(.WMS).extend(...)` subclass (`RateLimitedWMS` / `RateLimitedTile`) that:
-- Queues tile fetches, caps concurrency (`maxConcurrent`: 1 for WMS, 2 for COG/GEE).
+- Queues tile fetches and caps concurrency (`maxConcurrent`: 1 for WMS, 6 for COG, 2 for GEE).
+- Cancels queued and active browser requests when a layer is removed; the COG server also terminates an orphaned Python render when no clients remain.
+- Disables Leaflet Retina request multiplication for COG layers because the source bands, rather than display pixel density, determine scientific resolution.
+
+The COG renderer uses a visible screening display for `pwi`, `pwoi`, `hpwi`, and `lbi`: clear sub-threshold pixels receive a neutral low-alpha veil, non-zero sub-threshold scores receive muted palette color, and threshold-passing candidates retain bright palette color. This is a display-only RGB/alpha rule. It does not alter the scalar formulas, masks, thresholds, or candidate status.
 - Fetches each tile via `fetch()` → `blob()` → `URL.createObjectURL` → `img.src` (so HTTP errors are catchable; revokes the object URL on load).
 - On **HTTP 429**, reads `Retry-After`, sets a global cooldown, fires a `ratelimit` event, and retries with backoff.
 - Parses Sentinel Hub XML `ServiceException` / JSON error bodies into readable messages; flags `insufficient processing units` as quota-exhausted.

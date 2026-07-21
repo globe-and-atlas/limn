@@ -41,6 +41,8 @@ Limn Produced Water defaults to **public Sentinel-2 L2A Cloud-Optimized GeoTIFFs
 
 The COG path implements the primary investigation stack: **True Color, LBI, MNDWI, AWEIsh, NDMI, SAVI, BSI, dual-SWIR contrast, SWIR false color, and NDRE**, plus the experimental **PWCI, ASAI, and OBEC** comparisons. It applies Sentinel-2 Scene Classification (SCL) quality filtering to retain vegetation, bare-soil, water, and unclassified clear pixels while rejecting cloud, cirrus, shadow, snow, saturated/defective, dark-feature, and no-data pixels. COG mode supports before/after swipe comparison; mathematical Diff and Cumulative remain disabled until temporal COG rendering is implemented.
 
+For PWCI, ASAI, OBEC, and LBI, the COG display distinguishes computation coverage from a threshold response: a muted neutral veil means a clear pixel was screened but did not flag, muted color indicates a non-zero sub-threshold score, and bright index colors indicate threshold-passing candidates. This presentation changes only RGB/alpha display values; it does not relax a gate, alter the scalar score, or convert a candidate into a detection.
+
 Limn Atlas still defaults to **Google Earth Engine true-color context** until Atlas-specific formulas are ported to the COG renderer. Earth Engine service-account credentials stay on the server.
 
 1. Copy the safe browser config:

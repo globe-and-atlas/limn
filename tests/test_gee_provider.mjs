@@ -88,7 +88,7 @@ assert.match(app, /config\.SENTINEL_CREDIT_GUARD = true/, 'share mode should kee
 assert.match(app, /config\.SENTINEL_LIVE_TILES = true/, 'share mode should keep Sentinel live tiles armed');
 assert.match(app, /sentinelOnlyShareMode: isSentinelOnlyShareMode\(\)/, 'provider state should expose share mode');
 assert.match(app, /state\.map\.on\('sentinelratelimit'/, 'app should surface Sentinel Hub rate-limit cooldowns');
-assert.match(app, /map-layer-status[\s\S]*sparse or blank response can be valid/, 'app should distinguish a loaded sparse lens from a failed tile request');
+assert.match(app, /map-layer-status[\s\S]*muted = screened\/no flag[\s\S]*sparse or blank response can be valid/, 'app should distinguish screened negatives, sparse lenses, and failed tile requests');
 assert.match(map, /function getSentinelCreditGuardStatus/, 'map layer factory should check the Sentinel credit guard');
 assert.match(map, /adaptEvalscriptForSentinelWms\(finalScript, config\.SENTINEL_WMS_SUPPORTS_SCL === true\)/, 'Sentinel WMS scripts should remove L2A-only SCL unless explicitly supported');
 assert.match(map, /getSentinelGuardLayer/, 'Sentinel guard should return a local placeholder layer instead of WMS tiles');
@@ -182,6 +182,10 @@ assert.match(cogRenderer, /if index_key not in INDEX_BANDS/, 'COG renderer shoul
 assert.match(cogRenderer, /Unsupported COG index/, 'COG renderer should name unsupported index failures clearly');
 assert.match(cogRenderer, /item_cache_key/, 'COG renderer should cache STAC item selection across index requests');
 assert.match(cogRenderer, /alpha = np\.where\(\(score >= threshold\) & valid, 70 \+ ramp \* 165, 0\)/, 'COG overlays should use graded sparse alpha instead of opaque masks');
+assert.match(cogRenderer, /def colorize_screening[\s\S]*neutral = np\.array\(\[35, 43, 54\][\s\S]*candidate = \(score >= threshold\) & valid/, 'experimental COG screens should visibly distinguish analyzed negatives from bright candidates');
+for (const key of ['pwi', 'hpwi', 'pwoi', 'lbi']) {
+  assert.match(cogRenderer, new RegExp(`if index_key == [\"']${key}[\"'][\\s\\S]*return colorize_screening`), `COG ${key} should use the visible screening display without changing its score`);
+}
 assert.match(cogRenderer, /CLEAR_SCL_CLASSES = \{4, 5, 6, 7\}/, 'COG provider should reject cloud, shadow, snow, saturated, and dark-feature classes');
 assert.match(cogRenderer, /standing_water = ndwi > 0\.30[\s\S]*surface_gate = np\.where\(standing_water, 1\.0/, 'COG LBI should preserve the shipped standing-water bypass');
 assert.match(smoke, /urlPath\.startsWith\('\/api\/gee\/tiles\/'\)/, 'browser smoke test should stub local GEE tiles');

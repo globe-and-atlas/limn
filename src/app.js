@@ -347,6 +347,7 @@ const COG_SCREEN_INDEX_KEYS = new Set([
     'tc', 'lbi', 'ndwi', 'awei', 'ndmi', 'savi', 'bsi', 'ndsi', 'swir_rgb', 'ndre',
     'pwi', 'pwoi', 'hpwi'
 ]);
+const SCREENING_VISIBILITY_INDEX_KEYS = new Set(['pwi', 'hpwi', 'pwoi', 'lbi']);
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const START_YEAR = 2020;
@@ -1107,7 +1108,11 @@ document.addEventListener('DOMContentLoaded', () => {
         mapLayerStatus.classList.remove('is-loading', 'is-ready', 'is-error');
         mapLayerStatus.classList.add(`is-${mode}`);
         if (mode === 'loading') mapLayerStatus.textContent = `Loading ${label}…`;
-        if (mode === 'ready') mapLayerStatus.textContent = `${label} loaded · sparse or blank response can be valid`;
+        if (mode === 'ready') {
+            mapLayerStatus.textContent = SCREENING_VISIBILITY_INDEX_KEYS.has(layerKey)
+                ? `${label} loaded · muted = screened/no flag · bright = candidate`
+                : `${label} loaded · sparse or blank response can be valid`;
+        }
         if (mode === 'error') mapLayerStatus.textContent = `${label} failed to load · see the error message`;
     };
     state.map.on('tileloadstart', (event) => {
