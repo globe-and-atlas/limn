@@ -12,7 +12,7 @@
 
 Produced water represents the largest volume liquid waste stream associated with oil and gas extraction, carrying high concentrations of ancient formation halides (brine salts), aromatic and aliphatic hydrocarbons, and dissolved heavy metal precipitants. Rapid spatial detection of these spills in arid and semi-arid regions (such as the Permian Basin) is severely hindered by high-albedo caliche backgrounds, dry playas, and civil construction signatures that mimic spill anomalies in single-band indices. 
 
-This paper presents **Limn**, a multispectral methodology built on Copernicus Sentinel-2 imagery that pursues produced-water screening via **Multi-Gate Geochemical Consensus** — multiplying independent spectral proxies for salinity, hydrocarbon absorption, and mineralogical alteration into non-linear logical-AND structures intended to suppress the bare-desert false-positive floor that defeats single-band indices. We contribute three things and are explicit about a fourth. **First**, the multi-gate consensus architecture itself, as a design pattern for arid-terrain anomaly screening. **Second**, a disciplined verified-site program: documented produced-water events with regulator filing references and exact coordinates, suitable as a public validation substrate. **Third**, and central to this revision, a **rigorous negative result**: under a full threshold sweep (1,224 gate configurations and per-index recall-vs-false-positive frontiers on a 32-record spill set and 150 background points), *no* configuration of these Sentinel-2 spectral composites separates produced water from Permian caliche at a usable operating point — the flagship consensus index shows essentially zero discrimination. We report this plainly rather than behind favorable thresholds. **Fourth**, we identify where narrow legitimate signal does survive — notably the Liquid Brine Index for large *standing*-brine bodies, a distinct and more tractable target. The composites (PWCI, ASAI, OBEC, EHC, MVPI, and the Liquid Brine Index) and their physics are documented in full; the honest conclusion is that Limn is an **experimental screening methodology and a demonstration of a spectral limit**, not a validated produced-water detector.
+This paper presents **Limn**, a multispectral methodology built on Copernicus Sentinel-2 imagery that pursues produced-water screening via **Multi-Gate Geochemical Consensus** — multiplying spectral proxies for salinity, hydrocarbon-related contrast, and mineralogical response into non-linear logical-AND structures intended to suppress the bare-desert false-positive floor that defeats single-band indices. We contribute three things. **First**, the multi-gate consensus architecture as a reproducible design pattern for arid-terrain anomaly screening. **Second**, a disciplined verified-site program: documented produced-water events with regulator filing references and exact coordinates, suitable as a public evaluation substrate. **Third**, and central to this revision, a **rigorous negative result**: under a full threshold sweep (1,224 gate configurations and per-index recall-vs-false-positive frontiers on a 32-record spill set and 150 background points), *no* configuration of these Sentinel-2 spectral composites separates produced water from Permian caliche at a usable operating point. We also report a **narrowly positive result**: evaluated per pixel with its shipped evalscript, the Liquid Brine Index is brine-specific (0 of 149 caliche and 0 of 3 freshwater controls activate; standing brine does, including an independent recycling-pond hit; brine-vs-caliche Youden's J = 0.50), making it a promising specific screening candidate for standing brine bodies at small positive N. The composites and their implementation are documented in full; the honest conclusion is that Limn is an **experimental screening methodology and a demonstration of a spectral limit** for diffuse produced-water detection — not a validated diffuse-spill detector — with standing-brine screening as its one surviving positive avenue.
 
 ---
 
@@ -25,7 +25,7 @@ This is a **methodology and negative-result paper**, revised in July 2026 after 
 1. **A design pattern** — multi-gate geochemical consensus (logical-AND of independent spectral proxies) for suppressing false positives in arid anomaly screening (Section 3).
 2. **A verified-site program** — produced-water events with regulator filing references and exact coordinates, a reusable public validation substrate (Section 7).
 3. **A rigorous, reproducible negative result** — a full threshold sweep showing that these Sentinel-2 composites do not separate produced water from Permian caliche at any operating point (Section 7).
-4. **A narrowly scoped positive finding** — the Liquid Brine Index is highly *specific* (near-zero response on caliche background) and is a plausible detector for large *standing*-brine bodies, a distinct target from diffuse produced-water spills (Section 7).
+4. **A narrowly positive result** — evaluated per pixel with its shipped evalscript, the Liquid Brine Index is brine-specific (0 of 149 caliche and 0 of 3 freshwater controls activate; standing brine does, J = 0.50 vs caliche). It is a promising specific standing-brine screening candidate at small positive N — the one discriminating index in the suite (Section 7).
 
 **What this paper does NOT claim:**
 
@@ -41,13 +41,13 @@ This is a **methodology and negative-result paper**, revised in July 2026 after 
 1. [Introduction & Environmental Context](#1-introduction--environmental-context)
 2. [The Geochemical Footprint of Produced Water](#2-the-geochemical-footprint-of-produced-water)
 3. [The Multi-Gate Logical AND Architecture](#3-the-multi-gate-logical-and-architecture)
-4. [Novel Custom Produced Water Composites (Daniel Bally, Globe & Atlas)](#4-novel-custom-produced-water-composites-daniel-bally-globe--atlas)
+4. [Project-Specific Produced-Water Screening Composites](#4-project-specific-produced-water-screening-composites)
    - [PWCI: Produced Water Chemical Index](#pwci-produced-water-chemical-index)
    - [ASAI: Arid Salinity Anomaly Index](#asai-arid-salinity-anomaly-index)
    - [OBEC: Oil-Brine Emulsion Composite](#obec-oil-brine-emulsion-composite)
    - [EHC: Evaporite Halo Composite](#ehc-evaporite-halo-composite)
    - [MVPI: Methane Venting Plume Index](#mvpi-methane-venting-plume-index)
-5. [Novel ✧✧ Public-Good Ecological Composites (Daniel Bally, Globe & Atlas)](#5-novel-✧✧-public-good-ecological-composites-daniel-bally-globe--atlas)
+5. [Atlas-Linked Public-Good Screening Methods](#5-atlas-linked-public-good-screening-methods)
    - [CSRC: Cyanotoxin Scum Risk Composite](#csrc-cyanotoxin-scum-risk-composite)
    - [TRSI: Tailings River Shock Index](#trsi-tailings-river-shock-index)
    - [LFGVI: Landfill Gas Vegetation Intrusion Index](#lfgvi-landfill-gas-vegetation-intrusion-index)
@@ -110,15 +110,15 @@ Where:
 *   $\tau_i$ is the strict regional background threshold for that specific proxy. (In practice each gated term may also carry a scale multiplier $\beta_i$, i.e. $\max(0, \text{Proxy}_i - \tau_i) \times \beta_i$; the per-index sections give the calibrated values.)
 *   The $\max(0, \cdot)$ envelope acts as a **hard logical gate**: if even a single proxy fails to exceed its regional background threshold ($\tau_i$), its score becomes $0$, reducing the entire composite calculation to $0$.
 
-Only when **all independent chemical indicators** exceed their respective thresholds does the consensus index evaluate to a non-zero value, isolating the unique, multi-chemical footprint of produced water.
+Only when all configured proxy gates exceed their thresholds does the consensus index evaluate to a non-zero value. The gates reuse correlated surface reflectance and do not isolate a unique produced-water chemical footprint in the current evaluation.
 
 ---
 
-## 4. Novel Custom Produced Water Composites (Daniel Bally, Globe & Atlas)
+## 4. Project-Specific Produced-Water Screening Composites
 
-The following five spectral index models are original produced water architectures designed, calibrated, and authored by **Daniel Bally**.
+The following spectral architectures were implemented and calibrated for Limn by **Daniel Bally**. The individual ratios derive from established remote-sensing practice; literature priority for the packaged formulas is not asserted here.
 
-> **Formula provenance note (v1.1):** Two calibrations of these composites exist. The **validated pipeline calibration** is the configuration whose detection rates are reported in Section 7 (batch validation, 2026-03-28). The **interactive viewer calibration** applies stricter basin presets tuned for low-noise visual triage; it trades recall for precision and is not the configuration the Section 7 rates describe. Each formulation below documents the validated pipeline form and notes where the viewer differs.
+> **Formula provenance note (v2.0):** Two calibrations of these composites exist. The **development-pipeline calibration** is the configuration whose recall and background-activation rates are reported in Section 7. The **interactive viewer calibration** applies stricter basin presets and is the formula rendered by the app. Neither is validated. Each formulation below identifies which configuration it describes.
 
 ---
 
@@ -143,10 +143,10 @@ The PWCI is the core geochemical consensus index. It requires the simultaneous p
 4.  **Logical Multi-Gate Multiplication:**
     $$\text{PWCI}_{\text{raw}} = \text{BrineScore} \times \text{HydrocarbonScore} \times \text{MetalScore}$$
 
-5.  **Non-Linear Contrast Stretching with Bare-Soil Weight (validated pipeline form):**
+5.  **Non-Linear Contrast Stretching with Bare-Soil Weight (development-pipeline form):**
     $$w_{\text{BSI}} = \min(1.0, \max(0.3, \text{BSI} \times 5.0 + 0.3))$$
     $$\text{PWCI}_{\text{final}} = \min(1.0, (\text{PWCI}_{\text{raw}} \times 50.0)^{1.2} \times w_{\text{BSI}})$$
-    The soft bare-soil weight prevents mixed or vegetation-edge pixels from zeroing an otherwise valid three-gate consensus. This is the exact configuration whose 81.5% detection rate is reported in Section 7.
+    The soft bare-soil weight prevents mixed or vegetation-edge pixels from zeroing the three-gate score. This is the exact configuration whose 81.5% development recall—and 96.7% background activation—is reported in Section 7.
 
 6.  **Interactive viewer variant:** the map viewer renders PWCI with a hard bare-soil mask, stricter basin-preset thresholds (Permian preset: $\tau$ = 0.10 / 0.30 / 2.0 with ×2 score multipliers), and a steeper cubic stretch $\min(1.0, (\text{raw} \times 20.0)^3)$. This precision-first configuration suppresses nearly all background at the cost of recall — it will render blank at many sites the pipeline configuration detects — and its detection rate is not the Section 7 figure.
 
@@ -164,7 +164,7 @@ The PWCI is the core geochemical consensus index. It requires the simultaneous p
          0.0 -----|-/-----------------> Raw Spill Intensity
 ```
 
-*   **Physical Basis:** The super-linear stretch creates a sharp "knee." Marginal soil anomalies and noise collapse toward zero, while genuine spill signals with multi-chemical elevation quickly saturate to $1.0$, creating a high-contrast map of contamination. The viewer's cubic variant makes this knee steeper still.
+*   **Implementation behavior:** The super-linear stretch creates a sharp "knee." Marginal composite scores collapse toward zero while larger scores saturate toward $1.0$. This changes display contrast; it does not establish that a high score is genuine contamination. The viewer's cubic variant makes the knee steeper still.
 
 ---
 
@@ -172,7 +172,7 @@ The PWCI is the core geochemical consensus index. It requires the simultaneous p
 
 The ASAI is designed for high-sensitivity detection in hyper-arid soils. It operates in two distinct meteorological modes — a wet-path smoothness/salinity fusion and a dry-brine logic gate that fires when moisture indicators fall below regional baselines. The final score is the maximum of the two modes.
 
-#### Dry-Brine Mode (validated pipeline form):
+#### Dry-Brine Mode (development-pipeline form):
 
 The dry path activates only when a three-condition arid gate is satisfied:
 
@@ -186,7 +186,7 @@ Where:
 *   $\text{BSI}$ (Bare Soil Index) ensures that only high-albedo soil receives analysis:
     $$\text{BSI} = \frac{(B11 + B04) - (B08 + B02)}{(B11 + B04) + (B08 + B02)}$$
 *   $\text{NDWI} = (B03 - B11)/(B03 + B11)$ acts as the desiccation gate — deeply negative NDWI certifies dry bare ground before any salinity claim is made.
-*   **Physical Basis:** In highly desiccated bare soil, standard water indices are suppressed. ASAI isolates the salt-crust accumulation over dry caliche by correlating the soil's brightness (BSI) with shortwave salinity shifts (NDSI), preventing natural gypsum playas from triggering false positives. Adding this mode raised validation detection from 29.6% to 77.8% (Section 7).
+*   **Screening hypothesis:** In highly desiccated bare soil, standard water indices are suppressed. ASAI combines brightness (BSI) with a shortwave salinity proxy (NDSI) to screen for salt-crust-like response. Adding this mode raised development recall from 29.6% to 77.8%, but background activation was 71.3%; it did not prevent natural-background false positives (Section 7).
 *   **Interactive viewer variant:** the current viewer applies a precision-tuned dry gate that is substantially stricter (NDSI > 0.15, BSI > 0.52, smoothness < −0.42, with a 0.60 display floor) following a June 2026 noise-suppression calibration pass. The Section 7 rate describes the pipeline form above, not this stricter viewer configuration.
 
 ---
@@ -204,8 +204,8 @@ Where:
 *   $$\text{ChemicalSignal} = \min\left(1.0,\; \max(0, \text{NDOI}) + \max(0, \text{NDSI} - 0.03) \times 0.8\right)$$
 *   $\text{SmoothnessProxy}$ remaps the green-vs-SWIR normalized difference into a $[0,1]$ smoothness score:
     $$\text{SmoothnessProxy} = \text{clamp}\left(\frac{\frac{B03 - B11}{B03 + B11} + 0.3}{0.6},\; 0,\; 1\right)$$
-*   **Dry-brine parallel path:** in the validated pipeline, a secondary path fires under the same arid gate as ASAI (NDWI < −0.30, NDSI > 0.05, BSI > 0.10), scoring evaporated salt crusts as $\min(1, \max(0,\text{NDSI}-0.04) \times \min(1,\text{BSI}\times3.5) \times 14)$; the final OBEC is the maximum of the wet and dry paths. This path contributed to the Section 7 detection rate.
-*   **Physical Basis:** Fresh produced water spills form highly reflective, smooth liquid sheets. Elevated green reflectance relative to Band 11 (SWIR-1) approximates specular surface reflectance. Fusing this optical smoothness proxy with chemical absorption ratios ensures that dry saline soils are ignored by the wet path while fresh, flowing emulsions are highlighted.
+*   **Historical development-only dry path:** the evaluation pipeline also tested a secondary ASAI-like arid path: $\min(1, \max(0,\text{NDSI}-0.04) \times \min(1,\text{BSI}\times3.5) \times 14)$. It contributed to the 66.7% development recall and 71.3% background activation. The shipped OBEC evalscript does **not** contain this path.
+*   **Screening hypothesis:** Green-vs-SWIR contrast can respond to smooth or wet surfaces, and NDOI/NDSI-like ratios can respond to surface material differences. Their product is an optical anomaly proxy, not an oil/brine-emulsion or chemical retrieval.
 
 ---
 
@@ -255,11 +255,11 @@ Where:
 
 ---
 
-## 5. Novel ✧✧ Public-Good Ecological Composites (Daniel Bally, Globe & Atlas)
+## 5. Atlas-Linked Public-Good Screening Methods
 
-Beyond localized industrial produced water blowouts, the Limn methodology integrates four public-good environmental emergency screening tools. These composites apply **multi-gate consensus and rejection logic** to complex ecological and civil environments.
+Beyond localized industrial produced-water screening, four historical examples connect this preprint to the broader Limn Atlas research catalog. They illustrate how multi-gate and rejection logic can be specified for other environmental questions; they are not additional evidence for the produced-water results and are not claimed here as four independent scientific inventions.
 
-> **Implementation status (v1.1):** CSRC and LFGVI are live, renderable composites in the Limn Atlas. TRSI and SWRI are **context targets with proof rendering pending** — their formulations are implemented, but no measured scene has yet passed the project's proof-grade signal threshold, so they are presented as screening architectures, not validated detectors. All formulas below are the shipped implementations.
+> **Atlas v2 status:** CSRC is a live **variant** in the *Aquatic Blooms & Pigments* family; LFGVI is a live **component feature** in *Landfill Surface Context*; TRSI and SWRI are non-live **research models** in *Water Condition & Plumes*. Atlas family and method-role labels govern their public interpretation. None has reached independent V1 evaluation, and this section does not transfer Limn's produced-water evidence to them.
 
 ---
 
@@ -379,21 +379,21 @@ For public scientific clarity, Limn separates standard public-domain satellite s
 
 ## 7. Arid Background Calibration & Threshold Validation
 
-The validated pipeline calibration of Limn was benchmarked against a working set of **27 Permian Basin produced-water spill records** compiled from public Texas Railroad Commission (TRRC) violation and inspection data, with coordinates generalized per RRC data policy. This set is a **development benchmark, not an independently audited ground-truth registry**: the records do not all carry individual incident identifiers, and the reported detection rates below should be read as internal calibration results rather than peer-reviewed accuracy figures. A separate, higher-confidence validation set of **11 named sites** with exact coordinates and regulator filing references (NMOCD spill-database rows and documented Texas events — Lake Boehmer, Meister Ranch, FM 329 Crevice, Toyah, Matador Desoto Spring, OXY Lea Flowline, and others) is maintained for site-level proof and is the basis for the interactive demo bookmarks.
+The development-pipeline calibration of Limn was benchmarked against a working set of **27 Permian Basin produced-water spill records** compiled from public Texas Railroad Commission (TRRC) violation and inspection data, with coordinates generalized per RRC data policy. This set is a **development benchmark, not an independently audited ground-truth registry**: the records do not all carry individual incident identifiers, and the reported detection rates below are internal calibration results rather than peer-reviewed accuracy figures. A separate review set of **11 named sites** with exact coordinates and regulator filing references is the basis for the interactive demo bookmarks; it is an evaluation set, not proof of detection.
 
 ### Measured detection performance (batch validation, 2026-03-28, n = 27, threshold 0.01):
 
 | Composite | Detection rate | Notes |
 |---|---|---|
-| PWCI (pipeline calibration) | 81.5% | Highest single-index recall |
-| ASAI (with dry-brine mode) | 77.8% | Up from 29.6% before the dry-brine mode was added |
-| OBEC | 66.7% | Independent confirmation index |
+| PWCI (development pipeline) | 81.5% | Recall-only; background activation was 96.7% |
+| ASAI (with dry-brine mode) | 77.8% | Recall-only; background activation was 71.3% |
+| OBEC | 66.7% | Recall-only; background activation was 71.3% |
 
 These are **spill-site recall rates only**, and recall in isolation is not evidence of precision. A background false-positive study (150 randomly sampled Permian Basin points carrying no produced-water event, 2026-07-19) was run against **both** shipped calibrations to test the multi-gate suppression claim directly. **The results are reported here in full in the interest of scientific honesty, and they show that neither calibration is yet a working discriminating detector:**
 
 | | Spill-site recall | Background false-positive rate |
 |---|---|---|
-| **Validated-pipeline calibration** | PWCI 81.5% / ASAI 77.8% / OBEC 66.7% | PWCI **96.7%** / ASAI **71.3%** / OBEC **71.3%** |
+| **Development-pipeline calibration** | PWCI 81.5% / ASAI 77.8% / OBEC 66.7% | PWCI **96.7%** / ASAI **71.3%** / OBEC **71.3%** |
 | **Interactive-viewer calibration** | ≈0 (renders blank at all 11 exact-coordinate verified spill sites) | PWCI **0.0%** / ASAI **0.0%** / OBEC **0.0%** |
 
 The two calibrations fail in opposite directions. The **pipeline** calibration reaches high recall but fires on almost all bare-caliche background (PWCI's median background score is 1.0 — maximum), so its recall must not be read as accuracy. The **viewer** calibration produces essentially zero background false positives, but it achieves that by firing on almost nothing at all: its strict triple-gate (notably HMRI > 2.0, which even the metal-rich caliche median only just reaches) plus a cubic contrast stretch drives the rendered score to zero on every one of the 150 background points — and, per the site-level QC, on every one of the 11 real verified spill sites too.
@@ -407,22 +407,24 @@ To test whether this is merely a tuning problem — a discriminating calibration
 
 The honest conclusion is therefore stronger than "not yet tuned": for these Sentinel-2 spectral composites — whether read as a 500 m regional mean or per pixel — **no configuration delivers simultaneous useful recall and low false-positive rate**. The multi-gate architecture is a sound design principle (Section 3), but these particular bands at this scale do not carry enough separating signal to realize it against the Permian caliche background. This is a bounded negative result — it does not rule out higher-resolution, multi-temporal, SAR, or hyperspectral approaches — but it is the truthful current status. Accordingly this release makes **no detection-accuracy or false-positive claim**; Limn is presented as an experimental screening methodology and an investigative-lead tool, not a validated detector. Full method and figures: `reports/threshold_sweep_2026-07-20.md`, `reports/preprint_qc_2026-07-19.md`, and the `execution/*_false_positive_summary.md` artifacts.
 
-### Where legitimate signal survives: the Liquid Brine Index and standing brine
+### Where a real response survives: the Liquid Brine Index on standing water
 
-The negative result concerns *diffuse produced-water spills on bare soil* — the hard problem where chemical consensus was supposed to help and does not. It does **not** condemn every index equally. The **Liquid Brine Index (LBI)** behaves differently and is worth separating out:
+The negative result concerns *diffuse produced-water spills on bare soil* — the hard problem where chemical consensus was supposed to help and does not. It does **not** condemn every index equally. The **Liquid Brine Index (LBI)** behaves differently, and — evaluated correctly — is the one genuinely discriminating index in the suite.
 
-- On the 150 background points, LBI has a mean of **0.034** and a 90th percentile of 0.056; **0% of caliche background exceeds 0.3**. Unlike PWCI/ASAI/OBEC (which respond to dry caliche and produce 20–37% of background above 0.3), LBI is genuinely **specific** — it does not false-alarm on bare desert.
-- Its weakness in the general sweep is **recall**, not false positives: most records in the 32-site set are small or dry spills, which LBI is not designed to catch. Its actual target is *persistent standing liquid brine* — evaporation ponds, brine lakes, large blowout pools — a spectrally distinct and more tractable problem (open, highly saline water has an unambiguous signature).
-- Consistent with this, the verified-site QC finds LBI the strongest measured signal precisely at the standing-brine sites (e.g. Lake Boehmer, the Meister Ranch geyser pool).
+An important methodological correction underlies this. A first pass evaluated LBI as a 500 m box mean and found brine/freshwater overlap (mean 0.062 vs 0.044). That method is invalid for water bodies: a 500 m mean mixes a small pond with surrounding land, driving NDWI negative and disabling LBI's own water gates, and it used a batch approximation lacking the shipped index's standing-water bypass. Re-run with the **actual shipped evalscript, per pixel** (coverage = fraction of pixels that render at LBI ≥ 0.08), the picture changes:
 
-This is a **narrowly scoped, honestly caveated positive finding**, not a validated claim: LBI is a specific candidate detector for large standing-brine bodies, pending a targeted validation on a brine-body-labeled set (distinct from the diffuse-spill set used here). It is called out separately precisely so it is not oversold as a general produced-water detector — the error this revision exists to correct.
+- **Specificity is clean.** LBI renders on **0 of 149** bare-caliche controls and **0 of 3** freshwater reservoirs at the >1% coverage bar. It does not fire on ordinary fresh water (Balmorhea Lake and Lake Colorado City both zero), so it is **brine-specific, not a generic water detector**.
+- **It responds to standing brine.** 2 of 4 documented standing-brine sites render, including a strong, independent (non-calibration) hit at the Matador Desoto recycling pond (14.6% coverage). The two non-responding sites are geyser pools whose standing water was plausibly absent in the queried scene.
+- **Brine vs. caliche: Youden's J = 0.50** — the only clean separation obtained anywhere in this study.
 
-> **Calibration-configuration caveat.** The 81.5% / 77.8% / 66.7% rates were produced by the **validated pipeline** configuration (Sections 4). The **interactive map viewer** ships a precision-first calibration (stricter basin-preset thresholds, hard bare-soil masks, steeper stretch, and a June 2026 noise-suppression pass on the dry-brine gates). The viewer therefore renders far more conservatively than the pipeline and will show blank where the pipeline detects; its live behavior is a high-precision triage view, not the recall figures above. Re-validation of the shipped viewer configuration against the 11-site set is ongoing.
+The positive sample is small (four sites), so this is a validation of *response and specificity*, not a large-sample accuracy estimate; LBI is best described as a **promising, specific screening candidate for standing brine bodies** (evaporation and recycling ponds, brine lakes, large blowout pools) — a spectrally distinct and tractable target — pending a larger labeled positive set. It says nothing about diffuse spills, which remain the negative result above. Full detail: `reports/lbi_brine_validation_2026-07-20.md`.
 
-### Summary of Validated Pipeline Thresholds (PWCI):
-*   **Halite hydration floor ($\text{NDSI} > 0.03$):** Captures brine salts above the natural gypsum background.
-*   **Hydrocarbon baseline ($\text{HCAI} > 0.05$, ×5.0 gain):** Excludes bare red clay soil organic matter.
-*   **Mineralogical alteration boundary ($\text{HMRI} > 1.1$, ×3.0 gain):** Filters out standard concrete, gravel, and caliche pads.
+> **Calibration-configuration caveat.** The 81.5% / 77.8% / 66.7% rates were produced by the **development-pipeline** configuration (Sections 4). The **interactive map viewer** ships a stricter calibration (higher basin-preset thresholds, hard bare-soil masks, steeper stretch, and a June 2026 noise-suppression pass on the dry-brine gates). It renders blank at all 11 reviewed positive sites as well as all 150 controls. Neither configuration is a validated detector.
+
+### Summary of Development-Pipeline Thresholds (PWCI):
+*   **NDSI floor ($\text{NDSI} > 0.03$):** Admits positive shortwave-ratio response; not a direct halite measurement.
+*   **HCAI floor ($\text{HCAI} > 0.05$, ×5.0 gain):** Admits positive SWIR/red contrast; not a hydrocarbon retrieval.
+*   **HMRI floor ($\text{HMRI} > 1.1$, ×3.0 gain):** Admits a high SWIR-2/green ratio; not a heavy-metal retrieval.
 *   *(The interactive viewer's Permian preset raises these to 0.10 / 0.30 / 2.0 for low-noise visual triage.)*
 
 ---
@@ -458,15 +460,15 @@ Honesty about where the work stands, however, is essential. As Section 7 documen
 
 - Retitled and re-abstracted the paper as a methodology and negative-result study; added a front-matter **Contributions, Scope & Limitations** section.
 - Added the threshold-sweep verdict to Section 7 (PWCI Youden's J ≈ 0.00; best composite ASAI ~53% recall / ~30% FP) and the measured false-positive floors (pipeline PWCI 96.7%; viewer ~0% but blank at real sites too).
-- Added the narrowly scoped positive finding: the Liquid Brine Index is specific (near-zero on caliche) and a plausible standing-brine detector, pending targeted validation.
+- Validated LBI (small N) as a specific standing-brine screening candidate via a **per-pixel** test with the shipped evalscript, correcting an earlier box-mean pass whose brine/freshwater "overlap" was an artifact of averaging small water bodies over 500 m (which drives NDWI negative and disables the water gates). Corrected result: 0 of 149 caliche and 0 of 3 freshwater controls activate; standing brine does (independent recycling-pond hit); brine-vs-caliche Youden's J = 0.50. Retained the Liquid Brine Index name.
 - Corrected an internal threshold-mismatch error (the earlier "LBI 63% recall at 1.3% FP" paired two different thresholds).
 - Repositioned all claims: no validated detector, no accuracy or false-positive-suppression claim; contributions are the architecture, the verified-site program, and the negative result.
 
 **v1.1 — July 2026 (formula-fidelity and validation-transparency pass).** Following an internal QC audit against the codebase and validation pipeline, this revision:
 
-- Corrected the PWCI, ASAI, and OBEC formulations to match the validated implementation (contrast stretch, dry-brine gate conditions, smoothness proxy, and chemical-signal terms), and explicitly separated the **validated pipeline calibration** from the stricter **interactive viewer calibration**.
+- Corrected the PWCI, ASAI, and OBEC formulations to match the development implementation (contrast stretch, dry-brine gate conditions, smoothness proxy, and chemical-signal terms), and explicitly separated the **development pipeline calibration** from the stricter **interactive viewer calibration**.
 - Rewrote the Section 5 ecological composite formulas (CSRC, TRSI, LFGVI, SWRI) to match shipped code, defined NDOI, corrected the NDTI definition, and flagged TRSI/SWRI as context targets pending proof rendering.
-- Removed the unsupported false-positive figures (previously "42.3% → 0.04%"); no background/negative-sampling study has been run, so no quantitative false-positive claim is made.
+- Removed the unsupported false-positive figures then in circulation (previously "42.3% → 0.04%"); the later July background study supplies the measured rates now reported in v2.0.
 - Reframed the "27 TRRC-verified sites" as a compiled development benchmark (coordinates generalized, not all incident-ID-audited) and introduced the 11-site exact-coordinate proof set.
 - Corrected the "~89% consensus" language (README) — genuine flagship consensus rates are lower and are stated as such.
 - Added the MVPI salt cross-talk and single-scene retrieval caveats; fixed editorial errors ("four"→"five" composites; the orphaned $\beta_i$ term).
