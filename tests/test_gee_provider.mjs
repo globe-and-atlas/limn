@@ -97,7 +97,7 @@ assert.match(map, /function getRetryAfterMs/, 'Sentinel WMS loader should honor 
 assert.match(map, /state\.map\.fire\('sentinelratelimit'/, 'Sentinel WMS loader should announce 429 cooldowns');
 assert.match(map, /tileSize:\s*512/, 'Sentinel WMS tiles should use larger tiles to reduce request count');
 assert.match(map, /maxConcurrent:\s*1/, 'Sentinel WMS tiles should avoid bursty parallel requests');
-for (const key of ['tc', 'swir_rgb', 'awei', 'ndre', 'ndmi', 'ndwi', 'ndvi', 'savi', 'bsi', 'ndsi', 'pwi', 'hpwi', 'pwoi', 'lbi']) {
+for (const key of ['tc', 'swir_rgb', 'awei', 'ndre', 'ndmi', 'ndwi', 'ndvi', 'savi', 'bsi', 'ndsi', 'si', 'csi', 'hcai', 'hmri', 'ndoi', 'pwi', 'hpwi', 'pwoi', 'lbi']) {
   assert.match(app, new RegExp(`COG_SUPPORTED_INDEX_KEYS[\\s\\S]*['\"]${key}['\"]`), `COG UI should expose renderer-supported ${key}`);
 }
 assert.match(app, /const COG_SCREEN_INDEX_KEYS = new Set\(\[[\s\S]*'tc'[\s\S]*'lbi'[\s\S]*'ndwi'[\s\S]*'awei'[\s\S]*'pwi'[\s\S]*'pwoi'[\s\S]*'hpwi'[\s\S]*\]\)/, 'Screen flow should prioritize contextual lenses while retaining negative-result composites');
@@ -167,7 +167,7 @@ assert.match(server, /const maxcc = Number\(searchParams\.get\('maxcc'\) \|\| 90
 assert.match(server, /Browser API keys alone cannot create Earth Engine maps/, 'GEE server should reject API-key-only setup clearly');
 assert.match(server, /\/api\/cog\/tiles\//, 'local server should expose COG tile endpoint');
 assert.match(server, /\/api\/cog\/prewarm/, 'local server should expose a COG prewarm endpoint');
-for (const key of ['tc', 'swir_rgb', 'awei', 'ndre', 'ndmi', 'ndwi', 'ndvi', 'savi', 'bsi', 'ndsi', 'pwi', 'hpwi', 'pwoi', 'lbi']) {
+for (const key of ['tc', 'swir_rgb', 'awei', 'ndre', 'ndmi', 'ndwi', 'ndvi', 'savi', 'bsi', 'ndsi', 'si', 'csi', 'hcai', 'hmri', 'ndoi', 'pwi', 'hpwi', 'pwoi', 'lbi']) {
   assert.match(server, new RegExp(`COG_SUPPORTED_INDEXES[\\s\\S]*['\"]${key}['\"]`), `COG server should explicitly support ${key}`);
 }
 assert.match(server, /inFlightCogRenders[\s\S]*entry\.clients[\s\S]*entry\.controller\.abort\(\)/, 'COG server should cancel orphaned Python renders after a client switches lenses');

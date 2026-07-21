@@ -21,6 +21,11 @@ assert.match(html, /data-index="fc"/, 'false color remains discoverable in the a
 for (const key of ['tc', 'lbi', 'ndwi', 'awei', 'ndmi', 'savi', 'bsi', 'ndsi', 'swir_rgb', 'ndre']) {
   assert.match(html, new RegExp(`data-index="${key}"`), `primary investigation stack exposes ${key}`);
 }
+assert.match(html, /Gate diagnostics · component responses/i, 'Screen exposes a collapsed gate-diagnostic drawer');
+for (const key of ['ndsi', 'si', 'hcai', 'ndoi', 'csi', 'hmri']) {
+  assert.match(html, new RegExp(`triage-gate-details[\\s\\S]*data-index="${key}"`), `gate-diagnostic drawer exposes ${key}`);
+}
+assert.match(html, /broad-band component surfaces[\s\S]*not chemical measurements/i, 'gate diagnostics disclose their non-chemical interpretation boundary');
 assert.match(html, /Experimental composites — negative-result study/i, 'PWCI, ASAI, and OBEC are demoted into a negative-result research section');
 assert.match(html, /id="btn-primary-compare"/, 'primary investigation stack exposes before/after compare');
 assert.match(html, /data-quality="scl"/, 'UI exposes provider-aware pixel-quality status');

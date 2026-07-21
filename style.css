@@ -3444,14 +3444,16 @@ input[type=range]::-webkit-slider-runnable-track {
     margin: 0;
 }
 
-.triage-research-details {
+.triage-research-details,
+.triage-gate-details {
     margin-top: 8px;
     border: 1px solid rgba(255, 183, 77, 0.16);
     border-radius: 8px;
     background: rgba(255, 183, 77, 0.025);
 }
 
-.triage-research-details summary {
+.triage-research-details summary,
+.triage-gate-details summary {
     padding: 9px 10px;
     color: rgba(255, 218, 166, 0.66);
     cursor: pointer;
@@ -3462,7 +3464,25 @@ input[type=range]::-webkit-slider-runnable-track {
     text-transform: uppercase;
 }
 
-.triage-tags--research {
+.triage-gate-details {
+    border-color: rgba(0, 210, 255, 0.18);
+    background: linear-gradient(135deg, rgba(0, 210, 255, 0.035), rgba(255, 183, 77, 0.025));
+}
+
+.triage-gate-details summary {
+    color: rgba(158, 226, 240, 0.72);
+}
+
+.triage-gate-note {
+    margin: 0;
+    padding: 0 10px 8px;
+    color: rgba(220, 232, 237, 0.46);
+    font-size: 9px;
+    line-height: 1.45;
+}
+
+.triage-tags--research,
+.triage-tags--diagnostic {
     margin: 0;
     padding: 0 8px 8px;
 }
@@ -3523,6 +3543,11 @@ input[type=range]::-webkit-slider-runnable-track {
 .triage-tag-pill[data-index="ndre"] { --pill-gradient: linear-gradient(to right, #a07832, #d2b43c, #146428); }
 .triage-tag-pill[data-index="bsi"] { --pill-gradient: linear-gradient(to right, #448833, #d2b43c, #a07832); }
 .triage-tag-pill[data-index="ndsi"] { --pill-gradient: linear-gradient(to right, #0a3c64, #f0501e, #e61414); }
+.triage-tag-pill[data-index="si"] { --pill-gradient: linear-gradient(to right, #243340, #b48228, #f0501e); }
+.triage-tag-pill[data-index="hcai"] { --pill-gradient: linear-gradient(to right, #f5deb3, #8b4513, #000000); }
+.triage-tag-pill[data-index="ndoi"] { --pill-gradient: linear-gradient(to right, #2b3e50, #f1c40f, #e74c3c); }
+.triage-tag-pill[data-index="csi"] { --pill-gradient: linear-gradient(to right, #a07832, #64dc50, #00ffff); }
+.triage-tag-pill[data-index="hmri"] { --pill-gradient: linear-gradient(to right, #e6e6fa, #800080, #ff00ff); }
 .triage-tag-pill[data-index="swir_rgb"] { --pill-gradient: linear-gradient(to right, #5d2338, #b79448, #f2e7cf); }
 
 /* Interactive when card is active */

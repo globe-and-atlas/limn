@@ -333,6 +333,7 @@ const SPILL_BOOKMARKS = [
 const INDEX_SHORT_LABELS = {
     pwi: 'PWCI', pwoi: 'ASAI', hpwi: 'OBEC', ehc: 'EHC', lbi: 'LBI', bpi: 'BPI', fbc: 'FBC', vsi: 'VSI', mvpi: 'MVPI',
     tc: 'RGB', ndwi: 'MNDWI', ndmi: 'NDMI', savi: 'SAVI', bsi: 'BSI', ndsi: 'SWIR Δ',
+    si: 'SI', csi: 'CSI', hcai: 'HCAI', hmri: 'HMRI', ndoi: 'NDOI',
     awei: 'AWEI', ndre: 'NDRE', swir_rgb: 'SWIR RGB', s1_sar: 'S1',
 };
 const DEFAULT_SPILL_ID = 'lake-boehmer-pecos-orphan';
@@ -341,10 +342,12 @@ const COG_PROVIDER_KEYS = new Set(['cog', 'sentinel-cog', 'sentinel2-cog']);
 const COG_SUPPORTED_INDEX_KEYS = new Set([
     'none', 'tc', 'truecolor', 'true-color', 'swir_rgb',
     'awei', 'ndre', 'ndmi', 'ndwi', 'ndvi', 'savi', 'bsi', 'ndsi',
+    'si', 'csi', 'hcai', 'hmri', 'ndoi',
     'pwi', 'hpwi', 'pwoi', 'lbi'
 ]);
 const COG_SCREEN_INDEX_KEYS = new Set([
     'tc', 'lbi', 'ndwi', 'awei', 'ndmi', 'savi', 'bsi', 'ndsi', 'swir_rgb', 'ndre',
+    'si', 'csi', 'hcai', 'hmri', 'ndoi',
     'pwi', 'pwoi', 'hpwi'
 ]);
 const SCREENING_VISIBILITY_INDEX_KEYS = new Set(['pwi', 'hpwi', 'pwoi', 'lbi']);

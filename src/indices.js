@@ -538,9 +538,8 @@ export const INDICES = {
   let sum = sample.B11 + sample.B08;
   if(sum === 0) return [0,0,0,0];
   let val = (sample.B11 - sample.B08) / sum;
-  // SI is Normalized Difference Salinity Index (NDSI)
-  // Maps roughly -1 to +1. Land is typically negative. Salt flats are strongly positive.
-  // We clamp and scale so only strictly positive values trigger the bright orange/reds.
+  // Legacy SI display: clamp and scale the positive SWIR1-NIR response.
+  // This broad-band contrast is not a salt-concentration retrieval.
   ${colorBlend('Math.max(0, val * 2)', PALETTE_SI)}
 `),
         fisBands: ['B11', 'B08'],
@@ -686,7 +685,8 @@ export const INDICES = {
   if(sum === 0) return [0,0,0,0];
   let val = (sample.B02 - sample.B12) / sum;
   
-  // NDOI usually ranges from -0.5 to 0.5. Oil pushes it positive.
+  // Legacy NDOI display: clamp and scale the positive Blue-SWIR2 response.
+  // A positive response is not specific to oil.
   let mapped = Math.max(0, val * 2);
   ${colorBlend('mapped', `[
       [0.0, 43, 62, 80],

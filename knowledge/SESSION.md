@@ -82,3 +82,4 @@
 - 2026-07-21 10:17 — commit: feat: rebuild Limn evidence-first investigation workflow | PUBLIC_SCIENCE_GUIDE.md,README.md,SENTINEL_SCIENCE_GUIDE.md,config.example.js,directives/pwi_spec.md
 - 2026-07-21 11:01 — commit: fix: make Limn COG lenses responsive | index.html,server/gee_tile_server.mjs,src/app.js,src/map.js,style.css
 - 2026-07-21 11:47 — commit: fix: make negative COG screens visibly render | LIMN_PRODUCED_WATER_SPEC.md,PUBLIC_SCIENCE_GUIDE.md,README.md,execution/render_cog_tile.py,package.json
+- 2026-07-21 13:35 — commit: feat: restore Limn gate diagnostics | LIMN_PRODUCED_WATER_SPEC.md,PUBLIC_SCIENCE_GUIDE.md,README.md,SENTINEL_SCIENCE_GUIDE.md,execution/render_cog_tile.py

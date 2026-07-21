@@ -11,6 +11,7 @@
     "test:core:parity": "node tests/test_core_formula_parity.mjs",
     "test:core:ui": "node tests/test_core_ui_contract.mjs",
     "test:cog:visibility": "python3 tests/test_cog_screening_visibility.py",
+    "test:cog:gates": "python3 tests/test_cog_gate_diagnostics.py",
     "test:browser": "node tests/test.js",
     "test:fetch": "node tests/test_fetch.js"
   },

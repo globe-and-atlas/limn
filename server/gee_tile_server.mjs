@@ -24,7 +24,7 @@ const S2_BANDS = ['B02', 'B03', 'B04', 'B05', 'B06', 'B07', 'B08', 'B8A', 'B11',
 const PYTHON = process.env.PYTHON || process.env.PYTHON_BIN || 'python3';
 const COG_CACHE_DIR = path.resolve(ROOT, process.env.COG_TILE_CACHE_DIR || '.tmp/cog_tile_cache');
 const COG_RENDER_SCRIPT = path.resolve(ROOT, 'execution/render_cog_tile.py');
-const COG_RENDER_VERSION = 'cog-render-2026-07-21-screening-visibility-v4';
+const COG_RENDER_VERSION = 'cog-render-2026-07-21-gate-diagnostics-v5';
 const COG_STAC_URL = process.env.COG_STAC_URL || 'https://earth-search.aws.element84.com/v1';
 const COG_STAC_COLLECTION = process.env.COG_STAC_COLLECTION || 'sentinel-2-l2a';
 const COG_MAXCC = Number(process.env.COG_MAXCC || 90);
@@ -38,6 +38,7 @@ const COG_PREWARM_RADIUS = Number(process.env.COG_PREWARM_RADIUS || 0);
 const COG_SUPPORTED_INDEXES = new Set([
     'tc', 'truecolor', 'true-color', 'swir_rgb',
     'awei', 'ndre', 'ndmi', 'ndwi', 'ndvi', 'savi', 'bsi', 'ndsi',
+    'si', 'csi', 'hcai', 'hmri', 'ndoi',
     'pwi', 'hpwi', 'pwoi', 'lbi'
 ]);
 const COG_DEMO_INDEXES = ['hpwi', 'lbi', 'pwoi', 'pwi'];

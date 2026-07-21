@@ -591,6 +591,18 @@
                                 <button type="button" class="investigation-action-btn compare-action">Before / After</button>
                                 <button type="button" class="investigation-action-btn sar-action" data-index="s1_sar">S1 surface context</button>
                             </div>
+                            <details class="triage-gate-details">
+                                <summary>Gate diagnostics · component responses</summary>
+                                <p class="triage-gate-note">Inspect the broad-band component surfaces used by the experimental composites. These are physical contrast proxies, not chemical measurements.</p>
+                                <div class="triage-tags triage-tags--diagnostic">
+                                    <button type="button" class="triage-tag-pill" data-index="ndsi" data-tooltip="<strong>Dual-SWIR / NBR2 form</strong><br>SWIR1–SWIR2 material and moisture context; not salt concentration or brine identification.">SWIR Δ</button>
+                                    <button type="button" class="triage-tag-pill" data-index="si" data-tooltip="<strong>SI</strong><br>SWIR1–NIR surface contrast. Sensitive to moisture, substrate, and vegetation; not salt concentration.">SI</button>
+                                    <button type="button" class="triage-tag-pill" data-index="hcai" data-tooltip="<strong>HCAI</strong><br>SWIR1–Red surface contrast. Sentinel-2 broad bands do not retrieve petroleum or hydrocarbons.">HCAI</button>
+                                    <button type="button" class="triage-tag-pill" data-index="ndoi" data-tooltip="<strong>NDOI</strong><br>Blue–SWIR2 surface contrast; not oil identification.">NDOI</button>
+                                    <button type="button" class="triage-tag-pill" data-index="csi" data-tooltip="<strong>CSI</strong><br>SWIR1/SWIR2 ratio for mineralogy, moisture, and substrate context; not contamination measurement.">CSI</button>
+                                    <button type="button" class="triage-tag-pill" data-index="hmri" data-tooltip="<strong>HMRI</strong><br>SWIR2/Green surface ratio; not a heavy-metal measurement.">HMRI</button>
+                                </div>
+                            </details>
                             <details class="triage-research-details">
                                 <summary>Experimental composites retained for the negative-result study</summary>
                                 <div class="triage-tags triage-tags--research">

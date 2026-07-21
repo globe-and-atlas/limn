@@ -62,6 +62,11 @@ INDEX_BANDS = {
     "savi": ["B04", "B08"],
     "bsi": ["B02", "B04", "B08", "B11"],
     "ndsi": ["B11", "B12"],
+    "si": ["B11", "B08"],
+    "csi": ["B11", "B12"],
+    "hcai": ["B11", "B04"],
+    "hmri": ["B12", "B03"],
+    "ndoi": ["B02", "B12"],
     "pwi": ["B02", "B03", "B04", "B08", "B11", "B12"],
     "hpwi": ["B02", "B03", "B04", "B08", "B11", "B12"],
     "pwoi": ["B02", "B03", "B04", "B08", "B11", "B12"],
@@ -242,14 +247,23 @@ def clamp01(values: np.ndarray) -> np.ndarray:
     return np.clip(values, 0, 1)
 
 
-def colorize(score: np.ndarray, valid: np.ndarray, palette: list[tuple[int, int, int]], threshold: float) -> np.ndarray:
+def colorize(
+    score: np.ndarray,
+    valid: np.ndarray,
+    palette: list[tuple[int, int, int]],
+    threshold: float,
+    positions: list[float] | None = None,
+) -> np.ndarray:
     score = clamp01(score)
     n = len(palette) - 1
-    scaled = score * n
-    lo = np.floor(scaled).astype("int16")
-    lo = np.clip(lo, 0, n)
+    stops = np.asarray(positions if positions is not None else np.linspace(0, 1, len(palette)), dtype="float32")
+    if stops.shape != (len(palette),) or np.any(np.diff(stops) <= 0) or stops[0] != 0 or stops[-1] != 1:
+        raise ValueError("Palette positions must be strictly increasing from 0 to 1")
+    lo = np.searchsorted(stops, score, side="right") - 1
+    lo = np.clip(lo, 0, n).astype("int16")
     hi = np.clip(lo + 1, 0, n)
-    frac = (scaled - lo)[..., None]
+    span = stops[hi] - stops[lo]
+    frac = np.divide(score - stops[lo], span, out=np.zeros_like(score), where=span > 0)[..., None]
     colors = np.array(palette, dtype="float32")
     rgb = colors[lo] * (1 - frac) + colors[hi] * frac
     ramp = clamp01((score - threshold) / max(0.0001, 1 - threshold))
@@ -340,7 +354,30 @@ def render_index(
 
     if index_key == "ndsi":
         score = clamp01(np.maximum(0, normdiff(b["B11"], b["B12"]) * 2))
-        return colorize(score, valid, [(10, 60, 100), (120, 100, 50), (240, 80, 30), (230, 20, 20)], display_floor)
+        return colorize(score, valid, [(10, 60, 100), (120, 100, 50), (240, 80, 30), (230, 20, 20)], display_floor, [0, 0.35, 0.6, 1])
+
+    if index_key == "si":
+        score = clamp01(np.maximum(0, normdiff(b["B11"], b["B08"]) * 2))
+        return colorize(score, valid, [(36, 51, 64), (180, 130, 40), (220, 140, 50), (240, 80, 30)], display_floor, [0, 0.15, 0.3, 1])
+
+    if index_key == "csi":
+        ratio = np.divide(b["B11"], b["B12"] + 0.0001)
+        score = clamp01((ratio - 0.5) / 2.0)
+        return colorize(score, valid, [(160, 120, 50), (100, 220, 80), (0, 255, 255)], display_floor)
+
+    if index_key == "hcai":
+        contrast = normdiff(b["B11"], b["B04"])
+        score = clamp01(np.maximum(0, (contrast - 0.30) * 3))
+        return colorize(score, valid, [(245, 222, 179), (139, 69, 19), (0, 0, 0)], display_floor)
+
+    if index_key == "hmri":
+        ratio = np.divide(b["B12"], b["B03"] + 0.0001)
+        score = clamp01((ratio - 2.0) / 3.0)
+        return colorize(score, valid, [(230, 230, 250), (128, 0, 128), (255, 0, 255)], display_floor)
+
+    if index_key == "ndoi":
+        score = clamp01(np.maximum(0, normdiff(b["B02"], b["B12"]) * 2))
+        return colorize(score, valid, [(43, 62, 80), (127, 140, 141), (241, 196, 15), (231, 76, 60)], display_floor, [0, 0.3, 0.7, 1])
 
     if index_key == "awei":
         raw = b["B02"] + 2.5 * b["B03"] - 1.5 * (b["B08"] + b["B11"]) - 0.25 * b["B12"]

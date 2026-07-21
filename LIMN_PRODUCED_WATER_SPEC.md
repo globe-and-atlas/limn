@@ -415,9 +415,9 @@ ${colorBlend('mapped', `[[0.0,0,0,0],[0.3,0,85,255],[0.7,0,210,255],[1.0,255,255
 
 The remaining composites (`fbc`, `reai`, `vcbi`, `aoi`, `bpi`, `tri`, `phi`, `cma`, `hmi`, `vsi`, `mvpi`, `ehc`, `scri`) all follow the same pattern: compute 2–3 sub-indices, multiply through `Math.max(0, x − threshold)` gates, scale with a multiplier and sometimes `Math.pow(...)` to suppress background, clamp to [0,1], early-return transparent below a small floor, then `colorBlend(mapped, PALETTE_X)`. Their exact constants are listed in §8.1 and the formula column; reproduce from the original `indices.js` block for each. `ehc` is a **direct RGB** script (no colorBlend): `red=max(0,NDOI*3)`, `green=max(0,BSI*2)`, `blue=max(0,NDSI*4)`. `scri`/`s1_sar` use S1 VV/VH in dB.
 
-### 8.2 Standard PW indicators (textbook indices, repurposed)
+### 8.2 Context and gate-diagnostic indicators
 
-`ndsi` (brine), `hcai` (hydrocarbons), `hmri` (heavy metals), `csi` (clay ratio B11/B12), `ndoi` (oil), `si` (salinity), `bsi` (bare soil), `s1_sar` (S1 VV/VH grayscale).
+`ndsi` is a dual-SWIR NDTI/NBR2-form contrast; `si` is SWIR1–NIR contrast; `hcai` is SWIR1–Red contrast; `ndoi` is Blue–SWIR2 contrast; `csi` is the SWIR1/SWIR2 ratio; and `hmri` is the SWIR2/Green ratio. The historical keys remain load-bearing for reproducibility, but these broad-band responses do not retrieve brine, salt concentration, petroleum, contamination, or heavy metals. `bsi` supplies bare-soil/disturbance context and `s1_sar` supplies S1 VV/VH surface-backscatter context.
 
 ### 8.3 General reference
 
@@ -460,6 +460,8 @@ Both WMS and GEE/COG tiles use a custom `L.TileLayer(.WMS).extend(...)` subclass
 - Queues tile fetches and caps concurrency (`maxConcurrent`: 1 for WMS, 6 for COG, 2 for GEE).
 - Cancels queued and active browser requests when a layer is removed; the COG server also terminates an orphaned Python render when no clients remain.
 - Disables Leaflet Retina request multiplication for COG layers because the source bands, rather than display pixel density, determine scientific resolution.
+
+The COG renderer ports the six diagnostic displays with formula parity to `indices.js`: `ndsi = max(0, 2·ND(B11,B12))`; `si = max(0, 2·ND(B11,B08))`; `hcai = max(0, 3·(ND(B11,B04)−0.30))`; `ndoi = max(0, 2·ND(B02,B12))`; `csi = clamp((B11/B12−0.5)/2)`; and `hmri = clamp((B12/B03−2)/3)`. Each uses its continuous palette and the standard visual filter. These transforms support visual interpretation only and do not change the underlying component definition or establish chemical specificity.
 
 The COG renderer uses a visible screening display for `pwi`, `pwoi`, `hpwi`, and `lbi`: clear sub-threshold pixels receive a neutral low-alpha veil, non-zero sub-threshold scores receive muted palette color, and threshold-passing candidates retain bright palette color. This is a display-only RGB/alpha rule. It does not alter the scalar formulas, masks, thresholds, or candidate status.
 - Fetches each tile via `fetch()` → `blob()` → `URL.createObjectURL` → `img.src` (so HTTP errors are catchable; revokes the object URL on load).
@@ -567,7 +569,7 @@ Dark glassmorphism. Layout = full-screen `<main class="map-container">` with `#m
   - **ANALYSIS** — temporal window: Single Date vs Compare (Δ) toggle; date dropdowns (T1/T2); compare layout (Swipe / Diff(∆) / Cumulative). Advanced Data Fusion: "📡 Visual SAR Overlay" checkbox.
   - **GROUND** — RRC Spill Incidents overlay toggle; Draw Rectangle / Draw Polygon; "Scan AOI for Anomalies (1YR)"; "Generate Selected Report".
   - **SETTINGS** — Basin Calibration (Permian / Standard); Index Opacity slider (0–100, default 85); Detection Sensitivity slider (−50..50, "Restrictive↔Aggressive").
-- **Screen** (`focused-triage`, default active) — a curated "Screen Spill" wizard with a workflow summary (Lens / Site / Evidence) and a row of detection-lens pills (OBEC, LBI, ASAI, PWCI, EHC, BPI, FBC, VSI, MVPI).
+- **Screen** (`focused-triage`, default active) — a curated investigation workflow with a primary evidence-lens row, a collapsed **Gate Diagnostics** drawer (`ndsi`, `si`, `hcai`, `ndoi`, `csi`, `hmri`), and a separate collapsed negative-result drawer for PWCI, ASAI, and OBEC. The diagnostic labels describe band responses and explicitly avoid chemical-retrieval claims.
 - **Investigate** (`command-console`) — a search/tag HUD: free-text search over indices/formulas + category tag pills (#OilGas, #Water, #Vegetation, #Soil); dynamically populated index + bookmark results.
 
 **Map overlays:**
