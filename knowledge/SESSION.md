@@ -78,3 +78,4 @@
 - 2026-07-20 22:02 — commit: feat: LBI standing-brine validation — the one genuinely specific detector | data/brine_validation_sites.json,execution/analyze_lbi_brine.py,execution/brine_validation_bands.csv,execution/fetch_lbi_spatial.py,execution/fetch_spill_bands.py
 - 2026-07-20 22:23 — commit: docs: §7/abstract — correct LBI to validated standing-brine finding (per-pixel) | PUBLIC_SCIENCE_GUIDE.md
 - 2026-07-20 22:23 — commit: docs: README — correct LBI status to per-pixel validated standing-brine finding | README.md
+- 2026-07-21 06:23 — commit: reconcile Limn Atlas formulas and scientific status | LIMN_PRODUCED_WATER_SPEC.md,PUBLIC_SCIENCE_GUIDE.md,SENTINEL_SCIENCE_GUIDE.md,atlas.html,directives/pwi_spec.md
