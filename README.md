@@ -1,6 +1,6 @@
 # Sentinel Explorer
 
-A browser-based satellite intelligence tool for detecting produced water spills at oil and gas well pads in the Permian Basin, West Texas and New Mexico.
+A browser-based research and screening tool for studying produced-water-related spectral anomalies at oil and gas sites in the Permian Basin, West Texas and New Mexico.
 
 Built on free Copernicus satellite data (Sentinel-2 optical + Sentinel-1 SAR), it streams processed imagery in real time using custom evalscripts that run directly on Sentinel Hub's servers. No raw data downloads — just the signal.
 
@@ -13,9 +13,11 @@ Built on free Copernicus satellite data (Sentinel-2 optical + Sentinel-1 SAR), i
 - **Computes multi-temporal differences** — compare any two dates to see what changed
 - **Accumulates signals** with cumulative MAX mode — catches spills that dried up before your query date
 - **Scans an area of interest** with the Statistics API — draw a polygon, get an anomaly timeline across 8 indices simultaneously
-- **Bookmarks documented spill sites** across the Permian Basin (Texas TRRC and New Mexico NMOCD sources) as verified test locations, each with a regulator filing or news-source reference
+- **Bookmarks documented spill and context sites** across the Permian Basin, with explicit evidence class, source, date role, and coordinate precision
 
-The centerpiece indices — PWCI (formerly PWI), ASAI (formerly PWOI), and OBEC (formerly HPWI) — were benchmarked against a 27-record Permian Basin working set compiled from public TRRC violation/inspection data (development benchmark, coordinates generalized). In the 2026-03-28 pipeline validation, per-index spill-site recall was PWCI 81.5%, ASAI 77.8%, OBEC 66.7%; combining ASAI and OBEC as a two-index union raises coverage to ~89% (union, not consensus). No background/false-positive study has been run yet, so these are recall figures only. See [PUBLIC_SCIENCE_GUIDE.md](PUBLIC_SCIENCE_GUIDE.md) §7 and [reports/preprint_qc_2026-07-19.md](reports/preprint_qc_2026-07-19.md) for the full calibration-vs-viewer caveats.
+**Current scientific status (2026-07-20):** PWCI, ASAI, and OBEC are experimental screening architectures, not validated detectors. The development pipeline paired recall of 81.5% / 77.8% / 66.7% with background activation of 96.7% / 71.3% / 71.3%. The shipped precision-first viewer produced 0/150 background activations but was also blank at all 11 reviewed positive sites. A 1,224-combination threshold sweep found no useful produced-water/caliche separation at the tested 500 m single-scene support. See [the current status note](knowledge/domain/scientific-status-2026-07-20.md) and [investigation summary](reports/investigation_summary_2026-07-20.md).
+
+**Limn Atlas is separate:** `atlas.html` organizes 91 documented environmental methods into 24 capability families. The default view shows primary methods, variants, components, and references; the Research view separates 51 future models and two retired formulas. Atlas bookmarks and rendered overlays are inspectable context, not extensions of Limn's produced-water validation.
 
 ---
 
@@ -125,14 +127,14 @@ All calibration values are injected as JavaScript constants into evalscripts at 
 
 **Sentinel Explorer composites and calibrations:**
 
-| Index | Focus | Validated |
+| Index | Implemented focus | Current status |
 |---|---|---|
-| PWCI ✧✧ — Produced Water Chemical Index | Three-way AND gate: brine × hydrocarbons × heavy metals (formerly PWI) | 81.5% recall, 27-record benchmark (pipeline calibration) |
-| ASAI ✧✧ — Arid Salinity Anomaly Index | Optical SAR proxy: surface smoothness + dry brine mode (formerly PWOI / APEX) | 77.8% recall (87.5% on 8 GPS-verified) |
-| OBEC ✧ — Oil-Brine Emulsion Composite | Chemical signal × surface smoothness cross-validator (formerly HPWI) | 66.7% recall |
+| PWCI — Produced Water Chemical Index | BSI-gated three-ratio AND architecture (formerly PWI) | Negative discrimination result; screening proxy only |
+| ASAI — Arid Salinity Anomaly Index | Wet/surface and dry/saline Sentinel-2 paths (formerly PWOI / APEX) | Negative discrimination result; screening proxy only |
+| OBEC — Oil-Brine Emulsion Composite | Blue/SWIR2 + dual-SWIR + NDWI-derived surface context (formerly HPWI) | Negative discrimination result; does not retrieve oil/emulsion |
 | FBC ✧ — Ferrugination-Brine Composite | Iron oxidation × brine co-location | — |
 | VCBI ✧ — Vegetation-Confirmed Brine Index | Brine-kill zone leading edge detection | — |
-| LBI ✧ — Liquid Brine Index | Active standing brine pools | — |
+| LBI — Liquid Brine Index | Standing-water bypass; brine chemical + liquid + low-veg gates | Per-pixel validation (small N): brine-specific — 0/149 caliche, 0/3 freshwater; J=0.50 vs caliche. Promising standing-brine screening candidate |
 | TRI ✧ — Toxic Residue Index | Forensic mineral scab after evaporation | — |
 | BPI ✧ — Brine-Pavement Index | Pad-level integrity monitoring | — |
 | VSI ✧ — Vegetation Stress Index | Sub-lethal brine stress in surviving vegetation | — |
