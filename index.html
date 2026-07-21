@@ -90,7 +90,7 @@
     </script>
 
     <!-- Custom Styles -->
-    <link rel="stylesheet" href="style.css?v=3">
+    <link rel="stylesheet" href="style.css?v=4">
 </head>
 
 <body>
@@ -574,6 +574,37 @@
                     <div class="triage-grid">
                         <!-- Triage Card 1: Produced Water & Oilfield Leaks -->
                         <div class="triage-card" data-triage="oilfield-spill">
+                            <section class="spill-evidence-timeline" id="spill-evidence-timeline" aria-label="Spill evidence timeline">
+                                <div class="evidence-timeline__header">
+                                    <div>
+                                        <span class="evidence-timeline__eyebrow">Scene sequence</span>
+                                        <h4>Spill Evidence Timeline</h4>
+                                    </div>
+                                    <span class="evidence-timeline__anchor" id="timeline-anchor-status">Representative bookmark date</span>
+                                </div>
+                                <div class="evidence-timeline__track" role="group" aria-label="Select a scene-search target">
+                                    <button type="button" class="evidence-stage" data-evidence-stage="reference" aria-pressed="false"><span>Reference</span><strong class="evidence-stage__date">—</strong></button>
+                                    <button type="button" class="evidence-stage" data-evidence-stage="before" aria-pressed="false"><span>Before</span><strong class="evidence-stage__date">—</strong></button>
+                                    <button type="button" class="evidence-stage active" data-evidence-stage="event" aria-pressed="true"><span>Event</span><strong class="evidence-stage__date">—</strong></button>
+                                    <button type="button" class="evidence-stage" data-evidence-stage="after" aria-pressed="false"><span>After</span><strong class="evidence-stage__date">—</strong></button>
+                                    <button type="button" class="evidence-stage" data-evidence-stage="late" aria-pressed="false"><span>Late</span><strong class="evidence-stage__date">—</strong></button>
+                                    <button type="button" class="evidence-stage" data-evidence-stage="latest" aria-pressed="false"><span>Latest</span><strong class="evidence-stage__date">—</strong></button>
+                                </div>
+                                <div class="evidence-timeline__compare" role="group" aria-label="Timeline comparison shortcuts">
+                                    <button type="button" data-evidence-compare="reference:event">Reference ↔ Event</button>
+                                    <button type="button" data-evidence-compare="event:late">Event ↔ Late</button>
+                                    <button type="button" id="timeline-road-check" aria-pressed="false">OSM road check</button>
+                                </div>
+                                <div class="evidence-timeline__lenses" role="group" aria-label="Evidence review lenses">
+                                    <span>Review lens</span>
+                                    <button type="button" class="evidence-lens-btn active" data-index="tc" aria-pressed="true">RGB</button>
+                                    <button type="button" class="evidence-lens-btn" data-index="ndwi" aria-pressed="false">MNDWI</button>
+                                    <button type="button" class="evidence-lens-btn" data-index="lbi" aria-pressed="false">LBI</button>
+                                    <button type="button" class="evidence-lens-btn" data-index="pwi" aria-pressed="false">PWCI</button>
+                                    <button type="button" class="evidence-lens-btn" data-index="pwoi" aria-pressed="false">ASAI</button>
+                                </div>
+                                <p class="evidence-timeline__disclosure" id="timeline-disclosure">Dates are scene-search targets. Repeated response supports persistence review, not source attribution.</p>
+                            </section>
                             <span class="triage-section-label">Evidence Lens</span>
                             <div class="triage-tags">
                                 <button type="button" class="triage-tag-pill" data-index="tc" data-tooltip="<strong>True Color</strong><br>Default visual context. Inspect the surface before interpreting any proxy.">RGB</button>
@@ -824,7 +855,7 @@
     <script type="module" src="src/indices.js?v=78"></script>
     <script type="module" src="src/charts.js?v=78"></script>
     <script type="module" src="src/report.js?v=78"></script>
-    <script type="module" src="src/app.js?v=78"></script>
+    <script type="module" src="src/app.js?v=79"></script>
     <script>
         // JS-powered tooltip for .chart-info-badge
         // Uses body-level element to avoid modal overflow-y clipping

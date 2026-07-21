@@ -3640,6 +3640,212 @@ input[type=range]::-webkit-slider-runnable-track {
     box-shadow: 0 0 10px rgba(245, 120, 20, 0.25);
 }
 
+/* ── Spill Evidence Timeline: a compact field-log strip ── */
+.spill-evidence-timeline {
+    position: relative;
+    margin: 0 0 14px;
+    padding: 12px;
+    border: 1px solid rgba(0, 210, 255, 0.2);
+    border-radius: 10px;
+    background:
+        linear-gradient(110deg, rgba(0, 210, 255, 0.055), transparent 42%),
+        repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.018) 0 1px, transparent 1px 18px),
+        rgba(4, 11, 16, 0.74);
+    overflow: hidden;
+}
+
+.spill-evidence-timeline::before {
+    content: '';
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 2px;
+    background: linear-gradient(#00d2ff, #ffb74d 64%, transparent);
+}
+
+.evidence-timeline__header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.evidence-timeline__eyebrow {
+    display: block;
+    margin-bottom: 2px;
+    color: rgba(142, 225, 242, 0.52);
+    font-family: var(--font-mono);
+    font-size: 7px;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+}
+
+.spill-evidence-timeline h4 {
+    color: #dcf8ff;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.055em;
+    text-transform: uppercase;
+}
+
+.evidence-timeline__anchor {
+    max-width: 145px;
+    color: rgba(255, 215, 157, 0.58);
+    font-family: var(--font-mono);
+    font-size: 7px;
+    line-height: 1.4;
+    text-align: right;
+    text-transform: uppercase;
+}
+
+.evidence-timeline__track {
+    position: relative;
+    display: grid;
+    grid-template-columns: repeat(6, minmax(74px, 1fr));
+    gap: 5px;
+    padding: 7px 1px 4px;
+    overflow-x: auto;
+    scrollbar-color: rgba(0, 210, 255, 0.22) transparent;
+    scrollbar-width: thin;
+}
+
+.evidence-timeline__track::before {
+    content: '';
+    position: absolute;
+    top: 4px;
+    right: 5px;
+    left: 5px;
+    height: 1px;
+    background: linear-gradient(90deg, rgba(0, 210, 255, 0.2), rgba(255, 183, 77, 0.4));
+}
+
+.evidence-stage {
+    position: relative;
+    min-height: 46px;
+    padding: 9px 6px 6px;
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.018);
+    color: rgba(255, 255, 255, 0.38);
+    cursor: pointer;
+    font-family: var(--font-mono);
+    text-align: left;
+    transition: border-color 150ms ease, background 150ms ease, color 150ms ease, transform 150ms ease;
+}
+
+.evidence-stage::before {
+    content: '';
+    position: absolute;
+    top: -6px;
+    left: 9px;
+    width: 5px;
+    height: 5px;
+    border: 1px solid rgba(0, 210, 255, 0.45);
+    border-radius: 50%;
+    background: #071016;
+}
+
+.evidence-stage span {
+    display: block;
+    font-size: 7px;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+}
+
+.evidence-stage__date {
+    display: block;
+    margin-top: 5px;
+    color: rgba(255, 255, 255, 0.62);
+    font-size: 8px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.evidence-stage:hover {
+    border-color: rgba(0, 210, 255, 0.28);
+    background: rgba(0, 210, 255, 0.04);
+    transform: translateY(-1px);
+}
+
+.evidence-stage.active {
+    border-color: rgba(0, 210, 255, 0.62);
+    background: linear-gradient(135deg, rgba(0, 210, 255, 0.13), rgba(0, 255, 178, 0.035));
+    color: #9ee9f8;
+    box-shadow: inset 0 0 12px rgba(0, 210, 255, 0.06);
+}
+
+.evidence-stage.active::before {
+    border-color: #00d2ff;
+    background: #00d2ff;
+    box-shadow: 0 0 7px rgba(0, 210, 255, 0.7);
+}
+
+.evidence-timeline__compare {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 5px;
+    margin-top: 7px;
+}
+
+.evidence-timeline__compare button,
+.evidence-lens-btn {
+    min-height: 30px;
+    padding: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 6px;
+    background: rgba(255, 255, 255, 0.02);
+    color: rgba(255, 255, 255, 0.46);
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: 7px;
+    letter-spacing: 0.035em;
+    text-transform: uppercase;
+}
+
+.evidence-timeline__compare button:hover,
+.evidence-lens-btn:hover,
+.evidence-timeline__compare button.active,
+.evidence-lens-btn.active {
+    border-color: rgba(255, 183, 77, 0.45);
+    background: rgba(255, 183, 77, 0.055);
+    color: #ffdba9;
+}
+
+.evidence-timeline__lenses {
+    display: grid;
+    grid-template-columns: auto repeat(5, 1fr);
+    align-items: center;
+    gap: 4px;
+    margin-top: 6px;
+}
+
+.evidence-timeline__lenses > span {
+    color: rgba(255, 255, 255, 0.26);
+    font-family: var(--font-mono);
+    font-size: 7px;
+    letter-spacing: 0.07em;
+    text-transform: uppercase;
+}
+
+.evidence-lens-btn {
+    min-height: 27px;
+    padding: 5px 3px;
+}
+
+.evidence-lens-btn.active {
+    border-color: rgba(0, 210, 255, 0.48);
+    background: rgba(0, 210, 255, 0.07);
+    color: #a8edfb;
+}
+
+.evidence-timeline__disclosure {
+    margin: 8px 0 0 !important;
+    color: rgba(210, 224, 230, 0.42) !important;
+    font-size: 8px !important;
+    line-height: 1.45 !important;
+}
+
 /* ── Section label above Detection Lens pills ─── */
 .triage-section-label {
     display: block;

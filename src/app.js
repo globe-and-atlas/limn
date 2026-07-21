@@ -65,6 +65,7 @@ import {
     switchTab,
     updateUI as updateUIDelegate
 } from './ui.js?v=78';
+import { buildSpillEvidenceTimeline } from './evidence-timeline.js';
 
 const AOI_LOCATIONS = {
     dixon: { lat: 31.893285, lng: -101.864031, zoom: 15 },
@@ -629,6 +630,8 @@ const state = {
     activeLoc: 'dixon',
     activeIndex: DEFAULT_INDEX,
     activeSpillId: DEFAULT_SPILL_ID,
+    activeEvidenceStage: 'event',
+    activeEvidenceComparison: '',
     activeBasin: 'permian',
     mode: 'single', // 'single' or 'compare'
     compareType: 'swipe', // 'swipe' | 'diff' | 'cumulative'
@@ -694,10 +697,9 @@ function getActiveSpill() {
     return getSpillById(state.activeSpillId);
 }
 
-function setClosestDateForSpill(spill) {
-    const targetStr = spill?.date || spill?.displayDate;
+function setClosestDateValue(targetStr) {
     const target = new Date(targetStr).getTime();
-    if (Number.isNaN(target)) return;
+    if (Number.isNaN(target)) return null;
 
     let closestIdx = 0;
     let minDiff = Infinity;
@@ -712,6 +714,109 @@ function setClosestDateForSpill(spill) {
     state.monthIndex = closestIdx;
     const dateSingleEl = document.getElementById('date-single');
     if (dateSingleEl) dateSingleEl.value = closestIdx.toString();
+    return ALL_DATES[closestIdx]?.value || null;
+}
+
+function setClosestDateForSpill(spill) {
+    return setClosestDateValue(spill?.date || spill?.displayDate);
+}
+
+function getActiveEvidenceTimeline(spill = getActiveSpill()) {
+    return buildSpillEvidenceTimeline(
+        spill,
+        ALL_DATES[0]?.value,
+        ALL_DATES[ALL_DATES.length - 1]?.value,
+    );
+}
+
+function formatTimelineDate(dateStr) {
+    const date = new Date(`${dateStr}T00:00:00Z`);
+    if (Number.isNaN(date.getTime())) return dateStr;
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit', timeZone: 'UTC' });
+}
+
+function updateEvidenceConfounderControl() {
+    const button = document.getElementById('timeline-road-check');
+    if (!button) return;
+    const osmActive = document.querySelector('.layer-toggle.active')?.dataset.layer === 'osm';
+    button.classList.toggle('active', osmActive);
+    button.setAttribute('aria-pressed', osmActive ? 'true' : 'false');
+    button.textContent = osmActive ? 'Return to imagery' : 'OSM road check';
+}
+
+function renderSpillEvidenceTimeline(spill = getActiveSpill()) {
+    const timelineEl = document.getElementById('spill-evidence-timeline');
+    if (!timelineEl || !spill) return;
+    const timeline = getActiveEvidenceTimeline(spill);
+    timelineEl.dataset.spillId = spill.id || '';
+
+    timelineEl.querySelectorAll('[data-evidence-stage]').forEach(button => {
+        const stage = timeline.stages.find(candidate => candidate.id === button.dataset.evidenceStage);
+        if (!stage) return;
+        const dateEl = button.querySelector('.evidence-stage__date');
+        if (dateEl) dateEl.textContent = formatTimelineDate(stage.date);
+        button.title = `${stage.role}. Target ${stage.targetDate}${stage.clamped ? `; limited to ${stage.date} by viewer availability` : ''}.`;
+        const active = state.mode === 'single' && state.activeEvidenceStage === stage.id;
+        button.classList.toggle('active', active);
+        button.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+
+    const anchorEl = document.getElementById('timeline-anchor-status');
+    if (anchorEl) anchorEl.textContent = `${timeline.anchorSource} · ${timeline.anchorDate}`;
+    const disclosureEl = document.getElementById('timeline-disclosure');
+    if (disclosureEl) {
+        disclosureEl.textContent = 'Dates are scene-search targets: COG selects a nearby low-cloud Sentinel-2 acquisition. Repeated response supports persistence review, not source attribution.';
+    }
+    document.querySelectorAll('.evidence-lens-btn').forEach(button => {
+        const active = button.dataset.index === state.activeIndex;
+        button.classList.toggle('active', active);
+        button.setAttribute('aria-pressed', active ? 'true' : 'false');
+    });
+    updateEvidenceConfounderControl();
+}
+
+function setTemporalMode(mode, { apply = true } = {}) {
+    const isCompare = mode === 'compare';
+    state.mode = isCompare ? 'compare' : 'single';
+    if (isCompare) enforceCogTemporalConstraints();
+    document.getElementById('mode-single')?.classList.toggle('active', !isCompare);
+    document.getElementById('mode-compare')?.classList.toggle('active', isCompare);
+    const singleContainer = document.getElementById('single-time-container');
+    const compareContainer = document.getElementById('compare-dates-container');
+    if (singleContainer) singleContainer.style.display = isCompare ? 'none' : 'block';
+    if (compareContainer) compareContainer.style.display = isCompare ? 'block' : 'none';
+    updateWorkflowTemporalStatus();
+    renderSpillEvidenceTimeline();
+    if (apply) applyIndex();
+}
+
+function showEvidenceStage(stageId) {
+    const timeline = getActiveEvidenceTimeline();
+    const stage = timeline.stages.find(candidate => candidate.id === stageId);
+    if (!stage) return;
+    setClosestDateValue(stage.date);
+    state.activeEvidenceStage = stage.id;
+    state.activeEvidenceComparison = '';
+    setTemporalMode('single');
+}
+
+function compareEvidenceStages(leftStageId, rightStageId) {
+    const timeline = getActiveEvidenceTimeline();
+    const left = timeline.stages.find(stage => stage.id === leftStageId);
+    const right = timeline.stages.find(stage => stage.id === rightStageId);
+    if (!left || !right) return;
+    const t1 = document.getElementById('date-t1');
+    const t2 = document.getElementById('date-t2');
+    if (!t1 || !t2) return;
+    t1.value = left.date;
+    t2.value = right.date;
+    state.compareType = 'swipe';
+    state.activeEvidenceStage = '';
+    state.activeEvidenceComparison = `${left.label} ↔ ${right.label}`;
+    document.getElementById('btn-swipe')?.classList.add('active');
+    document.getElementById('btn-diff')?.classList.remove('active');
+    document.getElementById('btn-cumulative')?.classList.remove('active');
+    setTemporalMode('compare');
 }
 
 function updateWorkflowSummary(spill = getActiveSpill(), indexKey = state.activeIndex) {
@@ -739,8 +844,8 @@ function updateWorkflowTemporalStatus() {
     const temporalStatus = document.getElementById('workflow-temporal-status');
     if (!temporalStatus) return;
     temporalStatus.textContent = state.mode === 'compare'
-        ? (state.compareType === 'swipe' ? 'Before / after active' : 'Change view active')
-        : 'Single scene';
+        ? (state.activeEvidenceComparison || (state.compareType === 'swipe' ? 'Before / after active' : 'Change view active'))
+        : (state.activeEvidenceStage ? `${state.activeEvidenceStage} scene` : 'Single scene');
     temporalStatus.classList.toggle('quality-chip--conditional', state.mode !== 'compare');
 }
 
@@ -774,12 +879,15 @@ function markActiveWorkflowControls() {
         chip.classList.toggle('active', isActive);
         chip.setAttribute('aria-pressed', isActive ? 'true' : 'false');
     });
+    renderSpillEvidenceTimeline();
 }
 
 function selectSpill(spill, { fly = false } = {}) {
     if (!spill) return;
     state.activeSpillId = spill.id || DEFAULT_SPILL_ID;
     setClosestDateForSpill(spill);
+    state.activeEvidenceStage = 'event';
+    state.activeEvidenceComparison = '';
 
     document.getElementById('disp-lat').innerText = spill.lat.toFixed(4) + '°';
     document.getElementById('disp-lng').innerText = spill.lng.toFixed(4) + '°';
@@ -788,6 +896,7 @@ function selectSpill(spill, { fly = false } = {}) {
     }
 
     updateWorkflowSummary(spill, state.activeIndex);
+    renderSpillEvidenceTimeline(spill);
     markActiveWorkflowControls();
 }
 
@@ -863,6 +972,13 @@ function setCogUiAvailability() {
         pill.hidden = !visible;
         pill.disabled = !visible;
         pill.classList.toggle('is-provider-disabled', !visible);
+    });
+
+    document.querySelectorAll('.evidence-lens-btn[data-index]').forEach(button => {
+        const supported = !isCog || COG_SUPPORTED_INDEX_KEYS.has(button.dataset.index);
+        button.disabled = !supported;
+        button.classList.toggle('is-provider-disabled', !supported);
+        button.setAttribute('aria-disabled', supported ? 'false' : 'true');
     });
 
     document.querySelectorAll('.sar-action').forEach(button => {
@@ -1008,13 +1124,7 @@ export function renderSpillBookmarks(indexKey = state.activeIndex) {
 
             // Force single date mode on bookmark click for instant cloud-free imagery
             if (state.mode !== 'single') {
-                const mSing = document.getElementById('mode-single');
-                if (mSing) {
-                    mSing.click();
-                } else {
-                    state.mode = 'single';
-                    applyIndex();
-                }
+                setTemporalMode('single');
             } else {
                 applyIndex();
             }
@@ -1198,24 +1308,17 @@ function bindEvents() {
     // Mode Switcher
     const mSing = document.getElementById('mode-single');
     const mComp = document.getElementById('mode-compare');
-    const cSing = document.getElementById('single-time-container');
-    const cComp = document.getElementById('compare-dates-container');
 
     mSing.addEventListener('click', () => {
-        state.mode = 'single';
-        mSing.classList.add('active'); mComp.classList.remove('active');
-        cSing.style.display = 'block'; cComp.style.display = 'none';
-        updateWorkflowTemporalStatus();
-        applyIndex();
+        state.activeEvidenceStage = '';
+        state.activeEvidenceComparison = '';
+        setTemporalMode('single');
     });
 
     mComp.addEventListener('click', () => {
-        state.mode = 'compare';
-        enforceCogTemporalConstraints();
-        mComp.classList.add('active'); mSing.classList.remove('active');
-        cComp.style.display = 'block'; cSing.style.display = 'none';
-        updateWorkflowTemporalStatus();
-        applyIndex();
+        state.activeEvidenceStage = '';
+        state.activeEvidenceComparison = '';
+        setTemporalMode('compare');
     });
 
     // Compare Layout Toggle
@@ -1225,6 +1328,7 @@ function bindEvents() {
     if (btnSwipe && btnDiff && btnCumulative) { // Modified condition
         document.getElementById('btn-swipe').addEventListener('click', () => {
             state.compareType = 'swipe';
+            state.activeEvidenceComparison = '';
             document.getElementById('btn-swipe').classList.add('active');
             document.getElementById('btn-diff').classList.remove('active');
             document.getElementById('btn-cumulative').classList.remove('active');
@@ -1234,6 +1338,7 @@ function bindEvents() {
         document.getElementById('btn-diff').addEventListener('click', () => {
             if (isCogProviderActive()) return;
             state.compareType = 'diff';
+            state.activeEvidenceComparison = '';
             document.getElementById('btn-diff').classList.add('active');
             document.getElementById('btn-swipe').classList.remove('active');
             document.getElementById('btn-cumulative').classList.remove('active');
@@ -1243,6 +1348,7 @@ function bindEvents() {
         document.getElementById('btn-cumulative').addEventListener('click', () => {
             if (isCogProviderActive()) return;
             state.compareType = 'cumulative';
+            state.activeEvidenceComparison = '';
             document.getElementById('btn-cumulative').classList.add('active');
             document.getElementById('btn-swipe').classList.remove('active');
             document.getElementById('btn-diff').classList.remove('active');
@@ -1458,6 +1564,7 @@ function bindEvents() {
             state.map.removeLayer(state.baseLayerInst);
             state.baseLayerInst = L.tileLayer(BASE_LAYERS[lKey], { maxZoom: 18 }).addTo(state.map);
             state.baseLayerInst.bringToBack();
+            updateEvidenceConfounderControl();
         });
     });
 
@@ -1532,6 +1639,9 @@ function bindEvents() {
     if (dateSingleEl) {
         dateSingleEl.addEventListener('change', (e) => {
             state.monthIndex = parseInt(e.target.value, 10);
+            state.activeEvidenceStage = '';
+            state.activeEvidenceComparison = '';
+            renderSpillEvidenceTimeline();
             if (state.mode === 'single') applyIndex();
         });
     }
@@ -1606,8 +1716,16 @@ function bindEvents() {
     }
 
     // Compare Dates
-    document.getElementById('date-t1').addEventListener('change', () => { if (state.mode === 'compare') applyIndex(); });
-    document.getElementById('date-t2').addEventListener('change', () => { if (state.mode === 'compare') applyIndex(); });
+    document.getElementById('date-t1').addEventListener('change', () => {
+        state.activeEvidenceComparison = '';
+        renderSpillEvidenceTimeline();
+        if (state.mode === 'compare') applyIndex();
+    });
+    document.getElementById('date-t2').addEventListener('change', () => {
+        state.activeEvidenceComparison = '';
+        renderSpillEvidenceTimeline();
+        if (state.mode === 'compare') applyIndex();
+    });
 
 
     // Map Mouse Move for exact coordinate tracking (optional enhancement)
@@ -3134,7 +3252,7 @@ function evaluatePixel(sample) {
 export function renderFocusedTriage() {
     const triageCards = document.querySelectorAll('.triage-card');
     
-    function activateIndex(indexKey, card) {
+    function activateIndex(indexKey, card, { preserveTemporal = false } = {}) {
         if (!isIndexProviderReady(indexKey)) {
             enforceCogIndexSupport();
             setCogUiAvailability();
@@ -3155,16 +3273,21 @@ export function renderFocusedTriage() {
         
         // Render bookmarks for this selected index
         renderSpillBookmarks(indexKey);
-        
-        selectSpill(getActiveSpill());
-        markActiveWorkflowControls();
-        
-        // Force single date mode on triage selection for instant cloud-free imagery
-        if (state.mode !== 'single') {
-            const mSing = document.getElementById('mode-single');
-            if (mSing) mSing.click();
-        } else {
+
+        if (preserveTemporal) {
+            updateWorkflowSummary(getActiveSpill(), indexKey);
+            markActiveWorkflowControls();
             applyIndex();
+        } else {
+            selectSpill(getActiveSpill());
+            markActiveWorkflowControls();
+
+            // The standard evidence pills open the bookmark's event scene.
+            if (state.mode !== 'single') {
+                setTemporalMode('single');
+            } else {
+                applyIndex();
+            }
         }
         setTimeout(() => probeAcquisitions(), 1600);
     }
@@ -3222,6 +3345,36 @@ export function renderFocusedTriage() {
                 const indexKey = pill.dataset.index;
                 activateIndex(indexKey, newCard);
             });
+        });
+
+        newCard.querySelectorAll('[data-evidence-stage]').forEach(button => {
+            button.addEventListener('click', event => {
+                event.stopPropagation();
+                showEvidenceStage(button.dataset.evidenceStage);
+            });
+        });
+
+        newCard.querySelectorAll('[data-evidence-compare]').forEach(button => {
+            button.addEventListener('click', event => {
+                event.stopPropagation();
+                const [leftStage, rightStage] = button.dataset.evidenceCompare.split(':');
+                compareEvidenceStages(leftStage, rightStage);
+            });
+        });
+
+        newCard.querySelectorAll('.evidence-lens-btn').forEach(button => {
+            button.addEventListener('click', event => {
+                event.stopPropagation();
+                if (button.disabled || !isIndexProviderReady(button.dataset.index)) return;
+                newCard.classList.add('active');
+                activateIndex(button.dataset.index, newCard, { preserveTemporal: true });
+            });
+        });
+
+        newCard.querySelector('#timeline-road-check')?.addEventListener('click', event => {
+            event.stopPropagation();
+            const osmActive = document.querySelector('.layer-toggle.active')?.dataset.layer === 'osm';
+            document.querySelector(`.layer-toggle[data-layer="${osmActive ? 'imagery' : 'osm'}"]`)?.click();
         });
 
         newCard.querySelectorAll('.compare-action').forEach(button => {
@@ -3333,8 +3486,7 @@ export function renderFocusedTriage() {
                         markActiveWorkflowControls();
 
                         if (state.mode !== 'single') {
-                            const mSing = document.getElementById('mode-single');
-                            if (mSing) mSing.click();
+                            setTemporalMode('single');
                         } else {
                             applyIndex();
                         }
@@ -3356,9 +3508,7 @@ export function renderFocusedTriage() {
 
                     markActiveWorkflowControls();
 
-                    if (state.indexVisible) {
-                        applyIndex();
-                    }
+                    if (state.indexVisible) setTemporalMode('single');
                     setTimeout(() => probeAcquisitions(), 1600);
                 });
 
@@ -3502,8 +3652,7 @@ export function renderCommandConsole() {
                     markActiveWorkflowControls();
                     
                     if (state.mode !== 'single') {
-                        const mSing = document.getElementById('mode-single');
-                        if (mSing) mSing.click();
+                        setTemporalMode('single');
                     } else {
                         applyIndex();
                     }

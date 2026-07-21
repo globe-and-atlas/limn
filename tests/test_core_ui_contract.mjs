@@ -26,6 +26,16 @@ for (const key of ['ndsi', 'si', 'hcai', 'ndoi', 'csi', 'hmri']) {
   assert.match(html, new RegExp(`triage-gate-details[\\s\\S]*data-index="${key}"`), `gate-diagnostic drawer exposes ${key}`);
 }
 assert.match(html, /broad-band component surfaces[\s\S]*not chemical measurements/i, 'gate diagnostics disclose their non-chemical interpretation boundary');
+assert.match(html, /id="spill-evidence-timeline"/, 'Screen exposes the spill evidence timeline');
+for (const stage of ['reference', 'before', 'event', 'after', 'late', 'latest']) {
+  assert.match(html, new RegExp(`data-evidence-stage="${stage}"`), `timeline exposes the ${stage} scene target`);
+}
+for (const indexKey of ['tc', 'ndwi', 'lbi', 'pwi', 'pwoi']) {
+  assert.match(html, new RegExp(`evidence-lens-btn[^>]*data-index="${indexKey}"`), `timeline exposes the ${indexKey} review lens`);
+}
+assert.match(html, /Repeated response supports persistence review, not source attribution/i, 'timeline preserves the attribution boundary');
+assert.match(app, /function compareEvidenceStages[\s\S]*state\.compareType = 'swipe'/, 'timeline comparison shortcuts use honest swipe comparison');
+assert.match(app, /timeline-road-check[\s\S]*layer-toggle\[data-layer=/, 'timeline exposes mapped-road context through the existing base-layer control');
 assert.match(html, /Experimental composites — negative-result study/i, 'PWCI, ASAI, and OBEC are demoted into a negative-result research section');
 assert.match(html, /id="btn-primary-compare"/, 'primary investigation stack exposes before/after compare');
 assert.match(html, /data-quality="scl"/, 'UI exposes provider-aware pixel-quality status');
