@@ -59,7 +59,10 @@ def main() -> None:
         try:
             stats = fetch_stats(token, lon, lat, date)
             if stats:
-                results.append({"lon": lon, "lat": lat, "date": date, **stats})
+                label = feat["properties"].get("label", "")
+                name = feat["properties"].get("name", "")
+                results.append({"lon": lon, "lat": lat, "date": date,
+                                "label": label, "name": name, **stats})
                 pd.DataFrame(results).to_csv(out_path, index=False)
                 ok += 1
                 print("DONE.")
