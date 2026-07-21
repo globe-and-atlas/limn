@@ -1,6 +1,10 @@
 # Atlas Evidence Standard
 
-Last updated: 2026-06-17
+Last updated: 2026-07-20
+
+## Current interpretation (supersedes evidence-as-validation wording)
+
+Atlas evidence packs establish provenance for a bookmark, event, or phenomenon. They do not validate the index formula or prove that the rendered overlay is caused by the cited event. The current catalog has 37 live M3 screening proxies; WMS QC labels their bookmarked renderings as 35 strong and 2 moderate. The current evidence audit covers those entries plus five SAR/S5P demo layers and passes 42/42 Gold-ready. Formula validation remains below V1 for all Atlas entries.
 
 Atlas renderable bookmarks should carry a visible evidence pack rather than a single loose citation.
 
@@ -17,7 +21,7 @@ Copernicus Browser, Sentinel Hub sensor documentation, and Sentinel Hub WMS/serv
 
 ## Trust Tiers
 
-- Gold evidence: renderable bookmark with at least three reachable incident/instance cited-source URLs, a bookmark date, and a primary source URL.
+- Gold evidence: live bookmark with at least three reachable incident/instance cited-source URLs, a bookmark date, and a primary source URL. Gold is a source-provenance tier, not a formula-validation tier.
 - Context only: non-renderable concept or proof-target-pending bookmark.
 - Audit Gold-ready: stricter than the UI label; requires at least three reachable incident/instance cited-source URLs and a reachable primary bookmark source.
 

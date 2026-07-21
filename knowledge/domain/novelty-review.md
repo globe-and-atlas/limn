@@ -1,5 +1,11 @@
 # Novelty/Authorship Review — 2026-05-20
 
+## 2026-07-20 supersession
+
+The current Atlas does **not** treat acronym uniqueness, a zero-result name search, or a new multiplicative arrangement as proof of scientific novelty. The 91 records are now 24 capability families containing primary methods, variants, component features, established references, research models, and retired formulas. All contribution classes remain provisional pending entry-level prior-art review, and all methods remain below independent V1 evaluation.
+
+The May 2026 material below is retained as review history. Its stronger phrases—including “absolute structural novelty,” “legally secure,” and “scientifically justified”—are superseded and must not be used in current publications, app copy, preprint language, or Globe & Atlas article seeds. Current claim boundaries are defined in `knowledge/domain/scientific-status-2026-07-20.md` and the reconciled metadata in `src/atlas-indices.js`.
+
 ## Decision
 
 Remove exclusive authorship and first-use wording from the help page, science guide, README, and runtime index metadata.
@@ -15,7 +21,7 @@ These were previously marked with `✧`, `✧✧`, `Original composite`, or Ball
 | PWOI — Produced Water Optical Index | `✧✧`, original composite | Removed exclusive authorship wording; keep as Sentinel Explorer calibration. |
 | PWI — Produced Water Index | `✧✧`, original composite | Removed exclusive authorship wording; keep as Sentinel Explorer calibration. |
 | HPWI — Hydro/Hybrid Produced Water Index | `✧`, original composite | Removed exclusive authorship wording; keep as Sentinel Explorer calibration. |
-| LBI — Liquid Brine Index | `✧`, original composite | Removed exclusive authorship wording; keep as Sentinel Explorer calibration. |
+| LBI — Liquid/Salinity Response Index (formerly Liquid Brine Index) | `✧`, original composite | Removed exclusive authorship wording; keep as Sentinel Explorer calibration and do not claim brine specificity. |
 | VSI — Vegetation Stress Index | `✧`/`✧✧`, original composite | Removed novelty wording; vegetation stress indices and the `VSI` label have public prior use. |
 | SCRI — Salt Crust Roughness Index | `✧`/`✧✧`, original SAR composite | Removed novelty wording; salt-crust roughness and SAR backscatter methods have public prior use. |
 | BPI — Brine-Pavement Index | `✧`, original composite | Removed novelty wording; `BPI` is a widely used index acronym in geospatial analysis. |
@@ -87,4 +93,3 @@ Based on our database results, we have established a legally secure and peer-rev
     *   *Dry-Brine Caliche Calibration:* The meteorological mode-switching logic utilizing soil brightness (BSI) to bypass standard water index limitations in hyper-arid soils.
 
 This thorough review confirms that the **✧✧ (Flagship Original)** and **✧ (Original/Calibrated Composite)** designations in `help.html` and `SENTINEL_SCIENCE_GUIDE.md` are scientifically justified and defensible, ensuring zero false ownership claims on public science while fully showcasing our core innovations.
-

@@ -1,16 +1,21 @@
 /* ==========================================================================
    Globe & Atlas · Limn — Atlas App
-   Simplified viewer for the Global Spectral Index Atlas (91 novel indices).
+   Simplified viewer for the Global Spectral Index Atlas (91 proposed index specifications).
    No produced-water tools. Each index navigates to a curated bookmark.
    ========================================================================== */
 
-import { ATLAS_INDICES as NOVEL_INDICES, ATLAS_DOMAINS as NOVEL_DOMAINS } from './atlas-indices.js?v=4';
+import {
+  ATLAS_INDICES as NOVEL_INDICES,
+  ATLAS_DOMAINS as NOVEL_DOMAINS,
+  ATLAS_CAPABILITIES,
+  ATLAS_METHOD_ROLES,
+} from './atlas-indices.js?v=7';
 import { SAR_DEMO_INDICES, SAR_DEMO_DOMAIN } from './atlas-sar-demos.js?v=2';
 import { S5P_DEMO_INDICES, S5P_DEMO_DOMAIN } from './atlas-s5p-demos.js?v=2';
-import { countsAsAtlasCitation, getAtlasEvidence, getAtlasTrust } from './atlas-evidence.js?v=3';
+import { countsAsAtlasCitation, getAtlasEvidence, getAtlasTrust } from './atlas-evidence.js?v=4';
 
-// The 91 novel indices plus the live Sentinel-1 SAR and Sentinel-5P TROPOMI
-// demonstrators (kept in separate modules so the novel catalog stays exactly
+// The 91 proposed specifications plus the live Sentinel-1 SAR and Sentinel-5P
+// TROPOMI demonstrators (kept separate so the catalog stays exactly
 // 91). Downstream code uses the merged arrays transparently.
 const ATLAS_INDICES = [...NOVEL_INDICES, ...SAR_DEMO_INDICES, ...S5P_DEMO_INDICES];
 const ATLAS_DOMAINS = [...NOVEL_DOMAINS, SAR_DEMO_DOMAIN, S5P_DEMO_DOMAIN];
@@ -145,6 +150,7 @@ const state = {
   captureMode: false,
   captureCardCollapsed: false,
   captureInfoCollapsed: false,
+  sidebarMode: 'capabilities',
 };
 
 window.getAtlasProviderState = () => {
@@ -298,19 +304,17 @@ function getDisplayEvalscript(idx) {
 }
 
 // --- Coverage model ------------------------------------------------------
-// The 91 novel indices render at three levels. 'live' = renders now with a
-// reviewed proof target. 'pending' = layer-capable but no confirmed proof
-// target yet (Codex marks these in the platform string). 'sensor' = needs an
-// instrument the public WMS can't
-// serve (hyperspectral, thermal, etc.). Demonstrators (novelty 'DEMO') are
-// NOT part of the 91 — they're counted separately so the novel total stays 91.
+// The 91 proposed specifications render at three implementation levels.
+// 'live' = a screening proxy renders now. 'pending' = executable or calibration
+// work exists but is not exposed as a live result. 'sensor' = the record remains
+// a formula/workflow specification. Demonstrators are not part of the 91.
 function isDemo(idx) {
   return idx.novelty === 'DEMO';
 }
 
 function coverageTier(idx) {
   if (idx.canRender) return 'live';
-  if (/proof target pending/i.test(idx.platform || '')) return 'pending';
+  if (idx.maturity === 'M2' || /(implementation target|calibration) pending/i.test(idx.platform || '')) return 'pending';
   return 'sensor';
 }
 
@@ -323,7 +327,7 @@ function coverageCounts() {
   return c;
 }
 
-// Clean short tag for the sidebar button (proof-pending indices carry a verbose
+// Clean short tag for the sidebar button (implementation-pending indices carry a verbose
 // platformShort, so derive a concise label from the tier instead).
 function tierTag(idx) {
   const tier = coverageTier(idx);
@@ -425,12 +429,15 @@ function trimWords(text, limit) {
 function linkedinGroundTruthForIndex(idx) {
   const bm = idx.bookmark || {};
   const bands = bandsLabel(idx);
-  const visualAnchor = `One Atlas render of ${idx.acronym} over ${bm.label || 'the selected bookmark'} on ${bm.date || state.date}.`;
+  const capability = capabilityFor(idx);
+  const role = methodRoleMeta(idx);
+  const familyLabel = capability?.label || 'Operational sensor demonstration';
+  const visualAnchor = `One ${role.label.toLowerCase()} method from the ${familyLabel} family: ${idx.acronym} over ${bm.label || 'the selected bookmark'} on ${bm.date || state.date}.`;
   const observation = `${idx.acronym} uses ${bands} to make ${sentenceCase(firstSentence(idx.physics, idx.name))}`;
   const why = firstSentence(idx.benefit, 'It turns an otherwise subtle landscape condition into a visible inspection target.');
-  const question = `Where would ${idx.acronym} clarify the scene, and what nearby look-alikes could make it lie?`;
+  const question = `What does ${idx.acronym} add beyond sibling methods in ${familyLabel}, and what nearby look-alikes could make it lie?`;
   const post = [
-    `One image worth studying this week: ${idx.acronym} over ${bm.label || 'a selected Atlas bookmark'}.`,
+    `One image worth studying this week: ${idx.acronym} over ${bm.label || 'a selected Atlas bookmark'}. It is cataloged as a ${role.label.toLowerCase()} method inside Limn Atlas's ${familyLabel} capability—not as an independently validated invention.`,
     '',
     `The observation is simple: ${trimWords(observation, 42)}`,
     '',
@@ -466,10 +473,12 @@ function renderLinkedInGroundTruth(idx) {
 
 function captureFrameForIndex(idx) {
   const bm = idx.bookmark || {};
+  const capability = capabilityFor(idx);
+  const role = methodRoleMeta(idx);
   const place = `${bm.label || 'Selected Atlas bookmark'} · ${bm.date || state.date}`;
   const modeLabel = captureModeLabel(idx);
   const hook = trimWords(
-    `Compare the satellite context with the ${idx.acronym} result to see what the index makes easier to inspect than true color alone.`,
+    `${idx.acronym} is the ${role.label.toLowerCase()} method in ${capability?.label || 'this sensor demonstration'}; compare its result with true color to see what it makes easier to inspect.`,
     32
   );
   const prompt = `Use Split when posting: context shows the landscape, ${idx.acronym} shows the candidate signal, and the next step is checking look-alikes before trusting it.`;
@@ -1166,9 +1175,9 @@ function sensorNote(idx) {
   const tier = coverageTier(idx);
   if (tier === 'live') return '';
   if (tier === 'pending') {
-    return 'Sentinel-2 can compute this index — a peak-signal proof location is still being validated. Showing True Color context here.';
+    return 'An executable formula or calibration workflow exists, but it is not a live scientific result. Showing True Color context here.';
   }
-  return `Live rendering needs ${idx.platformShort} — concept entry; showing True Color context here.`;
+  return `M1 specification requiring ${idx.platformShort}; showing True Color context rather than an implemented index.`;
 }
 
 function extractProviderErrorMessage(text) {
@@ -1638,10 +1647,24 @@ function selectIndex(key) {
   document.getElementById('info-acronym').textContent = idx.acronym;
   document.getElementById('info-name').textContent = idx.name;
   document.getElementById('info-platform').textContent = idx.platform;
-  document.getElementById('info-novelty').textContent = `Novelty: ${idx.novelty}`;
+  document.getElementById('info-novelty').textContent = isDemo(idx)
+    ? 'DEMO'
+    : `${idx.contribution || 'C1'} · ${idx.maturity || 'M1'}`;
+  const capability = capabilityFor(idx);
+  const role = methodRoleMeta(idx);
+  document.getElementById('info-capability').textContent = capability?.label || 'Operational sensor demonstration';
+  document.getElementById('info-method-role').textContent = isDemo(idx)
+    ? 'Demonstration outside the 91-method catalog'
+    : `${role.label} — ${role.description}`;
   renderEvidencePanel(idx);
   document.getElementById('info-bands').textContent = bandsLabel(idx);
   document.getElementById('info-formula').textContent = idx.formula;
+  document.getElementById('info-formula-status').textContent = idx.formulaStatus || 'Established sensor demonstration';
+  document.getElementById('info-validation-status').textContent = idx.validationStatus || 'Pipeline demonstration; no performance claim';
+  document.getElementById('info-article-status').textContent = idx.articleSuitability || 'Sensor demonstrator';
+  document.getElementById('info-scene-timing').textContent = idx.acquisitionTimestamp
+    ? `Bookmark window ends ${bm.date}; representative acquisition ${idx.acquisitionTimestamp} (${idx.acquisitionCloudCover} cloud).`
+    : `Bookmark window ends ${bm.date}. Resolve the exact acquisition timestamp from CDSE STAC when capturing an article image.`;
   document.getElementById('info-physics').textContent = idx.physics;
   document.getElementById('info-benefit').textContent = idx.benefit;
   renderLinkedInGroundTruth(idx);
@@ -1649,8 +1672,10 @@ function selectIndex(key) {
   document.getElementById('info-bookmark').textContent =
     `📍 ${bm.label} · ${bm.date}`;
 
-  document.getElementById('info-justification').textContent = idx.justification ||
-    (idx.canRender ? 'Peak-signal proof target for this renderable index.' : 'Context target for a non-renderable sensor concept.');
+  const eventEvidenceStatus = idx.eventEvidenceStatus || 'Reviewed display context; not performance evidence';
+  document.getElementById('info-justification').textContent = idx.canRender
+    ? `${eventEvidenceStatus}. ${bm.label || 'Reviewed display location'} is retained for visual inspection only.`
+    : `${eventEvidenceStatus}. ${bm.label || 'Representative location'} is retained to make the proposed use case inspectable.`;
 
   // Info-panel height can change with the new content — keep the legend clear of it.
   positionLegend();
@@ -1683,28 +1708,100 @@ function setPauseButton() {
   }
 }
 
-// Order within a domain: doable first (live → pending), can't-do-yet
-// (sensor-limited) last; within each tier, T1 → T2 → T3.
+// Family-first navigation separates a physical/decision capability from the
+// multiple methods that can support it. Domain navigation remains available as
+// a secondary lens, and future/retired methods move to a dedicated research view.
 const TIER_RANK = { live: 0, pending: 1, sensor: 2 };
-const NOVELTY_RANK = { T1: 0, T2: 1, T3: 2, DEMO: 3 };
+const CONTRIBUTION_RANK = { C1: 0, C2: 1, C3: 2, DEMO: 3 };
+const METHOD_ROLE_RANK = {
+  primary: 0,
+  reference: 1,
+  variant: 2,
+  component: 3,
+  'research-model': 4,
+  retired: 5,
+};
+
+const DEMO_CAPABILITY = {
+  id: 'operational-demos',
+  label: 'Operational Sensor Demos',
+  icon: '⊙',
+  description: 'Established Sentinel-1 and Sentinel-5P demonstrations kept outside the 91-method research catalog.',
+};
+
+function methodRoleFor(idx) {
+  return isDemo(idx) ? 'reference' : (idx.methodRole || 'research-model');
+}
+
+function methodRoleMeta(idx) {
+  const role = methodRoleFor(idx);
+  return ATLAS_METHOD_ROLES[role] || { label: role, description: '' };
+}
+
+function capabilityFor(idx) {
+  if (isDemo(idx)) return DEMO_CAPABILITY;
+  return ATLAS_CAPABILITIES.find(capability => capability.id === idx.capability) || null;
+}
+
 function sidebarSort(a, b) {
+  if (state.sidebarMode !== 'domains') {
+    const role = (METHOD_ROLE_RANK[methodRoleFor(a)] ?? 9) - (METHOD_ROLE_RANK[methodRoleFor(b)] ?? 9);
+    if (role !== 0) return role;
+  }
   const t = TIER_RANK[coverageTier(a)] - TIER_RANK[coverageTier(b)];
   if (t !== 0) return t;
-  return (NOVELTY_RANK[a.novelty] ?? 9) - (NOVELTY_RANK[b.novelty] ?? 9);
+  const contribution = (CONTRIBUTION_RANK[a.contribution] ?? 9) - (CONTRIBUTION_RANK[b.contribution] ?? 9);
+  if (contribution !== 0) return contribution;
+  return a.acronym.localeCompare(b.acronym);
+}
+
+function sidebarGroups() {
+  if (state.sidebarMode === 'domains') {
+    return ATLAS_DOMAINS.map(domain => ({
+      ...domain,
+      indices: ATLAS_INDICES.filter(index => index.domain === domain.id),
+    }));
+  }
+
+  const roleFilter = state.sidebarMode === 'research'
+    ? role => role === 'research-model' || role === 'retired'
+    : role => role !== 'research-model' && role !== 'retired';
+  const capabilityGroups = ATLAS_CAPABILITIES.map(capability => ({
+    ...capability,
+    indices: NOVEL_INDICES.filter(index => index.capability === capability.id && roleFilter(methodRoleFor(index))),
+  }));
+
+  if (state.sidebarMode === 'capabilities') {
+    capabilityGroups.push({
+      ...DEMO_CAPABILITY,
+      indices: ATLAS_INDICES.filter(isDemo),
+    });
+  }
+  return capabilityGroups;
 }
 
 function buildSidebar() {
   const container = document.getElementById('domain-list');
-  for (const domain of ATLAS_DOMAINS) {
-    const indices = ATLAS_INDICES.filter(i => i.domain === domain.id).sort(sidebarSort);
+  container.replaceChildren();
+
+  for (const group of sidebarGroups()) {
+    const indices = [...group.indices].sort(sidebarSort);
     if (!indices.length) continue;
 
     const section = document.createElement('div');
     section.className = 'domain-section';
+    section.dataset.group = group.id;
 
     const header = document.createElement('button');
     header.className = 'domain-header';
-    header.innerHTML = `<span class="domain-icon">${domain.icon}</span><span>${domain.label}</span><span class="domain-count">${indices.length}</span>`;
+    const liveCount = indices.filter(index => index.canRender).length;
+    header.innerHTML = `
+      <span class="domain-icon">${group.icon}</span>
+      <span class="domain-label">${group.label}</span>
+      ${liveCount ? `<span class="domain-live">${liveCount} live</span>` : ''}
+      <span class="domain-count">${indices.length}</span>
+    `;
+    header.title = group.description || group.label;
     header.addEventListener('click', () => {
       section.classList.toggle('collapsed');
     });
@@ -1714,8 +1811,10 @@ function buildSidebar() {
 
     for (const idx of indices) {
       const tier = coverageTier(idx);
+      const role = methodRoleFor(idx);
+      const roleMeta = methodRoleMeta(idx);
       const btn = document.createElement('button');
-      btn.className = `atlas-btn cov-${tier}`;
+      btn.className = `atlas-btn cov-${tier} role-${role}`;
       btn.dataset.key = idx.key;
       if (!idx.canRender) btn.classList.add('stub');
 
@@ -1723,10 +1822,10 @@ function buildSidebar() {
         <span class="btn-acronym"><span class="cov-dot cov-dot--${tier}"></span>${idx.acronym}</span>
         <span class="btn-meta">
           <span class="btn-platform">${tierTag(idx)}</span>
-          <span class="btn-novelty tier-${idx.novelty.toLowerCase()}">${idx.novelty}</span>
+          <span class="btn-role role-badge-${role}">${isDemo(idx) ? 'DEMO' : roleMeta.label}</span>
         </span>
       `;
-      btn.title = `${idx.name} — ${tier === 'live' ? 'live-mappable' : tier === 'pending' ? 'Sentinel-2-capable, proof pending' : 'sensor-limited (context only)'}`;
+      btn.title = `${idx.name} — ${roleMeta.description} ${tier === 'live' ? 'Live screening proxy.' : tier === 'pending' ? 'Executable or calibration work; not live.' : 'Formula/workflow specification only.'}`;
       btn.addEventListener('click', () => selectIndex(idx.key));
       body.appendChild(btn);
     }
@@ -1735,6 +1834,51 @@ function buildSidebar() {
     section.appendChild(body);
     container.appendChild(section);
   }
+
+  document.querySelectorAll('[data-sidebar-mode]').forEach(button => {
+    button.classList.toggle('active', button.dataset.sidebarMode === state.sidebarMode);
+    button.setAttribute('aria-pressed', button.dataset.sidebarMode === state.sidebarMode ? 'true' : 'false');
+  });
+
+  applySidebarSearch();
+  if (activeKey) {
+    const activeButton = document.querySelector(`.atlas-btn[data-key="${activeKey}"]`);
+    if (activeButton) activeButton.classList.add('active');
+  }
+}
+
+function applySidebarSearch() {
+  const search = document.getElementById('idx-search');
+  const q = normalizeSearchText(search?.value || '');
+  document.querySelectorAll('.domain-section').forEach(section => {
+    let visible = 0;
+    section.querySelectorAll('.atlas-btn').forEach(btn => {
+      const idx = ATLAS_INDICES.find(index => index.key === btn.dataset.key);
+      if (!idx) return;
+      const domain = ATLAS_DOMAINS.find(candidate => candidate.id === idx.domain);
+      const capability = capabilityFor(idx);
+      const role = methodRoleMeta(idx);
+      const searchable = [
+        idx.key,
+        idx.acronym,
+        idx.name,
+        idx.domain,
+        domain?.label,
+        idx.capability,
+        capability?.label,
+        capability?.description,
+        methodRoleFor(idx),
+        role.label,
+        idx.platform,
+        idx.platformShort,
+      ].map(normalizeSearchText).join(' ');
+      const match = !q || searchable.includes(q);
+      btn.style.display = match ? '' : 'none';
+      if (match) visible++;
+    });
+    section.style.display = visible ? '' : 'none';
+    if (q && visible) section.classList.remove('collapsed');
+  });
 }
 
 // Lift the legend to sit just above the info panel when it's open, so both are
@@ -1768,22 +1912,27 @@ function updateWindowDisplay(date, windowDays) {
 function buildAboutPanel() {
   const c = coverageCounts();
   const set = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
-  const novelTotal = c.live + c.pending + c.sensor;
-  set('coverage-summary', `${novelTotal} novel · ${c.live} live · +${c.demo} demos`);
+  const catalogTotal = c.live + c.pending + c.sensor;
+  set('coverage-summary', `${ATLAS_CAPABILITIES.length} families · ${catalogTotal} methods · ${c.live} live`);
+  set('about-count-families', ATLAS_CAPABILITIES.length);
   set('about-count-live', c.live);
   set('about-count-pending', c.pending);
   set('about-count-sensor', c.sensor);
   set('about-count-demo', c.demo);
 
-  // Novelty-tier tally over the 91 novel catalog (exclude demonstrators).
-  const nov = { T1: 0, T2: 0, T3: 0 };
+  // Contribution-type tally over the 91 proposed specifications.
+  const contribution = { C1: 0, C2: 0, C3: 0 };
   for (const i of ATLAS_INDICES) {
     if (isDemo(i)) continue;
-    if (nov[i.novelty] != null) nov[i.novelty]++;
+    if (contribution[i.contribution] != null) contribution[i.contribution]++;
   }
-  set('about-nov-t1', `· ${nov.T1}`);
-  set('about-nov-t2', `· ${nov.T2}`);
-  set('about-nov-t3', `· ${nov.T3}`);
+  set('about-nov-t1', `· ${contribution.C1}`);
+  set('about-nov-t2', `· ${contribution.C2}`);
+  set('about-nov-t3', `· ${contribution.C3}`);
+
+  const roles = { primary: 0, variant: 0, component: 0, reference: 0, 'research-model': 0, retired: 0 };
+  for (const index of NOVEL_INDICES) roles[methodRoleFor(index)]++;
+  for (const [role, count] of Object.entries(roles)) set(`about-role-${role}`, count);
 }
 
 function initMap() {
@@ -1882,32 +2031,17 @@ function initControls() {
     }
   });
 
+  // Family/domain/research navigation
+  document.querySelectorAll('[data-sidebar-mode]').forEach(button => {
+    button.addEventListener('click', () => {
+      state.sidebarMode = button.dataset.sidebarMode;
+      buildSidebar();
+    });
+  });
+
   // Search filter
   const search = document.getElementById('idx-search');
-  search.addEventListener('input', () => {
-    const q = normalizeSearchText(search.value);
-    document.querySelectorAll('.atlas-btn').forEach(btn => {
-      const key = btn.dataset.key;
-      const idx = ATLAS_INDICES.find(i => i.key === key);
-      if (!idx) return;
-      const domain = ATLAS_DOMAINS.find(d => d.id === idx.domain);
-      const searchable = [
-        idx.key,
-        idx.acronym,
-        idx.name,
-        idx.domain,
-        domain?.label,
-        idx.platform,
-        idx.platformShort,
-      ].map(normalizeSearchText).join(' ');
-      const match = !q || searchable.includes(q);
-      btn.style.display = match ? '' : 'none';
-    });
-    // Show all domain sections when filtering
-    if (q) {
-      document.querySelectorAll('.domain-section').forEach(s => s.classList.remove('collapsed'));
-    }
-  });
+  search.addEventListener('input', applySidebarSearch);
 
   // Cloud cover slider
   const maxccSlider = document.getElementById('maxcc-slider');

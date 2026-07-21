@@ -36,7 +36,7 @@ ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_OUTPUT_ROOT = ROOT / ".tmp" / "atlas_article_captures"
 DEFAULT_WMS_URL = "https://sh.dataspace.copernicus.eu/ogc/wms/959ea2c5-5892-4b36-82b3-76e6bdb93c8a"
 DEFAULT_WMS_LAYER = "AGRICULTURE"
-DEFAULT_TARGETS = ["bhdfsi", "sfeii", "peti", "epdi", "rrfi", "tdrasi"]
+DEFAULT_TARGETS = ["bhdfsi", "lfmpi", "peti", "epdi", "ecaci", "tdrasi"]
 TARGET_ALIASES = {"edpi": "epdi", "bh-dfsi": "bhdfsi", "sf-eii": "sfeii", "tdr-asi": "tdrasi"}
 CATALOG_URL = "https://sh.dataspace.copernicus.eu/api/v1/catalog/1.0.0/search"
 TOKEN_URL = "https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token"
@@ -86,12 +86,16 @@ def parse_size(value: str) -> tuple[int, int]:
 
 def load_indices() -> list[dict[str, Any]]:
     code = """
-import { ATLAS_INDICES } from './src/atlas-indices.js';
+import { ATLAS_CAPABILITIES, ATLAS_INDICES } from './src/atlas-indices.js';
+const familyById = new Map(ATLAS_CAPABILITIES.map(family => [family.id, family]));
 const slim = ATLAS_INDICES.map(i => ({
   key: i.key,
   acronym: i.acronym,
   name: i.name,
   domain: i.domain,
+  capability: i.capability,
+  capabilityLabel: familyById.get(i.capability)?.label || i.capability,
+  methodRole: i.methodRole,
   platform: i.platform,
   platformShort: i.platformShort,
   canRender: i.canRender,
@@ -101,6 +105,10 @@ const slim = ATLAS_INDICES.map(i => ({
   formula: i.formula || '',
   physics: i.physics || '',
   benefit: i.benefit || '',
+  articleSuitability: i.articleSuitability || '',
+  articleAngle: i.articleAngle || '',
+  articleQcStatus: i.articleQcStatus || '',
+  bookmarkDateRole: i.bookmarkDateRole || '',
   source: i.source || '',
   sourceUrl: i.sourceUrl || '',
   justification: i.justification || ''
@@ -525,10 +533,17 @@ def render_capture_set(
             "index_acronym": index["acronym"],
             "index_name": index["name"],
             "domain": index["domain"],
+            "capability": index.get("capability", ""),
+            "capability_label": index.get("capabilityLabel", ""),
+            "method_role": index.get("methodRole", ""),
             "platform": index["platform"],
             "formula": index.get("formula", ""),
             "source": index.get("source", ""),
             "source_url": index.get("sourceUrl", ""),
+            "article_suitability": index.get("articleSuitability", ""),
+            "article_angle": index.get("articleAngle", ""),
+            "article_qc_status": index.get("articleQcStatus", ""),
+            "bookmark_date_role": index.get("bookmarkDateRole", ""),
             "bookmark_label": bm["label"],
             "latitude": base_lat,
             "longitude": base_lng,
@@ -557,6 +572,8 @@ def render_capture_set(
         {
             "index_key": index["key"],
             "index_acronym": index["acronym"],
+            "capability_label": index.get("capabilityLabel", ""),
+            "method_role": index.get("methodRole", ""),
             "capture_count": len(captures),
             "captures": captures,
         },
@@ -594,16 +611,18 @@ def write_manifest(output_dir: Path, captures: list[dict[str, Any]], args: argpa
         f"Targets: {', '.join(manifest['targets'])}",
         f"Capture count: {manifest['capture_count']}",
         "",
-        "| Index | Variant | Asset | Bookmark | Window | Catalog |",
-        "|---|---|---|---|---|---|",
+        "| Index | Capability / role | Variant | Asset | Bookmark | Window | Catalog |",
+        "|---|---|---|---|---|---|---|",
     ]
     for capture in captures:
         catalog = capture.get("satellite_metadata") or {}
         catalog_label = catalog.get("datetime") or catalog.get("status") or "unknown"
         lines.append(
-            "| {index_acronym} (`{index_key}`) | {variant} | `{asset}` | {label} | {window} | {catalog} |".format(
+            "| {index_acronym} (`{index_key}`) | {capability} / {role} | {variant} | `{asset}` | {label} | {window} | {catalog} |".format(
                 index_acronym=capture["index_acronym"],
                 index_key=capture["index_key"],
+                capability=capture.get("capability_label", ""),
+                role=capture.get("method_role", ""),
                 variant=capture["variant"],
                 asset=capture["asset"],
                 label=capture["bookmark_label"],

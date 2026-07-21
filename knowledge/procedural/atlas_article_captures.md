@@ -1,6 +1,12 @@
 # Atlas Article Captures
 
-Last updated: 2026-06-13
+Last updated: 2026-07-20
+
+## Current G&A lead set
+
+Use BH-DFSI, LFMPI, PETI, EPDI, EC-ACI, and TDR-ASI as the default six article candidates. SF-EII is retired from the live catalog, and RRFI remains useful context but is not a lead because its current overlay is only moderate.
+
+Each candidate is the primary method in a capability family. Captions and drafts should name the family once, describe the selected method's role, and avoid presenting sibling variants as independent inventions. The current pairings are BH-DFSI / Fire Effects & Recovery, LFMPI / Fuel Moisture Context, PETI / Aquatic Blooms & Pigments, EPDI / Water Condition & Plumes, EC-ACI / Urban Surface Condition, and TDR-ASI / Mining Surfaces & Risk.
 
 Use `execution/capture_atlas_articles.py` when generating article-ready Limn Atlas assets from selected index bookmarks.
 
@@ -8,8 +14,8 @@ Use `execution/capture_atlas_articles.py` when generating article-ready Limn Atl
 
 ```bash
 python3 execution/capture_atlas_articles.py \
-  --targets bhdfsi,sfeii,peti,epdi,rrfi,tdrasi \
-  --run-id 20260613-selected-sentinel \
+  --targets bhdfsi,lfmpi,peti,epdi,ecaci,tdrasi \
+  --run-id 20260720-v2-articles \
   --size 1200x800 \
   --window-days 15 \
   --maxcc 30
@@ -42,6 +48,8 @@ Use public CDSE STAC for scene metadata. It returns Sentinel item IDs, acquisiti
 Sentinel Hub Catalog is not the preferred metadata source for this workflow because it can consume or require account processing units. If using it as a fallback, send ISO timestamp ranges, not WMS-style date-only ranges.
 
 ## 2026-06-13 Run
+
+Historical run retained for provenance; use the current lead set above for new work.
 
 Run ID: `20260613-selected-sentinel`
 

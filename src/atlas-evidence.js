@@ -124,46 +124,45 @@ export function getAtlasReferenceLinks(index) {
 }
 
 export function getAtlasTrust(index) {
-  const verification = getAtlasVerification(index);
   const evidence = getAtlasEvidence(index);
   const citationCount = evidence.filter(countsAsAtlasCitation).length;
   const technicalCount = evidence.filter(item => item.url && !countsAsAtlasCitation(item)).length;
   if (!index.canRender) {
     return {
       tier: 'Context',
-      label: 'Context only',
+      label: 'Context location',
       citationCount,
       technicalCount,
       sourceCount: citationCount,
-      description: 'Concept bookmark; not a live proof-grade render target yet.',
+      description: 'Representative location for a non-live specification; not performance evidence.',
     };
   }
   if (citationCount >= 3 && index.sourceUrl && index.bookmark?.date) {
     return {
-      tier: verification?.tier || 'Gold',
-      label: verification?.tier === 'Strong' ? 'Strong verified' : 'Gold evidence',
+      tier: 'Context',
+      label: 'Documented event context',
       citationCount,
       technicalCount,
       sourceCount: citationCount,
-      description: verification?.basis || 'Three cited incident/domain sources plus separate technical verification links.',
+      description: 'Three cited incident/domain sources plus technical links. This documents context and rendering, not detector accuracy.',
     };
   }
   if (citationCount >= 2) {
     return {
-      tier: 'Silver',
-      label: 'Silver evidence',
+      tier: 'Context',
+      label: 'Partial event context',
       citationCount,
       technicalCount,
       sourceCount: citationCount,
-      description: 'Two cited sources; needs one more incident/domain source for Gold. Technical platform links are not counted.',
+      description: 'Two cited sources document context; technical platform links are tracked separately. No accuracy implication.',
     };
   }
   return {
-    tier: 'Bronze',
-    label: 'Bronze evidence',
+    tier: 'Context',
+    label: 'Sparse event context',
     citationCount,
     technicalCount,
     sourceCount: citationCount,
-    description: 'Insufficient cited incident/domain evidence for proof-grade trust. Technical platform links are not counted.',
+    description: 'Limited incident/domain documentation. Technical platform links are tracked separately; no accuracy implication.',
   };
 }

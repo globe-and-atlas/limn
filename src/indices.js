@@ -276,9 +276,11 @@ export const INDICES = {
         min: 0,
         max: 1,
         gradient: 'linear-gradient(to right, #000000, #00DCFF, #FF00FF, #8C00FF)',
-        formula: "Specular Smoothness Proxy × Salinity/Crust Signature",
-        info: "Globe & Atlas · Limn composite calibration. Uses optical surface smoothness (B03/B11 ratio) as a proxy for specular surface reflectance, cross-referenced with salinity indicators, plus a dry-brine mode that fires when NDWI is deeply negative but NDSI is elevated — mapping dry evaporated salt crusts in arid environments without requiring active radar data. Formerly known as Produced Water Optical Index (PWOI) or APEX Anomaly Index.",
-        diffLabels: ["Stable (No Detection)", "Salinity Anomaly Detected"],
+        formula: "max(W,D); W=0.42R+0.58S when R>0.58 and S>0; D=clamp(0.55+0.45(NDSI−0.15)/0.16) when NDWI<−0.42, NDSI>0.15, BSI>0.52; display≥0.60",
+        formulaStatus: "Implemented dual-path Sentinel-2 screening proxy",
+        validationStatus: "Not validated as a detector: pipeline recall 77.8% with 71.3% background activation; shipped viewer was blank at 11/11 reviewed positives and 150/150 background controls.",
+        info: "Experimental arid salinity/surface-context proxy. The wet path combines a Sentinel-2 NDWI-derived smoothness proxy with a dual-SWIR salinity gate; the dry path displays only very dry, bright, high-NDSI bare surfaces. July 2026 controls found no threshold that separated produced-water sites from Permian caliche, so ASAI is suitable for visual screening and method comparison only—not produced-water identification.",
+        diffLabels: ["Lower Proxy Response", "Higher Salinity/Surface Response"],
         // WMS-compatible S2-only evalscript (optical proxy for radar smoothness)
         evalscript: genEvalscript(['B02', 'B03', 'B04', 'B08', 'B11', 'B12'], `
   // WET PATH — optical proxy for SAR surface smoothness
@@ -698,11 +700,13 @@ export const INDICES = {
         name: 'OBEC — Oil-Brine Emulsion Composite (formerly HPWI)',
         sensor: 'Sentinel-2 L2A',
         temporal: '0-3M',
-        min: 'Background', max: 'Liquid Emulsion',
+        min: 'Background', max: 'Optical Contrast Response',
         gradient: 'linear-gradient(to right, #000000, #00FFFF, #FF00FF, #CCFF00)',
-        formula: 'Chemical Signal (NDOI + NDSI) × Specular Smoothness Proxy',
-        info: 'Globe & Atlas · Limn composite calibration. Fuses hydrocarbon/brine chemical signatures (NDOI + NDSI) with an optical surface smoothness proxy (B03/B11 ratio) that approximates specular surface reflectance. Designed as a physical-chemical consensus validator for PWCI/ASAI. All bands Sentinel-2 only. Formerly known as Hybrid Produced Water Index (HPWI).',
-        diffLabels: ['Stable (No Detection)', 'Emulsion Anomaly Detected'],
+        formula: 'clamp(6 × clamp(NDOI + 0.8·max(0,NDSI−τ),0,1) × clamp((NDWI+0.3)/0.6,0,1),0,1); display≥0.08',
+        formulaStatus: 'Implemented single-scene Sentinel-2 optical-contrast proxy',
+        validationStatus: 'Not validated as a detector: pipeline recall 66.7% with 71.3% background activation; shipped viewer was blank at 11/11 reviewed positives and 150/150 background controls.',
+        info: 'Experimental optical-contrast proxy combining nonnegative Blue/SWIR2 contrast, a dual-SWIR salinity boost, and an NDWI-derived surface term. Despite its historical name, the bands do not retrieve oil or prove an emulsion. July 2026 controls found no useful produced-water discrimination, so use OBEC for contextual screening and formula comparison only.',
+        diffLabels: ['Lower Proxy Response', 'Higher Optical Contrast Response'],
         evalscript: genEvalscript(['B02', 'B03', 'B11', 'B12'], `
   if (sample.dataMask === 0) return [0,0,0,0];
 
@@ -901,11 +905,13 @@ export const INDICES = {
         name: 'PWCI — Produced Water Chemical Index (formerly PWI)',
         sensor: 'Sentinel-2 L2A',
         temporal: '0-3M',
-        min: 'Background', max: 'Chemical Anomaly',
+        min: 'Background', max: 'Three-Ratio Response',
         gradient: 'linear-gradient(to right, #000000, #00FFFF, #FF00FF, #CCFF00)',
         formula: '(NDSI - τ₁) × (HCAI - τ₂)×2 × (HMRI - τ₃)×2, cubic stretch [τ from active basin preset; Permian: 0.10 / 0.30 / 2.0]',
-        info: 'Globe & Atlas · Limn composite calibration. Requires simultaneous elevation of Salinity (NDSI), Hydrocarbons (HCAI), and Heavy Metals (HMRI) — a three-way AND gate that suppresses caliche background noise and construction anomalies. Cubic scaling suppresses marginal noise while isolating high-confidence chemical anomalies. Formerly known as Produced Water Index (PWI).',
-        diffLabels: ['Stable (No Detection)', 'Chemical Anomaly Detected'],
+        formulaStatus: 'Implemented BSI-gated three-ratio screening architecture',
+        validationStatus: 'Not validated as a detector: pipeline recall 81.5% with 96.7% background activation; shipped viewer was blank at 11/11 reviewed positives and 150/150 background controls.',
+        info: 'Experimental three-ratio screening architecture. PWCI multiplies thresholded dual-SWIR, SWIR/Red, and SWIR2/Green proxies after a bare-soil gate, then applies a cubic display stretch. These broad Sentinel-2 ratios are not direct measurements of salinity, hydrocarbons, or heavy metals. The July 2026 threshold sweep found no useful separation between produced-water sites and Permian caliche at the tested 500 m single-scene support.',
+        diffLabels: ['Lower Proxy Response', 'Higher Three-Ratio Response'],
         evalscript: genEvalscript(['B02', 'B03', 'B04', 'B08', 'B11', 'B12'], `
   // 1. Bare Soil Index (BSI) -- URBAN / WATER / VEG MASK
   let bsiTop = (sample.B11 + sample.B04) - (sample.B08 + sample.B02);
@@ -963,14 +969,16 @@ export const INDICES = {
 `
     },
     lbi: {
-        name: 'Liquid Brine Index (LBI)',
+        name: 'LBI — Liquid/Salinity Response Index (formerly Liquid Brine Index)',
         sensor: 'Sentinel-2 L2A',
         temporal: '0-3M',
-        min: 'Background', max: 'Standing Brine Pool',
+        min: 'Background', max: 'Liquid/Salinity Response',
         gradient: 'linear-gradient(to right, #000000, #0055ff, #00d2ff, #ffffff)',
-        formula: '(NDSI - 0.02) * (NDWI + 0.40) * (0.45 - NDVI) * (BSI + 0.20)',
-        info: 'Globe & Atlas · Limn composite calibration. Captures standing pools of hazardous produced water. Requires a brine chemical signature (NDSI), a standing water proxy (NDWI adjusted for the very negative desert baseline), and the absence of vegetation (1−NDVI). Filters out legacy dry residues — focuses on active liquid releases.',
-        diffLabels: ['Receding Liquid', 'New Pooling Event'],
+        formula: '20·max(0,NDSI−0.02)·max(0,NDWI+0.40)·max(0,0.45−NDVI)·G; G=1 when NDWI>0.30, else max(0,BSI+0.20); display≥0.08',
+        formulaStatus: 'Implemented water/salinity response proxy with standing-water bypass',
+        validationStatus: 'Preliminary only: 4 standing-brine sites, 3 freshwater/brackish controls, and 150 caliche points did not establish brine-specific separation.',
+        info: 'Experimental liquid/salinity response proxy. It combines dual-SWIR contrast, wetness, low vegetation, and a surface gate; open water bypasses the BSI gate. Preliminary July 2026 sampling found low caliche activation but overlapping standing-brine and freshwater responses, so LBI must not be described as brine-specific or as a general produced-water detector.',
+        diffLabels: ['Lower Liquid Response', 'Higher Liquid/Salinity Response'],
         evalscript: genEvalscript(['B02', 'B03', 'B04', 'B08', 'B11', 'B12'], `
   let ndsiSum = sample.B11 + sample.B12;
   let ndsi = ndsiSum === 0 ? 0 : (sample.B11 - sample.B12) / ndsiSum;

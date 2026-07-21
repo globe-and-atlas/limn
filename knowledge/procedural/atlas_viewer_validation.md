@@ -1,6 +1,15 @@
 # Atlas Viewer Validation
 
-Last updated: 2026-06-24
+Last updated: 2026-07-20
+
+## Current baseline (supersedes older proof-grade counts below)
+
+- Catalog: 24 capability families containing 91 methods; 37 live M3 screening proxies, 16 M2 executable non-live formulas, and 38 M1 concepts/retired formulas.
+- Roles: 15 primary, 10 variant, 12 component, 1 reference, 51 research-model, and 2 retired.
+- Public WMS bookmark audit: 35 `strong`, 2 `moderate` (RRFI and MP-PDI), 0 weak/blank/error.
+- `strong` means a spatially legible response from the shipped proxy at the cited context. It does **not** mean scientific proof or validation.
+- TFIDI now uses 2021-08-17 and IPVSI 2021-09-01 after ±60-day scene sweeps. RRFI and MP-PDI keep event-aligned dates because the strongest nearby alternatives did not materially improve interpretability.
+- Current G&A lead captures: BH-DFSI, LFMPI, PETI, EPDI, EC-ACI, and TDR-ASI.
 
 Use this checklist after changing `atlas.html`, `src/atlas-app.js`, or `src/atlas-indices.js`.
 
@@ -13,7 +22,9 @@ Use this checklist after changing `atlas.html`, `src/atlas-app.js`, or `src/atla
 
 2. Confirm catalog shape:
    - `ATLAS_INDICES.length` is `91`.
+   - `ATLAS_CAPABILITIES.length` is `24`.
    - `ATLAS_DOMAINS.length` is `12`.
+   - Every method has a declared capability and method role.
    - Renderable indices do not use pre-Sentinel-2 dates when they depend on Sentinel-2-style WMS rendering.
    - Live-renderable indices do not present as plain Landsat unless the Atlas WMS path actually selects a Landsat-capable layer.
 
@@ -32,7 +43,10 @@ Use this checklist after changing `atlas.html`, `src/atlas-app.js`, or `src/atla
    - Verify the expected renderable/context split for the current proof-grade pass and 0 missing documentation entries.
 
 5. Browser-smoke `atlas.html` through a local static server:
-   - The page loads 91 buttons and 12 domain sections.
+   - Capability view is the default and shows active primary, variant, component, and reference methods grouped by capability.
+   - Domain view exposes all 91 methods across the 12 application domains.
+   - Research view exposes the 51 research models and 2 retired formulas grouped by capability.
+   - Switching views preserves the selected method when it is present in the new view.
    - The first renderable index selects automatically.
    - Punctuation-free acronym search works, e.g. `bhdfsi` finds `BH-DFSI`.
    - The `Focus pts` HUD toggle is off by default.
@@ -73,10 +87,10 @@ Use this checklist after changing `atlas.html`, `src/atlas-app.js`, or `src/atla
    ```
    - The script intentionally uses the public Atlas fallback WMS endpoint and does not read `config-v1.js`, `.env`, or secrets.
    - It writes `.tmp/atlas_bookmark_qc.json` and `.tmp/atlas_bookmark_qc.md`.
-   - Treat `strong` as a proof-grade bookmark, `moderate` as visible but not unmistakable, and `weak`/`blank` as needing replacement.
+   - Treat `strong` as a clearly visible proxy response, `moderate` as visible but not unmistakable, and `weak`/`blank` as needing replacement or context-only treatment.
    - The stricter verdict rules require spatially noticeable signal; tiny bright specks should not pass as `strong`.
-   - After the 2026-06-07 proof-grade pass, renderable Atlas bookmarks must be `strong`; entries that remain moderate/weak/blank should be marked context/non-renderable until a measured proof target is documented.
-   - Current proof-grade split: 38 renderable `strong` bookmarks and 53 non-renderable/context concepts.
+   - A live entry may remain `moderate` when its date is important event context and an honest label is more useful than substituting a brighter but less representative scene.
+   - Current split: 35 live `strong`, 2 live `moderate`, and 54 non-live specifications.
    - Current context/non-renderable proof-target backlog: SWRI, DWCI, GMCPI, MDSPI, SPEI, SCSPI, TRSI, CCRBI, IERPI, SPSRI, FEDGI, SLSDI, UBCDI, AIBEAI, and PWTDI.
 
 ## WMS Notes

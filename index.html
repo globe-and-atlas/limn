@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Limn | Globe & Atlas Environmental Intelligence</title>
     
-    <meta name="description" content="Limn by Globe & Atlas is a professional satellite screening platform for detecting produced water anomalies, oil-brine emulsions, and evaporite blowouts in the Permian Basin.">
+    <meta name="description" content="Limn by Globe & Atlas is an experimental satellite screening platform for studying produced-water-related surface anomalies and their spectral limits in the Permian Basin.">
     <meta name="author" content="Daniel Bally (Globe & Atlas)">
 
     <!-- Open Graph / Facebook -->
@@ -124,6 +124,7 @@
                     <span id="legend-max"></span>
                 </div>
                 <div id="formula-display" class="formula-display"></div>
+                <div id="scientific-status-display" class="scientific-status-display"></div>
             </div>
 
             <!-- Subtle Map Loading Bar -->
@@ -242,25 +243,25 @@
             <div class="tab-content-container">
                 <!-- Tab 1: Detection -->
                 <div id="tab-detection" class="tab-pane active">
-                    <!-- Produced Water Composites — Globe & Atlas custom indices, ordered by novelty + effectiveness -->
+                    <!-- Experimental produced-water screening composites -->
                     <div class="index-suite-container suite-primary">
-                        <h3>Produced Water Composites</h3>
+                        <h3>Experimental Spill Screening</h3>
                         <div class="index-grid" role="group" aria-label="Produced water composites">
-                            <button class="index-btn idx-pwoi" data-index="pwoi" data-tooltip="ASAI — Arid Salinity Anomaly Index (formerly PWOI / APEX). S2-only optical index. Uses optical band ratios (B03/B11) as proxies for specular surface smoothness to detect dry salt crusts or active brine — no Sentinel-1 required.">
+                            <button class="index-btn idx-pwoi" data-index="pwoi" data-tooltip="ASAI — experimental Sentinel-2 arid-surface and salinity proxy. July 2026 controls did not support produced-water discrimination; use for visual screening, not detection.">
                                 <span class="index-short">ASAI</span>
                                 <span class="index-full index-full-bold">Arid Salinity Anomaly Index</span>
                             </button>
-                            <button class="index-btn idx-hpwi" data-index="hpwi" data-tooltip="OBEC — Oil-Brine Emulsion Composite (formerly HPWI). S2-only composite calibration. Fuses specular surface smoothness with chemical oil and brine signatures to validate liquid emulsion pooling — does not use actual Sentinel-1 data.">
+                            <button class="index-btn idx-hpwi" data-index="hpwi" data-tooltip="OBEC — experimental Sentinel-2 optical-contrast proxy. Its broad bands do not retrieve oil or prove an emulsion; July 2026 controls found no useful produced-water discrimination.">
                                 <span class="index-short">OBEC</span>
                                 <span class="index-full index-full-bold">Oil-Brine Emulsion Composite</span>
                             </button>
-                            <button class="index-btn idx-pwi" data-index="pwi" data-tooltip="PWCI — Produced Water Chemical Index (formerly PWI). Requires co-located salinity, hydrocarbon, and heavy metal chemical signatures to suppress caliche soil background noise.">
+                            <button class="index-btn idx-pwi" data-index="pwi" data-tooltip="PWCI — experimental three-ratio, BSI-gated screening architecture. The ratios are not direct chemical measurements and did not separate spills from Permian caliche in July 2026 controls.">
                                 <span class="index-short">PWCI</span>
                                 <span class="index-full index-full-bold">Produced Water Chemical Index</span>
                             </button>
-                            <button class="index-btn idx-lbi" data-index="lbi" data-tooltip="Liquid Brine Index. High sensitivity to salinity-induced spectral changes in desert environments.">
+                            <button class="index-btn idx-lbi" data-index="lbi" data-tooltip="LBI — experimental liquid/salinity response proxy. Preliminary controls do not establish brine specificity or produced-water accuracy.">
                                 <span class="index-short">LBI</span>
-                                <span class="index-full index-full-bold">Liquid Brine Index</span>
+                                <span class="index-full index-full-bold">Liquid/Salinity Response</span>
                             </button>
                             <button class="index-btn idx-fbc" data-index="fbc" data-tooltip="Forensic Brine Composite. Uses SWIR bands to detect residual salts after liquid evaporation.">
                                 <span class="index-short">FBC</span>
@@ -570,14 +571,14 @@
                         <div class="triage-card" data-triage="oilfield-spill">
                             <span class="triage-section-label">Detection Lens</span>
                             <div class="triage-tags">
-                                <button type="button" class="triage-tag-pill" data-index="hpwi" data-tooltip="<strong>OBEC — Oil-Brine Emulsion Composite</strong><br>Physical-chemical consensus composite. Fuses chemical signatures with a visible specular surface smoothness proxy to detect active pooling emulsions.">OBEC</button>
-                                <button type="button" class="triage-tag-pill" data-index="lbi" data-tooltip="<strong>LBI — Liquid Brine Index</strong><br>High-precision ratio tracker with maximum sensitivity to liquid salinity changes and evaporation signatures.">LBI</button>
-                                <button type="button" class="triage-tag-pill" data-index="pwoi" data-tooltip="<strong>ASAI — Arid Salinity Anomaly Index</strong><br>High-sensitivity dry-brine logic model. Fuses salinity shifts (NDSI) with soil brightness (BSI) to isolate salt crusts in dry bare desert soils.">ASAI</button>
-                                <button type="button" class="triage-tag-pill" data-index="pwi" data-tooltip="<strong>PWCI — Produced Water Chemical Index</strong><br>A three-way logical AND consensus composite. Requires elevated salinity, hydrocarbons, and heavy metals to suppress bare soil and playa false positives. Calibrated for Permian desert environments.">PWCI</button>
+                                <button type="button" class="triage-tag-pill" data-index="hpwi" data-tooltip="<strong>OBEC</strong><br>Experimental optical-contrast screening proxy; not a validated emulsion or produced-water detector.">OBEC</button>
+                                <button type="button" class="triage-tag-pill" data-index="lbi" data-tooltip="<strong>LBI — Liquid/Salinity Response</strong><br>Preliminary water/salinity proxy; current small-sample controls do not establish brine specificity.">LBI</button>
+                                <button type="button" class="triage-tag-pill" data-index="pwoi" data-tooltip="<strong>ASAI</strong><br>Experimental arid salinity/surface proxy; not a validated produced-water detector.">ASAI</button>
+                                <button type="button" class="triage-tag-pill" data-index="pwi" data-tooltip="<strong>PWCI</strong><br>Experimental three-ratio screening architecture; July 2026 controls found no useful caliche discrimination.">PWCI</button>
                                 <button type="button" class="triage-tag-pill" data-index="ehc" data-tooltip="<strong>EHC — Evaporite Halo Composite</strong><br>False-color morphology view: red oil-center proxy, green bare mud footprint, blue salt/crystal ring. Excellent for reading spill shape, not a standalone proof score.">EHC</button>
-                                <button type="button" class="triage-tag-pill" data-index="bpi" data-tooltip="<strong>BPI — Brine-Pavement Index</strong><br>Proven support lens for pad, tank, lease-road, and compacted-surface brine/hydrocarbon signals. Best for facility context rather than open-field plume proof.">BPI</button>
-                                <button type="button" class="triage-tag-pill" data-index="fbc" data-tooltip="<strong>FBC — Ferrugination-Brine Composite</strong><br>Validated support lens for iron staining plus brine chemistry. Useful when produced water leaves rust/mineral alteration rather than active standing liquid.">FBC</button>
-                                <button type="button" class="triage-tag-pill" data-index="vsi" data-tooltip="<strong>VSI — Vegetation Stress Index</strong><br>Validated impact lens for salt injury and vegetation mortality. Strong for aftermath/context, weaker as direct spill chemistry proof.">VSI</button>
+                                <button type="button" class="triage-tag-pill" data-index="bpi" data-tooltip="<strong>BPI — Brine-Pavement Index</strong><br>Exploratory compacted-surface context proxy; not independently validated for brine or hydrocarbons.">BPI</button>
+                                <button type="button" class="triage-tag-pill" data-index="fbc" data-tooltip="<strong>FBC — Ferrugination-Brine Composite</strong><br>Exploratory iron/SWIR and dual-SWIR context proxy; not a direct chemistry measurement.">FBC</button>
+                                <button type="button" class="triage-tag-pill" data-index="vsi" data-tooltip="<strong>VSI — Vegetation Stress Index</strong><br>Exploratory vegetation-stress context; drought, disease, management, and other causes remain confounders.">VSI</button>
                                 <button type="button" class="triage-tag-pill" data-index="mvpi" data-tooltip="<strong>MVPI — Methane Venting Plume Index</strong><br>SWIR gas-absorption proxy targeting localized super-emitter plumes over bright well pads. Fuses B11/B12 ratios with hard water, vegetation, and low-albedo rejection gates.">MVPI</button>
                             </div>
                         </div>
@@ -623,6 +624,7 @@
             <!-- Sidebar Footer with Disclaimer Link -->
             <div class="sidebar-footer">
                 <span>© 2026 Globe &amp; Atlas</span>
+                <a href="atlas.html" style="color:#00D2FF; text-decoration:none; font-size:0.82em;">Atlas · 24 families</a>
                 <button class="disclaimer-trigger-btn" onclick="document.getElementById('disclaimer-modal').style.display='flex'">
                     Disclaimer &amp; Terms
                 </button>
@@ -861,7 +863,7 @@
                 <strong>Screening Purposes Only:</strong> Limn is a preliminary environmental screening tool developed by Globe &amp; Atlas. It utilizes raw multi-spectral surface reflectance data from the Copernicus Sentinel-2 satellites and synthetic aperture radar (SAR) from Sentinel-1.
             </p>
             <p style="font-size: 0.9em; line-height: 1.6; color: #ccc; margin-bottom: 12px;">
-                <strong>No Regulatory Determination:</strong> Spectral index anomalies, high-confidence flags, and trend detections indicate local soil and mineral alterations consistent with produced water chemistry. They do <em>not</em> constitute a definitive regulatory or legal determination of environmental contamination. 
+                <strong>No Regulatory Determination:</strong> Spectral responses are non-specific and overlap ordinary caliche, soil, water, and vegetation conditions. The current evaluation found no usable produced-water/caliche operating point at the tested scale. Results do <em>not</em> constitute a definitive regulatory or legal determination of environmental contamination.
             </p>
             <p style="font-size: 0.9em; line-height: 1.6; color: #ccc; margin-bottom: 15px;">
                 <strong>Ground-Truth Required:</strong> Satellite readings represent surface-level indicators. A definitive assessment of produced water spills, localized blowouts, or legacy caliche degradation requires professional on-site ground-truth investigation and chemical soil analysis.

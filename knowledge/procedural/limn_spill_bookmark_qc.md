@@ -1,6 +1,10 @@
 # Limn Spill Bookmark QC
 
-Last updated: 2026-06-07
+Last updated: 2026-07-20
+
+## Current baseline
+
+The current core Limn inventory contains 13 bookmarks. Metadata QC is 13 pass, 0 warn, 0 fail. Passing means that source, date role, location precision, and evidence-class metadata are internally coherent; it does not mean the selected spectral index detected the documented event.
 
 Use this check after changing `SPILL_BOOKMARKS` in `src/app.js`.
 
@@ -38,4 +42,4 @@ Valid evidence classes:
 - `warn`: source/date support is adequate, but a positive bookmark has regional/context-only precision or other support ambiguity.
 - `fail`: missing source URL, invalid date, or date that does not relate to the documented event.
 
-As of the 2026-06-07 hotspot-loop pass, the Limn spill bookmarks contain one chronic-brine positive, three produced-water positives, four produced-water context bookmarks, and one explicit hydrocarbon negative-control site. Final QC is 9 pass, 0 warn, 0 fail.
+Historical baseline (2026-06-07): the inventory then contained 9 bookmarks and passed 9/9. Use the 13-bookmark current baseline above for release checks.

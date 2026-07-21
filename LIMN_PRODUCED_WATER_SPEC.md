@@ -4,6 +4,8 @@
 >
 > Everything below — band math, evalscripts, palettes, calibration, map plumbing, UI, secondary features — is reproduced from the working source so it can be re-implemented faithfully.
 
+> **Scientific status (2026-07-20):** This document specifies experimental screening software, not validated produced-water detectors. PWCI, ASAI, and OBEC have no useful tested spill/caliche operating point. LBI has been renamed **Liquid/Salinity Response Index** because the preliminary standing-water sample overlaps freshwater controls. Keep implementation fidelity and scientific claim strength separate.
+
 ---
 
 ## 1. What the app is
@@ -295,7 +297,7 @@ These are the headline detectors. Public-facing names were rebranded; **keep the
 | `pwoi` | **ASAI** — Arid Salinity Anomaly Index | Specular-smoothness proxy × salinity/crust, + dry-brine path | B02,B03,B04,B08,B11,B12 |
 | `hpwi` | **OBEC** — Oil-Brine Emulsion Composite | Chemical (NDOI+NDSI) × smoothness proxy | B02,B03,B11,B12 |
 | `pwi` | **PWCI** — Produced Water Chemical Index | (NDSI−off)·(HCAI−off)·(HMRI−off), cubic, BSI-masked | B02,B03,B04,B08,B11,B12 |
-| `lbi` | **LBI** — Liquid Brine Index | NDSI·NDWI·(low-veg)·BSI gates, standing-water bypass | B02,B03,B04,B08,B11,B12 |
+| `lbi` | **LBI** — Liquid/Salinity Response Index | NDSI·NDWI·(low-veg)·BSI gates, standing-water bypass | B02,B03,B04,B08,B11,B12 |
 | `fbc` | **FBC** — Ferrugination-Brine Composite | iron(B04/B02)·brine(NDSI)·(1−NDVI) | B02,B03,B04,B08,B11,B12 |
 | `reai`| **REAI** — Red Edge Alteration Index | (B06/B05)·NDSI | B05,B06,B11,B12 |
 | `vcbi`| **VCBI** — Veg-Confirmed Brine | max(0,−CRSI)·NDSI | B02,B03,B04,B08,B11,B12 |

@@ -450,3 +450,12 @@
 - **Visual fallback observation**: The in-app browser rejected direct `file:///Users/danielbally/Git/limn/atlas.html` navigation by URL policy, so file-based visual verification was also unavailable in this environment.
 - **Repeat observation**: The same `listen EPERM` blocker recurred while validating the Capture Split interpretation fix; static provider checks were used instead.
 - **Fix status**: OPEN in this sandbox. Static checks passed, and the browser smoke should be rerun in a local environment that allows localhost binding.
+# 2026-07-20 — Atlas bookmark QC WMS argument scope failure
+
+**Symptom:** `python3 execution/qc_atlas_bookmarks.py` stopped before its first request with `NameError: name 'args' is not defined` in `build_wms_url()`.
+
+**Cause:** The helper attempted to read the `main()`-local argparse namespace instead of receiving the selected WMS URL as an argument.
+
+**Fix:** `build_wms_url()` now accepts `wms_url` explicitly, and `fetch_metrics()` passes `args.wms_url`. This keeps command-line endpoint overrides deterministic and removes hidden global state.
+
+---

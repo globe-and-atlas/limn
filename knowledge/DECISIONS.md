@@ -1,5 +1,45 @@
 # Architecture Decisions — sentinel-explorer
 
+## Atlas is organized by capability family, not index count (2026-07-20)
+
+**Decision:** Preserve all 91 Atlas records while organizing them into 24 capability families. Each record now carries a method role: 15 `primary`, 10 `variant`, 12 `component`, 1 `reference`, 51 `research-model`, and 2 `retired`. Family membership describes a shared physical question or decision; it does not establish scientific equivalence, novelty, or validation.
+
+**Application boundary:** Limn Atlas defaults to family-first navigation, retains the 12-domain view as a secondary lens, and moves research models and retired formulas into a dedicated Research view. Core Limn's produced-water screen is unchanged because its negative-result evaluation is a separate evidence set. The produced-water preprint receives only a scope clarification for the four shared ecological examples.
+
+**Editorial boundary:** The six G&A leads—BH-DFSI, LFMPI, PETI, EPDI, EC-ACI, and TDR-ASI—are primary methods inside six capability families. Article language must identify the family and method role and must not imply that a named method is an independently validated invention. Sibling variants can be used for comparison, not multiplied into additional novelty claims.
+
+**Verification:** `tests/test_atlas_capability_families.mjs` requires complete family membership, stable role counts, no orphaned families, research/retired methods to remain non-live, and family/domain/research navigation to remain present.
+
+---
+
+## Core Limn and Atlas public science now use formula-fidelity status metadata (2026-07-20)
+
+**Decision:** Keep the executable PWCI, ASAI, OBEC, and LBI math unchanged while revising their public names, formulas, and evidence labels to match the shipped evalscripts and July controls. The core app now shows formula and validation status in its legend and reports. LBI is now **Liquid/Salinity Response Index** because the preliminary standing-water sample overlaps freshwater controls.
+
+**Atlas synchronization:** Atlas retains 37 live M3 screening proxies. Nested bookmark reconciliation is now explicit, TFIDI uses `2021-08-17`, and IPVSI uses `2021-09-01`, the strongest tested representative scenes. The current WMS audit is 35 `strong`, 2 `moderate` (RRFI and MP-PDI), and 0 weak/blank/error. Moderate dates remain event-aligned because brighter nearby dates did not materially improve the article truthfulness.
+
+**G&A article leads:** BH-DFSI, LFMPI, PETI, EPDI, EC-ACI, and TDR-ASI are the current six lead candidates. Each stores its bookmark-date role, exact CDSE acquisition timestamp, cloud cover, article angle, and QC status. SF-EII was removed because its physical claim was retired; RRFI was removed from the lead set because its overlay remains moderate.
+
+**Verification:** Core bookmark metadata is 13 pass / 0 warn / 0 fail. Atlas is 35 strong / 2 moderate. The evidence audit is 42/42 Gold-ready across the 37 live Atlas formulas plus five SAR/S5P demo layers. A six-target capture audit resolved 24 WMS images with CDSE acquisition metadata. Formula, browser, and catalog tests are the release gate.
+
+**Claim boundary:** A visually strong bookmark means that the shipped screening proxy is legible at a cited event context. It does not validate the formula, map an official event perimeter, or establish causal attribution.
+
+---
+
+## Atlas v2 separates formulas, implementation, contribution, and validation (2026-07-20)
+
+**Decision:** Treat the Atlas as 91 proposed remote-sensing specifications, not 91 novel or validated indices. Every entry now exposes an explicit formula version, proposed and implemented formulas, implementation maturity (M1–M3), contribution class (C1–C3), required inputs, operators, units, calibration state, and validation state.
+
+**Scientific corrections:** Reconciled the public descriptions of all 23 live formulas that differed from their evalscripts; replaced LFMPI's pseudo-LFMC expression with a normalized NDMI-deficit screening proxy; corrected priority definitions including SACI, RDOCI, PWTDI, REENBI, TSEAI, NFCAI, and PUENPI; and reframed formulas that require temporal analysis, spatial operators, radiative transfer, inversion, or field calibration as research workflows rather than arithmetic indices. SF-EII and AMDPHI are no longer live because their existing evalscripts did not implement the claimed physical quantities.
+
+**Resulting inventory:** 37 live screening proxies (M3), 16 executable non-live formulas (M2), and 38 specified concepts or retired formulas (M1). All entries remain below V1 independent evaluation. Bookmarks and citations provide inspectable event context, not accuracy evidence.
+
+**Why:** The July 2026 audit found formula-to-code mismatches, unsupported dimensional operations, missing temporal/spatial operators, and sensor-resolution limits. A single novelty tier had also conflated originality, implementation, evidence, and validation.
+
+**Verification:** `npm run test:atlas:formula`, focused LFMPI and SMPDI tests, JavaScript syntax checks, and `execution/audit_atlas_evalscripts.py` all pass; the audit covers all 37 renderable evalscripts.
+
+---
+
 ## Preprint claims reconciled to pipeline-vs-viewer reality (2026-07-19)
 
 **Decision:** Public docs (PUBLIC_SCIENCE_GUIDE.md, README.md, SENTINEL_SCIENCE_GUIDE.md, help.html) now explicitly distinguish two calibrations and state the detection numbers as recall-only.

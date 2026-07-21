@@ -12,29 +12,29 @@ The Detection tab is split into three clearly labelled sections:
 
 ### Produced Water Composites
 
-Globe & Atlas custom composites — ordered by combined novelty + effectiveness (descending).
+Globe & Atlas experimental composites. July 2026 controls supersede the older recall-only interpretation below.
 
-| Key | Name | Bands | Sensor | Detection Rate | Notes |
+| Key | Name | Bands | Sensor | July 2026 status | Notes |
 | --- | --- | --- | --- | --- | --- |
-| `pwoi` | ASAI — Arid Salinity Anomaly Index | B03, B11, B12 | S2 (WMS proxy) | 77.8% (TRRC), 87.5% (verified) | Dry brine mode added 2026-03-28 |
-| `hpwi` | OBEC — Oil-Brine Emulsion Composite | B02, B03, B04, B08, B11, B12 | S2 (WMS proxy) | 66.7% (TRRC) | Formerly HPWI |
-| `pwi` | PWCI — Produced Water Chemical Index | B02-B12 | Sentinel-2 | 81.5% (TRRC) | Three-way AND gate (brine × HC × metals) |
-| `lbi` | Liquid Brine Index | B02, B03, B04, B08, B11, B12 | Sentinel-2 | 63.0% (TRRC) | `(NDSI−0.02) × (NDWI+0.40) × (0.45−NDVI) × (BSI+0.20)` with `BSI > -0.25` |
-| `fbc` | Iron-Brine Composite | B02-B12 | Sentinel-2 | 66.7% (TRRC) | Fe³⁺ staining proxy |
+| `pwoi` | ASAI — Arid Salinity Anomaly Index | B02,B03,B04,B08,B11,B12 | Sentinel-2 | No useful spill/caliche discrimination | Dual wet/dry surface proxy |
+| `hpwi` | OBEC — Oil-Brine Emulsion Composite | B02,B03,B11,B12 | Sentinel-2 | No useful spill/caliche discrimination | No dry path in the shipped evalscript; not an oil/emulsion retrieval |
+| `pwi` | PWCI — Produced Water Chemical Index | B02,B03,B04,B08,B11,B12 | Sentinel-2 | No useful spill/caliche discrimination | BSI-gated three-ratio AND architecture |
+| `lbi` | LBI — Liquid/Salinity Response Index | B02,B03,B04,B08,B11,B12 | Sentinel-2 | Preliminary; brine/freshwater overlap | Standing-water bypass; not brine-specific |
+| `fbc` | Iron-Brine Composite | B02-B12 | Sentinel-2 | Not independently evaluated | Fe³⁺ staining proxy; historical recall-only figure is not a validation result |
 | `vcbi` | Veg-Confirmed Brine Index | B05, B07, B08, B11 | Sentinel-2 | — | Vegetation evidence of subsurface brine |
 | `reai` | Red Edge Alteration Index | B05, B07, B8A | Sentinel-2 | — | Red-edge chlorosis from salt loading |
 | `ehc` | Evaporite Halo Composite | B03, B04, B11, B12 | Sentinel-2 | — | RGB false-color: oil/mud/salt morphology |
-| `vsi` | Vegetation Stress Index | B05, B07, B8A, B11 | Sentinel-2 | 74.1% (TRRC) | NDSI × RedEdge delta × MSI |
+| `vsi` | Vegetation Stress Index | B05, B07, B8A, B11 | Sentinel-2 | Not independently evaluated | NDSI × RedEdge delta × MSI |
 | `crsi` | Salt Stress / Mortality | B05, B08, B11 | Sentinel-2 | — | Vegetation mortality from salt loading |
 | `aoi` | Anoxic Oxidation Index | B04, B08, B11 | Sentinel-2 | — | Ferrous iron oxidation in brine |
-| `bpi` | Brine-Pavement Index | B04, B08, B11, B12 | Sentinel-2 | 55.6% (TRRC) | BSI × NDSI × HCAI |
-| `tri` | Toxic Residue Index | B02, B03, B04, B11, B12 | Sentinel-2 | — | NDSI × HMRI × AOI; high specificity |
+| `bpi` | Brine-Pavement Index | B04, B08, B11, B12 | Sentinel-2 | Not independently evaluated | BSI × NDSI × HCAI |
+| `tri` | Toxic Residue Index | B02, B03, B04, B11, B12 | Sentinel-2 | Not independently evaluated | NDSI × HMRI × AOI screening proxy |
 | `scri` | Salt Crust Roughness Index | VV, VH | Sentinel-1 GRD | — | SAR mechanical verification of salt crust |
 | `phi` | Petro-Hydrocarbon Index | B04, B08, B11, B12 | Sentinel-2 | — | Spectral HC anomaly in soil |
 | `cma` | Clay-Mineral Alteration | B04, B11, B12 | Sentinel-2 | — | Kaolinite/illite from brine alteration |
 | `hmi` | Heavy Metal Interaction | B05, B07, B08 | Sentinel-2 | — | Red-edge signal of metallic contamination |
 
-**Detection rates from 2026-03-28 run, threshold=0.01, n=27 TRRC sites.**
+Older recall figures are retained in the investigation history, but they must be paired with the July background controls. See `knowledge/domain/scientific-status-2026-07-20.md`.
 
 ### Standard PW Indicators
 

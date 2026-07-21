@@ -1671,7 +1671,7 @@ function evaluatePixel(sample) {
   // B8: BPI — Brine-Pavement Index (S2 only, real)
   let val_bpi = Math.max(0, bsi) * Math.max(0, ndsi - 0.03) * Math.max(0, hcai - 0.15) * 30.0;
 
-  // B9: LBI — Liquid Brine Index (S2 only, real)
+  // B9: LBI — Liquid/Salinity Response Index (S2 only, real)
   let ndwi_lbi = sum_ndwi === 0 ? 0 : (sample.B03 - sample.B11) / sum_ndwi;
   let val_lbi = bsi <= -0.25 ? 0 : Math.max(0, ndsi - 0.02) * Math.max(0, ndwi_lbi + 0.40) * Math.max(0, 0.45 - ndvi) * Math.max(0, bsi + 0.20) * 20.0;
 
@@ -1985,7 +1985,11 @@ function evaluatePixel(sample) {
 
             document.getElementById('report-index-name').innerText = `${idx.name} [${idx.sensor}]`;
             document.getElementById('report-math').innerText = idx.formula;
-            document.getElementById('report-info').innerText = idx.info || "No additional scientific context available.";
+            document.getElementById('report-info').innerText = [
+                idx.formulaStatus ? `Formula status: ${idx.formulaStatus}` : '',
+                idx.validationStatus ? `Validation status: ${idx.validationStatus}` : '',
+                idx.info || 'No additional scientific context available.',
+            ].filter(Boolean).join('\n\n');
 
             if (state.mode === 'single') {
                 document.getElementById('report-time').innerText = ALL_DATES[state.monthIndex].displayStr;

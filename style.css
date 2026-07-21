@@ -976,6 +976,16 @@ button {
     display: none;
 }
 
+.scientific-status-display {
+    margin-top: 7px;
+    padding-top: 6px;
+    border-top: 1px solid rgba(255, 255, 255, 0.10);
+    color: #f4b860;
+    font-family: var(--font-mono);
+    font-size: 8px;
+    line-height: 1.35;
+}
+
 
 
 /* ── Sidebar Controls ───────────────────────────────────── */

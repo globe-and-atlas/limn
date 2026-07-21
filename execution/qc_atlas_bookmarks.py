@@ -118,6 +118,7 @@ def build_wms_url(
     height: int,
     window_days: int,
     maxcc: int,
+    wms_url: str,
     date_override: str | None = None,
 ) -> tuple[str, dict[str, str]]:
     bm = index["bookmark"]
@@ -141,7 +142,7 @@ def build_wms_url(
         "showlogo": "false",
         "evalscript": encoded_script,
     }
-    return args.wms_url, params
+    return wms_url, params
 
 
 def percentile(values: list[float], pct: float) -> float:
@@ -234,7 +235,15 @@ def fetch_metrics(
     args: argparse.Namespace,
     date_override: str | None = None,
 ) -> tuple[str, dict[str, float] | None, int, str, str]:
-    url, params = build_wms_url(index, args.size, args.size, args.window_days, args.maxcc, date_override)
+    url, params = build_wms_url(
+        index,
+        args.size,
+        args.size,
+        args.window_days,
+        args.maxcc,
+        args.wms_url,
+        date_override,
+    )
     try:
         response = session.get(url, params=params, timeout=args.timeout)
     except requests.RequestException as error:

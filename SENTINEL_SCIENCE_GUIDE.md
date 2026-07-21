@@ -4,11 +4,9 @@
 
 *Prepared from full codebase analysis of `/sentinel-explorer`. Designed for NotebookLM ingestion and self-directed learning.*
 
-> **⚠ Validation errata (2026-07-19).** The detection rates in this guide (PWCI 81.5%, ASAI 77.8%, OBEC 66.7%) are **spill-site recall figures from the 2026-03-28 batch validation pipeline**, measured against a 27-record TRRC-derived development benchmark (coordinates generalized; not an incident-ID-audited registry). They are **not false-positive-controlled accuracy figures** — no background/negative-sampling study has been run. The rates describe the *validated pipeline* calibration; the *interactive viewer* ships stricter precision-first thresholds (see the Permian preset and the June 2026 dry-brine noise-suppression pass) and renders more conservatively. Where this guide quotes a threshold or formula, cross-check against `reports/preprint_qc_2026-07-19.md`, which reconciles the pipeline, viewer, and published-preprint variants.
+> **⚠ Current scientific status (2026-07-20).** July controls supersede the recall-only interpretation in historical sections of this guide. The permissive pipeline paired PWCI/ASAI/OBEC recall of 81.5% / 77.8% / 66.7% with background activation of 96.7% / 71.3% / 71.3%. The shipped viewer activated on 0/150 background controls but was also blank at all 11 reviewed positives. A 1,224-combination sweep found no useful produced-water/caliche separation at the tested 500 m single-scene support. These are experimental screening architectures, not validated detectors. See `knowledge/domain/scientific-status-2026-07-20.md`.
 
-**Authorship note:** The standard spectral indices in this guide (NDVI, SAVI, NDWI, NDMI, MSI, BSI, NDSI, HCAI, HMRI, NDOI, CRSI) are established methods with full literature citations in Section 18. The custom composite indices are original work by **Daniel Bally (Globe & Atlas, 2025–2026)**. The component band ratios each composite builds on have established physics; the composite architectures themselves — including the multi-gate AND logic, dry brine detection mode, Permian Basin calibration offsets, and specific signal combinations — have no published equivalent and are original engineering. Custom composites are marked as follows to highlight intellectual ownership and original engineering:
-- **✧✧ Globe & Atlas Original Composite:** A completely original, highly novel composite architecture featuring custom multi-gate logic, desert-specific calibrations, or multi-sensor specular proxies with no published prior equivalent in literature (e.g., PWCI, ASAI).
-- **✧ Globe & Atlas Calibrated Composite:** An original composite assembly and target-specific calibration of established band ratios, purpose-built for Permian Basin environmental monitoring and produced water geochemistry (e.g., OBEC, EHC, LBI, FBC).
+**Authorship note:** The standard spectral indices in this guide (NDVI, SAVI, NDWI, NDMI, MSI, BSI, NDSI, HCAI, HMRI, NDOI, CRSI) are established methods with citations in Section 18. The custom combinations and software implementations were developed by **Daniel Bally (Globe & Atlas, 2025–2026)** from those established components. Historical ✧/✧✧ symbols identify project-designed formulas; they do not establish scientific priority, patent novelty, or validation.
 
 ---
 
@@ -463,7 +461,7 @@ Used throughout as a masking criterion to identify bare soil vs. vegetated/water
 - **Formula:** `BSI × (NDSI - 0.03) × (HCAI - 0.15) × 30`
 - **Physical basis:** Requires bare soil, elevated salinity, AND hydrocarbon signal. More specific than HCAI or NDSI alone — targets the co-presence of brine and petroleum residue.
 
-#### LBI — Liquid Brine Index ✧
+#### LBI — Liquid/Salinity Response Index ✧
 - **Formula:** `(NDSI - 0.02) × (NDWI + 0.40) × (0.45 - NDVI) × (BSI + 0.20) × 20`, with a hard reject when `BSI <= -0.25`.
 - **Physical basis:** Most sensitive to active liquid brine standing pools. Requires positive brine contrast, a wetness signal above the Permian dry baseline, low vegetation, and exposed bare/liquid surface context.
 
@@ -551,7 +549,7 @@ Each component must exceed a **regional threshold** before contributing to the s
 | Hydrocarbon Score | `max(0, (HCAI - 0.05) × 5)` | HCAI > 0.05 | Permian red soil HCAI: 0.10–0.25; offset captures only anomaly above floor |
 | Heavy Metal Score | `max(0, (HMRI - 1.1) × 3)` | HMRI > 1.1 | Natural caliche HMRI: 0.8–1.1; spill contamination: 1.5–3.0+ |
 
-These thresholds were **validated against 27 TRRC (Texas Railroad Commission) confirmed spill sites** and iteratively refined. The current values achieve 81.5% detection at threshold 0.01.
+These thresholds were iteratively calibrated against 27 TRRC (Texas Railroad Commission) spill records. They produced 81.5% development recall at threshold 0.01, but also activated on 96.7% of background controls; this is a failed operating point, not validation.
 
 ### 9.5 Cubic Non-Linear Scaling
 
@@ -577,7 +575,7 @@ Water bodies, vegetation, and clouds all have BSI well below the mask threshold.
 
 **ASAI** (Arid Salinity Anomaly Index, formerly PWOI) is a Sentinel Explorer composite calibration. It serves as a Sentinel-2 **optical proxy for what SAR would measure**: detecting abnormally smooth surfaces consistent with liquid brine pooling or dried salt crusts using only optical bands — no SAR required. Formerly known as Produced Water Optical Index (PWOI) or APEX Anomaly Index.
 
-The key local implementation change is the **dry brine mode** (Section 10.3), which resolved the fundamental detection failure in desert environments where standard NDWI-based indices collapse to near-zero. Adding this mode increased ASAI (formerly PWOI) detection from 29.6% to 77.8% on 27 TRRC validation sites in this project's validation run.
+The key local implementation change is the **dry brine mode** (Section 10.3), introduced to address dry desert environments where standard NDWI-based indices collapse to near-zero. It increased development recall from 29.6% to 77.8% on 27 TRRC records, but background activation was 71.3%; it did not establish usable discrimination.
 
 ### 10.1 The Core Physics
 
@@ -612,7 +610,7 @@ if NDWI < -0.30 AND NDSI > 0.05 AND BSI > 0.10:
 
 The dry mode fires when: surface is dry (very negative NDWI), BUT salinity is elevated (NDSI > 0.05), AND surface is bare (BSI > 0.10). This covers the majority of Permian Basin post-spill scenarios.
 
-**Adding the dry brine mode increased ASAI (formerly PWOI) detection from 29.6% to 77.8%** on 27 TRRC validation sites.
+**Adding the dry brine mode increased ASAI (formerly PWOI) development recall from 29.6% to 77.8%** on 27 TRRC records, while activating on 71.3% of background controls. It therefore remains a salt-crust screening hypothesis rather than a validated spill detector.
 
 ### 10.4 Temporal Persistence
 
@@ -642,15 +640,15 @@ hpwi_wet = clamp(chem_signal × norm_smooth × 6.0, 0, 1)
 
 **The combination:** `chem_signal × norm_smooth` requires both the chemical signature (NDOI + brine) AND the surface smoothness signature to be elevated simultaneously. This separates brine spills from natural saline soils (chemistry but no unusual smoothness) and water bodies (smoothness but wrong chemical signature).
 
-### 11.2 Dry Mode and Validation
+### 11.2 Historical Dry-Mode Experiment and Current Shipped Path
 
-Like ASAI (formerly PWOI), OBEC (formerly HPWI) includes a dry brine pathway:
+An earlier pipeline experiment tested a dry-brine pathway:
 ```
 hpwi_dry = clamp((NDSI - 0.04) × min(1, BSI × 3.5) × 14.0, 0, 1)
 hpwi = max(hpwi_wet, hpwi_dry)
 ```
 
-**Validated performance: 66.7% on 27 TRRC sites** (lower than PWCI's 81.5% and ASAI's 77.8%, but provides independent confirmation when all three agree). Formerly known as Hybrid Produced Water Index (HPWI).
+That experiment produced 66.7% development recall on 27 TRRC records and 71.3% background activation. The current shipped OBEC evalscript contains only the wet optical-contrast path above. OBEC is not an independent confirmation layer: it reuses related bands and surface proxies, and no useful operating point was established. Formerly known as Hybrid Produced Water Index (HPWI).
 
 ---
 
@@ -903,10 +901,10 @@ The threshold history illustrates the iterative calibration process:
 - Relaxed thresholds to allow more signals through
 - Result: Good detection, but **high false positive rate** (natural evaporite pans triggering)
 
-**Current validated thresholds (2026):**
+**Current experimental thresholds (2026):**
 - NDSI: 0.03, HCAI: 0.05 (×5 scale), HMRI: 1.1 (×3 scale)
-- Result: **81.5% detection, low false positive rate**
-- Key change: Multiplicative AND gate absorbs false positives better than thresholds alone
+- Result: **81.5% development recall and 96.7% background activation**
+- Interpretation: the multiplicative AND gate did not produce a useful operating point against the tested Permian background
 
 ---
 
@@ -975,18 +973,17 @@ The time series is displayed as a multi-line Chart.js chart. The peak detection 
 
 ---
 
-## 17. Validation Results
+## 17. Evaluation Results
 
-As of 2026-03-28, validated against 27 TRRC confirmed spill sites + 8 GPS-sourced verified sites:
+The March 2026 recall-only results and July 2026 background controls must be interpreted together:
 
-| Index | Detection Rate (27 TRRC sites) | Detection Rate (8 Verified Sites) | Notes |
-|-------|-------------------------------|----------------------------------|-------|
-| PWCI | **81.5%** | ~85% | Best overall (formerly PWI); threshold 0.01 |
-| ASAI | **77.8%** | **87.5%** | Better on large spills (formerly PWOI) (>500 BBL) |
-| OBEC | 66.7% | ~75% | Better cross-validator than standalone (formerly HPWI) |
-| Multi-Index Consensus | ~89% | ~94% | Best accuracy when 2+ indices agree |
+| Index | Pipeline recall | Pipeline background activation | Shipped viewer positives | Shipped viewer background | Verdict |
+|---|---:|---:|---:|---:|---|
+| PWCI | 81.5% | 96.7% | 0/11 | 0/150 | No useful tested operating point |
+| ASAI | 77.8% | 71.3% | 0/11 | 0/150 | Best sweep point still ~53% recall / ~30% background |
+| OBEC | 66.7% | 71.3% | 0/11 | 0/150 | No useful tested operating point |
 
-**Key finding:** Agreement between two or more indices dramatically improves accuracy. The app flags a date as anomalous if ANY single index exceeds threshold — but the report generation annotates which indices agree, allowing the analyst to filter high-confidence vs. marginal detections.
+**Key finding:** The permissive formulas activated on spills and background together, while the shipped formulas suppressed both. Multi-index agreement did not establish accuracy. The useful contribution is the reproducible architecture, negative result, and verified-site/QC workflow.
 
 ---
 
@@ -1033,7 +1030,7 @@ The following indices are Sentinel Explorer implementations and calibrations ass
 | **OBEC ✧** | Oil-Brine Emulsion Composite — chemical × smoothness cross-validator (formerly HPWI) | 2026 |
 | **FBC ✧** | Ferrugination-Brine Composite — iron oxidation × brine gate | 2026 |
 | **VCBI ✧** | Vegetation-Confirmed Brine Index — inverted CRSI × brine, leading-edge migration | 2026 |
-| **LBI ✧** | Liquid Brine Index — active standing brine pool detection | 2026 |
+| **LBI ✧** | Liquid/Salinity Response Index — preliminary standing-water/salinity screening | 2026 |
 | **TRI ✧** | Toxic Residue Index — forensic mineral scab after brine evaporation | 2026 |
 | **BPI ✧** | Brine-Pavement Index — pad-level integrity monitoring on caliche surfaces | 2026 |
 | **VSI ✧** | Vegetation Stress Index — sub-lethal brine toxicity in surviving desert scrub | 2026 |
@@ -1139,11 +1136,11 @@ If referencing these indices in publications or derivative work, cite the specif
 
 ---
 
-## 20. Civic & Ecological Composites (Civic Atlas)
+## 20. Legacy Civic Atlas Appendix — Superseded
 
-To expand beyond industrial oil and gas screening, the **Civic Atlas** introduces 18 novel multispectral composites designed for public-good environmental screening and localized emergency triage. 
+This appendix preserves an earlier 18-entry Civic Atlas description for traceability. It is **not the current public catalog, formula source, novelty assessment, or validation record**. Limn Atlas now organizes 91 documented methods into 24 capability families and labels each method as primary, variant, component, reference, research model, or retired. Use `src/atlas-indices.js` and `knowledge/domain/scientific-status-2026-07-20.md` for current formulas and claim boundaries.
 
-Each composite leverages Sentinel-2's bottom-of-atmosphere (L2A) surface reflectance to isolate complex environmental hazards. The specific mathematical formulations, physical band-by-band interactions, and scientific principles are detailed below:
+The entries below show historical naming and design intent only. Several formulas and physical interpretations were subsequently reconciled, retired, or reframed as research workflows. They must not be quoted as shipped implementations or independent inventions.
 
 ### 1. Burnt Hillside Debris-Flow Susceptibility Index (BH-DFSI)
 *   **Formula:** `max(0, 0.15 - NBR) × max(0, BSI + 0.1) × max(0, 0.35 - NDVI) × 12.0`
@@ -1264,11 +1261,11 @@ Each composite leverages Sentinel-2's bottom-of-atmosphere (L2A) surface reflect
 
 To ensure defensible, peer-reviewed, and reputable publication in 1–2 days, the authorship boundaries for all custom composite indices are defined below:
 
-### Claimable Original Contributions:
-1.  **Multi-Gate Consensus Logic (AND Gates):** Daniel Bally is credited as author of the packaged composite algorithms (e.g., PWCI, ASAI) that require multiple distinct spectral signatures to fire simultaneously. The probability of three independent false positives coinciding in the same pixel is very low, forming a highly defensible IP claim.
-2.  **ASAI Dry Brine Mode Calibration:** Daniel Bally is credited as author of the dry-brine path calibration that overcomes the desert caliche baseline problem. This specific contribution is highly novel in remote sensing literature.
-3.  **Civic Atlas Triage Workflows:** The original contribution is the decision support workflows, target-specific calibrations, and named indices designed to triage localized hazards for public-good environmental screening.
-4.  **Permian Basin Calibration Offsets:** The original contribution is the exact, validated threshold values mapped to the `permian` calibration preset.
+### Project Contributions (Priority and Novelty Provisional):
+1.  **Reproducible Multi-Gate Experiments:** Daniel Bally is credited as author of the project's packaged PWCI, ASAI, and OBEC implementations and their evaluation workflow. Because the gates are correlated and current controls do not separate spills from background, their conjunction is not evidence of independent confirmation or low false-positive probability.
+2.  **ASAI Dry-Brine Screening Path:** Daniel Bally is credited as author of the project's dry-brine calibration and implementation. It is a useful, testable salt-crust hypothesis; literature priority and spill specificity have not been established.
+3.  **Atlas Capability Documentation:** The current contribution is the explicit catalog of capability families, method roles, formulas, maturity, and limitations. Family membership and naming do not establish scientific priority or validation.
+4.  **Permian Basin Calibration and Falsification Record:** The contribution is the exact threshold history, controls, and negative-result record mapped to the `permian` preset—not a validated threshold claim.
 
 ### Established Prior Art and Non-Claims:
 1.  **Individual Spectral Bands:** Sentinel-2's 13 spectral bands and their physical properties are ESA intellectual property.
@@ -1278,4 +1275,4 @@ To ensure defensible, peer-reviewed, and reputable publication in 1–2 days, th
 
 ---
 
-*Guide compiled 2026-05-24. Based on full codebase analysis of Sentinel Explorer / Limn v3 (src/indices.js, src/app.js, src/map.js, src/auth.js, src/verifiedBookmarks.js, src/authorshipClaims.js, SENTINEL_SCIENCE_GUIDE.md). Validation data from 27 TRRC confirmed spill sites + 8 GPS-sourced verified sites, Permian Basin, TX/NM, and 18 Global Civic Atlas validation event sites.*
+*Legacy guide compiled 2026-05-24 and scientifically superseded on 2026-07-20. Current produced-water and Atlas status is maintained in `knowledge/domain/scientific-status-2026-07-20.md`; historical Civic Atlas bookmarks were context sites, not validation events.*

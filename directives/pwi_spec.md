@@ -9,13 +9,15 @@
 
 **Sensor:** Sentinel-2 L2A (Multispectral Instrument)
 **Resolution:** 10m - 20m spatial resolution
-**Purpose:** Isolate and identify highly concentrated oilfield brine spills ("produced water") while aggressively filtering out natural desert background noise and false positives.
+**Purpose:** Specify and test a three-ratio produced-water screening hypothesis while explicitly measuring desert-background activation.
+
+> **Scientific status (2026-07-20):** This is an experimental architecture specification, not a validated detector specification. The permissive development calibration produced 81.5% recall with 96.7% background activation; the shipped precision-first viewer produced 0/11 reviewed-site recall and 0/150 background activation. The threshold-sweep failure condition was met: no tested threshold produced useful spill/caliche separation at 500 m single-scene support. Preserve the formula for reproducible negative-result work; do not describe its output as confirmed chemistry.
 
 ## Scientific Context
 
 Produced water in environments like the Permian Basin leaves a complex spectral signature. It is not simply "wet soil"; it is a mixture of highly saline brine, residual hydrocarbons, and precipitated heavy metals. A standard moisture or water index (like NDWI) is insufficient and prone to false positives.
 
-The PWI is a **restrictive composite index**. It requires three distinct chemical/spectral signatures to be elevated simultaneously in the exact same location. If any of the three are missing, the index drops to zero, keeping the map clean.
+PWCI is a **multiplicative screening composite**. It requires three broad spectral ratios to clear thresholds in the same pixel. Those ratios are labeled for their design hypotheses, but Sentinel-2 does not directly retrieve salinity, hydrocarbons, or heavy-metal concentration from them.
 
 ### The Three Required Signatures
 
@@ -56,7 +58,7 @@ Before multiplying the signatures together, each metric must surpass an extreme 
 
 ### The Composite Equation
 
-The three validated scores are multiplied together. This acts as a logical `AND` gate:
+The three thresholded proxy scores are multiplied together. This acts as a logical `AND` gate:
 
 ```javascript
 PWI = BrineScore * HydrocarbonScore * HeavyMetalScore

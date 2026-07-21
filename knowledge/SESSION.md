@@ -74,3 +74,7 @@
 - RESULT: bright pixels at 12% of BACKGROUND vs only 6% of spills; spatial Youden's J=0.03. Visual differences are real pixels but NOT spill-specific — per-pixel face of the same FP problem. Negative result CONFIRMED at native resolution (not overturned).
 - §7 updated to remove the box-mean hedge; spatial test in reports/pwci_spatial_test_2026-07-20.md
 - Commits: spatial test + ec72612 (§7), pushed
+- 2026-07-20 19:02 — commit: docs: session checkpoint — spatial test | knowledge/SESSION.md
+- 2026-07-20 22:02 — commit: feat: LBI standing-brine validation — the one genuinely specific detector | data/brine_validation_sites.json,execution/analyze_lbi_brine.py,execution/brine_validation_bands.csv,execution/fetch_lbi_spatial.py,execution/fetch_spill_bands.py
+- 2026-07-20 22:23 — commit: docs: §7/abstract — correct LBI to validated standing-brine finding (per-pixel) | PUBLIC_SCIENCE_GUIDE.md
+- 2026-07-20 22:23 — commit: docs: README — correct LBI status to per-pixel validated standing-brine finding | README.md

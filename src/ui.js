@@ -103,6 +103,7 @@ export function updateUI(state, INDICES) {
     const minEl = document.getElementById('legend-min');
     const maxEl = document.getElementById('legend-max');
     const formulaEl = document.getElementById('formula-display');
+    const scientificStatusEl = document.getElementById('scientific-status-display');
     const gradEl = document.getElementById('legend-gradient');
 
     if (cfg && nameEl) {
@@ -111,6 +112,10 @@ export function updateUI(state, INDICES) {
         if (minEl) minEl.innerText = cfg.min || '';
         if (maxEl) maxEl.innerText = cfg.max || '';
         if (formulaEl) formulaEl.innerText = cfg.formula || '';
+        if (scientificStatusEl) {
+            scientificStatusEl.innerText = cfg.validationStatus || '';
+            scientificStatusEl.style.display = cfg.validationStatus ? 'block' : 'none';
+        }
 
         if (gradEl) {
             if (cfg.gradient && cfg.gradient !== 'none') {

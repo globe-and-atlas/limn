@@ -290,7 +290,7 @@ The CSRC targets small-water eutrophication hazards, providing a public-health d
 
 ### TRSI: Tailings River Shock Index
 
-The TRSI is designed as a rapid river emergency alarm following tailings dam failures or heavy chemical-runoff spill events. *(Status: context target — proof rendering pending.)*
+TRSI specifies a prospective river-shock workflow following tailings dam failures or heavy runoff events. *(Atlas status: non-live research model in Water Condition & Plumes; no detector-performance claim.)*
 
 #### Mathematical Formulation:
 $$\text{TRSI} = \min\left(1.0,\; \max(0, \text{NDTI} + 0.05) \times \max(0, \text{FerricND}) \times \text{WaterGate} \times 15.0\right)$$
@@ -325,7 +325,7 @@ Where:
 
 ### SWRI: Sewage-Water Release Index
 
-The SWRI separates raw urban wastewater overflows and sewage releases from clean baseline or ordinary soil runoff in concrete channels. *(Status: context target — proof rendering pending.)*
+SWRI specifies a prospective urban-channel wastewater screening workflow for comparison with ordinary turbid runoff. *(Atlas status: non-live research model in Water Condition & Plumes; no sewage-specific performance claim.)*
 
 #### Mathematical Formulation:
 $$\text{SWRI} = \min\left(1.0,\; \max(0, \text{Turbidity} + 0.05) \times \max(0, \text{OrganicBloom} + 0.05) \times \text{WaterGate} \times 30.0\right)$$

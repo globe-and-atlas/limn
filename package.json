@@ -5,6 +5,9 @@
   "scripts": {
     "start:gee": "node server/gee_tile_server.mjs",
     "test:atlas:gee": "node tests/test_atlas_gee_smoke.mjs",
+    "test:atlas:formula": "node tests/test_atlas_formula_v2.mjs",
+    "test:atlas:families": "node tests/test_atlas_capability_families.mjs",
+    "test:science-status": "node tests/test_scientific_status.mjs",
     "test:browser": "node tests/test.js",
     "test:fetch": "node tests/test_fetch.js"
   },

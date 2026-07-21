@@ -1,5 +1,7 @@
 # Sentinel Explorer Architecture & Logic Guide
 
+> **Current status (2026-07-20):** The produced-water composites below are experimental screening architectures. July background controls and threshold sweeps found no useful produced-water/caliche discrimination at the tested 500 m single-scene support. Exact current formulas and claim boundaries are in `knowledge/domain/scientific-status-2026-07-20.md`; historical recall-only language below must not be read as detector accuracy.
+
 This guide documents the core architecture, external services, band combinations, and mathematical logic used to build the **Sentinel Explorer** application. It serves as a reference for recreating or migrating the system's capabilities into Esri dashboards, custom Python backends, or other GIS platforms.
 
 ---
@@ -207,7 +209,7 @@ The application relies on Sentinel-2 Level-2A surface reflectance data. Specific
  
  * **Formula**: `NDSI × HCAI × HMRI` (with calibrated Permian Basin thresholds and soft BSI weight)
  * **Scientific Logic**: Produced water is a mixture of saline brine, residual hydrocarbons, and heavy metals. This composite requires a positive signature across all three chemical proxies to register. Thresholds were lowered from original values after validation showed 0% detection with the original AND-gate: (a) centroid-offset bboxes put pixels over mixed caliche, lowering BSI near zero; (b) HCAI and HMRI thresholds were both too high for Permian Basin soil background. Formerly known as Produced Water Index (PWI).
- * **Validation performance (2026-03-28):** 81.5% on 27 TRRC sites (threshold 0.01), mean score 0.741. ASAI (formerly PWOI) 86% on major spills (>500 BBL).
+ * **Current evidence:** Development recall was 81.5%, but background activation was 96.7%. The shipped viewer was blank at 11/11 reviewed positives and 150/150 controls. No tested threshold produced useful separation.
  * **Citation/Basis**: Custom composite index combining foundational logic from *Metternicht & Zinck (2003)*, *Kühn et al. (2004)*, and *Choe et al. (2008)*, calibrated for Permian Basin background albedo.
  * **Calibrated thresholds (current)**:
    * NDSI offset: `0.03` (was 0.10)
@@ -245,7 +247,7 @@ The application relies on Sentinel-2 Level-2A surface reflectance data. Specific
  * **Purpose**: Detects surface smoothness anomalies consistent with liquid brine pooling or thin saline crusts. Acts as an S2-optical proxy for SAR surface roughness (formerly known as Produced Water Optical Index (PWOI) or APEX Anomaly Super-Composite). Two complementary modes cover both wet and dry brine signatures.
  * **Satellites**: Sentinel-2 (S2-only WMS proxy; deep S1+S2 fusion blocked by Sentinel Hub WMS for multi-datasource evalscripts)
  * **Bands Used**: B03 (Green, 560 nm), B11 (SWIR1, 1610 nm), B12 (SWIR2, 2190 nm)
- * **Validation performance (2026-03-28)**: 77.8% on 27 TRRC sites; 87.5% on 8 verified sourced sites. Up from 29.6% before dry brine mode was added.
+ * **Current evidence:** Development recall was 77.8% with 71.3% background activation. The shipped viewer was blank at 11/11 reviewed positives and 150/150 controls.
  
  **Wet mode** (fires when B03 > B11, i.e. NDWI > 0 — liquid/moist brine or standing water):
 ```
@@ -276,7 +278,7 @@ apex = max(apex_wet, apex_dry)   # complementary, not replacing
  * **Purpose**: Composite optical detection of produced water using optical blue/SWIR contrast (NDOI), brine signature (NDSI), and surface smoothness (NDWI-derived). Designed as a cross-validation pairing with ASAI (formerly APEX/PWOI) — both must agree for high-confidence detection.
  * **Satellites**: Sentinel-2 (S2-only WMS proxy; same multi-datasource WMS restriction as ASAI)
  * **Bands Used**: B02 (Blue, 490 nm), B03 (Green, 560 nm), B11 (SWIR1, 1610 nm), B12 (SWIR2, 2190 nm), B04 (Red, 665 nm), B08 (NIR, 842 nm)
- * **Validation performance (2026-03-28)**: 66.7% on 27 TRRC sites. Up from 14.8% before dry brine mode.
+ * **Current evidence:** Development recall was 66.7% with 71.3% background activation. The current shipped evalscript contains the wet optical-contrast path only and was blank at all reviewed viewer positives.
 
 **Formula:**
 ```
@@ -309,7 +311,7 @@ These indices supplement ASAI/OBEC and are computed in the FIS 1-year scan. They
 | Index | Full Name | Formula Summary | Primary Signal |
 |-------|-----------|-----------------|----------------|
 | FBC | Iron-Brine Composite | `sqrt(iron_oxide × NDSI) × (1 − NDVI)` | Fe³⁺ staining from evaporated brine |
-| LBI | Liquid Brine Index | `(NDSI−0.02) × (NDWI+0.40) × (0.45−NDVI) × (BSI+0.20) × 20`, with `BSI > -0.25` | Active liquid brine, suppresses vegetation and broad wet-ish background |
+| LBI | Liquid/Salinity Response Index | `20 × gates(NDSI, NDWI, low NDVI, BSI)`, with an open-water BSI bypass | Preliminary water/salinity response; current small sample does not establish brine specificity |
 | VSI | Vegetation Stress Index | `NDSI × (0.4 − RedEdgeDelta) × (MSI − 1.0) × 10` | Persistent salt stress on sparse caliche vegetation |
 | BPI | Brine-Petroleum Index | `BSI × (NDSI − 0.03) × (HCAI − 0.15) × 30` | Combined brine + hydrocarbon residue |
 | TRI | Toxic Residue Index | `(NDSI − 0.05) × (HMRI − 1.5) × (AOI − 1.5) × 10²` | Heavy metal precipitation proxy |

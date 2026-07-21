@@ -57,8 +57,8 @@ export const SAR_DEMO_INDICES = [
     gradient: 'linear-gradient(to right,#1a1208,#5a3410,#a85f18,#e08a26,#ffc34d)',
     legend: ['Smooth/water', 'Dense built-up'],
     bookmark: { lat: 30.04, lng: 31.24, zoom: 11, date: '2021-07-10', label: 'Cairo, Egypt — dense city double-bounce' },
-    source: 'DLR Global Urban Footprint project',
-    sourceUrl: 'https://www.dlr.de/en/eoc/research-transfer/projects-missions/global-urban-footprint-guf',
+    source: 'DLR Global Urban Footprint dataset',
+    sourceUrl: 'https://geoservice.dlr.de/web/datasets/guf',
     justification: 'Karpathy-loop WMS QC selected July 10, 2021 at zoom 11 with 41.553% visible built-up signal and 10.645% high-signal coverage, making the Nile/city/desert contrast more legible than the prior zoom-10 bookmark.',
     evalscript: sarES(['VV'], `
       var db = 10 * Math.log(Math.max(sample.VV, 1e-4)) / Math.LN10;

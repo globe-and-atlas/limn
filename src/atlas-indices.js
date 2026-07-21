@@ -1,6 +1,8 @@
 /* ==========================================================================
    Globe & Atlas · Limn — Global Spectral Index Atlas
-   91 novel indices across 12 domains. No produced-water content.
+   91 proposed index specifications across 12 domains. No produced-water content.
+   Version 2 keeps contribution, implementation maturity, event context, and
+   scientific validation as separate fields.
    ========================================================================== */
 
 const genEvalscript = (bands, logic) => `//VERSION=3
@@ -69,7 +71,170 @@ export const ATLAS_DOMAINS = [
   { id:'crosssensor',   label:'Cross-Sensor Fusion',        icon:'🛰️'  },
 ];
 
-export const ATLAS_INDICES = [
+// Capability families are the primary public structure. Domains remain useful
+// application context, while a family answers the more important question:
+// "what physical condition or decision does this group of methods address?"
+// Family membership is organizational metadata, not a novelty or validation claim.
+export const ATLAS_CAPABILITIES = [
+  { id:'fire-effects', label:'Fire Effects & Recovery', icon:'◒', description:'Burned-surface, post-rain, mineral-transition, and understory-fire research methods.' },
+  { id:'fuel-moisture', label:'Fuel Moisture Context', icon:'⌁', description:'Canopy-moisture deficit features and field-calibration specifications.' },
+  { id:'fire-atmosphere', label:'Smoke & Extreme Fire Behavior', icon:'≈', description:'Absorbing-aerosol context and prospective pyroconvection workflows.' },
+  { id:'aquatic-blooms', label:'Aquatic Blooms & Pigments', icon:'✣', description:'Bloom, surface-scum, pigment, and functional-type observations across optical sensors.' },
+  { id:'water-condition-plumes', label:'Water Condition & Plumes', icon:'≋', description:'Turbidity, color, CDOM, thermal, wastewater, mine-plume, and catchment context.' },
+  { id:'riparian-flood', label:'Riparian & Floodplain Condition', icon:'⌇', description:'Dry-bank, floodplain, and wetland-agriculture edge context.' },
+  { id:'floating-material', label:'Floating & Surface Material', icon:'◇', description:'Floating debris, vegetation, scum-adjacent material, and oil-weathering candidates.' },
+  { id:'coastal-habitats', label:'Coastal Habitat Condition', icon:'◌', description:'Coral brightness, mangrove change, and shallow-water vegetation research methods.' },
+  { id:'crop-stress', label:'Crop & Soil Stress', icon:'⋔', description:'Nutrient, dryness, compaction, and pre-harvest risk observations.' },
+  { id:'agri-management', label:'Agricultural Management', icon:'⌗', description:'Cover-crop timing and irrigation water-use research workflows.' },
+  { id:'mining-risk', label:'Mining Surfaces & Risk', icon:'△', description:'Mining-surface context, mineral features, residue, leach-pad, and failure-risk models.' },
+  { id:'urban-surfaces', label:'Urban Surface Condition', icon:'▦', description:'Heat-vulnerability context, bare and paved surfaces, soiling, cooling, and dust.' },
+  { id:'landfill-context', label:'Landfill Surface Context', icon:'◫', description:'Generic vegetation and moisture features awaiting landfill masks and field measurements.' },
+  { id:'permafrost-change', label:'Permafrost & Peat Change', icon:'❄', description:'Exposed peat, pond margins, dielectric change, carbon exposure, and active-layer models.' },
+  { id:'snow-algae', label:'Snow Pigment Context', icon:'✧', description:'Bright-snow red/green features for field-reviewed snow-algae studies.' },
+  { id:'wetland-gas', label:'Wetland Gas Surface Context', icon:'○', description:'Open, wet, low-vegetation surface features that require methane flux measurements.' },
+  { id:'wetland-hydrology', label:'Wetland Hydrology', icon:'∿', description:'Water-table calibration, tidal-zone, and peat-moisture transition methods.' },
+  { id:'wetland-vegetation', label:'Wetland Vegetation Structure', icon:'♒', description:'Wetland vegetation-type and invasive-monoculture discrimination features.' },
+  { id:'forest-canopy', label:'Forest Canopy Condition', icon:'♧', description:'Canopy stress, liana structure, and crown-scale research methods.' },
+  { id:'forest-disturbance', label:'Forest Disturbance & Carbon', icon:'⌁', description:'Edge degradation, selective logging, and biomass/carbon calibration workflows.' },
+  { id:'dryland-processes', label:'Dryland Surface Processes', icon:'⌓', description:'Biocrust, evaporite, carbonate, dust, erosion, and habitat-context methods.' },
+  { id:'hyperspectral-materials', label:'Hyperspectral Materials', icon:'λ', description:'Continuum-removed mineral, fiber, carbon, and alteration-sequence specifications.' },
+  { id:'atmospheric-carbon', label:'Atmospheric Methane & Carbon', icon:'↟', description:'Methane retrieval and transport-inversion research specifications.' },
+  { id:'cross-sensor-systems', label:'Cross-Sensor Decision Models', icon:'⊕', description:'Deformation, water-security, soil-moisture, urban-air, and coastal-carbon models.' },
+];
+
+export const ATLAS_METHOD_ROLES = {
+  primary: {
+    label: 'Primary',
+    description: 'The clearest current representative of this capability family; not a validation claim.',
+  },
+  variant: {
+    label: 'Variant',
+    description: 'An alternate formulation or target interpretation within the same capability family.',
+  },
+  component: {
+    label: 'Component',
+    description: 'A useful input or context feature that is weaker as a standalone decision product.',
+  },
+  reference: {
+    label: 'Reference',
+    description: 'An established sensor product or comparison layer retained for interpretation.',
+  },
+  'research-model': {
+    label: 'Research model',
+    description: 'A future retrieval, calibration, temporal, spatial, or cross-sensor workflow; not a current Atlas result.',
+  },
+  retired: {
+    label: 'Retired',
+    description: 'A legacy formula retained for traceability but removed from live scientific use.',
+  },
+};
+
+const CAPABILITY_CLASSIFICATION = {
+  bhdfsi: ['fire-effects', 'primary'],
+  sfeii: ['fuel-moisture', 'retired'],
+  lfmpi: ['fuel-moisture', 'primary'],
+  pshri: ['fire-effects', 'research-model'],
+  bsmti: ['fire-effects', 'research-model'],
+  saci: ['fire-atmosphere', 'reference'],
+  pcsii: ['fire-atmosphere', 'research-model'],
+
+  peti: ['aquatic-blooms', 'primary'],
+  csrc: ['aquatic-blooms', 'variant'],
+  swri: ['water-condition-plumes', 'research-model'],
+  dwci: ['water-condition-plumes', 'research-model'],
+  rrfi: ['riparian-flood', 'variant'],
+  epdi: ['water-condition-plumes', 'primary'],
+  rdoci: ['water-condition-plumes', 'research-model'],
+  ctpsti: ['aquatic-blooms', 'component'],
+  dtpsi: ['water-condition-plumes', 'research-model'],
+  gmcpi: ['water-condition-plumes', 'research-model'],
+  fcli: ['riparian-flood', 'primary'],
+
+  habsdi: ['aquatic-blooms', 'research-model'],
+  smpdi: ['floating-material', 'primary'],
+  cbsdi: ['coastal-habitats', 'primary'],
+  kcdsi: ['floating-material', 'variant'],
+  owsi: ['floating-material', 'variant'],
+  mdspi: ['coastal-habitats', 'research-model'],
+  sgdci: ['water-condition-plumes', 'research-model'],
+  spei: ['coastal-habitats', 'research-model'],
+  cduai: ['water-condition-plumes', 'variant'],
+  mppdi: ['floating-material', 'variant'],
+
+  npdefi: ['crop-stress', 'primary'],
+  scspi: ['crop-stress', 'research-model'],
+  apri: ['crop-stress', 'research-model'],
+  pdsdi: ['crop-stress', 'variant'],
+  cctti: ['agri-management', 'primary'],
+  iwuei: ['agri-management', 'research-model'],
+  wdacsi: ['riparian-flood', 'variant'],
+
+  trsi: ['water-condition-plumes', 'research-model'],
+  tdrasi: ['mining-risk', 'primary'],
+  amdphi: ['mining-risk', 'retired'],
+  tdsii: ['mining-risk', 'research-model'],
+  reesai: ['mining-risk', 'research-model'],
+  ccrbi: ['mining-risk', 'research-model'],
+  hlpii: ['mining-risk', 'research-model'],
+  ierpi: ['water-condition-plumes', 'research-model'],
+
+  ecaci: ['urban-surfaces', 'primary'],
+  hsai: ['urban-surfaces', 'component'],
+  spsri: ['urban-surfaces', 'research-model'],
+  uciei: ['urban-surfaces', 'research-model'],
+  pcadi: ['urban-surfaces', 'component'],
+  csdei: ['urban-surfaces', 'research-model'],
+  lfgvi: ['landfill-context', 'component'],
+  lrdvsi: ['landfill-context', 'component'],
+
+  ttapi: ['permafrost-change', 'component'],
+  tperi: ['permafrost-change', 'component'],
+  pcei: ['permafrost-change', 'primary'],
+  sabsi: ['snow-algae', 'primary'],
+  fgdci: ['permafrost-change', 'research-model'],
+  mepsi: ['wetland-gas', 'component'],
+  alsi: ['permafrost-change', 'research-model'],
+
+  pdcsi: ['forest-canopy', 'primary'],
+  lisi: ['forest-canopy', 'variant'],
+  ubcdi: ['fire-effects', 'research-model'],
+  fedgi: ['forest-disturbance', 'research-model'],
+  slsdi: ['forest-disturbance', 'research-model'],
+  etcsi: ['forest-canopy', 'research-model'],
+
+  bscmci: ['dryland-processes', 'research-model'],
+  sbci: ['dryland-processes', 'research-model'],
+  cscai: ['dryland-processes', 'research-model'],
+  defpi: ['dryland-processes', 'research-model'],
+  dlpehi: ['dryland-processes', 'component'],
+  aibeai: ['dryland-processes', 'research-model'],
+
+  pwtdi: ['wetland-hydrology', 'research-model'],
+  mhssp: ['wetland-gas', 'component'],
+  tfidi: ['wetland-hydrology', 'component'],
+  wdptzi: ['wetland-hydrology', 'component'],
+  ipvsi: ['wetland-vegetation', 'primary'],
+  wvtdi: ['wetland-vegetation', 'variant'],
+
+  cmsti: ['hyperspectral-materials', 'research-model'],
+  mpssfi: ['atmospheric-carbon', 'research-model'],
+  afcdi: ['hyperspectral-materials', 'research-model'],
+  scfgosi: ['hyperspectral-materials', 'research-model'],
+  reenbi: ['hyperspectral-materials', 'research-model'],
+  epcase: ['hyperspectral-materials', 'research-model'],
+  dpcci: ['aquatic-blooms', 'research-model'],
+  pftib: ['aquatic-blooms', 'research-model'],
+
+  tseai: ['atmospheric-carbon', 'research-model'],
+  issai: ['cross-sensor-systems', 'research-model'],
+  geawsi: ['cross-sensor-systems', 'research-model'],
+  emsmmi: ['cross-sensor-systems', 'research-model'],
+  nfcai: ['forest-disturbance', 'research-model'],
+  snuvqi: ['cross-sensor-systems', 'research-model'],
+  puenpi: ['cross-sensor-systems', 'research-model'],
+};
+
+const RAW_ATLAS_INDICES = [
 
 /* ─── 1. WILDFIRE ──────────────────────────────────────────────────────── */
 {
@@ -111,25 +276,24 @@ export const ATLAS_INDICES = [
   key:'lfmpi', acronym:'LFMPI', domain:'wildfire',
   name:'Live Fuel Moisture Pre-Ignition Index',
   platform:'Sentinel-2', platformShort:'S2', novelty:'T2', canRender:true,
-  formula:'FuelGate × WaterReject × [1 − scaled live-fuel moisture proxy]',
-  physics:'EVI-modified SWIR ratio tracks live fuel moisture content, but only after explicit water rejection and live-vegetation gating. Low live-fuel moisture over vegetated fuels = high ignition risk.',
-  benefit:'Week-ahead fire-weather risk maps for prescribed-burn scheduling.',
+  formula:'FuelGate × WaterReject × (1 − NDMI) / 2',
+  physics:'A normalized Sentinel-2 NDMI deficit is displayed only over live vegetation after water rejection. It is an uncalibrated canopy-moisture context feature, not a live-fuel-moisture retrieval.',
+  benefit:'Screens vegetated areas for relatively dry canopy-moisture context; field LFMC is required for calibration.',
   gradient: G.fuel,
   bookmark:{lat:34.28, lng:-118.02, zoom:11, date:'2021-08-01', label:'Angeles NF chaparral — peak drought live-fuel risk'},
   source: 'Drought.gov California-Nevada October 2021 drought update',
   sourceUrl: 'https://www.drought.gov/drought-status-updates/drought-status-update-california-nevada-2021-10-15',
   justification: 'Peak-signal proof target for live-fuel moisture stress: fire-prone Angeles National Forest chaparral during the peak summer dry period of the historic 2021 drought. Open water and non-fuel surfaces are explicitly masked out.',
-  evalscript: genEvalscript(['B02','B03','B04','B8A','B11','B12'],`
-  let denom=sample.B8A+sample.B11+6*sample.B04-7.5*sample.B02+1;
-  let lfm=2.5*((sample.B8A-sample.B11)/(denom+0.001))-(sample.B12/(sample.B11+0.001));
+  evalscript: genEvalscript(['B03','B04','B8A','B11'],`
+  let ndmi=(sample.B8A-sample.B11)/(sample.B8A+sample.B11+0.001);
   let ndvi=(sample.B8A-sample.B04)/(sample.B8A+sample.B04+0.001);
   let mndwi=(sample.B03-sample.B11)/(sample.B03+sample.B11+0.001);
   let waterReject=(mndwi>0.15&&ndvi<0.25)?0:1;
   let liveFuel=(ndvi>0.28&&sample.B8A>sample.B04&&sample.B11>0.04)?1:0;
-  let risk=Math.max(0,Math.min(1,(0.35-lfm)*1.8+0.2))*waterReject*liveFuel;
+  let risk=Math.max(0,Math.min(1,(1-ndmi)*0.5))*waterReject*liveFuel;
   if(risk<=0)return[0,0,0,0];
   return ${cb('risk',[
-    [0,226,102,90],[0.3,230,180,80],[0.6,142,207,128],[1,13,120,50]])};`)
+    [0,19,23,15],[0.3,142,207,128],[0.6,230,180,80],[0.85,217,134,79],[1,226,102,90]])};`)
 },
 {
   key:'pshri', acronym:'PSHRI', domain:'wildfire',
@@ -1518,3 +1682,465 @@ export const ATLAS_INDICES = [
 },
 
 ];
+
+// ---------------------------------------------------------------------------
+// Atlas v2 scientific reconciliation
+// ---------------------------------------------------------------------------
+// The raw records above retain the May 2026 catalog for traceability. Public
+// consumers receive the reconciled records below. No override is evidence of
+// target accuracy: live formulas are displayable screening features, while
+// non-live workflows remain specifications until their declared data and
+// calibration exist.
+
+const EXECUTABLE_NONLIVE_KEYS = new Set([
+  'swri', 'dwci', 'gmcpi', 'mdspi', 'spei', 'scspi', 'trsi', 'ccrbi',
+  'ierpi', 'spsri', 'fgdci', 'ubcdi', 'fedgi', 'slsdi', 'aibeai', 'pwtdi',
+]);
+
+const CONTRIBUTION_FROM_LEGACY_TIER = {
+  T1: 'C1',
+  T2: 'C2',
+  T3: 'C3',
+};
+
+const FORMULA_V2_OVERRIDES = {
+  bhdfsi: {
+    name: 'Burned Hillside Surface Context Score',
+    formula: 'max(0, 0.15 − NBR) × max(0, BSI + 0.1) × max(0, 0.35 − NDVI)',
+    proposedFormula: 'Calibrated debris-flow model f(ΔNBR, slope, flow accumulation, soil, rainfall intensity and duration)',
+    physics: 'The live layer combines low NBR, exposed-soil context, and low vegetation cover in one Sentinel-2 scene. It does not compute slope, rainfall, soil moisture, drainage, or debris-flow susceptibility.',
+    benefit: 'Post-fire surface-context screening. Debris-flow or evacuation decisions require terrain, rainfall, soils, inventories, and held-out watershed evaluation.',
+    requiredInputs: ['Sentinel-2 L2A'],
+    temporalOperator: 'Single-scene live proxy; proposed model requires pre/post fire and rainfall windows',
+    spatialOperator: 'Per-pixel live proxy; proposed model requires terrain and flow-network context',
+  },
+  sfeii: {
+    name: 'Canopy Moisture Deficit Calibration Specification',
+    canRender: false,
+    platform: 'Sentinel-2 formula specified; field calibration pending',
+    platformShort: 'S2 · calibration pending',
+    formula: 'FuelMask × scaled seasonal NDMI deficit',
+    proposedFormula: 'FuelMask × clip[(NDMI_reference − NDMI_t) / scale_reference, 0, 1]',
+    implementedFormula: 'Legacy [(B8A−B11)/(B8A+B11)] × [1−(B08/B12)] retained in source history only',
+    formulaStatus: 'Rebuild required',
+    physics: 'The prior multiplicative expression has an unstable physical direction because 1−B08/B12 is commonly negative over vegetation. A seasonal NDMI deficit is the defensible starting feature; LFMC requires field calibration.',
+    benefit: 'Defines a canopy-moisture calibration experiment rather than a pre-ignition hazard product.',
+    requiredInputs: ['Sentinel-2 L2A', 'seasonal reference distribution', 'field LFMC for stronger inference'],
+    temporalOperator: 'Seasonal anomaly',
+  },
+  lfmpi: {
+    name: 'Live Fuel Moisture Deficit Proxy',
+    legacyFormula: 'FuelGate × WaterReject × [1 − scaled live-fuel moisture proxy]',
+    formula: 'FuelGate × WaterReject × (1 − NDMI) / 2',
+    implementedFormula: 'FuelGate × WaterReject × (1 − NDMI) / 2',
+    proposedFormula: 'Field-calibrated LFMC = f(Sentinel-2 moisture features, vegetation type, season)',
+    physics: 'The live layer displays a normalized NDMI deficit over live vegetation after water rejection. It is not calibrated in percent LFMC.',
+    benefit: 'Canopy-moisture context for selecting field-calibration targets.',
+    units: 'Dimensionless moisture-deficit proxy',
+  },
+  saci: {
+    name: 'UV Absorbing Aerosol Context',
+    formula: 'clip(AER_AI_340_380 / 3.5, 0, 1)',
+    implementedFormula: 'clip(AER_AI_340_380 / 3.5, 0, 1)',
+    proposedFormula: 'Aerosol-composition classifier f(UVAI, AOD, absorption AOD, Ångström exponent, plume height, meteorology)',
+    physics: 'The live layer displays the TROPOMI 340/380 nm UV Absorbing Aerosol Index. It does not calculate AOD340/AOD550 or distinguish smoldering from flaming combustion.',
+    benefit: 'Documents absorbing-aerosol plume context; composition and fire-type inference require additional aerosol products and labels.',
+    units: 'Scaled native UV aerosol-index value',
+  },
+  peti: {
+    name: 'Phytoplankton Bloom Context Proxy',
+    formula: 'WaterGate × max[0, NDCI × RedEdgeContrast × 8]',
+    implementedFormula: 'WaterGate × max[0, NDCI × RedEdgeContrast × 8]',
+    proposedFormula: 'Field-calibrated bloom model with temporal persistence and toxin assays',
+    physics: 'The live formula combines red/red-edge contrasts over water. Sentinel-2 has no 620 nm phycocyanin band, and this output does not establish cyanobacterial toxicity.',
+    benefit: 'Bloom-context screening for field sampling, not toxin or drinking-water safety determination.',
+  },
+  csrc: {
+    name: 'Surface Scum Context Composite',
+    formula: 'WaterGate × max(0, NDCI + NIRScumBoost) × (1 − TurbidityReject)',
+    implementedFormula: 'WaterGate × max(0, NDCI + NIRScumBoost) × (1 − TurbidityReject)',
+    proposedFormula: 'Temporal surface-scum model with repeated clear observations and toxin assays',
+    physics: 'The live formula combines a red-edge bloom feature, elevated NIR, and a turbidity rejection term. It does not calculate persistence or cyanotoxin risk.',
+    benefit: 'Locates surface-scum-like optical conditions for review and sampling.',
+  },
+  rrfi: {
+    name: 'Riparian Dry-Bare Context Composite',
+    formula: 'max(0, 0.3−NDVI) × max(0, −NDWI) × max(0, BSI) × 40',
+    implementedFormula: 'max(0, 0.3−NDVI) × max(0, −NDWI) × max(0, BSI) × 40',
+    proposedFormula: 'ΔNDVI_riparian × ΔNDWI_channel × ΔBSI_bank with mapped riparian and channel zones',
+    physics: 'The live layer is a single-scene dry, sparsely vegetated, bare-surface feature. It does not measure riparian loss or channel decline without a baseline and spatial masks.',
+    benefit: 'Surfaces candidate dry/bare riparian context for time-series analysis.',
+  },
+  epdi: {
+    name: 'Bare-Surface and Water-Turbidity Context',
+    formula: '0.5 × BareSurfaceHeuristic + 3 × TurbidityContrast × WaterGate',
+    implementedFormula: '0.5 × BareSurfaceHeuristic + 3 × TurbidityContrast × WaterGate',
+    proposedFormula: 'ΔBSI_upslope × TurbidityAnomaly_downstream × Persistence with flow-network linkage',
+    physics: 'The live formula adds same-pixel bare-surface and water-turbidity features. It does not compute upslope/downstream linkage, change, or persistence.',
+    benefit: 'Context layer for designing an erosion-delivery time-series study.',
+  },
+  rdoci: {
+    name: 'CDOM Spectral-Slope Research Specification',
+    formula: 'S(λ1,λ2) = [ln aCDOM(λ1) − ln aCDOM(λ2)] / (λ2 − λ1)',
+    proposedFormula: 'DOC_estimate = f[aCDOM, spectral slope, optical water type] calibrated to field DOC',
+    formulaStatus: 'Retrieval workflow required',
+    physics: 'CDOM spectral slope is defined from absorption after atmospheric and aquatic retrieval, not directly from raw 320/412 nm reflectance. DOC inference requires field calibration and water-type controls.',
+    benefit: 'Specifies the measurements needed to test a PACE-enabled DOC/CDOM relationship.',
+    requiredInputs: ['PACE OCI water-leaving reflectance', 'atmospheric correction', 'in-water absorption', 'field DOC/CDOM'],
+    units: 'Spectral slope: inverse wavelength; DOC units depend on calibration',
+  },
+  ctpsti: {
+    name: 'Phytoplankton Pigment Contrast Feature',
+    formula: '[ρ(560 nm) − ρ(620 nm)] / [ρ(560 nm) + ρ(620 nm)]',
+    physics: 'The contrast may respond to pigment composition after aquatic atmospheric correction. It cannot determine species, toxin genes, or toxin concentration.',
+    benefit: 'Candidate pigment-balance feature for studies with taxonomy and toxin assays.',
+  },
+  fcli: {
+    name: 'Floodplain SWIR-Vegetation Context',
+    formula: 'max(0, B12−0.18) × max(0, 0.4−NDVI) × 8',
+    implementedFormula: 'max(0, B12−0.18) × max(0, 0.4−NDVI) × 8',
+    proposedFormula: 'SWIR2 anomaly after inundation × next-season vegetation suppression',
+    physics: 'The live layer is a single-scene SWIR2 and low-vegetation feature. It does not compute an anomaly, flood history, contamination, or next-season response.',
+    benefit: 'Identifies candidate floodplain surface context for a longitudinal contamination study.',
+  },
+  smpdi: {
+    name: 'Floating-Material Spectral Contrast',
+    physics: 'The live feature combines a floating-algae-style baseline residual with NIR/SWIR contrast and water/land gates. Sargassum-versus-plastic discrimination has not been independently evaluated.',
+    benefit: 'Candidate feature for labeled floating-material classification against established FDI baselines.',
+  },
+  cbsdi: {
+    name: 'Coral Brightness Context Proxy',
+    formula: 'BlueBrightnessGate × GreenRedContrastGate',
+    implementedFormula: 'I[(B03−B04)/(B03+B04) < 0.05 and B02 > 0.06] × (0.5 + 3B02)',
+    proposedFormula: 'Multi-date, depth-corrected benthic change model with field coral-condition labels',
+    physics: 'The live code implements one brightness/green-red condition only. It does not implement the advertised three stages or determine bleaching, mortality, or algal colonization.',
+    benefit: 'Single-scene shallow-water brightness context for selecting field-reviewed change targets.',
+  },
+  kcdsi: {
+    name: 'Floating or Shallow-Water Vegetation Context',
+    formula: 'max(0, NDVI) × WaterVegetationGate',
+    implementedFormula: 'max(0, NDVI) × I[B11<0.04 and B03<0.16]',
+    proposedFormula: 'Depth-corrected multi-date kelp-canopy condition model',
+    physics: 'The live layer displays positive NDVI under a simple low-SWIR water-context gate. It does not correct bathymetry or measure kelp stress.',
+    benefit: 'Candidate floating/shallow vegetation context for labeled kelp mapping.',
+  },
+  cduai: {
+    name: 'Coastal Water Turbidity Context',
+    formula: 'max(0, RedGreenContrast + 0.05) × WaterGate × 6',
+    implementedFormula: 'max(0, RedGreenContrast + 0.05) × WaterGate × 6',
+    proposedFormula: 'Turbidity anomaly with cloud mask, plume morphology, source context, and multi-date persistence',
+    physics: 'The live formula is a red/green water-contrast feature. It does not contain an explicit cloud mask or establish dredging as the cause.',
+    benefit: 'Highlights turbid coastal-water context for source and time-series review.',
+  },
+  mppdi: {
+    name: 'Floating-Debris Candidate Feature',
+    formula: 'max(0, FAI) × NonVegetationGate × LowTurbidityGate × 10',
+    implementedFormula: 'max(0, FAI) × NonVegetationGate × LowTurbidityGate × 10',
+    proposedFormula: 'Labeled floating-material classifier with explicit natural-debris, foam, Sargassum, cloud, glint, and turbidity controls',
+    physics: 'The live formula does not implement explicit foam or Sargassum terms and cannot identify polymer composition from Sentinel-2 alone.',
+    benefit: 'Candidate floating-debris feature for comparison with FDI-based classification.',
+  },
+  pdsdi: {
+    name: 'Crop Red-Edge and Dryness Context',
+    formula: 'max(0, 0.6−NDRE) × max(0, B11/B08−0.5) × 4',
+    implementedFormula: 'max(0, 0.6−NDRE) × max(0, B11/B08−0.5) × 4',
+    proposedFormula: 'Spatial NDVI texture normalized by crop, phenology, moisture, and management baselines',
+    physics: 'The live layer contains no texture or spatial variance and cannot distinguish pesticide stress from drought, disease, nutrient limitation, or management.',
+    benefit: 'Crop stress context for a labeled causal-discrimination study.',
+  },
+  wdacsi: {
+    name: 'Wetland-Agriculture Edge Context',
+    formula: 'max(0, NDCI) × max(0, −NDWI) × OrganicSurfaceHeuristic × 10',
+    implementedFormula: 'max(0, NDCI) × max(0, −NDWI) × OrganicSurfaceHeuristic × 10',
+    proposedFormula: 'Multi-date crop-green anomaly × wetland drainage change × mapped peat disturbance',
+    physics: 'The live formula is a single-scene optical conjunction. It does not measure drainage, NDWI loss, nitrogen addition, or agricultural intrusion.',
+    benefit: 'Context for reviewing wetland edges before land-cover and hydrologic analysis.',
+  },
+  tdrasi: {
+    name: 'Mining Iron-SWIR Context Proxy',
+    formula: 'max(0, RedBlueContrast−0.05) × max(0, B11/B12−1) × 3',
+    implementedFormula: 'max(0, RedBlueContrast−0.05) × max(0, B11/B12−1) × 3',
+    proposedFormula: 'Field-informed mineral/turbidity anomaly with mine, channel, and time-series context',
+    physics: 'The live formula contains no mine-proximity term and cannot uniquely identify jarosite, sulfate, or a tailings release from Sentinel-2 ratios.',
+    benefit: 'Mining-area iron/SWIR context for field-informed mineral analysis.',
+  },
+  amdphi: {
+    name: 'AMD Iron-Mineral Calibration Specification',
+    canRender: false,
+    platform: 'Sentinel-2 + field mineralogy; calibration pending',
+    platformShort: 'S2 · field calibration',
+    formula: 'Mineral features = continuum-removed band depths or field-guided spectral unmixing',
+    proposedFormula: 'pH_estimate = f(mineral features, field pH, water/soil context) with held-out sites',
+    implementedFormula: 'Legacy visible ratio-of-ratios retired from live display because its denominator is unstable near zero',
+    formulaStatus: 'Rebuild required',
+    physics: 'Iron-mineral assemblages can be associated with acidity, but the prior ratio was numerically unstable and not a direct pH measurement.',
+    benefit: 'Defines a mineral and field-chemistry calibration study; no current pH retrieval is claimed.',
+    requiredInputs: ['surface reflectance', 'field pH', 'XRD/mineralogy', 'spectral library', 'held-out sites'],
+  },
+  tdsii: {
+    name: 'Tailings Change-Risk Calibration Model',
+    formula: 'Risk = logistic[β0 + β1z(seepage anomaly) + β2z(subsidence rate) + β3z(vegetation change)]',
+    proposedFormula: 'Coefficients fitted to documented incidents and stable control facilities',
+    formulaStatus: 'Calibrated model required',
+    physics: 'Optical indices and deformation rates have different units and cannot be added with arbitrary weights. Predictors require normalization, temporal alignment, labels, and learned coefficients.',
+    benefit: 'Specifies a prospective multi-sensor risk experiment, not a deployed failure-warning system.',
+    units: 'Calibrated event probability or declared risk score',
+  },
+  hsai: {
+    name: 'Low-Vegetation Bare-Surface Context',
+    formula: 'max(0, 0.3−NDVI) × max(0, BSI+0.05) × 6',
+    implementedFormula: 'max(0, 0.3−NDVI) × max(0, BSI+0.05) × 6',
+    proposedFormula: 'Tree-canopy and shade-access model inside an explicit urban residential mask',
+    physics: 'The live formula contains no urban, residential, tree-crown, or shade mask. It is a generic low-vegetation/bare-surface feature.',
+    benefit: 'Input feature for an urban shade-access model with canopy and population data.',
+  },
+  pcadi: {
+    name: 'Dark Paved-Surface Context',
+    formula: 'LowVisibleReflectanceGate × LowNDVIGate × (1−8×VisibleAlbedo)',
+    implementedFormula: 'I[B02,B03,B04<0.15 and NDVI<0.05] × (1−8×mean(B02,B03,B04))',
+    proposedFormula: 'RoadMask × (B02_t−B02_baseline)/B02_baseline with material and maintenance controls',
+    physics: 'The live formula has neither a road mask nor a temporal baseline and therefore cannot retrieve pavement age or condition.',
+    benefit: 'Dark, low-vegetation surface context for a road-condition change study.',
+  },
+  lfgvi: {
+    name: 'Landfill Vegetation-Stress Context',
+    formula: 'max(0,0.5−NDVI) × max(0,0.2−RedEdgeContrast) × max(0,0.3−NDMI) × 20',
+    implementedFormula: 'max(0,0.5−NDVI) × max(0,0.2−RedEdgeContrast) × max(0,0.3−NDMI) × 20',
+    proposedFormula: 'LandfillMask × temporal vegetation anomaly × spatial-pattern features × field gas measurements',
+    physics: 'The live code contains no annular/ring-pattern operator and vegetation stress is not specific to landfill gas.',
+    benefit: 'Vegetation-stress context for landfill inspection when combined with geology and field gas measurements.',
+  },
+  lrdvsi: {
+    name: 'Vegetation-Moisture Anomaly Context',
+    formula: 'max(0,0.4−NDVI) × max(0,NDWI+0.2) × 5',
+    implementedFormula: 'max(0,0.4−NDVI) × max(0,NDWI+0.2) × 5',
+    proposedFormula: 'LandfillMask × downslope flow path × temporal vegetation and water anomaly',
+    physics: 'The live formula contains no landfill boundary, downslope channel, baseline, or source attribution.',
+    benefit: 'Wet, low-vegetation context for designing a field-verified leachate study.',
+  },
+  ttapi: {
+    name: 'Wet Exposed-Peat Context',
+    formula: 'PeatReflectanceHeuristic × max(0,0.3−NDVI) × max(0,NDWI+0.3) × 8',
+    implementedFormula: 'PeatReflectanceHeuristic × max(0,0.3−NDVI) × max(0,NDWI+0.3) × 8',
+    proposedFormula: 'Multi-date peat exposure × mapped slump-edge displacement × terrain context',
+    physics: 'The live code contains no edge-collapse or change operator and cannot establish active thermokarst expansion.',
+    benefit: 'Wet exposed-organic-surface context for time-series thermokarst mapping.',
+  },
+  tperi: {
+    name: 'Thermokarst Pond-Edge Context',
+    formula: 'PeatEdgeGate × max(0, NDWI+0.2) × 3',
+    implementedFormula: 'I[B12>0.08 and −0.2<NDWI<0.4] × max(0,NDWI+0.2) × 3',
+    proposedFormula: 'Expansion rate = [Area(t2)−Area(t1)] / [t2−t1], with boundary-registration uncertainty',
+    physics: 'The live layer is a single-scene wet peat-edge feature. Rate and expansion require registered dates and mapped boundaries.',
+    benefit: 'Selects candidate pond margins for a reproducible change-rate workflow.',
+    units: 'Live: dimensionless context; proposed rate: area/time or distance/time',
+  },
+  sabsi: {
+    name: 'Bright-Snow Red-Green Context',
+    formula: 'BrightSnowGate × max[0, (B04−B03)/(B04+B03)+0.05] × 10',
+    implementedFormula: 'I[B02>0.4 and B03>0.4] × max[0, (B04−B03)/(B04+B03)+0.05] × 10',
+    proposedFormula: 'SnowMask × pigment model calibrated to algae abundance and impurities',
+    physics: 'The live code uses visible-band brightness rather than NDSI and cannot uniquely attribute red snow to algae.',
+    benefit: 'Red/green spectral context over bright snow for field-reviewed algae studies.',
+  },
+  pwtdi: {
+    name: 'Peatland Water-Table Calibration Model',
+    formula: 'WTD_estimate = f(S1 VV, VH, polarization ratios, optical moisture features, vegetation, season, site)',
+    proposedFormula: 'Logger-calibrated regression with geographic and temporal holdouts',
+    formulaStatus: 'Field calibration required',
+    physics: 'Sentinel-2 B09 is a coarse atmospheric-water-vapor band, not a direct 970/1020 nm Sphagnum water-content channel. Water-table depth must be calibrated to in-situ loggers.',
+    benefit: 'Defines a radar-optical water-table experiment rather than an operational WTD product.',
+    requiredInputs: ['Sentinel-1 GRD', 'Sentinel-2 L2A', 'water-table loggers', 'vegetation and seasonal covariates'],
+    units: 'Estimated depth after calibration',
+  },
+  mhssp: {
+    name: 'Open Anoxic-Surface Context Proxy',
+    physics: 'The live formula identifies wet, low-vegetation, low-red-edge surfaces. It does not measure methane flux or identify emission hotspots.',
+    benefit: 'Candidate surface-context feature for studies with chamber, tower, or atmospheric methane measurements.',
+  },
+  tfidi: {
+    name: 'Single-Date Tidal-Zone Wetness Context',
+    formula: 'I[−0.1<NDWI<0.4] × I[B11<0.1] × max(0,NDWI+0.15) × 2',
+    implementedFormula: 'I[−0.1<NDWI<0.4] × I[B11<0.1] × max(0,NDWI+0.15) × 2',
+    proposedFormula: 'Clear-observation NDWI percentile spread across a tidal time series',
+    physics: 'The live layer contains no variability calculation. It displays a single-date intermediate wetness condition.',
+    benefit: 'Selects likely tidal-transition surfaces for a hydroperiod time-series analysis.',
+    bookmark: { date: '2021-08-17' },
+  },
+  ipvsi: {
+    bookmark: { date: '2021-09-01' },
+  },
+  wdptzi: {
+    name: 'Peat Moisture Transition Proxy',
+    formula: 'TransitionGate[(B11−B8A)/(B11+B8A)] × |NDWI| × 3',
+    implementedFormula: 'I[0.05<|(B11−B8A)/(B11+B8A)|<0.3] × |NDWI| × 3',
+    proposedFormula: 'Spatial gradient magnitude or edge detector applied to a co-registered peat-moisture surface',
+    physics: 'The live evalscript is per-pixel and does not calculate a Sobel operator or neighborhood gradient.',
+    benefit: 'Moisture-transition context for a later spatial edge-analysis workflow.',
+  },
+  cmsti: {
+    name: 'Clay-Mineral Absorption-Position Model',
+    formula: 'λ_min = fitted continuum-removed Al−OH absorption position with wavelength uncertainty',
+    proposedFormula: 'Mineral classification f(λ_min, feature shape, spectral library, mixture model, uncertainty)',
+    formulaStatus: 'Spectral fitting required',
+    physics: 'An approximately 8 nm target shift is comparable to EMIT sampling and cannot be treated as a direct one-channel minimum. Spectral fitting, signal-to-noise, mixtures, and wavelength uncertainty are required.',
+    benefit: 'Defines a falsifiable clay-mineral separability experiment.',
+    units: 'Fitted wavelength and classification uncertainty',
+  },
+  mpssfi: {
+    name: 'Methane Matched-Filter Research Specification',
+    formula: 'Methane enhancement = matched-filter or radiative-transfer retrieval across the CH₄ absorption complex',
+    proposedFormula: 'Plume/background retrieval followed by wind-informed flux estimation and uncertainty',
+    formulaStatus: 'Atmospheric retrieval required',
+    physics: 'A three-band surface-reflectance depth at 1667 nm is not a robust atmospheric methane retrieval and does not isolate water vapor or carbon dioxide by itself.',
+    benefit: 'Specifies an imaging-spectroscopy methane workflow consistent with plume retrieval practice.',
+    units: 'Column enhancement; flux only after wind-informed inversion',
+  },
+  reenbi: {
+    name: 'REE Neodymium Band-Depth Feature',
+    formula: 'BD803 = 1 − R803 / Rc803',
+    proposedFormula: 'Rc803 = linearly interpolated continuum between validated shoulders; interpret through mixture and field tests',
+    formulaStatus: 'Continuum-removal specification',
+    physics: 'The prior denominator incorrectly added a shoulder reflectance to an interpolated continuum. Standard continuum removal uses the continuum value at the feature center.',
+    benefit: 'Candidate neodymium absorption feature for spectral-library and field validation.',
+    units: 'Dimensionless continuum-removed band depth',
+  },
+  tseai: {
+    name: 'Methane Inventory Residual Research Model',
+    formula: 'Residual = ΔXCH4_observed − H(emissions inventory, wind, boundary layer, retrieval averaging kernel)',
+    proposedFormula: 'Source posterior p(source | residual, transport, inventory, land-cover prior, uncertainty)',
+    formulaStatus: 'Transport inversion required',
+    physics: 'XCH4 concentration cannot be divided by land-cover fractions and emission factors with incompatible units. Land cover is a prior; attribution requires transport and uncertainty.',
+    benefit: 'Defines the residual and evidence required for methane-source attribution.',
+    units: 'Concentration residual; source flux only after inversion',
+  },
+  nfcai: {
+    name: 'NISAR-Optical Biomass Calibration Model',
+    formula: 'AGB_estimate = f(L-HV, L-HH, coherence, canopy cover, topography)',
+    proposedFormula: 'Carbon = AGB_estimate × carbon_fraction with plot, allometric, saturation, and model uncertainty',
+    formulaStatus: 'Field calibration required',
+    physics: 'Radar backscatter and NDVI trend cannot be combined as an uncalibrated carbon equation, and NDVI trend is not a stand-age measurement. NISAR launched in 2025.',
+    benefit: 'Defines a plot-calibrated biomass and carbon experiment using NISAR science data.',
+    requiredInputs: ['NISAR L-band products', 'Sentinel-2 canopy features', 'topography', 'biomass plots', 'allometry'],
+    units: 'Biomass or carbon per area after calibration',
+  },
+  puenpi: {
+    name: 'Coastal Wetland Carbon-Budget Research Model',
+    formula: 'NEP_total = consistently defined land and aquatic production − total ecosystem respiration and export terms',
+    proposedFormula: 'All components harmonized to common carbon units, spatial support, interval, and system boundary',
+    formulaStatus: 'Carbon-budget model required',
+    physics: 'The prior expression subtracted aquatic primary production and mixed products with incompatible meanings and supports. A coastal carbon budget requires an explicit system boundary and sign convention.',
+    benefit: 'Defines the accounting structure needed before combining PACE and thermal/ecosystem products.',
+    units: 'Carbon per area per time after harmonization',
+  },
+};
+
+const ARTICLE_LEADS = {
+  bhdfsi: {
+    articleAngle: 'Post-fire surface conditions below the Thomas Fire burn scar after the Montecito debris-flow event.',
+    acquisitionTimestamp: '2018-01-22T18:54:21.026Z',
+    acquisitionCloudCover: '0.00%',
+  },
+  lfmpi: {
+    articleAngle: 'A transparent NDMI-deficit proxy over drought-stressed Angeles National Forest chaparral.',
+    acquisitionTimestamp: '2021-08-01T18:29:21.024Z',
+    acquisitionCloudCover: '0.09%',
+  },
+  peti: {
+    articleAngle: 'Western Lake Erie bloom context without implying species identity or toxin concentration.',
+    acquisitionTimestamp: '2019-08-01T16:28:39.024Z',
+    acquisitionCloudCover: '0.00%',
+  },
+  epdi: {
+    articleAngle: 'Pajaro levee-breach sediment context, described as a same-scene proxy rather than routed sediment delivery.',
+    acquisitionTimestamp: '2023-03-15T18:51:39.024Z',
+    acquisitionCloudCover: '6.90%',
+  },
+  ecaci: {
+    articleAngle: 'Phoenix exposed-surface and low-canopy context during extreme summer heat.',
+    acquisitionTimestamp: '2021-07-16T18:09:21.024Z',
+    acquisitionCloudCover: '16.71%',
+  },
+  tdrasi: {
+    articleAngle: 'Cerro de Pasco mining-area iron/SWIR context without mineral or spill-boundary attribution.',
+    acquisitionTimestamp: '2021-07-24T15:17:09.024Z',
+    acquisitionCloudCover: '0.00%',
+  },
+};
+
+const STRONG_ARTICLE_QC_KEYS = new Set([
+  'bhdfsi', 'lfmpi', 'saci', 'peti', 'csrc', 'epdi', 'fcli', 'smpdi',
+  'cbsdi', 'kcdsi', 'owsi', 'cduai', 'npdefi', 'pdsdi', 'cctti', 'wdacsi',
+  'tdrasi', 'ecaci', 'hsai', 'pcadi', 'lfgvi', 'lrdvsi', 'ttapi', 'tperi',
+  'pcei', 'sabsi', 'mepsi', 'pdcsi', 'lisi', 'dlpehi', 'mhssp', 'tfidi',
+  'wdptzi', 'ipvsi', 'wvtdi',
+]);
+
+function maturityFor(index) {
+  if (index.canRender) return 'M3';
+  if (EXECUTABLE_NONLIVE_KEYS.has(index.key)) return 'M2';
+  return 'M1';
+}
+
+function reconcileAtlasIndex(index) {
+  const override = FORMULA_V2_OVERRIDES[index.key] || {};
+  const [capability, methodRole] = CAPABILITY_CLASSIFICATION[index.key] || [];
+  const merged = {
+    ...index,
+    ...override,
+    bookmark: { ...index.bookmark, ...(override.bookmark || {}) },
+  };
+  const maturity = override.maturity || maturityFor(merged);
+  const contribution = override.contribution || CONTRIBUTION_FROM_LEGACY_TIER[index.novelty] || 'C1';
+  const platform = String(merged.platform || '')
+    .replace(/proof target pending/gi, 'implementation target pending');
+  const platformShort = String(merged.platformShort || '')
+    .replace(/validated proof target/gi, 'context target')
+    .replace(/validated ([a-z-]+) target/gi, '$1 context target');
+  const implementedFormula = Object.prototype.hasOwnProperty.call(override, 'implementedFormula')
+    ? override.implementedFormula
+    : (merged.canRender ? merged.formula : null);
+  const articleLead = ARTICLE_LEADS[index.key] || null;
+  const articleSuitability = articleLead
+    ? 'Recommended G&A article lead'
+    : (merged.canRender
+      ? (STRONG_ARTICLE_QC_KEYS.has(index.key) ? 'Secondary article candidate' : 'Context candidate; overlay QC is moderate')
+      : 'Context-only; no implemented Atlas overlay');
+
+  return {
+    ...merged,
+    platform,
+    platformShort,
+    legacyAcronym: index.acronym,
+    legacyFormula: override.legacyFormula || index.formula,
+    legacyPlatform: index.platform,
+    legacyPlatformShort: index.platformShort,
+    legacyNovelty: index.novelty,
+    proposedFormula: override.proposedFormula || index.formula,
+    implementedFormula,
+    formulaStatus: override.formulaStatus || (merged.canRender ? 'Live screening proxy' : (maturity === 'M2' ? 'Executable but non-live' : 'Formula specified; not implemented in Atlas')),
+    capability,
+    methodRole,
+    contribution,
+    contributionStatus: 'Provisional; entry-level prior-art review pending',
+    maturity,
+    requiredInputs: override.requiredInputs || [merged.platform],
+    temporalOperator: override.temporalOperator || (merged.canRender ? 'Single-scene' : 'Declared workflow; not implemented in Atlas'),
+    spatialOperator: override.spatialOperator || (merged.canRender ? 'Per-pixel' : 'Declared workflow; not implemented in Atlas'),
+    units: override.units || 'Uncalibrated dimensionless screening score',
+    calibrationStatus: override.calibrationStatus || 'Uncalibrated',
+    validationStatus: 'Not independently evaluated (below V1)',
+    eventEvidenceStatus: merged.canRender ? 'Reviewed event context; not performance evidence' : 'Context location only',
+    articleSuitability,
+    articleAngle: articleLead?.articleAngle || 'Use only with the formula, maturity, and validation caveats shown in Atlas.',
+    bookmarkDateRole: 'End of the Atlas WMS search window; not an acquisition timestamp',
+    acquisitionTimestamp: articleLead?.acquisitionTimestamp || null,
+    acquisitionCloudCover: articleLead?.acquisitionCloudCover || null,
+    articleQcStatus: merged.canRender
+      ? (STRONG_ARTICLE_QC_KEYS.has(index.key) ? 'Strong overlay at the current bookmark/date in 2026-07-20 WMS QC' : 'Moderate overlay in 2026-07-20 WMS QC')
+      : 'Not pixel-QC eligible because the proposed workflow is not implemented',
+    formulaVersion: '2.0',
+  };
+}
+
+export const ATLAS_INDICES = RAW_ATLAS_INDICES.map(reconcileAtlasIndex);

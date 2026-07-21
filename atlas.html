@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Limn Atlas | Globe & Atlas · Global Spectral Index Library</title>
-  <meta name="description" content="91 novel spectral indices across 12 environmental domains. Click any index to fly to a curated location and date.">
+  <title>Limn Atlas | Globe & Atlas · Remote-Sensing Capability Atlas</title>
+  <meta name="description" content="24 environmental remote-sensing capability families containing 91 documented methods, variants, components, and research specifications with explicit maturity and validation status.">
 
   <!-- Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Instrument+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -34,7 +34,7 @@
 
     /* ── Sidebar ──────────────────────────────────────────────────────── */
     #atlas-sidebar {
-      width: 300px;
+      width: 326px;
       flex-shrink: 0;
       display: flex;
       flex-direction: column;
@@ -48,6 +48,9 @@
       padding: 16px 16px 12px;
       border-bottom: 1px solid rgba(255,255,255,0.08);
       flex-shrink: 0;
+      background:
+        radial-gradient(circle at 8% 0%, rgba(0,210,255,0.13), transparent 38%),
+        linear-gradient(180deg, rgba(255,255,255,0.025), transparent);
     }
 
     .sidebar-header .brand {
@@ -66,7 +69,7 @@
     }
 
     .search-row {
-      padding: 10px 12px 0;
+      padding: 10px 12px 8px;
       flex-shrink: 0;
     }
 
@@ -84,6 +87,45 @@
     #idx-search:focus { border-color: rgba(0,210,255,0.4); }
     #idx-search::placeholder { color: #64748B; }
 
+    .sidebar-mode-switch {
+      display: grid;
+      grid-template-columns: 1.1fr 0.85fr 0.95fr;
+      gap: 4px;
+      padding: 0 12px 8px;
+      flex-shrink: 0;
+    }
+
+    .sidebar-mode {
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 7px;
+      padding: 6px 5px;
+      background: rgba(255,255,255,0.025);
+      color: #718096;
+      font: 600 10px/1 'JetBrains Mono', monospace;
+      letter-spacing: 0.15px;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s, background 0.15s;
+    }
+
+    .sidebar-mode:hover {
+      color: #DCE7F3;
+      border-color: rgba(255,255,255,0.18);
+    }
+
+    .sidebar-mode.active {
+      color: #071016;
+      border-color: #00D2FF;
+      background: #00D2FF;
+      box-shadow: 0 0 18px rgba(0,210,255,0.16);
+    }
+
+    .sidebar-framing {
+      padding: 0 14px 7px;
+      color: #66788C;
+      font: 500 10px/1.35 'Instrument Sans', sans-serif;
+      flex-shrink: 0;
+    }
+
     #domain-list {
       flex: 1;
       overflow-y: auto;
@@ -95,7 +137,13 @@
     #domain-list::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.12); border-radius: 2px; }
 
     /* Domain section */
-    .domain-section { }
+    .domain-section {
+      margin: 0 6px 5px;
+      border: 1px solid transparent;
+      border-radius: 9px;
+      overflow: hidden;
+    }
+    .domain-section:hover { border-color: rgba(255,255,255,0.045); }
     .domain-section.collapsed .domain-body { display: none; }
 
     .domain-header {
@@ -103,7 +151,7 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      padding: 8px 12px;
+      padding: 8px 9px;
       background: none;
       border: none;
       color: #94A3B8;
@@ -120,8 +168,21 @@
 
     .domain-icon { font-size: 14px; }
 
-    .domain-count {
+    .domain-label {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .domain-live {
       margin-left: auto;
+      color: #00FFB2;
+      font: 500 9px/1 'JetBrains Mono', monospace;
+      white-space: nowrap;
+    }
+
+    .domain-count {
+      margin-left: 0;
       background: rgba(255,255,255,0.08);
       border-radius: 10px;
       padding: 1px 7px;
@@ -194,7 +255,27 @@
     .tier-t1 { background: rgba(0,210,255,0.15); color: #00D2FF; }
     .tier-t2 { background: rgba(0,255,178,0.12); color: #00FFB2; }
     .tier-t3 { background: rgba(255,143,0,0.15); color: #FF8F00; }
+    .tier-c1 { background: rgba(0,210,255,0.15); color: #00D2FF; }
+    .tier-c2 { background: rgba(0,255,178,0.12); color: #00FFB2; }
+    .tier-c3 { background: rgba(255,143,0,0.15); color: #FF8F00; }
     .tier-demo { background: rgba(148,163,184,0.18); color: #CBD5E1; letter-spacing: 0.5px; }
+
+    .btn-role {
+      font: 700 8px/1 'JetBrains Mono', monospace;
+      padding: 3px 5px;
+      border-radius: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.22px;
+      white-space: nowrap;
+    }
+    .role-badge-primary { background: rgba(0,210,255,0.16); color: #5DE4FF; }
+    .role-badge-variant { background: rgba(0,255,178,0.11); color: #68E8B9; }
+    .role-badge-component { background: rgba(148,163,184,0.14); color: #AFC0D3; }
+    .role-badge-reference { background: rgba(103,232,249,0.10); color: #9EEAF7; }
+    .role-badge-research-model { background: rgba(245,158,11,0.12); color: #F2BC62; }
+    .role-badge-retired { background: rgba(239,68,68,0.12); color: #F18A8A; }
+    .atlas-btn.role-primary { border-left: 2px solid rgba(0,210,255,0.62); }
+    .atlas-btn.role-retired .btn-acronym { text-decoration: line-through; text-decoration-thickness: 1px; }
 
     /* ── Map area ─────────────────────────────────────────────────────── */
     #atlas-map-area {
@@ -1846,7 +1927,7 @@
 
     /* Coverage dot on sidebar buttons */
     .btn-acronym .cov-dot { margin-right: 6px; vertical-align: middle; }
-    /* Dim only sensor-limited entries hardest; proof-pending sit between live and sensor */
+    /* Dim only sensor-limited entries hardest; implementation-pending sit between live and sensor */
     .atlas-btn.cov-pending { opacity: 0.85; }
     .atlas-btn.cov-pending .btn-platform { color: #F59E0B; }
   </style>
@@ -1858,15 +1939,21 @@
     <aside id="atlas-sidebar">
       <div class="sidebar-header">
         <div class="brand">Limn Atlas</div>
-        <div class="brand-sub">Globe &amp; Atlas · 91 Novel Indices + Live SAR &amp; Air Quality · 14 Domains</div>
+        <div class="brand-sub">Globe &amp; Atlas · 24 capability families · 91 documented methods</div>
         <div class="coverage-line">
           <span id="coverage-summary">—</span>
           <button id="about-btn" type="button">What&#39;s mappable? ›</button>
         </div>
       </div>
       <div class="search-row">
-        <input id="idx-search" type="text" placeholder="Search indices…" autocomplete="off">
+        <input id="idx-search" type="text" placeholder="Search methods, families, sensors…" autocomplete="off">
       </div>
+      <div class="sidebar-mode-switch" aria-label="Atlas navigation view">
+        <button class="sidebar-mode active" type="button" data-sidebar-mode="capabilities" aria-pressed="true">Capabilities</button>
+        <button class="sidebar-mode" type="button" data-sidebar-mode="domains" aria-pressed="false">Domains</button>
+        <button class="sidebar-mode" type="button" data-sidebar-mode="research" aria-pressed="false">Research</button>
+      </div>
+      <div class="sidebar-framing">Browse the physical question first. Method roles describe catalog structure—not novelty or validation.</div>
       <div id="domain-list"></div>
     </aside>
 
@@ -2029,8 +2116,20 @@
           <div class="info-body">
             <div class="info-field-label">Bands</div>
             <div class="info-field-value" id="info-bands"></div>
+            <div class="info-field-label">Capability family</div>
+            <div class="info-field-value" id="info-capability"></div>
+            <div class="info-field-label">Method role</div>
+            <div class="info-field-value" id="info-method-role"></div>
             <div class="info-field-label">Formula</div>
             <div class="info-field-value" id="info-formula"></div>
+            <div class="info-field-label">Formula status</div>
+            <div class="info-field-value" id="info-formula-status"></div>
+            <div class="info-field-label">Validation status</div>
+            <div class="info-field-value" id="info-validation-status"></div>
+            <div class="info-field-label">G&amp;A article use</div>
+            <div class="info-field-value" id="info-article-status"></div>
+            <div class="info-field-label">Scene timing</div>
+            <div class="info-field-value" id="info-scene-timing"></div>
             <div class="info-field-label">Physics</div>
             <div class="info-field-value" id="info-physics"></div>
             <div class="info-field-label">Benefit</div>
@@ -2066,9 +2165,9 @@
                 <pre class="gt-draft" id="gt-linkedin-draft"></pre>
               </div>
             </div>
-            <div class="info-field-label">Evidence Pack</div>
+            <div class="info-field-label">Event Context &amp; References</div>
             <div class="info-field-value" id="info-evidence"></div>
-            <div class="info-field-label">Peak-Signal Bookmark</div>
+            <div class="info-field-label">Reviewed Display Bookmark</div>
             <div class="info-field-value" id="info-justification"></div>
           </div>
         </div>
@@ -2080,75 +2179,85 @@
           <button id="about-close" type="button" aria-label="Close">×</button>
           <h2 id="about-title">How Atlas coverage works</h2>
           <p class="about-intro">
-            Atlas catalogs <strong>91 novel spectral indices</strong> across 12 environmental
+            Atlas organizes <strong>91 documented environmental remote-sensing methods</strong> into
+            <strong><span id="about-count-families">—</span> capability families</strong> across 12 environmental
             domains, plus <strong>live Sentinel-1 SAR and Sentinel-5P air-quality
             demonstrators</strong>. Each index was designed for the sensors best suited to its
             phenomenon — so not all map live here. Atlas streams tiles from public Copernicus WMS
-            endpoints: <strong>Sentinel-2 L2A</strong> (optical, 13 bands), <strong>Sentinel-1
+            endpoints: <strong>Sentinel-2 L2A</strong> (optical), <strong>Sentinel-1
             GRD</strong> (radar, all-weather), and <strong>Sentinel-5P TROPOMI</strong>
             (atmospheric trace gases). Indices computable from those map live; the rest stay in
-            the catalog as documented concepts so the full body of research remains visible.
+            the catalog as documented research specifications. A live rendering is a screening
+            proxy, not evidence of target accuracy or scientific priority. Family membership
+            indicates a shared physical question or decision—not scientific equivalence.
           </p>
 
-          <p class="about-section-label">Of the 91 novel catalog</p>
+          <p class="about-section-label">Method roles inside each capability</p>
+          <p class="about-nov-intro">The default sidebar shows working methods and components.
+            Future retrievals, calibration models, and retired formulas have their own Research view.</p>
+          <div class="about-nov-row"><span class="btn-role role-badge-primary">Primary</span><p><strong id="about-role-primary">—</strong> clearest current family representatives.</p></div>
+          <div class="about-nov-row"><span class="btn-role role-badge-variant">Variant</span><p><strong id="about-role-variant">—</strong> alternate formulations or interpretations.</p></div>
+          <div class="about-nov-row"><span class="btn-role role-badge-component">Component</span><p><strong id="about-role-component">—</strong> useful input/context features, weaker as standalone products.</p></div>
+          <div class="about-nov-row"><span class="btn-role role-badge-reference">Reference</span><p><strong id="about-role-reference">—</strong> established comparison layers.</p></div>
+          <div class="about-nov-row"><span class="btn-role role-badge-research-model">Research</span><p><strong id="about-role-research-model">—</strong> future models requiring additional implementation or evidence.</p></div>
+          <div class="about-nov-row"><span class="btn-role role-badge-retired">Retired</span><p><strong id="about-role-retired">—</strong> legacy formulas preserved for traceability.</p></div>
+
+          <p class="about-section-label">Implementation coverage across the 91 methods</p>
 
           <div class="about-tier">
             <div class="about-tier-head">
               <span class="cov-dot cov-dot--live"></span>
               <span class="about-tier-count" id="about-count-live">—</span>
-              <span class="about-tier-name">Live-mappable</span>
+              <span class="about-tier-name">Live screening proxies</span>
             </div>
-            <p>Novel indices that render live from Copernicus — Sentinel-2 optical, plus the two
-              that graduated to radar/atmospheric (FGDCI on Sentinel-1, SACI on Sentinel-5P) —
-              each paired with a validated peak-signal bookmark. Click one and Atlas flies to the
-              place and date where the signal is unmistakable.</p>
+            <p>Entry-specific formulas that render through the current public services. Each has
+              a reviewed display bookmark and event context. Rendering demonstrates software and
+              display behavior only; it does not establish specificity, accuracy, or transferability.</p>
           </div>
 
           <div class="about-tier">
             <div class="about-tier-head">
               <span class="cov-dot cov-dot--pending"></span>
               <span class="about-tier-count" id="about-count-pending">—</span>
-              <span class="about-tier-name">Sentinel-2-capable · proof pending</span>
+              <span class="about-tier-name">Executable or calibration work · not live</span>
             </div>
-            <p>The formula runs on Sentinel-2, but a location and date where the signal is
-              unmistakable hasn't been locked in yet. Shown as True Color context until a proof
-              target is validated — then they graduate to live-mappable.</p>
+            <p>Executable code or a defined calibration workflow exists, but the Atlas does not
+              expose it as a live scientific result. True Color is shown until the declared
+              implementation and prerequisites are complete.</p>
           </div>
 
           <div class="about-tier">
             <div class="about-tier-head">
               <span class="cov-dot cov-dot--sensor"></span>
               <span class="about-tier-count" id="about-count-sensor">—</span>
-              <span class="about-tier-name">Sensor-limited</span>
+              <span class="about-tier-name">Formula or workflow specified</span>
             </div>
             <p>These need an instrument the public Sentinel-2 service can't provide:
               hyperspectral imagers (EMIT, EnMAP, PACE, PRISMA, DESIS), thermal (ECOSTRESS,
               Landsat&nbsp;TIRS), atmospheric trace-gas (TROPOMI, GOES), SAR / lidar / gravimetry
               (Sentinel-1, NISAR, ICESat-2, GRACE-FO), or commercial high-res (Planet). They're
-              concept entries — Atlas shows True Color context at a representative location.</p>
+              M1 research entries — Atlas shows True Color context at a representative location.</p>
           </div>
 
-          <p class="about-section-label">What the T1 / T2 / T3 badges mean</p>
-          <p class="about-nov-intro">Every novel index carries a novelty badge — how new the
-            <em>formula</em> is, independent of whether it maps live:</p>
+          <p class="about-section-label">What the C1 / C2 / C3 badges mean</p>
+          <p class="about-nov-intro">Contribution type is separate from implementation maturity.
+            These are provisional descriptions, not priority findings:</p>
 
           <div class="about-nov-row">
-            <span class="btn-novelty tier-t1">T1</span>
-            <p><strong>First formula</strong> <span class="about-nov-count" id="about-nov-t1"></span> —
-              the detection purpose exists, but no named, standardized formula had been published.
-              Atlas proposes the first one to use, adapt, and build on.</p>
+            <span class="btn-novelty tier-c1">C1</span>
+            <p><strong>Proposed formulation</strong> <span class="about-nov-count" id="about-nov-t1"></span> —
+              Atlas documents a named formula or workflow; scientific priority is not asserted.</p>
           </div>
           <div class="about-nov-row">
-            <span class="btn-novelty tier-t2">T2</span>
-            <p><strong>First standardized formula</strong> <span class="about-nov-count" id="about-nov-t2"></span> —
-              the concept appears in the literature only as a qualitative description. No named
-              formula with defined inputs had been written down. Atlas writes it out.</p>
+            <span class="btn-novelty tier-c2">C2</span>
+            <p><strong>Adapted formalization</strong> <span class="about-nov-count" id="about-nov-t2"></span> —
+              Atlas converts related or fragmented methods into an explicit specification and
+              records the adaptation.</p>
           </div>
           <div class="about-nov-row">
-            <span class="btn-novelty tier-t3">T3</span>
-            <p><strong>Newly computable</strong> <span class="about-nov-count" id="about-nov-t3"></span> —
-              the spectral physics was published years ago, but the sensor needed to compute it
-              only launched 2019–2024 (EMIT, PACE, EnMAP, NISAR). Operational for the first time.</p>
+            <span class="btn-novelty tier-c3">C3</span>
+            <p><strong>Sensor-enabled implementation concept</strong> <span class="about-nov-count" id="about-nov-t3"></span> —
+              Atlas specifies how newer open observations could operationalize prior physics or methods.</p>
           </div>
 
           <p class="about-section-label">Separate from the 91</p>
@@ -2159,15 +2268,16 @@
               <span class="about-tier-count" id="about-count-demo">—</span>
               <span class="about-tier-name">Live sensor demonstrators</span>
             </div>
-            <p>Not novel indices — established, single-scene techniques (radar water/urban/
+            <p>Established, single-scene techniques (radar water/urban/
               vegetation; NO₂ and SO₂ retrievals) added purely to show the Sentinel-1 and
               Sentinel-5P pipelines work. Badged <strong>DEMO</strong> and grouped in their own
-              "· Live" domains, so the novel total stays exactly <strong>91</strong>.</p>
+              "· Live" domains, so the proposed catalog stays exactly <strong>91</strong>.</p>
           </div>
 
           <p class="about-foot">
             All figures are computed live from the catalog: the three tiers above always sum to
-            the 91 novel indices, and demonstrators are tallied apart.
+            the 91 documented methods, and demonstrators are tallied apart. No current
+            catalog entry has reached independent V1 evaluation.
           </p>
         </div>
       </div>
@@ -2176,7 +2286,7 @@
   </div><!-- /atlas-layout -->
 
   <script type="module">
-    import { initAtlas } from './src/atlas-app.js?v=83';
+    import { initAtlas } from './src/atlas-app.js?v=85';
     document.addEventListener('DOMContentLoaded', () => initAtlas().catch(err => console.error('[Limn Atlas] init failed:', err)));
   </script>
 </body>

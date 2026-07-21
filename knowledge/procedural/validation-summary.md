@@ -1,4 +1,6 @@
-# Produced Water Detection Validation Summary
+# Historical Produced-Water Development-Recall Summary
+
+> **Superseded interpretation (2026-07-20):** The figures below are development recall diagnostics, not validation or accuracy. Background activation was PWCI 96.7%, ASAI 71.3%, and OBEC 71.3%; the shipped viewer was blank at all 11 reviewed positives and all 150 controls. No tested operating point separated produced water from Permian caliche usefully. See `knowledge/domain/scientific-status-2026-07-20.md`.
 
 ## Run 2026-03-28 — Dry Brine Mode Fix (Karpathy loop iteration 1)
 

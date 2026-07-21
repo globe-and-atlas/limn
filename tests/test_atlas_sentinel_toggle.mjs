@@ -126,6 +126,39 @@ try {
     throw new Error('Atlas did not request GEE tiles before Sentinel toggle.');
   }
 
+  const familyNavigation = await page.evaluate(async () => {
+    const snapshot = () => ({
+      activeMode: document.querySelector('[data-sidebar-mode].active')?.dataset.sidebarMode || '',
+      buttons: document.querySelectorAll('.atlas-btn').length,
+      sections: document.querySelectorAll('.domain-section').length,
+      activeKey: document.querySelector('.atlas-btn.active')?.dataset.key || '',
+    });
+    const capabilities = snapshot();
+    document.querySelector('[data-sidebar-mode="research"]').click();
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    const research = snapshot();
+    document.querySelector('[data-sidebar-mode="domains"]').click();
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    const domains = snapshot();
+    document.querySelector('[data-sidebar-mode="capabilities"]').click();
+    await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    const restored = snapshot();
+    return { capabilities, research, domains, restored };
+  });
+  if (
+    familyNavigation.capabilities.activeMode !== 'capabilities'
+    || familyNavigation.capabilities.buttons !== 43
+    || familyNavigation.research.activeMode !== 'research'
+    || familyNavigation.research.buttons !== 53
+    || familyNavigation.domains.activeMode !== 'domains'
+    || familyNavigation.domains.buttons !== 96
+    || familyNavigation.restored.activeMode !== 'capabilities'
+    || familyNavigation.restored.buttons !== 43
+    || !familyNavigation.restored.activeKey
+  ) {
+    throw new Error(`Atlas family/domain/research navigation is inconsistent: ${JSON.stringify(familyNavigation)}`);
+  }
+
   const hitsBeforeGroundTruthCheck = {
     gee: atlasGeeTileHits,
     configured: configuredWmsTileHits,
@@ -137,7 +170,8 @@ try {
       hasPanel: !!document.getElementById('info-linkedin-ground-truth'),
       hasRule: !!Array.from(document.querySelectorAll('.gt-post-rule'))
         .some(el => el.textContent.includes('One image. One observation. One reason it matters. One interpretive prompt.')),
-      hasVisualAnchor: !!document.getElementById('gt-visual-anchor')?.textContent?.includes('One Atlas render'),
+      hasVisualAnchor: !!document.getElementById('gt-visual-anchor')?.textContent?.includes('method from the'),
+      hasFamilyBoundary: draft.includes('capability') && draft.includes('not as an independently validated invention'),
       hasObservation: !!document.getElementById('gt-observation')?.textContent?.trim(),
       hasWhy: !!document.getElementById('gt-why')?.textContent?.trim(),
       hasQuestion: !!document.getElementById('gt-question')?.textContent?.includes('?'),
@@ -145,7 +179,7 @@ try {
       draftWordCount: draft.split(/\s+/).filter(Boolean).length,
     };
   });
-  if (!groundTruthPanel.hasPanel || !groundTruthPanel.hasRule || !groundTruthPanel.hasVisualAnchor) {
+  if (!groundTruthPanel.hasPanel || !groundTruthPanel.hasRule || !groundTruthPanel.hasVisualAnchor || !groundTruthPanel.hasFamilyBoundary) {
     throw new Error(`Atlas LinkedIn Ground Truth panel did not render expected guidance: ${JSON.stringify(groundTruthPanel)}`);
   }
   if (!groundTruthPanel.hasObservation || !groundTruthPanel.hasWhy || !groundTruthPanel.hasQuestion || !groundTruthPanel.hasCopyButton) {
@@ -292,7 +326,12 @@ try {
   const clickedFocusKey = await page.evaluate(() => {
     const active = window.getAtlasBookmarkFocusState().activeKey;
     const target = Array.from(document.querySelectorAll('.atlas-bookmark-focus-point'))
-      .find(el => el.dataset.key && el.dataset.key !== active);
+      .find(el => {
+        const key = el.dataset.key;
+        return key
+          && key !== active
+          && document.querySelector(`.atlas-btn[data-key="${key}"]:not(.stub)`);
+      });
     if (!target) return '';
     target.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
     return target.dataset.key;

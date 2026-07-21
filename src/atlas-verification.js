@@ -14,7 +14,7 @@ export const ATLAS_VERIFICATION = {
     sources: [
       { type: 'Event', label: 'US Drought Monitor California drought archive', url: 'https://droughtmonitor.unl.edu/CurrentMap/StateDroughtMonitor.aspx?CA' },
       { type: 'Event', label: 'Drought.gov California-Nevada October 2021 drought update', url: 'https://www.drought.gov/drought-status-updates/drought-status-update-california-nevada-2021-10-15' },
-      { type: 'Context', label: 'NASA SVS drought conditions set stage for intense 2021 fire season', url: 'https://svs.gsfc.nasa.gov/5051' },
+      { type: 'Context', label: 'NASA Earth Observatory California drought and 2021 fire conditions', url: 'https://science.nasa.gov/earth/earth-observatory/whats-behind-californias-surge-of-large-fires-148908/' },
       { type: 'Method', label: 'Live fuel moisture remote-sensing review', url: 'https://doi.org/10.1016/j.rse.2018.06.024' },
     ],
   },
@@ -25,7 +25,7 @@ export const ATLAS_VERIFICATION = {
       { type: 'Method', label: 'Yebra et al. live fuel moisture content estimation', url: 'https://doi.org/10.1016/j.rse.2018.06.024' },
       { type: 'Event', label: 'US Drought Monitor California drought archive', url: 'https://droughtmonitor.unl.edu/CurrentMap/StateDroughtMonitor.aspx?CA' },
       { type: 'Event', label: 'Drought.gov California-Nevada October 2021 drought update', url: 'https://www.drought.gov/drought-status-updates/drought-status-update-california-nevada-2021-10-15' },
-      { type: 'Context', label: 'NASA SVS drought conditions set stage for intense 2021 fire season', url: 'https://svs.gsfc.nasa.gov/5051' },
+      { type: 'Context', label: 'NASA Earth Observatory California drought and 2021 fire conditions', url: 'https://science.nasa.gov/earth/earth-observatory/whats-behind-californias-surge-of-large-fires-148908/' },
     ],
   },
   SACI: {
@@ -117,7 +117,7 @@ export const ATLAS_VERIFICATION = {
     basis: 'Deepwater Horizon oil-spill context is documented by NOAA, NASA visualization, Smithsonian synthesis, and marine mammal impact records.',
     sources: [
       { type: 'Event', label: 'NOAA Deepwater Horizon oil spill case study', url: 'https://response.restoration.noaa.gov/deepwater-horizon-oil-spill-case-study' },
-      { type: 'Event', label: 'NASA SVS Three Months of Oil', url: 'https://svs.gsfc.nasa.gov/10617/' },
+      { type: 'Event', label: 'NASA Earth Observatory Deepwater Horizon oil slick', url: 'https://science.nasa.gov/earth/earth-observatory/oil-slick-in-the-gulf-of-mexico-44371/' },
       { type: 'Context', label: 'Marine Mammal Commission Deepwater Horizon impacts', url: 'https://www.mmc.gov/priority-topics/offshore-energy-development-and-marine-mammals/gulf-of-mexico-deepwater-horizon-oil-spill-and-marine-mammals/' },
     ],
   },
@@ -146,10 +146,10 @@ export const ATLAS_VERIFICATION = {
   },
   NPDefI: {
     tier: 'Strong',
-    basis: 'Iowa corn nutrient-deficiency diagnosis is locally documented by Iowa State, IDALS, and Iowa nutrient-research sources.',
+    basis: 'Iowa corn nutrient-deficiency diagnosis and nutrient-loss context are locally documented by Iowa State and Iowa nutrient-research sources.',
     sources: [
       { type: 'Context', label: 'Iowa State nutrient deficiencies guide', url: 'https://www.agronext.iastate.edu/soilfertility/nutrientdeficiencies.html' },
-      { type: 'Context', label: 'IDALS final soil nutrient balance report', url: 'https://www.legis.iowa.gov/docs/APPS/AR/5CDA06E3-F230-4E2B-8FE9-CC1F64BE2CA8/IDALS-Final%20Soil%20Nutrient%20Balance%20Report.pdf' },
+      { type: 'Context', label: 'Iowa State nutrient-loss measurement context', url: 'https://crops.extension.iastate.edu/cropnews/2020/07/measuring-conservation-and-nutrient-reduction-iowa-agriculture' },
       { type: 'Context', label: 'Iowa NREC nitrogen soil sampling project', url: 'https://iowanrec.org/nitrogen-soil-sampling-project/' },
     ],
   },
@@ -311,7 +311,7 @@ export const ATLAS_VERIFICATION = {
     basis: 'Liana infestation is supported by remote-sensing studies and forest-carbon reporting; Borneo degraded-forest context supports the bookmark class.',
     sources: [
       { type: 'Context', label: 'Remote sensing review for liana detection', url: 'https://pmc.ncbi.nlm.nih.gov/articles/PMC12035525/' },
-      { type: 'Context', label: 'Leiden University lianas visible from space report', url: 'https://www.universiteitleiden.nl/en/news/2025/05/lianas-are-taking-over-the-rainforests---and-its-visible-from-space' },
+      { type: 'Context', label: 'Leiden University lianas visible from space report (Phys.org mirror)', url: 'https://phys.org/news/2025-05-lianas-rainforests-visible-space.html' },
       { type: 'Context', label: 'Mongabay lianas and forest carbon uptake report', url: 'https://news.mongabay.com/2022/12/lianas-affect-forest-carbon-uptake-differently-by-region-study-shows/' },
     ],
   },
@@ -384,7 +384,7 @@ export const ATLAS_VERIFICATION = {
     tier: 'Strong',
     basis: 'Cairo dense urban fabric is supported by DLR settlement footprint, WorldPop, and Cairo urban-heat remote-sensing sources.',
     sources: [
-      { type: 'Dataset', label: 'DLR Global Urban Footprint project', url: 'https://www.dlr.de/en/eoc/research-transfer/projects-missions/global-urban-footprint-guf' },
+      { type: 'Dataset', label: 'DLR Global Urban Footprint dataset', url: 'https://geoservice.dlr.de/web/datasets/guf' },
       { type: 'Dataset', label: 'DLR World Settlement Footprint 2019 map service', url: 'https://geoservice.dlr.de/web/maps/eoc%3Awsf2019' },
       { type: 'Context', label: 'WorldPop Cairo urban population context', url: 'https://hub.worldpop.org/geodata/summary?id=49776' },
     ],
