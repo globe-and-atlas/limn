@@ -42,16 +42,19 @@ const COG_SUPPORTED_INDEXES = new Set([
 ]);
 const COG_DEMO_INDEXES = ['hpwi', 'lbi', 'pwoi', 'pwi'];
 const COG_PREWARM_TARGETS = [
-    { label: 'Lake Boehmer', lat: 31.226, lng: -102.729, zoom: 14, date: '2026-01-01', indexes: ['hpwi', 'lbi', 'pwoi', 'pwi'] },
-    { label: 'Meister Ranch Geyser', lat: 31.3826, lng: -102.6171, zoom: 15, date: '2022-01-02', indexes: ['lbi'] },
-    { label: 'Toyah Well Blowout', lat: 31.320, lng: -103.872, zoom: 15, date: '2024-10-02', indexes: ['hpwi', 'lbi'] },
-    { label: 'Matador Desoto Spring Pond', lat: 32.07605, lng: -103.28241, zoom: 16, date: '2025-09-21', indexes: ['hpwi', 'lbi', 'pwoi'] }
+    // These experimental/SWIR lenses render on their native 20 m grid, one
+    // XYZ level below the UI map zoom.
+    { label: 'Lake Boehmer', lat: 31.226, lng: -102.729, zoom: 13, date: '2026-01-01', indexes: ['hpwi', 'lbi', 'pwoi', 'pwi'] },
+    { label: 'Meister Ranch Geyser', lat: 31.3826, lng: -102.6171, zoom: 14, date: '2022-01-02', indexes: ['lbi'] },
+    { label: 'Toyah Well Blowout', lat: 31.320, lng: -103.872, zoom: 14, date: '2024-10-02', indexes: ['hpwi', 'lbi'] },
+    { label: 'Matador Desoto Spring Pond', lat: 32.07605, lng: -103.28241, zoom: 15, date: '2025-09-21', indexes: ['hpwi', 'lbi', 'pwoi'] }
 ];
 
 let eeReadyPromise = null;
 const dynamicMapCache = new Map();
 const tileResponseCache = new Map();
 const inFlightTileResponses = new Map();
+const inFlightCogRenders = new Map();
 const tileFetchQueue = [];
 let activeTileFetches = 0;
 
@@ -584,7 +587,7 @@ async function handleGeeTile(req, res, urlPath, searchParams) {
     }
 }
 
-function renderCogTile(z, x, y, searchParams, outputPath) {
+function renderCogTile(z, x, y, searchParams, outputPath, signal = undefined) {
     return new Promise((resolve, reject) => {
         const args = [
             COG_RENDER_SCRIPT,
@@ -609,6 +612,7 @@ function renderCogTile(z, x, y, searchParams, outputPath) {
             cwd: ROOT,
             timeout: COG_RENDER_TIMEOUT_MS,
             maxBuffer: 1024 * 1024,
+            signal,
             env: {
                 ...process.env,
                 COG_STAC_URL,
@@ -663,18 +667,51 @@ async function handleCogTile(req, res, urlPath, searchParams) {
 
     try {
         fs.mkdirSync(COG_CACHE_DIR, { recursive: true });
-        if (!inFlightTileResponses.has(requestKey)) {
-            inFlightTileResponses.set(requestKey, (async () => {
+        if (!inFlightCogRenders.has(requestKey)) {
+            const controller = new AbortController();
+            const entry = { controller, clients: 0, settled: false, promise: null };
+            entry.promise = (async () => {
                 const tmpPath = `${cachePath}.${process.pid}.${Date.now()}.tmp`;
-                const metadata = await renderCogTile(z, x, y, searchParams, tmpPath);
-                fs.renameSync(tmpPath, cachePath);
-                return { cachePath, metadata };
+                try {
+                    const metadata = await renderCogTile(z, x, y, searchParams, tmpPath, controller.signal);
+                    fs.renameSync(tmpPath, cachePath);
+                    return { cachePath, metadata };
+                } catch (error) {
+                    fs.rmSync(tmpPath, { force: true });
+                    throw error;
+                }
             })().finally(() => {
-                inFlightTileResponses.delete(requestKey);
-            }));
+                entry.settled = true;
+                inFlightCogRenders.delete(requestKey);
+            });
+            inFlightCogRenders.set(requestKey, entry);
         }
 
-        const tile = await inFlightTileResponses.get(requestKey);
+        const entry = inFlightCogRenders.get(requestKey);
+        entry.clients++;
+        let detached = false;
+        const detachClient = () => {
+            if (detached) return;
+            detached = true;
+            entry.clients = Math.max(0, entry.clients - 1);
+            if (entry.clients === 0 && !entry.settled) entry.controller.abort();
+        };
+        const handleAborted = () => detachClient();
+        const handlePrematureClose = () => {
+            if (!res.writableEnded) detachClient();
+        };
+        req.once('aborted', handleAborted);
+        res.once('close', handlePrematureClose);
+
+        let tile;
+        try {
+            tile = await entry.promise;
+        } finally {
+            req.off('aborted', handleAborted);
+            res.off('close', handlePrematureClose);
+            detachClient();
+        }
+        if (res.destroyed) return;
         res.writeHead(200, {
             'Content-Type': 'image/png',
             'Cache-Control': 'public, max-age=300',
@@ -684,6 +721,7 @@ async function handleCogTile(req, res, urlPath, searchParams) {
         });
         fs.createReadStream(tile.cachePath).pipe(res);
     } catch (err) {
+        if (res.destroyed || err?.name === 'AbortError' || err?.code === 'ABORT_ERR') return;
         res.writeHead(502, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
         res.end(JSON.stringify({
             error: 'COG tile render failed.',

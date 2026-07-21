@@ -88,6 +88,7 @@ assert.match(app, /config\.SENTINEL_CREDIT_GUARD = true/, 'share mode should kee
 assert.match(app, /config\.SENTINEL_LIVE_TILES = true/, 'share mode should keep Sentinel live tiles armed');
 assert.match(app, /sentinelOnlyShareMode: isSentinelOnlyShareMode\(\)/, 'provider state should expose share mode');
 assert.match(app, /state\.map\.on\('sentinelratelimit'/, 'app should surface Sentinel Hub rate-limit cooldowns');
+assert.match(app, /map-layer-status[\s\S]*sparse or blank response can be valid/, 'app should distinguish a loaded sparse lens from a failed tile request');
 assert.match(map, /function getSentinelCreditGuardStatus/, 'map layer factory should check the Sentinel credit guard');
 assert.match(map, /adaptEvalscriptForSentinelWms\(finalScript, config\.SENTINEL_WMS_SUPPORTS_SCL === true\)/, 'Sentinel WMS scripts should remove L2A-only SCL unless explicitly supported');
 assert.match(map, /getSentinelGuardLayer/, 'Sentinel guard should return a local placeholder layer instead of WMS tiles');
@@ -115,6 +116,10 @@ assert.match(map, /ALLOW_SENTINEL_FALLBACK !== true[\s\S]*return 'cog'/, 'map pr
 assert.match(map, /export function getCOGLayer/, 'map should provide a COG tile layer');
 assert.match(map, /\/api\/cog\/tiles/, 'map should route COG tiles to the COG endpoint');
 assert.match(map, /Public Sentinel-2 COGs \/ Element84 Earth Search/, 'COG attribution should be visible on tiles');
+assert.match(map, /fire\('tileloadfinish', \{ layer: activeIdx \}\)/, 'tile completion events should identify the selected lens');
+assert.match(map, /onRemove\(map\)[\s\S]*controller\.abort\(\)/, 'removed COG layers should abort stale in-flight tile requests');
+assert.match(map, /usesTenMeterBandsOnly[\s\S]*tileSize:\s*usesTenMeterBandsOnly\s*\?\s*256\s*:\s*512[\s\S]*zoomOffset:\s*usesTenMeterBandsOnly\s*\?\s*0\s*:\s*-1/, 'COG layers should render SWIR and red-edge formulas on their native 20 m grid');
+assert.match(map, /getCOGLayer[\s\S]*detectRetina:\s*false[\s\S]*maxConcurrent:\s*6/, 'COG layers should avoid Retina request multiplication and load the active view concurrently');
 assert.match(map, /export function getGEELayer/, 'map should provide a GEE tile layer');
 assert.match(map, /\/api\/gee\/tiles/, 'map should keep the GEE endpoint available');
 assert.match(map, /Google Earth Engine \/ Copernicus Sentinel-2/, 'GEE attribution should be visible on tiles');
@@ -165,6 +170,7 @@ assert.match(server, /\/api\/cog\/prewarm/, 'local server should expose a COG pr
 for (const key of ['tc', 'swir_rgb', 'awei', 'ndre', 'ndmi', 'ndwi', 'ndvi', 'savi', 'bsi', 'ndsi', 'pwi', 'hpwi', 'pwoi', 'lbi']) {
   assert.match(server, new RegExp(`COG_SUPPORTED_INDEXES[\\s\\S]*['\"]${key}['\"]`), `COG server should explicitly support ${key}`);
 }
+assert.match(server, /inFlightCogRenders[\s\S]*entry\.clients[\s\S]*entry\.controller\.abort\(\)/, 'COG server should cancel orphaned Python renders after a client switches lenses');
 assert.match(server, /const clearMask = scl\.eq\(4\)[\s\S]*scl\.eq\(7\)/, 'GEE provider should use the clear SCL class allow-list');
 assert.match(server, /COG_PREWARM_ON_START/, 'COG server should support startup prewarm for demos');
 assert.match(server, /function prewarmCogTargets/, 'COG server should prewarm demo target tiles');

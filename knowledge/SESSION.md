@@ -80,3 +80,4 @@
 - 2026-07-20 22:23 — commit: docs: README — correct LBI status to per-pixel validated standing-brine finding | README.md
 - 2026-07-21 06:23 — commit: reconcile Limn Atlas formulas and scientific status | LIMN_PRODUCED_WATER_SPEC.md,PUBLIC_SCIENCE_GUIDE.md,SENTINEL_SCIENCE_GUIDE.md,atlas.html,directives/pwi_spec.md
 - 2026-07-21 10:17 — commit: feat: rebuild Limn evidence-first investigation workflow | PUBLIC_SCIENCE_GUIDE.md,README.md,SENTINEL_SCIENCE_GUIDE.md,config.example.js,directives/pwi_spec.md
+- 2026-07-21 11:01 — commit: fix: make Limn COG lenses responsive | index.html,server/gee_tile_server.mjs,src/app.js,src/map.js,style.css

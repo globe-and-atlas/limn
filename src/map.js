@@ -159,6 +159,23 @@ const RateLimitedTile = L.TileLayer.extend({
         this._maxConcurrent = options.maxConcurrent || 2;
         this._retries = options.retries ?? 4;
         this._retryDelay = options.retryDelay || 1500;
+        this._controllers = new Set();
+        this._removed = false;
+    },
+
+    onAdd(map) {
+        this._removed = false;
+        L.TileLayer.prototype.onAdd.call(this, map);
+    },
+
+    onRemove(map) {
+        // A lens switch removes this layer. Stop its queued and in-flight work so
+        // the newly selected lens does not wait behind obsolete COG requests.
+        this._removed = true;
+        this._queue.length = 0;
+        this._controllers.forEach(controller => controller.abort());
+        this._controllers.clear();
+        L.TileLayer.prototype.onRemove.call(this, map);
     },
 
     createTile(coords, done) {
@@ -171,21 +188,25 @@ const RateLimitedTile = L.TileLayer.extend({
     },
 
     _enqueue(url, img, done, retriesLeft) {
+        if (this._removed) return;
         this._queue.push({ url, img, done, retriesLeft });
         this._drain();
     },
 
     _drain() {
-        while (this._active < this._maxConcurrent && this._queue.length > 0) {
+        while (!this._removed && this._active < this._maxConcurrent && this._queue.length > 0) {
             this._active++;
             this._load(this._queue.shift());
         }
     },
 
     _load({ url, img, done, retriesLeft }) {
-        fetch(url)
+        const controller = new AbortController();
+        this._controllers.add(controller);
+        fetch(url, { signal: controller.signal })
             .then(async response => {
                 if (response.status === 429 && retriesLeft > 0) {
+                    this._controllers.delete(controller);
                     this._active--;
                     this._drain();
                     setTimeout(
@@ -199,12 +220,30 @@ const RateLimitedTile = L.TileLayer.extend({
             })
             .then(blob => {
                 if (!blob) return;
+                this._controllers.delete(controller);
+                if (this._removed) {
+                    this._release(null, img, () => {});
+                    return;
+                }
                 const objUrl = URL.createObjectURL(blob);
-                img.onload = () => { URL.revokeObjectURL(objUrl); this._release(null, img, done); };
-                img.onerror = () => { URL.revokeObjectURL(objUrl); this._release(new Error('GEE tile decode failed'), img, done); };
+                img.onload = () => {
+                    URL.revokeObjectURL(objUrl);
+                    this._release(null, img, this._removed ? () => {} : done);
+                };
+                img.onerror = () => {
+                    URL.revokeObjectURL(objUrl);
+                    this._release(this._removed ? null : new Error('GEE tile decode failed'), img, this._removed ? () => {} : done);
+                };
                 img.src = objUrl;
             })
-            .catch(error => this._release(error, img, done));
+            .catch(error => {
+                this._controllers.delete(controller);
+                if (error?.name === 'AbortError' || this._removed) {
+                    this._release(null, img, () => {});
+                    return;
+                }
+                this._release(error, img, done);
+            });
     },
 
     _release(error, img, done) {
@@ -242,11 +281,11 @@ export function getGEELayer(state, config, timeStr, isDiff, overrideIndex = null
     });
 
     layer.on('tileloadstart', () => {
-        if (state.map) state.map.fire('tileloadstart');
+        if (state.map) state.map.fire('tileloadstart', { layer: activeIdx });
     });
 
     layer.on('load', () => {
-        if (state.map) state.map.fire('tileloadfinish');
+        if (state.map) state.map.fire('tileloadfinish', { layer: activeIdx });
     });
 
     return layer;
@@ -254,16 +293,23 @@ export function getGEELayer(state, config, timeStr, isDiff, overrideIndex = null
 
 export function getCOGLayer(state, config, timeStr, isDiff, overrideIndex = null) {
     const activeIdx = overrideIndex || state.activeIndex;
+    // Preserve a 10 m grid only for formulas composed exclusively of 10 m
+    // Sentinel-2 bands. SWIR/red-edge formulas are natively 20 m and gain no
+    // scientific detail from four-times-more 10 m tile requests.
+    const usesTenMeterBandsOnly = ['tc', 'truecolor', 'true-color', 'ndvi', 'savi'].includes(activeIdx);
     const layer = new RateLimitedTile(buildCogTileUrl(state, config, timeStr, isDiff, overrideIndex), {
         opacity: overrideIndex ? 0.5 : state.opacity,
         attribution: 'Public Sentinel-2 COGs / Element84 Earth Search',
-        tileSize: 256,
+        tileSize: usesTenMeterBandsOnly ? 256 : 512,
+        zoomOffset: usesTenMeterBandsOnly ? 0 : -1,
         minZoom: 10,
         zIndex: overrideIndex ? 20 : 10,
         crossOrigin: 'anonymous',
         updateWhenIdle: true,
-        detectRetina: true,
-        maxConcurrent: 2,
+        // Retina mode quarters the ground footprint of each Leaflet request and
+        // turns a typical view into ~4x as many expensive remote-COG reads.
+        detectRetina: false,
+        maxConcurrent: 6,
         retries: 2,
         retryDelay: 1200
     });
@@ -280,11 +326,11 @@ export function getCOGLayer(state, config, timeStr, isDiff, overrideIndex = null
     });
 
     layer.on('tileloadstart', () => {
-        if (state.map) state.map.fire('tileloadstart');
+        if (state.map) state.map.fire('tileloadstart', { layer: activeIdx });
     });
 
     layer.on('load', () => {
-        if (state.map) state.map.fire('tileloadfinish');
+        if (state.map) state.map.fire('tileloadfinish', { layer: activeIdx });
     });
 
     return layer;
@@ -840,11 +886,11 @@ export function getWMSLayer(state, config, timeStr, isDiff, overrideIndex = null
     });
 
     layer.on('tileloadstart', () => {
-        if (state.map) state.map.fire('tileloadstart');
+        if (state.map) state.map.fire('tileloadstart', { layer: activeIdx });
     });
 
     layer.on('load', () => {
-        if (state.map) state.map.fire('tileloadfinish');
+        if (state.map) state.map.fire('tileloadfinish', { layer: activeIdx });
     });
 
     return layer;

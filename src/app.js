@@ -1098,14 +1098,32 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Bind Map Events for Loading & Errors
     const mapLoader = document.getElementById('map-loader');
-    state.map.on('tileloadstart', () => {
+    const mapLayerStatus = document.getElementById('map-layer-status');
+    const setMapLayerStatus = (mode, layerKey = state.activeIndex) => {
+        if (!mapLayerStatus) return;
+        const label = layerKey === 'tc'
+            ? 'True Color'
+            : (INDEX_SHORT_LABELS[layerKey] || String(layerKey || 'Layer').toUpperCase());
+        mapLayerStatus.classList.remove('is-loading', 'is-ready', 'is-error');
+        mapLayerStatus.classList.add(`is-${mode}`);
+        if (mode === 'loading') mapLayerStatus.textContent = `Loading ${label}…`;
+        if (mode === 'ready') mapLayerStatus.textContent = `${label} loaded · sparse or blank response can be valid`;
+        if (mode === 'error') mapLayerStatus.textContent = `${label} failed to load · see the error message`;
+    };
+    state.map.on('tileloadstart', (event) => {
+        if (event?.layer && event.layer !== state.activeIndex) return;
         if (mapLoader) mapLoader.classList.add('active');
+        setMapLayerStatus('loading', event?.layer);
     });
-    state.map.on('tileloadfinish', () => {
+    state.map.on('tileloadfinish', (event) => {
+        if (event?.layer && event.layer !== state.activeIndex) return;
         if (mapLoader) mapLoader.classList.remove('active');
+        setMapLayerStatus('ready', event?.layer);
     });
     state.map.on('tileerror', (e) => {
+        if (e?.layer && e.layer !== state.activeIndex) return;
         if (mapLoader) mapLoader.classList.remove('active');
+        setMapLayerStatus('error', e?.layer);
         showTileErrorToast(e);
     });
     state.map.on('sentinelguard', (e) => {
