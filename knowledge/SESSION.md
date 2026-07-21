@@ -64,3 +64,13 @@
 - §7 adds LBI narrow-positive: LBI specific (0% caliche bg >0.3, mean 0.034) → plausible STANDING-brine detector (different target), pending targeted validation; NOT a general PW detector
 - Index legitimacy verdict: real advances = multi-gate methodology + verified-site program + the negative result; LBI narrowly (standing brine); component ratios legit but not novel (prior art); PWCI/ASAI/OBEC don't discriminate
 - Commit 7dabd18 + tag preprint-v2.0, pushed to globe-and-atlas/limn
+- 2026-07-20 14:31 — commit: docs: session checkpoint — v2.0 reframe | knowledge/SESSION.md
+- 2026-07-20 14:40 — commit: docs: add investigation summary (QC + validation studies) | reports/investigation_summary_2026-07-20.md
+- 2026-07-20 19:02 — commit: feat: per-pixel PWCI spatial test — visual signal is not spill-specific | execution/analyze_pwci_spatial.py,execution/fetch_pwci_spatial.py,execution/pwci_spatial.csv,reports/pwci_spatial_test_2026-07-20.md
+- 2026-07-20 19:02 — commit: docs: §7 — per-pixel spatial check confirms negative result (visual differences not spill-specific) | PUBLIC_SCIENCE_GUIDE.md
+
+### 2026-07-20 - Spatial (per-pixel) PWCI test (Claude Code CLI / Fable 5)
+- User flagged PWCI shows visual differences in-app; my box-MEAN analysis couldn't see per-pixel structure. Built fetch_pwci_spatial.py (viewer PWCI per pixel, coverage+max over box) on 32 spills + 149 bg.
+- RESULT: bright pixels at 12% of BACKGROUND vs only 6% of spills; spatial Youden's J=0.03. Visual differences are real pixels but NOT spill-specific — per-pixel face of the same FP problem. Negative result CONFIRMED at native resolution (not overturned).
+- §7 updated to remove the box-mean hedge; spatial test in reports/pwci_spatial_test_2026-07-20.md
+- Commits: spatial test + ec72612 (§7), pushed
