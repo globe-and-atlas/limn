@@ -25,6 +25,9 @@ import {
     PALETTE_MSI_INV,
     PALETTE_LBI,
     PALETTE_APEX,
+    PALETTE_AWEI,
+    PALETTE_NDRE,
+    adaptEvalscriptForSentinelWms,
     INDICES
 } from './indices.js';
 
@@ -392,6 +395,8 @@ export function getScriptContent(config, activeIndex, isDiff, isCumulative = fal
         else if (activeIndex === 'si') { logic = "(sample.B11 - sample.B08) / (sample.B11 + sample.B08) + 0.5"; palette = PALETTE_NDWI; } // Corrected fallback
         else if (activeIndex === 'ndsi') { logic = "(sample.B11 - sample.B12) / (sample.B11 + sample.B12) + 0.1"; palette = PALETTE_BRINE; }
         else if (activeIndex === 'bsi') { logic = "((sample.B11 + sample.B04) - (sample.B08 + sample.B02)) / ((sample.B11 + sample.B04) + (sample.B08 + sample.B02))"; palette = PALETTE_BSI; }
+        else if (activeIndex === 'awei') { logic = "Math.max(0, (sample.B02 + 2.5*sample.B03 - 1.5*(sample.B08+sample.B11) - 0.25*sample.B12) * 5)"; palette = PALETTE_AWEI; }
+        else if (activeIndex === 'ndre') { logic = "(sample.B8A-sample.B05)/(sample.B8A+sample.B05) + 0.1"; palette = PALETTE_NDRE; }
         else if (activeIndex === 'csi') { logic = "sample.B11 / sample.B12 - 0.5"; palette = PALETTE_CSI; }
         else if (activeIndex === 'hcai') { logic = "(sample.B11 - sample.B04) / (sample.B11 + sample.B04) + 0.1"; palette = PALETTE_HCAI; }
         else if (activeIndex === 'hmri') { logic = "sample.B12 / sample.B03 - 2.0"; palette = PALETTE_HMRI; }
@@ -423,6 +428,8 @@ export function getScriptContent(config, activeIndex, isDiff, isCumulative = fal
         if (activeIndex === 'msi' || activeIndex === 'si') bands = ['B11', 'B08'];
         if (activeIndex === 'ndsi' || activeIndex === 'csi') bands = ['B11', 'B12'];
         if (activeIndex === 'bsi') bands = ['B02', 'B04', 'B08', 'B11'];
+        if (activeIndex === 'awei') bands = ['B02', 'B03', 'B08', 'B11', 'B12'];
+        if (activeIndex === 'ndre') bands = ['B05', 'B8A'];
         if (activeIndex === 'hcai') bands = ['B11', 'B04'];
         if (activeIndex === 'hmri') bands = ['B12', 'B03'];
         if (activeIndex === 'ndoi') bands = ['B02', 'B12'];
@@ -588,6 +595,9 @@ function evaluatePixel(samples) {
             else if (activeIndex === 'si') calc = '-((sample.B11-sample.B08)/(sample.B11+sample.B08))';
             else if (activeIndex === 'ndsi') calc = '-((sample.B11-sample.B12)/(sample.B11+sample.B12))';
             else if (activeIndex === 'bsi') calc = '-(((sample.B11+sample.B04)-(sample.B08+sample.B02))/((sample.B11+sample.B04)+(sample.B08+sample.B02)))';
+            else if (activeIndex === 'awei') calc = '(sample.B02+2.5*sample.B03-1.5*(sample.B08+sample.B11)-0.25*sample.B12)';
+            else if (activeIndex === 'ndre') calc = '(sample.B8A-sample.B05)/(sample.B8A+sample.B05)';
+            else if (activeIndex === 'swir_rgb') calc = '(sample.B12+sample.B11+sample.B04)/3';
             else if (activeIndex === 'csi') calc = '-(sample.B11/sample.B12)';
             else if (activeIndex === 'hcai') calc = '-((sample.B11-sample.B04)/(sample.B11+sample.B04))';
             else if (activeIndex === 'hmri') calc = '-(sample.B12/sample.B03)';
@@ -614,6 +624,9 @@ function evaluatePixel(samples) {
             if (activeIndex === 'msi' || activeIndex === 'si') bands = ['B11', 'B08'];
             if (activeIndex === 'ndsi' || activeIndex === 'csi') bands = ['B11', 'B12'];
             if (activeIndex === 'bsi') bands = ['B02', 'B04', 'B08', 'B11'];
+            if (activeIndex === 'awei') bands = ['B02', 'B03', 'B08', 'B11', 'B12'];
+            if (activeIndex === 'ndre') bands = ['B05', 'B8A'];
+            if (activeIndex === 'swir_rgb') bands = ['B04', 'B11', 'B12'];
             if (activeIndex === 'hcai') bands = ['B11', 'B04'];
             if (activeIndex === 'hmri') bands = ['B12', 'B03'];
             if (activeIndex === 'ndoi') bands = ['B02', 'B12'];
@@ -640,7 +653,8 @@ function evaluatePixel(samples) {
     const activeSensitivity = isSpill ? (state.sensitivity || 0) : 0;
     
     const filterInject = `//VERSION=3\nconst VISUAL_FILTER = ${state.visualFilter};\nconst DETECTION_SENSITIVITY = ${activeSensitivity / 100};`;
-    return filterInject + "\n" + scriptContent.replace('//VERSION=3', '');
+    const finalScript = filterInject + "\n" + scriptContent.replace('//VERSION=3', '');
+    return adaptEvalscriptForSentinelWms(finalScript, config.SENTINEL_WMS_SUPPORTS_SCL === true);
 }
 
 /**

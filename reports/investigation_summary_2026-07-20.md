@@ -83,7 +83,7 @@ An earlier claim of mine — "LBI does 63% recall at 1.3% FP" — was a **thresh
 - **The multi-gate consensus architecture** — a sound design pattern (didn't pay off here, but valid).
 - **The negative result itself** — rigorous, reproducible, and useful to the field.
 - **The verified-site program** — real sourcing/coordinates/QC discipline; a reusable asset.
-- **LBI — validated (small-N) as a specific standing-brine detector.** Per-pixel test with the shipped evalscript: fires on standing brine (incl. an independent non-calibration pond hit at 14.6% coverage) but on **0/149 caliche and 0/3 freshwater** at >1% coverage — brine-specific, Youden's J = 0.50 brine-vs-caliche. The one genuinely discriminating detector to come out of Limn, scoped to standing brine bodies (evaporation/recycling ponds, brine lakes). Not a general produced-water detector; needs a larger positive set to firm up. See `reports/lbi_brine_validation_2026-07-20.md`. (Two earlier passes on LBI were flawed — a threshold mismatch and a box-mean that breaks on small water bodies — both corrected here.)
+- **LBI — preliminary standing-water/salinity response hypothesis.** The shipped per-pixel evalscript fired at 2/4 standing-brine sites (including an independent pond hit at 14.6% coverage), 0/149 caliche boxes, and 0/3 freshwater controls. The freshwater comparison is underpowered and not statistically significant (two-sided Fisher exact p≈0.43), so this does not establish brine specificity or detector accuracy. See `reports/lbi_brine_validation_2026-07-20.md`.
 - **Component ratios** (NDVI/NDWI/NDMI/NDSI/BSI/NDCI/…) — legitimate, correctly implemented, but established prior art, not novel.
 
 ---

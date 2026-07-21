@@ -5,8 +5,8 @@
 
 import { getCDSEToken } from './auth.js';
 import { INDICES } from './indices.js';
-import { getScriptContent } from './map.js?v=77';
-import { showToast } from './ui.js?v=77';
+import { getScriptContent } from './map.js?v=78';
+import { showToast } from './ui.js?v=78';
 
 const SH_WMS_URL = 'https://sh.dataspace.copernicus.eu/ogc/wms/959ea2c5-5892-4b36-82b3-76e6bdb93c8a';
 
@@ -321,78 +321,6 @@ export async function downloadHTMLReport() {
     }
 }
 
-// ── GENERATE REPORT ───────────────────────────────
-// Orchestrates the data gathering, modal population, and opening the modal.
-export async function generateReport() {
-    if (!window.aoiDrawnItem) {
-        showToast("Please draw an Area of Interest first.", 'warning');
-        return;
-    }
-
-    const btn = document.getElementById('btn-generate-report');
-    if (btn) {
-        btn.innerText = "Querying Database...";
-        btn.disabled = true;
-    }
-
-    try {
-        const bounds = window.aoiDrawnItem.getBounds();
-        const cfg = INDICES[window.state.activeIndex];
-
-        // 1. Populate Metadata
-        document.getElementById('report-date-run').innerText = new Date().toLocaleString();
-        document.getElementById('report-aoi-bounds').innerText = bounds.toBBoxString();
-        document.getElementById('report-index-name').innerText = cfg.name;
-        document.getElementById('report-math').innerText = cfg.formula || cfg.math || '';
-        document.getElementById('report-info').innerText = cfg.info;
-
-        const dateRangeText = (window.state.mode === 'compare') 
-            ? `${document.getElementById('date-t1').value} vs ${document.getElementById('date-t2').value}`
-            : window.ALL_DATES[window.state.monthIndex].displayStr;
-        
-        const reportTimeBadge = document.getElementById('report-time');
-        if (reportTimeBadge) reportTimeBadge.innerText = dateRangeText;
-
-        // 2. Setup Maps
-        openReportModal(); // Show modal now so map containers have dimensions
-
-        const mapFull = document.getElementById('report-map');
-        const sbsMaps = document.getElementById('side-by-side-maps');
-        const diffMapCont = document.getElementById('report-map-diff-container');
-
-        if (window.state.mode === 'compare') {
-            mapFull.style.display = 'none';
-            sbsMaps.style.display = 'flex';
-            if (window.state.compareType === 'diff') {
-                diffMapCont.style.display = 'block';
-            } else {
-                diffMapCont.style.display = 'none';
-            }
-        } else {
-            mapFull.style.display = 'block';
-            sbsMaps.style.display = 'none';
-            diffMapCont.style.display = 'none';
-        }
-
-        // 3. Populate Chart
-        if (typeof renderReportChart === 'function') {
-            renderReportChart();
-        } else {
-            console.warn("renderReportChart not found in global scope. Ensure app.js or charts.js defines it.");
-        }
-
-    } catch (err) {
-        console.error("Report Generation Failed:", err);
-        showToast("Failed to generate report. See console.", 'warning');
-    } finally {
-        if (btn) {
-            btn.innerText = "Generate Selected Report";
-            btn.disabled = false;
-        }
-    }
-}
-
-
 // ── RRC Spill Overlay ─────────────────────────────────────────────────────────
 // Loads ./data/rrc_spills.json (once, cached in state.rrcSpillData) and renders
 // orange/red Leaflet circleMarkers. Each marker has a popup with date, volume,
@@ -677,10 +605,5 @@ document.addEventListener('DOMContentLoaded', () => {
     const closeBtn = document.getElementById('btn-close-report');
     if (closeBtn) {
         closeBtn.onclick = closeReportModal;
-    }
-    // We'll need to update generateReport to call openReportModal()
-    const genBtn = document.getElementById('btn-generate-report');
-    if (genBtn) {
-        genBtn.onclick = generateReport;
     }
 });

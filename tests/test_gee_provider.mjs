@@ -24,9 +24,10 @@ assert.match(configExample, /ATLAS_GEE_TILE_ENDPOINT:\s*"\/api\/gee\/tiles"/, 'c
 assert.match(configExample, /ATLAS_SENTINEL_CREDIT_GUARD:\s*true/, 'config.example.js should document Atlas Sentinel guard override');
 assert.match(configExample, /ATLAS_SENTINEL_LIVE_TILES:\s*false/, 'config.example.js should document Atlas Sentinel live-tile override');
 assert.match(configExample, /ATLAS_SENTINEL_MIN_ZOOM:\s*14/, 'config.example.js should document Atlas Sentinel zoom override');
+assert.match(configExample, /SENTINEL_WMS_SUPPORTS_SCL:\s*false/, 'config.example.js should keep L1C Sentinel WMS SCL disabled by default');
 assert.match(configExample, /ATLAS_WMS_SOURCE:\s*"configured"/, 'config.example.js should document the Atlas WMS source switch');
 assert.match(configExample, /ATLAS_VIEWER_INSTANCE_ID:\s*""/, 'config.example.js should document the optional Atlas viewer instance override');
-assert.match(atlasApp, /atlas-evidence\.js\?v=3/, 'Atlas app should import the evidence-pack helper');
+assert.match(atlasApp, /atlas-evidence\.js\?v=4/, 'Atlas app should import the current evidence-pack helper');
 assert.match(atlasApp, /renderEvidencePanel/, 'Atlas app should render evidence packs in the info panel');
 assert.match(atlasApp, /function linkedinGroundTruthForIndex/, 'Atlas app should derive LinkedIn Ground Truth drafts from selected index metadata');
 assert.match(atlasApp, /renderLinkedInGroundTruth\(idx\)/, 'Atlas selection should render LinkedIn Ground Truth guidance for the active index');
@@ -74,6 +75,7 @@ assert.match(app, /COG_TILE_ENDPOINT:\s*'\/api\/cog\/tiles'/, 'internal app conf
 assert.match(app, /SENTINEL_CREDIT_GUARD:\s*true/, 'Sentinel credit guard should be enabled by default');
 assert.match(app, /SENTINEL_LIVE_TILES:\s*false/, 'Sentinel live tiles should be disarmed by default');
 assert.match(app, /SENTINEL_MIN_ZOOM:\s*14/, 'Sentinel WMS should require a precise default zoom');
+assert.match(app, /SENTINEL_WMS_SUPPORTS_SCL:\s*false/, 'core app should default its bundled L1C WMS layer to no SCL');
 assert.match(app, /toggle-sentinel-live/, 'Settings should expose a Sentinel live tile arm switch');
 assert.match(app, /sentinel-min-zoom/, 'Settings should expose a Sentinel minimum zoom control');
 assert.match(app, /runtimeImageProviderOverride = 'sentinelhub'/, 'Sentinel toolbar switch should route the session to Sentinel Hub');
@@ -87,19 +89,22 @@ assert.match(app, /config\.SENTINEL_LIVE_TILES = true/, 'share mode should keep 
 assert.match(app, /sentinelOnlyShareMode: isSentinelOnlyShareMode\(\)/, 'provider state should expose share mode');
 assert.match(app, /state\.map\.on\('sentinelratelimit'/, 'app should surface Sentinel Hub rate-limit cooldowns');
 assert.match(map, /function getSentinelCreditGuardStatus/, 'map layer factory should check the Sentinel credit guard');
+assert.match(map, /adaptEvalscriptForSentinelWms\(finalScript, config\.SENTINEL_WMS_SUPPORTS_SCL === true\)/, 'Sentinel WMS scripts should remove L2A-only SCL unless explicitly supported');
 assert.match(map, /getSentinelGuardLayer/, 'Sentinel guard should return a local placeholder layer instead of WMS tiles');
 assert.match(map, /state\.map\.fire\('sentinelguard'/, 'Sentinel guard should announce blocked WMS rendering');
 assert.match(map, /function getRetryAfterMs/, 'Sentinel WMS loader should honor Retry-After cooldowns');
 assert.match(map, /state\.map\.fire\('sentinelratelimit'/, 'Sentinel WMS loader should announce 429 cooldowns');
 assert.match(map, /tileSize:\s*512/, 'Sentinel WMS tiles should use larger tiles to reduce request count');
 assert.match(map, /maxConcurrent:\s*1/, 'Sentinel WMS tiles should avoid bursty parallel requests');
-assert.match(app, /const COG_SUPPORTED_INDEX_KEYS = new Set\(\['none', 'tc', 'truecolor', 'true-color', 'pwi', 'hpwi', 'pwoi', 'lbi'\]\)/, 'COG UI should enumerate only renderer-supported COG indexes');
-assert.match(app, /const COG_SCREEN_INDEX_KEYS = new Set\(\['hpwi', 'lbi', 'pwoi', 'pwi'\]\)/, 'Screen flow should expose only supported COG demo lenses');
+for (const key of ['tc', 'swir_rgb', 'awei', 'ndre', 'ndmi', 'ndwi', 'ndvi', 'savi', 'bsi', 'ndsi', 'pwi', 'hpwi', 'pwoi', 'lbi']) {
+  assert.match(app, new RegExp(`COG_SUPPORTED_INDEX_KEYS[\\s\\S]*['\"]${key}['\"]`), `COG UI should expose renderer-supported ${key}`);
+}
+assert.match(app, /const COG_SCREEN_INDEX_KEYS = new Set\(\[[\s\S]*'tc'[\s\S]*'lbi'[\s\S]*'ndwi'[\s\S]*'awei'[\s\S]*'pwi'[\s\S]*'pwoi'[\s\S]*'hpwi'[\s\S]*\]\)/, 'Screen flow should prioritize contextual lenses while retaining negative-result composites');
 assert.match(app, /function enforceCogTemporalConstraints\(\)/, 'app should guard temporal controls under COG mode');
 assert.match(app, /state\.compareType = 'swipe'/, 'COG mode should fall back to swipe compare instead of diff/cumulative');
 assert.match(app, /btnDiff[\s\S]*btnCumulative[\s\S]*btn\.disabled = isCog/, 'COG mode should disable nonfunctional diff/cumulative buttons');
 assert.match(app, /getProviderReadyBookmarkIndices\(spill\)/, 'bookmark chips should be filtered by active provider support');
-assert.match(app, /if \(!isIndexProviderReady\(key\)\) return false;/, 'HUD search should filter unsupported provider indexes');
+assert.match(app, /const providerReady = isIndexProviderReady\(key\);[\s\S]*btn\.disabled = !providerReady/, 'HUD search should list unsupported provider indexes as disabled references');
 assert.match(app, /function getActiveConfig\(\)/, 'app should expose active config resolver');
 assert.match(app, /requestedProvider === 'sentinelhub'[\s\S]*merged\.IMAGE_PROVIDER = internalAppConfig\.IMAGE_PROVIDER/, 'app should force the internal provider unless Sentinel fallback is explicitly allowed');
 assert.match(app, /sentinelFeatureUnavailable\('AOI history scan'\)/, 'AOI scan should be paused under GEE default');
@@ -157,7 +162,10 @@ assert.match(server, /const maxcc = Number\(searchParams\.get\('maxcc'\) \|\| 90
 assert.match(server, /Browser API keys alone cannot create Earth Engine maps/, 'GEE server should reject API-key-only setup clearly');
 assert.match(server, /\/api\/cog\/tiles\//, 'local server should expose COG tile endpoint');
 assert.match(server, /\/api\/cog\/prewarm/, 'local server should expose a COG prewarm endpoint');
-assert.match(server, /COG_SUPPORTED_INDEXES = new Set\(\['tc', 'truecolor', 'true-color', 'pwi', 'hpwi', 'pwoi', 'lbi'\]\)/, 'COG server should fail closed on unsupported indexes');
+for (const key of ['tc', 'swir_rgb', 'awei', 'ndre', 'ndmi', 'ndwi', 'ndvi', 'savi', 'bsi', 'ndsi', 'pwi', 'hpwi', 'pwoi', 'lbi']) {
+  assert.match(server, new RegExp(`COG_SUPPORTED_INDEXES[\\s\\S]*['\"]${key}['\"]`), `COG server should explicitly support ${key}`);
+}
+assert.match(server, /const clearMask = scl\.eq\(4\)[\s\S]*scl\.eq\(7\)/, 'GEE provider should use the clear SCL class allow-list');
 assert.match(server, /COG_PREWARM_ON_START/, 'COG server should support startup prewarm for demos');
 assert.match(server, /function prewarmCogTargets/, 'COG server should prewarm demo target tiles');
 assert.match(server, /execution\/render_cog_tile\.py/, 'local server should delegate COG rendering to deterministic execution script');
@@ -168,6 +176,8 @@ assert.match(cogRenderer, /if index_key not in INDEX_BANDS/, 'COG renderer shoul
 assert.match(cogRenderer, /Unsupported COG index/, 'COG renderer should name unsupported index failures clearly');
 assert.match(cogRenderer, /item_cache_key/, 'COG renderer should cache STAC item selection across index requests');
 assert.match(cogRenderer, /alpha = np\.where\(\(score >= threshold\) & valid, 70 \+ ramp \* 165, 0\)/, 'COG overlays should use graded sparse alpha instead of opaque masks');
+assert.match(cogRenderer, /CLEAR_SCL_CLASSES = \{4, 5, 6, 7\}/, 'COG provider should reject cloud, shadow, snow, saturated, and dark-feature classes');
+assert.match(cogRenderer, /standing_water = ndwi > 0\.30[\s\S]*surface_gate = np\.where\(standing_water, 1\.0/, 'COG LBI should preserve the shipped standing-water bypass');
 assert.match(smoke, /urlPath\.startsWith\('\/api\/gee\/tiles\/'\)/, 'browser smoke test should stub local GEE tiles');
 assert.match(shareHtml, /index\.html\?share=sentinel-only/, 'share entrypoint should route to Sentinel-only mode');
 

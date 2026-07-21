@@ -149,7 +149,14 @@ export function detectPeakAnomaly(imgUrl, bounds) {
     }
 
     export function buildHighlightUrl(date, indexKey, bounds, hexColor, chartValue, includeContext = false) {
-        const script = getHighlightScript(indexKey, hexColor, chartValue, includeContext, window.state.activeBasin);
+        const script = getHighlightScript(
+            indexKey,
+            hexColor,
+            chartValue,
+            includeContext,
+            window.state.activeBasin,
+            window.CONFIG?.SENTINEL_WMS_SUPPORTS_SCL === true
+        );
         if (!script) return null;
 
         const dStart = new Date(date);
@@ -264,4 +271,3 @@ export function hideHoverHighlight(keepKey) {
         window.state.hoverMarker = null;
     }
 }
-

@@ -1,3 +1,13 @@
+# 2026-07-21 — Sentinel Hub L1C WMS Rejected the L2A-Only SCL Band
+
+- Error: Guarded Sentinel Hub tiles returned HTTP 400 with `Collection 'S2L1C' has no band 'SCL'` after the primary optical evalscripts added pixel-level Scene Classification masking.
+- Cause: Sentinel Hub OGC WMS binds an evalscript to the collection configured for the requested layer. The bundled `AGRICULTURE` carrier layer is Sentinel-2 L1C; `SCL` is a Sentinel-2 L2A band and cannot be requested from that layer.
+- Impact: True Color and every generated optical lens failed in the optional Sentinel WMS path even though the default L2A COG and GEE paths were valid.
+- Fix: Generated evalscripts now mark their SCL QA block explicitly. `getScriptContent()` removes the `SCL` input and only that marked block for Sentinel WMS unless `SENTINEL_WMS_SUPPORTS_SCL: true` is configured for a verified L2A WMS layer. WMS chart-highlight scripts follow the same contract. The app reports `WMS: no SCL band` while the L1C fallback is active; COG/GEE retain SCL masking.
+- Verification: Core parity tests assert both the default L1C-compatible output and the explicit L2A opt-in. Live WMS verification must confirm HTTP 200 for the configured layer without exposing the private instance URL.
+
+---
+
 # 2026-07-19 — batch_analyze_spills.py NameError: Path not defined (validation pipeline broken)
 
 - Error: `execution/batch_analyze_spills.py` raised `NameError: name 'Path' is not defined` at import (line 12, `env_path = Path(__file__)...`). The script could not run or be imported.

@@ -24,7 +24,7 @@ const S2_BANDS = ['B02', 'B03', 'B04', 'B05', 'B06', 'B07', 'B08', 'B8A', 'B11',
 const PYTHON = process.env.PYTHON || process.env.PYTHON_BIN || 'python3';
 const COG_CACHE_DIR = path.resolve(ROOT, process.env.COG_TILE_CACHE_DIR || '.tmp/cog_tile_cache');
 const COG_RENDER_SCRIPT = path.resolve(ROOT, 'execution/render_cog_tile.py');
-const COG_RENDER_VERSION = 'cog-render-2026-06-09-v2';
+const COG_RENDER_VERSION = 'cog-render-2026-07-21-investigation-v3';
 const COG_STAC_URL = process.env.COG_STAC_URL || 'https://earth-search.aws.element84.com/v1';
 const COG_STAC_COLLECTION = process.env.COG_STAC_COLLECTION || 'sentinel-2-l2a';
 const COG_MAXCC = Number(process.env.COG_MAXCC || 90);
@@ -35,7 +35,11 @@ const COG_ITEM_CACHE_TTL_SECONDS = Number(process.env.COG_ITEM_CACHE_TTL_SECONDS
 const COG_PREWARM_ON_START = process.env.COG_PREWARM_ON_START !== '0';
 const COG_PREWARM_LIMIT = Number(process.env.COG_PREWARM_LIMIT || 4);
 const COG_PREWARM_RADIUS = Number(process.env.COG_PREWARM_RADIUS || 0);
-const COG_SUPPORTED_INDEXES = new Set(['tc', 'truecolor', 'true-color', 'pwi', 'hpwi', 'pwoi', 'lbi']);
+const COG_SUPPORTED_INDEXES = new Set([
+    'tc', 'truecolor', 'true-color', 'swir_rgb',
+    'awei', 'ndre', 'ndmi', 'ndwi', 'ndvi', 'savi', 'bsi', 'ndsi',
+    'pwi', 'hpwi', 'pwoi', 'lbi'
+]);
 const COG_DEMO_INDEXES = ['hpwi', 'lbi', 'pwoi', 'pwi'];
 const COG_PREWARM_TARGETS = [
     { label: 'Lake Boehmer', lat: 31.226, lng: -102.729, zoom: 14, date: '2026-01-01', indexes: ['hpwi', 'lbi', 'pwoi', 'pwi'] },
@@ -230,11 +234,10 @@ function getS2Image(searchParams) {
         .filter(ee.Filter.lte('CLOUDY_PIXEL_PERCENTAGE', maxcc))
         .map((image) => {
             const scl = image.select('SCL');
-            const clearMask = scl.neq(3)
-                .and(scl.neq(8))
-                .and(scl.neq(9))
-                .and(scl.neq(10))
-                .and(scl.neq(11));
+            const clearMask = scl.eq(4)
+                .or(scl.eq(5))
+                .or(scl.eq(6))
+                .or(scl.eq(7));
             return image.updateMask(clearMask);
         });
 
@@ -271,6 +274,13 @@ function falseColor(image) {
     };
 }
 
+function swirContext(image) {
+    return {
+        image,
+        vis: { bands: ['B12', 'B11', 'B04'], min: 0.02, max: 0.42, gamma: 1.12 }
+    };
+}
+
 function buildEhc(image) {
     const vars = bandVars(image);
     const red = image.expression('max(0, ((B02 - B12) / (B02 + B12 + 0.0001)) * 3)', vars).rename('red');
@@ -284,9 +294,16 @@ function buildEhc(image) {
 function buildIndexImage(indexKey, searchParams) {
     const key = String(indexKey || 'tc').toLowerCase();
     const image = getS2Image(searchParams);
+    const sensitivity = Number(searchParams.get('sensitivity') || 0) / 100;
+    const basin = String(searchParams.get('basin') || 'permian').toLowerCase();
+    const calibration = basin === 'standard'
+        ? { bsiMask: -0.1, salinity: 0.05, surface: 0.15, ratio: 1.5 }
+        : { bsiMask: -0.3, salinity: 0.10, surface: 0.30, ratio: 2.0 };
+    const obecDualSwirThreshold = Math.max(0.04, 0.06 - sensitivity * 0.03);
 
     if (key === 'tc' || key === 'truecolor' || key === 'true-color') return trueColor(image);
     if (key === 'fc' || key === 'falsecolor' || key === 'false-color') return falseColor(image);
+    if (key === 'swir_rgb') return swirContext(image);
     if (key === 'ehc') return buildEhc(image);
     if (searchParams.get('app') === 'atlas') return trueColor(image);
 
@@ -328,41 +345,100 @@ function buildIndexImage(indexKey, searchParams) {
             0.7
         );
     }
+    if (key === 'savi') {
+        return visualScore(
+            score(image, '((B08 - B04) / (B08 + B04 + 0.5)) * 1.5'),
+            ['6b3f1d', 'f2e394', '1a9850'],
+            -1,
+            -0.3,
+            0.8
+        );
+    }
+    if (key === 'bsi') {
+        return visualScore(
+            score(image, '((B11 + B04) - (B08 + B02)) / ((B11 + B04) + (B08 + B02) + 0.0001)'),
+            ['448833', 'd2b43c', 'a07832'],
+            -1,
+            0,
+            0.4
+        );
+    }
+    if (key === 'ndsi') {
+        return visualScore(
+            image.normalizedDifference(['B11', 'B12']).rename('score'),
+            ['0a3c64', 'f0501e', 'e61414'],
+            0,
+            0,
+            0.5
+        );
+    }
+    if (key === 'awei') {
+        return visualScore(
+            score(image, 'B02 + 2.5 * B03 - 1.5 * (B08 + B11) - 0.25 * B12'),
+            ['302412', 'c19a48', '2397b5', '084380'],
+            0,
+            0,
+            0.2
+        );
+    }
+    if (key === 'ndre') {
+        return visualScore(
+            image.normalizedDifference(['B8A', 'B05']).rename('score'),
+            ['693820', 'cda748', '5c9747', '105b34'],
+            -1,
+            -0.2,
+            0.7
+        );
+    }
 
     const expressions = {
         pwi: `
-            pow(min(1,
-                max(0, ((B11 - B12) / (B11 + B12 + 0.0001)) - 0.05) *
-                max(0, (((B11 - B04) / (B11 + B04 + 0.0001)) - 0.20) * 2) *
-                max(0, ((B12 / (B03 + 0.0001)) - 1.50) * 2) *
-                20
-            ), 3)
+            ((((B11 + B04) - (B08 + B02)) / ((B11 + B04) + (B08 + B02) + 0.0001)) <= ${calibration.bsiMask}
+                ? 0
+                : min(1, pow(
+                    max(0, ((B11 - B12) / (B11 + B12 + 0.0001)) - ${calibration.salinity}) *
+                    max(0, (((B11 - B04) / (B11 + B04 + 0.0001)) - ${calibration.surface}) * 2) *
+                    max(0, ((B12 / (B03 + 0.0001)) - ${calibration.ratio}) * 2) *
+                    20,
+                    3
+                )))
         `,
         hpwi: `
             min(1,
                 min(1,
                     max(0, ((B02 - B12) / (B02 + B12 + 0.0001))) +
-                    max(0, ((B11 - B12) / (B11 + B12 + 0.0001)) - 0.06) * 0.8
+                    max(0, ((B11 - B12) / (B11 + B12 + 0.0001)) - ${obecDualSwirThreshold}) * 0.8
                 ) *
                 max(0, min(1, ((((B03 - B11) / (B03 + B11 + 0.0001)) + 0.3) / 0.6))) *
                 6
             )
         `,
         pwoi: `
-            min(1,
-                max(0, ((B11 - B12) / (B11 + B12 + 0.0001)) - 0.12) *
-                max(0, (((B11 + B04) - (B08 + B02)) / ((B11 + B04) + (B08 + B02) + 0.0001))) *
-                max(0, 1 - ((B08 - B04) / (B08 + B04 + 0.0001))) *
-                18
+            max(
+                (((((B03 - B11) / (B03 + B11 + 0.0001)) + 0.3) / 0.6) > 0.58 &&
+                  (((B11 - B12) / (B11 + B12 + 0.0001)) - 0.035) > 0)
+                    ? min(1,
+                        min(1, max(0, ((((B03 - B11) / (B03 + B11 + 0.0001)) + 0.3) / 0.6))) * 0.42 +
+                        min(1, max(0, (((B11 - B12) / (B11 + B12 + 0.0001)) - 0.035) / 0.16)) * 0.58
+                      )
+                    : 0),
+                ((((B03 - B11) / (B03 + B11 + 0.0001)) < -0.42 &&
+                  ((B11 - B12) / (B11 + B12 + 0.0001)) > 0.15 &&
+                  (((B11 + B04) - (B08 + B02)) / ((B11 + B04) + (B08 + B02) + 0.0001)) > 0.52)
+                    ? min(1, max(0, ((((B11 - B12) / (B11 + B12 + 0.0001)) - 0.15) / 0.16) * 0.45 + 0.55))
+                    : 0)
             )
         `,
         lbi: `
             min(1,
-                ((((B11 + B04) - (B08 + B02)) / ((B11 + B04) + (B08 + B02) + 0.0001)) < -0.25 ? 0 : 1) *
+                (((((B11 + B04) - (B08 + B02)) / ((B11 + B04) + (B08 + B02) + 0.0001)) <= -0.25 &&
+                   ((B03 - B11) / (B03 + B11 + 0.0001)) <= 0.30) ? 0 : 1) *
                 max(0, ((B11 - B12) / (B11 + B12 + 0.0001)) - 0.02) *
                 max(0, ((B03 - B11) / (B03 + B11 + 0.0001)) + 0.40) *
                 max(0, 0.45 - ((B08 - B04) / (B08 + B04 + 0.0001))) *
-                max(0, (((B11 + B04) - (B08 + B02)) / ((B11 + B04) + (B08 + B02) + 0.0001)) + 0.20) *
+                ((((B03 - B11) / (B03 + B11 + 0.0001)) > 0.30)
+                    ? 1
+                    : max(0, (((B11 + B04) - (B08 + B02)) / ((B11 + B04) + (B08 + B02) + 0.0001)) + 0.20)) *
                 20
             )
         `,
@@ -406,7 +482,7 @@ function buildIndexImage(indexKey, searchParams) {
     const expression = expressions[key];
     if (!expression) return trueColor(image);
 
-    const thresholds = { pwi: 0.05, hpwi: 0.08, pwoi: 0.10, lbi: 0.08, bpi: 0.04, fbc: 0.06, vsi: 0.05, mvpi: 0.05 };
+    const thresholds = { pwi: 0.05, hpwi: 0.08, pwoi: 0.60, lbi: 0.08, bpi: 0.04, fbc: 0.06, vsi: 0.05, mvpi: 0.05 };
     return visualScore(score(image, expression), palettes[key], thresholds[key] ?? 0.05);
 }
 
@@ -519,6 +595,9 @@ function renderCogTile(z, x, y, searchParams, outputPath) {
             '--time', searchParams.get('time') || searchParams.get('date') || new Date().toISOString().slice(0, 10),
             '--size', String(COG_TILE_SIZE),
             '--maxcc', String(Number(searchParams.get('maxcc') || COG_MAXCC)),
+            '--sensitivity', String(Number(searchParams.get('sensitivity') || 0)),
+            '--basin', String(searchParams.get('basin') || 'permian'),
+            '--visual-filter', String(Number(searchParams.get('visualFilter') || 0)),
             '--stac-url', COG_STAC_URL,
             '--collection', COG_STAC_COLLECTION,
             '--item-cache-dir', COG_ITEM_CACHE_DIR,

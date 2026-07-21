@@ -53,7 +53,7 @@ import {
     closeReportModal,
     initRrcSpillOverlay,
     downloadHTMLReport
-} from './report.js?v=77';
+} from './report.js?v=78';
 import {
     initLeafletMap,
     applyIndex as applyIndexDelegate,
@@ -61,12 +61,12 @@ import {
     getScriptContent,
     getImageryProvider,
     getIndexLayer
-} from './map.js?v=77';
+} from './map.js?v=78';
 import {
     showToast as showToastDelegate,
     switchTab,
     updateUI as updateUIDelegate
-} from './ui.js?v=77';
+} from './ui.js?v=78';
 
 const AOI_LOCATIONS = {
     dixon: { lat: 31.893285, lng: -101.864031, zoom: 15 },
@@ -371,7 +371,7 @@ while (iterDate <= today) {
 const SH_WMS_URL = 'https://sh.dataspace.copernicus.eu/ogc/wms/959ea2c5-5892-4b36-82b3-76e6bdb93c8a';
 const SH_STAT_API_URL = 'https://sh.dataspace.copernicus.eu/api/v1/statistics';
 
-const APP_VERSION = 'v49';
+const APP_VERSION = 'v50';
 
 const internalAppConfig = {
     IMAGE_PROVIDER: 'cog',

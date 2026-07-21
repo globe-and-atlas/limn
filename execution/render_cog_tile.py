@@ -34,14 +34,16 @@ S2_COLLECTION = "sentinel-2-l2a"
 WEB_MERCATOR = "EPSG:3857"
 WGS84 = "EPSG:4326"
 ORIGIN_SHIFT = 20037508.342789244
-CLEAR_SCL_CLASSES = {1, 2, 4, 5, 6, 7}
+CLEAR_SCL_CLASSES = {4, 5, 6, 7}
 ITEM_CACHE_TTL_SECONDS = 7 * 24 * 60 * 60
 
 BAND_ASSETS = {
     "B02": "blue",
     "B03": "green",
     "B04": "red",
+    "B05": "rededge1",
     "B08": "nir",
+    "B8A": "nir08",
     "B11": "swir16",
     "B12": "swir22",
     "SCL": "scl",
@@ -51,6 +53,15 @@ INDEX_BANDS = {
     "tc": ["B02", "B03", "B04"],
     "truecolor": ["B02", "B03", "B04"],
     "true-color": ["B02", "B03", "B04"],
+    "swir_rgb": ["B04", "B11", "B12"],
+    "awei": ["B02", "B03", "B08", "B11", "B12"],
+    "ndre": ["B05", "B8A"],
+    "ndmi": ["B8A", "B11"],
+    "ndwi": ["B03", "B11"],
+    "ndvi": ["B04", "B08"],
+    "savi": ["B04", "B08"],
+    "bsi": ["B02", "B04", "B08", "B11"],
+    "ndsi": ["B11", "B12"],
     "pwi": ["B02", "B03", "B04", "B08", "B11", "B12"],
     "hpwi": ["B02", "B03", "B04", "B08", "B11", "B12"],
     "pwoi": ["B02", "B03", "B04", "B08", "B11", "B12"],
@@ -73,6 +84,9 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--time", default=datetime.now(timezone.utc).date().isoformat())
     parser.add_argument("--size", type=int, default=256)
     parser.add_argument("--maxcc", type=float, default=90.0)
+    parser.add_argument("--sensitivity", type=float, default=0.0)
+    parser.add_argument("--basin", default="permian")
+    parser.add_argument("--visual-filter", type=float, default=0.0)
     parser.add_argument("--stac-url", default=os.environ.get("COG_STAC_URL", EARTH_SEARCH_URL))
     parser.add_argument("--collection", default=os.environ.get("COG_STAC_COLLECTION", S2_COLLECTION))
     parser.add_argument("--item-cache-dir", type=Path, default=Path(os.environ.get("COG_ITEM_CACHE_DIR", ".tmp/cog_item_cache")))
@@ -251,55 +265,113 @@ def render_true_color(b: dict[str, np.ndarray], valid: np.ndarray) -> np.ndarray
     return np.dstack([(rgb * 255).astype("uint8"), alpha])
 
 
-def render_index(index_key: str, b: dict[str, np.ndarray], valid: np.ndarray) -> np.ndarray:
+def render_swir_context(b: dict[str, np.ndarray], valid: np.ndarray) -> np.ndarray:
+    rgb = np.dstack([b["B12"], b["B11"], b["B04"]])
+    rgb = clamp01((rgb - 0.02) / (0.42 - 0.02))
+    rgb = np.power(rgb, 1 / 1.12)
+    alpha = valid.astype("uint8") * 255
+    return np.dstack([(rgb * 255).astype("uint8"), alpha])
+
+
+def render_index(
+    index_key: str,
+    b: dict[str, np.ndarray],
+    valid: np.ndarray,
+    sensitivity_percent: float = 0.0,
+    basin: str = "permian",
+    visual_filter: float = 0.0,
+) -> np.ndarray:
+    sensitivity = sensitivity_percent / 100.0
+    display_floor = max(0.0, min(1.0, visual_filter))
+
+    if index_key == "ndwi":
+        score = clamp01(normdiff(b["B03"], b["B11"]) + 0.3)
+        return colorize(score, valid, [(130, 70, 20), (215, 170, 60), (80, 150, 200), (20, 80, 180)], display_floor)
+
+    if index_key == "ndmi":
+        score = clamp01(normdiff(b["B8A"], b["B11"]) + 0.3)
+        return colorize(score, valid, [(212, 106, 36), (239, 216, 122), (28, 133, 166), (10, 60, 100)], display_floor)
+
+    if index_key == "ndvi":
+        score = clamp01(normdiff(b["B08"], b["B04"]) + 0.1)
+        return colorize(score, valid, [(160, 120, 50), (210, 180, 60), (90, 160, 60), (20, 100, 40)], display_floor)
+
+    if index_key == "savi":
+        savi = ((b["B08"] - b["B04"]) / (b["B08"] + b["B04"] + 0.5)) * 1.5
+        return colorize(clamp01(savi + 0.2), valid, [(160, 120, 50), (210, 180, 60), (90, 160, 60), (20, 100, 40)], display_floor)
+
+    if index_key == "bsi":
+        bsi = normdiff(b["B11"] + b["B04"], b["B08"] + b["B02"])
+        return colorize(clamp01(bsi), valid, [(0, 0, 0), (68, 136, 51), (210, 180, 60), (160, 120, 50)], display_floor)
+
+    if index_key == "ndsi":
+        score = clamp01(np.maximum(0, normdiff(b["B11"], b["B12"]) * 2))
+        return colorize(score, valid, [(10, 60, 100), (120, 100, 50), (240, 80, 30), (230, 20, 20)], display_floor)
+
+    if index_key == "awei":
+        raw = b["B02"] + 2.5 * b["B03"] - 1.5 * (b["B08"] + b["B11"]) - 0.25 * b["B12"]
+        score = clamp01(np.maximum(0, raw * 5))
+        return colorize(score, valid, [(48, 36, 18), (193, 154, 72), (35, 151, 181), (8, 67, 128)], max(0.01, display_floor))
+
+    if index_key == "ndre":
+        score = clamp01(normdiff(b["B8A"], b["B05"]) + 0.1)
+        return colorize(score, valid, [(105, 56, 32), (205, 167, 72), (92, 151, 71), (16, 91, 52)], display_floor)
+
     bsi = normdiff(b["B11"] + b["B04"], b["B08"] + b["B02"])
     ndsi = normdiff(b["B11"], b["B12"])
     ndwi = normdiff(b["B03"], b["B11"])
     ndvi = normdiff(b["B08"], b["B04"])
 
     if index_key == "pwi":
+        calibration = {
+            "permian": (-0.3, 0.10, 0.30, 2.0),
+            "standard": (-0.1, 0.05, 0.15, 1.5),
+        }.get(basin, (-0.3, 0.10, 0.30, 2.0))
+        bsi_mask, salinity_offset, surface_offset, ratio_offset = calibration
         hcai = normdiff(b["B11"], b["B04"])
         hmri = np.divide(b["B12"], b["B03"] + 0.0001)
-        score = np.power(
-            clamp01(
-                np.maximum(0, ndsi - 0.05)
-                * np.maximum(0, (hcai - 0.20) * 2)
-                * np.maximum(0, (hmri - 1.50) * 2)
-                * 20
-            ),
-            3,
+        raw = (
+            np.maximum(0, ndsi - salinity_offset)
+            * np.maximum(0, (hcai - surface_offset) * 2)
+            * np.maximum(0, (hmri - ratio_offset) * 2)
         )
-        return colorize(score, valid, [(0, 255, 255), (255, 0, 255), (204, 255, 0)], 0.05)
+        score = np.where(bsi > bsi_mask, clamp01(np.power(raw * 20, 3)), 0)
+        return colorize(score, valid, [(0, 255, 255), (255, 0, 255), (204, 255, 0)], max(0.05, display_floor))
 
     if index_key == "hpwi":
         ndoi = normdiff(b["B02"], b["B12"])
-        smooth = normdiff(b["B03"], b["B11"])
+        brine_threshold = max(0.04, 0.06 - sensitivity * 0.03)
         score = clamp01(
-            clamp01(np.maximum(0, ndoi) + np.maximum(0, ndsi - 0.06) * 0.8)
-            * np.maximum(0, np.minimum(1, (smooth + 0.3) / 0.6))
+            clamp01(np.maximum(0, ndoi) + np.maximum(0, ndsi - brine_threshold) * 0.8)
+            * clamp01((ndwi + 0.3) / 0.6)
             * 6
         )
-        return colorize(score, valid, [(75, 0, 130), (231, 76, 60), (241, 196, 15)], 0.08)
+        return colorize(score, valid, [(75, 0, 130), (231, 76, 60), (241, 196, 15)], max(0.08, display_floor))
 
     if index_key == "pwoi":
-        score = clamp01(
-            np.maximum(0, ndsi - 0.12)
-            * np.maximum(0, bsi)
-            * np.maximum(0, 1 - ndvi)
-            * 18
+        radar_proxy = clamp01((ndwi + 0.3) / 0.6)
+        salinity_gate = clamp01((ndsi - 0.035) / 0.16)
+        wet = np.where((radar_proxy > 0.58) & (salinity_gate > 0), clamp01(radar_proxy * 0.42 + salinity_gate * 0.58), 0)
+        dry = np.where(
+            (ndwi < -0.42) & (ndsi > 0.15) & (bsi > 0.52),
+            clamp01((ndsi - 0.15) / 0.16 * 0.45 + 0.55),
+            0,
         )
-        return colorize(score, valid, [(0, 16, 42), (0, 210, 255), (255, 0, 255), (140, 0, 255)], 0.10)
+        score = clamp01(np.maximum(wet, dry))
+        return colorize(score, valid, [(0, 16, 42), (0, 210, 255), (255, 0, 255), (140, 0, 255)], max(0.60, display_floor))
 
     if index_key == "lbi":
+        standing_water = ndwi > 0.30
+        surface_gate = np.where(standing_water, 1.0, np.maximum(0, bsi + 0.20))
         score = clamp01(
-            np.where(bsi < -0.25, 0, 1)
+            np.where((bsi <= -0.25) & ~standing_water, 0, 1)
             * np.maximum(0, ndsi - 0.02)
             * np.maximum(0, ndwi + 0.40)
             * np.maximum(0, 0.45 - ndvi)
-            * np.maximum(0, bsi + 0.20)
+            * surface_gate
             * 20
         )
-        return colorize(score, valid, [(0, 85, 255), (0, 210, 255), (255, 255, 255)], 0.08)
+        return colorize(score, valid, [(0, 85, 255), (0, 210, 255), (255, 255, 255)], max(0.08, display_floor))
 
     return render_true_color(b, valid)
 
@@ -332,8 +404,10 @@ def main() -> int:
         bands, valid = read_bands(item, needed, bounds, args.size)
         if index_key in {"tc", "truecolor", "true-color"}:
             rgba = render_true_color(bands, valid)
+        elif index_key == "swir_rgb":
+            rgba = render_swir_context(bands, valid)
         else:
-            rgba = render_index(index_key, bands, valid)
+            rgba = render_index(index_key, bands, valid, args.sensitivity, args.basin, args.visual_filter)
         write_png(rgba, args.output)
         print(
             json.dumps({

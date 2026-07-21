@@ -21,23 +21,23 @@ PWCI is a **multiplicative screening composite**. It requires three broad spectr
 
 ### The Three Required Signatures
 
-1. **Brine / Salinity (NDSI - Normalized Difference Salinity Index)**
+1. **Dual-SWIR Contrast (NDSI legacy; NDTI/NBR2 algebra)**
    * **Bands:** SWIR1 (B11) and SWIR2 (B12)
    * **Formula:** `(B11 - B12) / (B11 + B12)`
-   * **Logic:** Salt crusts heavily alter the standard Shortwave Infrared reflectance curve. NDSI isolates extremely concentrated brine/salt water from fresh water.
-   * **Scientific Basis:** Building on studies of soil salinity using SWIR reflectance (*Metternicht & Zinck, 2003*), this ratio effectively delineates highly saline features (like brine spills) from dry soils.
+   * **Logic:** The ratio responds to the shape of the broad SWIR reflectance curve. Tillage, residue, burn state, moisture, substrate, and some saline surfaces can all alter it.
+   * **Scientific Basis:** Retained as a salinity hypothesis component, not a brine-specific measurement or salt-concentration retrieval.
 
-2. **Hydrocarbons (HCAI - Hydrocarbon Absorption Index)**
+2. **SWIR1–Red Contrast (HCAI legacy)**
    * **Bands:** SWIR1 (B11) and Red (B04)
    * **Formula:** `(B11 - B04) / (B11 + B04)`
-   * **Logic:** Crude oil strongly absorbs visible red light but reflects SWIR. This distinct ratio separates oil-laced produced water from clean agricultural or natural water.
-   * **Scientific Basis:** Hydrocarbons exhibit specific absorption features in the Red and SWIR wavelengths. Ratios contrasting these broad bands help identify petroleum hydrocarbons on dry soil surfaces (*Kühn et al., 2004*).
+   * **Logic:** The ratio responds to broad SWIR1 and red reflectance differences and is strongly confounded by soil color, iron oxides, vegetation, moisture, and illumination.
+   * **Scientific Basis:** Kühn et al. used a narrow hyperspectral absorption feature; this Sentinel-2 ratio does not reproduce that retrieval and must not be called petroleum measurement.
 
-3. **Heavy Metals / Mineral Stress (HMRI - Heavy Metal Reflectance Index)**
+3. **SWIR2/Green Contrast (HMRI legacy)**
    * **Bands:** SWIR2 (B12) and Green (B03)
    * **Formula:** `B12 / B03`
-   * **Logic:** Severe soil contamination from heavy metals (barium, strontium) alters background mineralogy and induces extreme localized vegetation death, causing an anomalous spike in the SWIR-to-Green reflectance ratio.
-   * **Scientific Basis:** Heavy metal toxicity severely depresses visible (Green) reflectance while often increasing SWIR reflectance due to the destruction of cellular structure and mineral precipitation (*Choe et al., 2008*).
+   * **Logic:** The ratio responds to broad surface brightness, vegetation, moisture, substrate, and mineralogical differences.
+   * **Scientific Basis:** Heavy-metal remote sensing requires field concentrations and calibrated multivariate models; B12/B03 does not identify barium, strontium, radium, or total metal concentration.
 
 ---
 
@@ -49,12 +49,11 @@ The Permian Basin's high albedo (brightness) from white/tan caliche sand and gyp
 
 Before multiplying the signatures together, each metric must surpass an extreme regional threshold to register a "Score" above zero.
 
-* **Brine Score:** `Math.max(0, NDSI - 0.10)`
-  * *Justification:* Typical dry Permian soil ranges from 0.05–0.10. We completely subtract the 0.10 baseline so only regions significantly saltier than background soil (pushing past 0.10) register as brine.
-* **Hydrocarbon Score:** `Math.max(0, (HCAI - 0.30) * 2)`
-  * *Justification:* Red dirt normally peaks at an HCAI of 0.25–0.30. Heavy oil contamination starts at 0.40+. We subtract the 0.30 baseline, ensuring natural iron-rich soils do not trigger the index, and multiply by 2 for scaling.
-* **Heavy Metal Score:** `Math.max(0, (HMRI - 2.0) * 2)`
-  * *Justification:* Natural Permian caliche sits at ~1.0, and normal red soil ranges from 1.5–1.9. Severe contamination altering the soil chemistry pushes the ratio past 2.0. By subtracting 2.0, we isolate only the severely impacted zones.
+* **Dual-SWIR score:** `Math.max(0, NDSI - 0.10)`
+* **SWIR1–Red score:** `Math.max(0, (HCAI - 0.30) * 2)`
+* **SWIR2/Green score:** `Math.max(0, (HMRI - 2.0) * 2)`
+
+These are historical regional screening thresholds, not empirically calibrated chemical concentration boundaries. The July 2026 sweep showed that their product does not usefully separate the tested spills from Permian caliche.
 
 ### The Composite Equation
 
@@ -81,4 +80,4 @@ When a pixel successfully traverses the threshold gates, it is mapped using a hi
 * `0.0`: Transparent / Black (Background)
 * `0.1`: Cyan
 * `0.5`: Magenta
-* `1.0`: Neon Yellow (Confirmed, extreme concentration spill)
+* `1.0`: Neon Yellow (highest display response; not chemical confirmation)

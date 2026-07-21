@@ -820,6 +820,10 @@ button {
 }
 
 .sentinel-guard-mini {
+    padding: 0;
+    margin: 0;
+    min-width: 0;
+    border: 0;
     display: grid;
     grid-template-columns: auto minmax(70px, 96px);
     grid-template-rows: auto auto;
@@ -829,6 +833,23 @@ button {
     margin-left: 2px;
     border-left: 1px solid rgba(255, 255, 255, 0.08);
     min-width: 178px;
+}
+
+.skip-link {
+    position: fixed;
+    top: 8px;
+    left: 8px;
+    z-index: 1000000;
+    padding: 10px 14px;
+    border-radius: 6px;
+    background: #ffffff;
+    color: #111111;
+    font-weight: 700;
+    transform: translateY(-160%);
+}
+
+.skip-link:focus {
+    transform: translateY(0);
 }
 
 .sentinel-live-toggle {
@@ -1376,6 +1397,118 @@ button {
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
     padding-bottom: 8px;
     font-weight: 700;
+}
+
+.suite-heading-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 12px;
+    padding-bottom: 9px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.suite-heading-row h3 {
+    margin: 0 0 3px 0;
+    padding: 0;
+    border: 0;
+}
+
+.suite-heading-row p,
+.suite-note {
+    margin: 0;
+    color: rgba(255, 255, 255, 0.48);
+    font-size: 10px;
+    line-height: 1.4;
+}
+
+.quality-chip {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    min-height: 22px;
+    padding: 3px 7px;
+    border: 1px solid rgba(0, 255, 178, 0.3);
+    border-radius: 999px;
+    background: rgba(0, 255, 178, 0.07);
+    color: #8fffd9;
+    font-family: var(--font-mono);
+    font-size: 8px;
+    line-height: 1;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+.quality-chip--conditional {
+    border-color: rgba(255, 183, 77, 0.28);
+    background: rgba(255, 183, 77, 0.07);
+    color: #ffd59b;
+}
+
+.suite-negative-result,
+.suite-research-library {
+    padding: 0;
+    overflow: hidden;
+    border-top-color: rgba(255, 183, 77, 0.72);
+}
+
+.suite-research-library {
+    border-top-color: rgba(148, 163, 184, 0.6);
+}
+
+.suite-negative-result > summary,
+.suite-research-library > summary {
+    padding: 13px 14px;
+    cursor: pointer;
+    color: rgba(255, 255, 255, 0.72);
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    line-height: 1.35;
+    text-transform: uppercase;
+}
+
+.suite-negative-result[open] > summary,
+.suite-research-library[open] > summary {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.suite-negative-result .suite-note,
+.suite-negative-result .index-grid,
+.suite-research-library .index-grid {
+    margin: 12px;
+}
+
+.investigation-action-btn {
+    width: 100%;
+    min-height: 38px;
+    margin-top: 10px;
+    padding: 9px 12px;
+    border: 1px solid rgba(0, 210, 255, 0.26);
+    border-radius: 8px;
+    background: linear-gradient(110deg, rgba(0, 210, 255, 0.10), rgba(0, 255, 178, 0.04));
+    color: #b9f4ff;
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: border-color 0.18s ease, background 0.18s ease, transform 0.18s ease;
+}
+
+.investigation-action-btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    border-color: rgba(0, 210, 255, 0.6);
+    background: linear-gradient(110deg, rgba(0, 210, 255, 0.17), rgba(0, 255, 178, 0.08));
+}
+
+.investigation-action-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
 }
 
 /* Suite Theme Accents */
@@ -3186,6 +3319,13 @@ input[type=range]::-webkit-slider-runnable-track {
     line-height: 1.35;
 }
 
+.workflow-quality-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 8px;
+}
+
 .triage-grid {
     display: flex;
     flex-direction: column;
@@ -3256,6 +3396,40 @@ input[type=range]::-webkit-slider-runnable-track {
     margin-bottom: 8px;
 }
 
+.triage-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin: 2px 0 9px;
+}
+
+.triage-actions .investigation-action-btn {
+    margin: 0;
+}
+
+.triage-research-details {
+    margin-top: 8px;
+    border: 1px solid rgba(255, 183, 77, 0.16);
+    border-radius: 8px;
+    background: rgba(255, 183, 77, 0.025);
+}
+
+.triage-research-details summary {
+    padding: 9px 10px;
+    color: rgba(255, 218, 166, 0.66);
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: 8px;
+    line-height: 1.35;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.triage-tags--research {
+    margin: 0;
+    padding: 0 8px 8px;
+}
+
 /* Triage lens pills — same card DNA as .index-btn in Suite Grid */
 .triage-tag-pill {
     appearance: none;
@@ -3304,6 +3478,15 @@ input[type=range]::-webkit-slider-runnable-track {
 .triage-tag-pill[data-index="fbc"]  { --pill-gradient: linear-gradient(to right, #1a0800, #8b2500, #d4581a, #ffb347); }
 .triage-tag-pill[data-index="vsi"]  { --pill-gradient: linear-gradient(to right, #005500, #ffff00, #ff8800, #ff0000); }
 .triage-tag-pill[data-index="mvpi"] { --pill-gradient: linear-gradient(to right, #0d171b, #f57814, #ffb400); }
+.triage-tag-pill[data-index="tc"] { --pill-gradient: linear-gradient(to right, #a04830, #6a9b5b, #3d78a8); }
+.triage-tag-pill[data-index="ndwi"],
+.triage-tag-pill[data-index="awei"] { --pill-gradient: linear-gradient(to right, #5b3b1f, #2f9dbf, #084380); }
+.triage-tag-pill[data-index="ndmi"] { --pill-gradient: linear-gradient(to right, #d46a24, #efd87a, #1c85a6); }
+.triage-tag-pill[data-index="savi"],
+.triage-tag-pill[data-index="ndre"] { --pill-gradient: linear-gradient(to right, #a07832, #d2b43c, #146428); }
+.triage-tag-pill[data-index="bsi"] { --pill-gradient: linear-gradient(to right, #448833, #d2b43c, #a07832); }
+.triage-tag-pill[data-index="ndsi"] { --pill-gradient: linear-gradient(to right, #0a3c64, #f0501e, #e61414); }
+.triage-tag-pill[data-index="swir_rgb"] { --pill-gradient: linear-gradient(to right, #5d2338, #b79448, #f2e7cf); }
 
 /* Interactive when card is active */
 .triage-card.active .triage-tag-pill {
@@ -3322,6 +3505,13 @@ input[type=range]::-webkit-slider-runnable-track {
 .triage-card.active .triage-tag-pill:hover::before,
 .triage-card.active .triage-tag-pill.active::before {
     opacity: 0.8;
+}
+
+.triage-card.active .triage-tag-pill.active {
+    color: #d8f8ff;
+    border-color: rgba(0, 210, 255, 0.72);
+    background: linear-gradient(135deg, rgba(0, 210, 255, 0.11), rgba(0, 255, 178, 0.04));
+    box-shadow: inset 0 0 14px rgba(0, 210, 255, 0.08);
 }
 
 /* Per-index active states — mirror index-btn theming */

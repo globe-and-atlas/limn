@@ -13,6 +13,22 @@ This is the current claim boundary for both applications. Core Limn and Limn Atl
 
 These are implemented screening architectures. The component ratios are broad optical proxies; they are not direct retrievals of produced water, hydrocarbons, heavy metals, oil emulsions, or brine concentration.
 
+### Operational investigation stack (2026-07-21)
+
+The interface now defaults to **True Color**, not an experimental composite. Its recommended evidence order is:
+
+1. inspect True Color and the documented event/date metadata;
+2. confirm that the target pixels survive SCL quality filtering;
+3. compare pre-event and event/post-event imagery with the before/after swipe;
+4. cross-check water boundaries with MNDWI and AWEIsh;
+5. inspect NDMI, SAVI/NDRE, BSI, dual-SWIR contrast, and B12/B11/B04 false color for moisture, vegetation, bare-surface, and SWIR context;
+6. inspect LBI as a preliminary liquid/salinity-response hypothesis;
+7. open PWCI, ASAI, and OBEC only as reproducible negative-result comparisons.
+
+AWEIsh, MNDWI, NDMI, SAVI, BSI, NDRE, and SWIR false color add independent or complementary surface context; they do not become produced-water detectors when viewed together. Agreement among correlated optical ratios is not independent confirmation. Sentinel-1 VV is exposed as a separate roughness/moisture-sensitive surface view, but the app does not claim orbit-matched SAR change detection.
+
+Primary L2A COG/GEE optical paths use Sentinel-2 SCL classes 4–7 as a screenable-pixel allow-list and mask classes 0–3 and 8–11. This rejects no-data, saturated/defective, dark-feature, shadow, cloud/cirrus, and snow/ice pixels. The optional bundled Sentinel Hub WMS carrier is L1C and cannot supply SCL; Limn disables the SCL gate only for that provider and labels the limitation. Residual haze, adjacency effects, mixed pixels, scene mismatch, and substrate confounding can remain under every provider.
+
 ### What the July controls found
 
 | Configuration | PWCI | ASAI | OBEC | Interpretation |
@@ -26,11 +42,11 @@ A 1,224-combination PWCI threshold sweep found no useful operating point at the 
 
 ### LBI preliminary result
 
-The current small-sample study contains 4 standing-brine sites, 3 freshwater/brackish controls, and 150 caliche background points. LBI showed low caliche activation but overlapping standing-brine and freshwater responses. It is therefore labeled **Liquid/Salinity Response Index** in the app and must not be called brine-specific or a validated produced-water detector. The per-pixel standing-water study remains the next decisive test.
+The current small-sample study contains 4 standing-brine sites, 3 freshwater/brackish controls, and 150 caliche background points. LBI activated at 2/4 standing-brine sites and 0/3 freshwater controls at the reviewed threshold, but the sample is too small for discrimination claims (two-sided Fisher exact p≈0.43), and per-pixel responses still overlap across water types. It is therefore labeled **Liquid/Salinity Response Index** in the app and must not be called brine-specific or a validated produced-water detector. The next decisive test is a larger, pre-registered, geographically independent standing-water dataset with paired field salinity or conductivity.
 
 ### Bookmark status
 
-`execution/qc_limn_spill_bookmarks.py --fail-on-fail` passes all 13 current bookmarks. Event dates, imagery-date roles, source URLs, evidence classes, and coordinate-precision labels are internally consistent. These are representative inspection sites; evidence-class labels describe the documented event context, not successful spectral detection.
+`execution/qc_limn_spill_bookmarks.py --fail-on-fail` is the release check for the 13 current bookmarks. Event dates, imagery-date roles, source URLs, evidence classes, and coordinate-precision labels must remain internally consistent. The bookmark notes now route users to True Color, before/after, and complementary context lenses; they do not label a site as proof of a spectral method. These are representative inspection sites, and evidence-class labels describe documented event context—not successful spectral detection.
 
 ## Limn Atlas: research catalog and renderer
 

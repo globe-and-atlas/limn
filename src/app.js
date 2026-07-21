@@ -9,7 +9,6 @@ import {
     CALIBRATION_PRESETS, 
     genEvalscript, 
     genDiffEvalscript, 
-    genDeepFusionEvalscript, 
     genCumulativeEvalscript,
     colorBlend,
     PALETTE_NDMI,
@@ -52,7 +51,7 @@ import {
     closeReportModal,
     initRrcSpillOverlay,
     downloadHTMLReport
-} from './report.js?v=77';
+} from './report.js?v=78';
 import {
     initLeafletMap,
     applyIndex as applyIndexDelegate,
@@ -60,12 +59,12 @@ import {
     getScriptContent,
     getImageryProvider,
     getIndexLayer
-} from './map.js?v=77';
+} from './map.js?v=78';
 import {
     showToast as showToastDelegate,
     switchTab,
     updateUI as updateUIDelegate
-} from './ui.js?v=77';
+} from './ui.js?v=78';
 
 const AOI_LOCATIONS = {
     dixon: { lat: 31.893285, lng: -101.864031, zoom: 15 },
@@ -93,8 +92,8 @@ const SPILL_BOOKMARKS = [
         eventDate: 'continuous since ~2003',
         dateRole: 'representative continuous imagery date',
         confidence: 'High (Exact GPS)',
-        note: 'The ultimate calibration site. 60-acre hyper-saline lake in Pecos County continuously fed by a legacy 1951 Gulf Oil dry hole. Current proof/support targets: OBEC and ASAI sharply isolate the standing brine lake, while LBI shows the active liquid-brine body. Strict PWCI intentionally stays off open water.',
-        indices: ['hpwi', 'lbi', 'pwoi'],
+        note: 'Representative chronic-standing-water context. This 60-acre saline lake in Pecos County is associated with a legacy oil well. Inspect True Color, MNDWI/AWEI, SWIR context, and LBI together; a visible response documents surface-water context, not brine chemistry or produced-water specificity. PWCI, ASAI, and OBEC are retained only for negative-result comparison.',
+        indices: ['tc', 'ndwi', 'awei', 'swir_rgb', 'lbi'],
     },
     {
         id: 'meister-2022',
@@ -113,8 +112,8 @@ const SPILL_BOOKMARKS = [
         eventDate: '2022-01-02/2022-01-14',
         dateRole: 'event-window imagery date',
         confidence: 'High (Exact GPS)',
-        note: 'Abandoned 1946 Gulf Oil dry hole erupted a 100-ft brine geyser due to SWD injection-induced overpressure. Loop-reviewed proof path uses LBI at the documented coordinates and event-window date. PWCI and ASAI were blank at the measured proof frames, so this bookmark should demo liquid-brine signal rather than dry salt-crust chemistry.',
-        indices: ['lbi'],
+        note: 'Documented event-window inspection site for the January 2022 brine geyser. Use True Color, before/after comparison, water/moisture lenses, and LBI as complementary surface context. PWCI and ASAI were blank in reviewed frames; no displayed lens establishes source or chemistry.',
+        indices: ['tc', 'ndwi', 'awei', 'ndmi', 'lbi'],
     },
     {
         id: 'crane-crevice-2023',
@@ -133,8 +132,8 @@ const SPILL_BOOKMARKS = [
         eventDate: '2023-12-07',
         dateRole: 'event start imagery date',
         confidence: 'Medium (~0.5km)',
-        note: '300-ft ground crevice emitting 13,000 gal/hr of saline produced water, causing a 30-acre vegetation kill zone. Loop-reviewed proof path uses LBI at the documented crevice coordinates; PWCI was blank under strict gates.',
-        indices: ['lbi'],
+        note: 'Documented December 2023 event-context site for a large saline-water release and vegetation impact. Use True Color, before/after, water/moisture, vegetation, and SWIR lenses together. LBI may show liquid/salinity response, while PWCI was blank under strict gates; neither result establishes source or chemistry.',
+        indices: ['tc', 'ndwi', 'awei', 'ndmi', 'savi', 'ndre', 'swir_rgb', 'lbi'],
     },
     {
         id: 'toyah-2024',
@@ -211,7 +210,7 @@ const SPILL_BOOKMARKS = [
         eventDate: '2023-03-29',
         dateRole: 'event date',
         confidence: 'Medium (~1.5km)',
-        note: 'El Dorado Crude Station pipeline rupture south of Midland. 400,000+ gal of crude spilled. Negative-control target: PWCI and ASAI stay blank/weak here, supporting produced-water specificity against a crude-oil event.',
+        note: 'Approximate-location crude-oil event retained as a qualitative cross-material context site. Blank or weak PWCI/ASAI response here does not establish produced-water specificity; the coordinate uncertainty and single event make it unsuitable as a standalone validation control.',
         indices: [],
     },
     {
@@ -307,8 +306,8 @@ const SPILL_BOOKMARKS = [
         eventDate: '2026-05-24',
         dateRole: 'event date',
         confidence: 'High (Exact NMOCD row)',
-        note: 'NMOCD row nAPP2614556829 documents a major OXY produced-water release from an injection flowline in Lea County: 942 BBL released and 412 BBL lost. Current baseline support uses LBI; strict PWCI, ASAI, and OBEC are blank or weak in the available scene.',
-        indices: ['lbi'],
+        note: 'NMOCD row nAPP2614556829 documents a produced-water release from an injection flowline in Lea County: 942 BBL released and 412 BBL lost. Treat the bookmark as event context: inspect True Color, before/after, moisture/water, bare-soil, and SWIR lenses. Strict PWCI, ASAI, and OBEC are blank or weak in the available scene.',
+        indices: ['tc', 'ndmi', 'ndwi', 'bsi', 'swir_rgb', 'lbi'],
     },
     {
         id: 'oxy-sand-dunes-2026',
@@ -333,12 +332,21 @@ const SPILL_BOOKMARKS = [
 
 const INDEX_SHORT_LABELS = {
     pwi: 'PWCI', pwoi: 'ASAI', hpwi: 'OBEC', ehc: 'EHC', lbi: 'LBI', bpi: 'BPI', fbc: 'FBC', vsi: 'VSI', mvpi: 'MVPI',
+    tc: 'RGB', ndwi: 'MNDWI', ndmi: 'NDMI', savi: 'SAVI', bsi: 'BSI', ndsi: 'SWIR Δ',
+    awei: 'AWEI', ndre: 'NDRE', swir_rgb: 'SWIR RGB', s1_sar: 'S1',
 };
 const DEFAULT_SPILL_ID = 'lake-boehmer-pecos-orphan';
-const DEFAULT_INDEX = 'hpwi';
+const DEFAULT_INDEX = 'tc';
 const COG_PROVIDER_KEYS = new Set(['cog', 'sentinel-cog', 'sentinel2-cog']);
-const COG_SUPPORTED_INDEX_KEYS = new Set(['none', 'tc', 'truecolor', 'true-color', 'pwi', 'hpwi', 'pwoi', 'lbi']);
-const COG_SCREEN_INDEX_KEYS = new Set(['hpwi', 'lbi', 'pwoi', 'pwi']);
+const COG_SUPPORTED_INDEX_KEYS = new Set([
+    'none', 'tc', 'truecolor', 'true-color', 'swir_rgb',
+    'awei', 'ndre', 'ndmi', 'ndwi', 'ndvi', 'savi', 'bsi', 'ndsi',
+    'pwi', 'hpwi', 'pwoi', 'lbi'
+]);
+const COG_SCREEN_INDEX_KEYS = new Set([
+    'tc', 'lbi', 'ndwi', 'awei', 'ndmi', 'savi', 'bsi', 'ndsi', 'swir_rgb', 'ndre',
+    'pwi', 'pwoi', 'hpwi'
+]);
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const START_YEAR = 2020;
@@ -370,7 +378,7 @@ while (iterDate <= today) {
 const SH_WMS_URL = 'https://sh.dataspace.copernicus.eu/ogc/wms/959ea2c5-5892-4b36-82b3-76e6bdb93c8a';
 const SH_STAT_API_URL = 'https://sh.dataspace.copernicus.eu/api/v1/statistics';
 
-const APP_VERSION = 'v49';
+const APP_VERSION = 'v50';
 
 const internalAppConfig = {
     IMAGE_PROVIDER: 'cog',
@@ -380,6 +388,9 @@ const internalAppConfig = {
     SENTINEL_CREDIT_GUARD: true,
     SENTINEL_LIVE_TILES: false,
     SENTINEL_MIN_ZOOM: 14,
+    // The bundled AGRICULTURE WMS layer is Sentinel-2 L1C and has no SCL band.
+    // Set true only when SH_WMS_URL/layer points to an L2A configuration.
+    SENTINEL_WMS_SUPPORTS_SCL: false,
     SH_WMS_URL,
     SH_STAT_API_URL,
     ALL_DATES,
@@ -448,6 +459,23 @@ function isGeeProviderActive() {
 function sentinelFeatureUnavailable(featureName) {
     const providerLabel = isCogProviderActive() ? 'Sentinel-2 COG tiles' : 'Earth Engine tiles';
     showToast(`${featureName} still uses Sentinel Hub/CDSE. ${providerLabel} are enabled by default, so this action is paused until a provider-neutral analytics endpoint is wired.`, 'warning');
+}
+
+function updateAnalyticsControlAvailability() {
+    const hasAoi = Boolean(window.aoiDrawnItem);
+    const sentinelAnalyticsReady = !isGeeProviderActive();
+    const unavailableReason = sentinelAnalyticsReady
+        ? 'Draw an Area of Interest first.'
+        : 'Requires the guarded Sentinel analytics provider; COG/GEE currently supply map tiles only.';
+
+    ['btn-scan-aoi', 'btn-generate-report'].forEach(id => {
+        const button = document.getElementById(id);
+        if (!button) return;
+        const enabled = hasAoi && sentinelAnalyticsReady;
+        button.disabled = !enabled;
+        button.setAttribute('aria-disabled', enabled ? 'false' : 'true');
+        button.title = enabled ? '' : unavailableReason;
+    });
 }
 
 async function probeAcquisitions() {
@@ -689,7 +717,7 @@ function updateWorkflowSummary(spill = getActiveSpill(), indexKey = state.active
     const evidenceEl = document.getElementById('workflow-evidence');
 
     if (lensEl) {
-        const shortLabel = INDEX_SHORT_LABELS[indexKey] || indexKey.toUpperCase();
+        const shortLabel = indexKey === 'tc' ? 'True Color' : (INDEX_SHORT_LABELS[indexKey] || indexKey.toUpperCase());
         const longName = indexConfig?.name?.replace(/\s*\(formerly.*?\)/i, '') || shortLabel;
         lensEl.textContent = shortLabel;
         lensEl.title = longName;
@@ -700,6 +728,29 @@ function updateWorkflowSummary(spill = getActiveSpill(), indexKey = state.active
         const displayDate = spill.displayDate || spill.date;
         evidenceEl.textContent = `${displayDate} · ${evidenceClass}`;
     }
+    updateWorkflowTemporalStatus();
+}
+
+function updateWorkflowTemporalStatus() {
+    const temporalStatus = document.getElementById('workflow-temporal-status');
+    if (!temporalStatus) return;
+    temporalStatus.textContent = state.mode === 'compare'
+        ? (state.compareType === 'swipe' ? 'Before / after active' : 'Change view active')
+        : 'Single scene';
+    temporalStatus.classList.toggle('quality-chip--conditional', state.mode !== 'compare');
+}
+
+function updatePixelQualityStatus() {
+    const config = getActiveConfig();
+    const provider = getActiveProvider();
+    const sclAvailable = provider !== 'sentinelhub' || config.SENTINEL_WMS_SUPPORTS_SCL === true;
+    document.querySelectorAll('[data-quality="scl"]').forEach(chip => {
+        chip.textContent = sclAvailable ? 'SCL pixel QA on' : 'WMS: no SCL band';
+        chip.classList.toggle('quality-chip--conditional', !sclAvailable);
+        chip.title = sclAvailable
+            ? 'Sentinel-2 Scene Classification masks cloud, shadow, snow, saturated, dark-feature, and no-data pixels.'
+            : 'The active Sentinel Hub WMS layer is Sentinel-2 L1C, which has no SCL band. Limn omits the SCL gate for this provider; use COG/GEE or an L2A WMS configuration for pixel-level SCL QA.';
+    });
 }
 
 function markActiveWorkflowControls() {
@@ -772,7 +823,7 @@ function enforceCogIndexSupport({ silent = false } = {}) {
     state.indexVisible = true;
     if (!silent && previousIndex !== lastCogUnsupportedToast) {
         const label = INDEX_SHORT_LABELS[previousIndex] || previousIndex.toUpperCase();
-        showToast(`${label} is not ported to the COG renderer yet. Switched to OBEC for the current demo provider.`, 'warning');
+        showToast(`${label} is not ported to the COG renderer yet. Switched to True Color for the current provider.`, 'warning');
         lastCogUnsupportedToast = previousIndex;
     }
     return false;
@@ -810,6 +861,12 @@ function setCogUiAvailability() {
         pill.classList.toggle('is-provider-disabled', !visible);
     });
 
+    document.querySelectorAll('.sar-action').forEach(button => {
+        button.disabled = isCog;
+        button.setAttribute('aria-disabled', isCog ? 'true' : 'false');
+        button.title = isCog ? 'Sentinel-1 context requires the guarded Sentinel provider.' : 'Open Sentinel-1 surface context in compare mode.';
+    });
+
     const btnSwipe = document.getElementById('btn-swipe');
     const btnDiff = document.getElementById('btn-diff');
     const btnCumulative = document.getElementById('btn-cumulative');
@@ -824,6 +881,9 @@ function setCogUiAvailability() {
             btn.title = isCog ? 'COG mode supports single-date and swipe compare only.' : '';
         });
     }
+    updateAnalyticsControlAvailability();
+    updateWorkflowTemporalStatus();
+    updatePixelQualityStatus();
 }
 
 function syncSentinelCreditGuardState() {
@@ -855,6 +915,7 @@ function updateSentinelGuardUI() {
     const status = document.getElementById('sentinel-guard-status');
     const guardMini = document.querySelector('.sentinel-guard-mini');
     const shareMode = isSentinelOnlyShareMode();
+    updatePixelQualityStatus();
 
     if (toggle) {
         toggle.checked = shareMode ? true : sentinelActive;
@@ -1118,6 +1179,7 @@ function bindEvents() {
         state.mode = 'single';
         mSing.classList.add('active'); mComp.classList.remove('active');
         cSing.style.display = 'block'; cComp.style.display = 'none';
+        updateWorkflowTemporalStatus();
         applyIndex();
     });
 
@@ -1126,10 +1188,7 @@ function bindEvents() {
         enforceCogTemporalConstraints();
         mComp.classList.add('active'); mSing.classList.remove('active');
         cComp.style.display = 'block'; cSing.style.display = 'none';
-
-
-
-
+        updateWorkflowTemporalStatus();
         applyIndex();
     });
 
@@ -1143,6 +1202,7 @@ function bindEvents() {
             document.getElementById('btn-swipe').classList.add('active');
             document.getElementById('btn-diff').classList.remove('active');
             document.getElementById('btn-cumulative').classList.remove('active');
+            updateWorkflowTemporalStatus();
             applyIndex();
         });
         document.getElementById('btn-diff').addEventListener('click', () => {
@@ -1151,6 +1211,7 @@ function bindEvents() {
             document.getElementById('btn-diff').classList.add('active');
             document.getElementById('btn-swipe').classList.remove('active');
             document.getElementById('btn-cumulative').classList.remove('active');
+            updateWorkflowTemporalStatus();
             applyIndex();
         });
         document.getElementById('btn-cumulative').addEventListener('click', () => {
@@ -1159,6 +1220,7 @@ function bindEvents() {
             document.getElementById('btn-cumulative').classList.add('active');
             document.getElementById('btn-swipe').classList.remove('active');
             document.getElementById('btn-diff').classList.remove('active');
+            updateWorkflowTemporalStatus();
             applyIndex();
         });
     }
@@ -1252,6 +1314,16 @@ function bindEvents() {
             applyIndex();
         });
     });
+
+    const primaryCompare = document.getElementById('btn-primary-compare');
+    if (primaryCompare) {
+        primaryCompare.addEventListener('click', () => {
+            document.querySelector('.ui-mode-btn[data-layout="suite-grid"]')?.click();
+            document.querySelector('.tab-btn[data-tab="analysis"]')?.click();
+            document.getElementById('mode-compare')?.click();
+            document.getElementById('btn-swipe')?.click();
+        });
+    }
 
     // Location Buttons
     document.querySelectorAll('.loc-btn').forEach(btn => {
@@ -1350,11 +1422,11 @@ function bindEvents() {
         btn.addEventListener('click', (e) => {
             document.querySelectorAll('.layer-toggle').forEach(b => {
                 b.classList.remove('active');
-                b.setAttribute('aria-checked', 'false');
+                b.setAttribute('aria-pressed', 'false');
             });
             let target = e.currentTarget;
             target.classList.add('active');
-            target.setAttribute('aria-checked', 'true');
+            target.setAttribute('aria-pressed', 'true');
 
             const lKey = target.dataset.layer;
             state.map.removeLayer(state.baseLayerInst);
@@ -1546,7 +1618,7 @@ function bindEvents() {
     document.getElementById('btn-draw-aoi').addEventListener('click', () => {
         state.drawnItems.clearLayers();
         window.aoiDrawnItem = null;
-        document.getElementById('btn-generate-report').disabled = true;
+        updateAnalyticsControlAvailability();
         drawPoly.disable();
         drawRect.enable();
     });
@@ -1554,7 +1626,7 @@ function bindEvents() {
     document.getElementById('btn-draw-poly').addEventListener('click', () => {
         state.drawnItems.clearLayers();
         window.aoiDrawnItem = null;
-        document.getElementById('btn-generate-report').disabled = true;
+        updateAnalyticsControlAvailability();
         drawRect.disable();
         drawPoly.enable();
     });
@@ -1563,9 +1635,7 @@ function bindEvents() {
         let layer = e.layer;
         state.drawnItems.addLayer(layer);
         window.aoiDrawnItem = layer;
-        document.getElementById('btn-generate-report').disabled = false;
-        const scanBtn = document.getElementById('btn-scan-aoi');
-        if (scanBtn) scanBtn.disabled = false;
+        updateAnalyticsControlAvailability();
     });
 
     document.getElementById('btn-scan-aoi').addEventListener('click', async () => {
@@ -1602,7 +1672,7 @@ function bindEvents() {
 const DETECTION_SENSITIVITY = ${state.sensitivity / 100};
 function setup() {
   return {
-    input: ["B02", "B03", "B04", "B05", "B07", "B08", "B11", "B12", "B8A", "dataMask"],
+    input: ["B02", "B03", "B04", "B05", "B07", "B08", "B11", "B12", "B8A", "SCL", "dataMask"],
     output: [
       { id: "default", bands: 10, sampleType: "FLOAT32" },
       { id: "dataMask", bands: 1, sampleType: "UINT8" }
@@ -1610,7 +1680,8 @@ function setup() {
   };
 }
 function evaluatePixel(sample) {
-  if (sample.dataMask === 0) return { default: [NaN,NaN,NaN,NaN,NaN,NaN,NaN,NaN,NaN,NaN], dataMask: [0] };
+  const clearPixel = sample.SCL === 4 || sample.SCL === 5 || sample.SCL === 6 || sample.SCL === 7;
+  if (sample.dataMask === 0 || !clearPixel) return { default: [NaN,NaN,NaN,NaN,NaN,NaN,NaN,NaN,NaN,NaN], dataMask: [0] };
 
   // Shared intermediates
   let ndsiSum = sample.B11 + sample.B12;
@@ -2001,7 +2072,7 @@ function evaluatePixel(sample) {
                 document.getElementById('report-time').innerText = `${t1Obj ? t1Obj.displayStr : d1} to ${t2Obj ? t2Obj.displayStr : d2} (Change Analysis)`;
             }
 
-            let isOptical = (state.activeIndex === 'tc' || state.activeIndex === 'fc');
+                let isOptical = ['tc', 'fc', 'swir_rgb'].includes(state.activeIndex);
             const btn = document.getElementById('btn-generate-report');
             const chartSection = document.querySelector('.report-chart');
 
@@ -2014,10 +2085,10 @@ function evaluatePixel(sample) {
                 btn.innerText = "Querying Database...";
                 btn.disabled = true;
 
-                let extraBands = ['B8A', 'B11', 'B03', 'B12'];
+                const isSar = state.activeIndex === 's1_sar';
+                let extraBands = isSar ? [] : ['B8A', 'B11', 'B03', 'B12', 'SCL'];
                 let allBands = [...new Set([...idx.fisBands, ...extraBands])];
                 let bandsStr = allBands.map(b => `'${b}'`).join(', ');
-                const isSar = state.activeIndex === 's1_sar';
                 const isSpill = ['pwi', 'pwoi', 'hpwi', 'ehc', 'lbi', 'fbc', 'reai', 'vcbi', 'aoi', 'cma', 'hmi', 'phi', 'tri', 'bpi'].includes(state.activeIndex);
                 const activeSensitivity = isSpill ? (state.sensitivity || 0) : 0;
 
@@ -2034,7 +2105,8 @@ function setup() {
 }
 function evaluatePixel(sample) {
   let mask = sample.dataMask;
-  if (mask === 0) return { default: ${isSar ? '[NaN]' : '[NaN, NaN, NaN, NaN]'}, dataMask: [0] };
+  const clearPixel = ${isSar ? 'true' : '(sample.SCL === 4 || sample.SCL === 5 || sample.SCL === 6 || sample.SCL === 7)'};
+  if (mask === 0 || !clearPixel) return { default: ${isSar ? '[NaN]' : '[NaN, NaN, NaN, NaN]'}, dataMask: [0] };
   
   let val_active = (function() {
     ${idx.fisLogic}
@@ -3087,7 +3159,7 @@ export function renderFocusedTriage() {
         // Add event listener to the card itself
         newCard.addEventListener('click', (e) => {
             // If the user clicked on a specific pill, we handle it separately in the pill click
-            if (e.target.classList.contains('triage-tag-pill')) {
+            if (e.target.closest('button, summary, details')) {
                 return;
             }
             
@@ -3123,6 +3195,26 @@ export function renderFocusedTriage() {
                 
                 const indexKey = pill.dataset.index;
                 activateIndex(indexKey, newCard);
+            });
+        });
+
+        newCard.querySelectorAll('.compare-action').forEach(button => {
+            button.addEventListener('click', (event) => {
+                event.stopPropagation();
+                document.querySelector('.ui-mode-btn[data-layout="suite-grid"]')?.click();
+                document.querySelector('.tab-btn[data-tab="analysis"]')?.click();
+                document.getElementById('mode-compare')?.click();
+                document.getElementById('btn-swipe')?.click();
+            });
+        });
+
+        newCard.querySelectorAll('.sar-action').forEach(button => {
+            button.addEventListener('click', (event) => {
+                event.stopPropagation();
+                if (button.disabled || !isIndexProviderReady('s1_sar')) return;
+                activateIndex('s1_sar', newCard);
+                document.getElementById('mode-compare')?.click();
+                document.getElementById('btn-diff')?.click();
             });
         });
 
@@ -3278,9 +3370,9 @@ export function renderCommandConsole() {
     
     // Tag categories map
     const tagMap = {
-        water: ['lbi', 'ndwi'],
-        vegetation: ['vsi', 'ndvi', 'vcbi'],
-        soil: ['bpi', 'cma', 'bsi', 'reai', 'aoi', 'fbc'],
+        water: ['lbi', 'ndwi', 'awei', 'ndmi'],
+        vegetation: ['savi', 'ndre', 'ndvi', 'vsi', 'vcbi'],
+        soil: ['bsi', 'ndsi', 'swir_rgb', 'bpi', 'cma', 'reai', 'aoi', 'fbc'],
         oilgas: ['pwi', 'pwoi', 'hpwi', 'lbi', 'bpi', 'tri', 'phi', 'cma', 'hmi', 'ehc', 'aoi', 'fbc', 'reai', 'vcbi', 'mvpi']
     };
 
@@ -3293,8 +3385,6 @@ export function renderCommandConsole() {
         const matches = Object.keys(INDICES).filter(key => {
             const idx = INDICES[key];
             if (key === 'none') return false;
-            if (!isIndexProviderReady(key)) return false;
-            
             // Tag filtering
             if (activeTag && (!tagMap[activeTag] || !tagMap[activeTag].includes(key))) {
                 return false;
@@ -3319,6 +3409,10 @@ export function renderCommandConsole() {
             const btn = document.createElement('button');
             btn.className = `index-btn idx-${key}`;
             if (state.activeIndex === key) btn.classList.add('active');
+            const providerReady = isIndexProviderReady(key);
+            btn.disabled = !providerReady;
+            btn.setAttribute('aria-disabled', providerReady ? 'false' : 'true');
+            if (!providerReady) btn.title = 'Listed for scientific reference; not available in the current COG renderer.';
             
             btn.innerHTML = `
                 <span class="index-short">${key.toUpperCase()}</span>

@@ -91,13 +91,13 @@ async function listen(server) {
             const rect = L.rectangle(b);
             window.state.map.fire('draw:created', { layer: rect });
         });
-        await page.waitForFunction(() => !document.getElementById('btn-generate-report').disabled, { timeout: 5000 });
         const smokeState = await page.evaluate(() => ({
             mode: window.state.mode,
             drawnLayers: window.state.drawnItems?.getLayers?.().length || 0,
             reportDisabled: document.getElementById('btn-generate-report').disabled,
+            reportTitle: document.getElementById('btn-generate-report').title,
         }));
-        if (smokeState.mode !== 'compare' || smokeState.drawnLayers < 1 || smokeState.reportDisabled) {
+        if (smokeState.mode !== 'compare' || smokeState.drawnLayers < 1 || !smokeState.reportDisabled || !/guarded Sentinel analytics provider/i.test(smokeState.reportTitle)) {
             throw new Error(`Unexpected browser smoke state: ${JSON.stringify(smokeState)}`);
         }
 

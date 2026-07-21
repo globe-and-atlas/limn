@@ -114,6 +114,8 @@ Atlas Sentinel WMS source selection is separate from the Sentinel on/off switch.
 
 **Sentinel Hub WMS rate contract**: Live Sentinel Hub WMS must be conservative. The WMS tile layer uses 512px tiles, one concurrent fetch, no zoom-time update burst, and HTTP 429 `Retry-After` cooldown handling. When rate limited, it fires `sentinelratelimit` so the toolbar can show a cooldown message instead of continuing to hammer the account.
 
+**Sentinel Hub WMS collection/QA contract**: OGC WMS evalscripts run against the collection assigned to the requested configuration layer. The bundled `AGRICULTURE` carrier is Sentinel-2 L1C and therefore has no L2A `SCL` band. Core Limn defaults `SENTINEL_WMS_SUPPORTS_SCL` to `false`; `getScriptContent()` removes the explicitly marked SCL input/gate for this optional WMS path, and the UI reports the limitation. Set the flag to `true` only after verifying that the configured WMS layer is backed by Sentinel-2 L2A. L2A COG and GEE remain the preferred pixel-QA paths and retain SCL masking.
+
 Atlas follows the same WMS rate contract through its own `FetchWMS` implementation and `ratelimit` event path.
 
 ## Sentinel Hub WMS
@@ -140,7 +142,7 @@ btoa(unescape(encodeURIComponent(
 )))
 ```
 
-**Multi-source fusion (APEX, HPWI)**: Must use a date range `'YYYY-MM-DD/YYYY-MM-DD'` even in single mode. Single-day ORBIT requests return 0 scenes. Use 30-day lookback.
+**Current core boundary:** No shipped Limn layer uses Sentinel-1/Sentinel-2 fusion. ASAI and OBEC are Sentinel-2-only surface-response composites; the multi-source helper is legacy and unused.
 
 ## Sentinel Hub Statistics API
 
@@ -148,7 +150,7 @@ btoa(unescape(encodeURIComponent(
 
 **Auth**: Bearer token from CDSE OAuth2 (see auth section below).
 
-Used by: 1-year AOI scan (`btn-scan-aoi`), `probeAcquisitions()`, `generateReport()`.
+Used by: 1-year AOI scan (`btn-scan-aoi`), `probeAcquisitions()`, and the report-generation handler in `src/app.js`.
 
 Response structure:
 ```javascript

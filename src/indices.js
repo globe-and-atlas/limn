@@ -24,25 +24,48 @@ export const CALIBRATION_PRESETS = {
     }
 };
 
+// Sentinel Hub WMS configurations are bound to a collection. The bundled
+// AGRICULTURE layer is S2 L1C, so it cannot accept the L2A-only SCL band.
+// Keep the analytical script unchanged for COG/GEE/L2A WMS, but remove the
+// explicitly marked quality block for an L1C WMS carrier layer.
+export function adaptEvalscriptForSentinelWms(scriptContent, supportsScl = false) {
+    if (!scriptContent || supportsScl) return scriptContent;
+    return scriptContent
+        .replace(/,\s*['"]SCL['"]/g, '')
+        .replace(/\s*\/\/ SCL_QA_START[\s\S]*?\/\/ SCL_QA_END\s*/g, '\n');
+}
+
 // Evalscript wrapper utility
-export const genEvalscript = (bands, logic) => `//VERSION=3
+export const genEvalscript = (bands, logic) => {
+const inputBands = [...new Set([...bands, 'SCL'])];
+return `//VERSION=3
 function setup() {
   return {
-    input: [${bands.map(b => `'${b}'`).join(', ')}, "dataMask"],
+    input: [${inputBands.map(b => `'${b}'`).join(', ')}, "dataMask"],
     output: { bands: 4 }
   };
 }
 function evaluatePixel(sample) {
   if (sample.dataMask === 0) return [0, 0, 0, 0];
+  // SCL_QA_START
+  // Pixel-level scene classification gate. Retain vegetation, bare ground,
+  // water, and unclassified clear pixels; reject cloud, shadow, snow,
+  // saturated/defective, dark-feature, and no-data classes.
+  const clearPixel = sample.SCL === 4 || sample.SCL === 5 || sample.SCL === 6 || sample.SCL === 7;
+  if (!clearPixel) return [0, 0, 0, 0];
+  // SCL_QA_END
   ${logic}
 }
 `;
+};
 
 // Multi-Temporal Evalscript wrapper for differences
-export const genDiffEvalscript = (bands, calcLogic) => `//VERSION=3
+export const genDiffEvalscript = (bands, calcLogic) => {
+const inputBands = [...new Set([...bands, 'SCL'])];
+return `//VERSION=3
 function setup() {
   return {
-    input: [${bands.map(b => `'${b}'`).join(', ')}, "dataMask"],
+    input: [${inputBands.map(b => `'${b}'`).join(', ')}, "dataMask"],
     output: { bands: 4 },
     mosaicking: "ORBIT"
   };
@@ -52,6 +75,11 @@ function evaluatePixel(samples) {
   let s1 = samples[samples.length - 1]; // oldest (T1)
   let s2 = samples[0]; // newest (T2)
   if (s1.dataMask === 0 || s2.dataMask === 0) return [0, 0, 0, 0];
+  // SCL_QA_START
+  const clear1 = s1.SCL === 4 || s1.SCL === 5 || s1.SCL === 6 || s1.SCL === 7;
+  const clear2 = s2.SCL === 4 || s2.SCL === 5 || s2.SCL === 6 || s2.SCL === 7;
+  if (!clear1 || !clear2) return [0, 0, 0, 0];
+  // SCL_QA_END
   
   let val1 = ${calcLogic.replace(/sample/g, 's1')};
   let val2 = ${calcLogic.replace(/sample/g, 's2')};
@@ -72,6 +100,7 @@ function evaluatePixel(samples) {
   return [0.2, 0.2, 0.2, 0.3]; // Stable
 }
 `;
+};
 
 // Deep Fusion Evalscript wrapper (Multi-Source S1+S2)
 export const genDeepFusionEvalscript = (bands, logic) => `//VERSION=3
@@ -124,10 +153,12 @@ function evaluatePixel(samples, scenes) {
 `;
 
 // Multi-Temporal Evalscript for Cumulative MAX detection
-export const genCumulativeEvalscript = (bands, logic, paletteStr) => `//VERSION=3
+export const genCumulativeEvalscript = (bands, logic, paletteStr) => {
+const inputBands = [...new Set([...bands, 'SCL'])];
+return `//VERSION=3
 function setup() {
   return {
-    input: [${bands.map(b => `'${b}'`).join(', ')}, "dataMask"],
+    input: [${inputBands.map(b => `'${b}'`).join(', ')}, "dataMask"],
     output: { bands: 4 },
     mosaicking: "ORBIT"
   };
@@ -138,6 +169,10 @@ function evaluatePixel(samples) {
   for (let i = 0; i < samples.length; i++) {
     let sample = samples[i];
     if (sample.dataMask === 0) continue;
+    // SCL_QA_START
+    const clearPixel = sample.SCL === 4 || sample.SCL === 5 || sample.SCL === 6 || sample.SCL === 7;
+    if (!clearPixel) continue;
+    // SCL_QA_END
     let val = ${logic};
     if (val > maxVal) maxVal = val;
   }
@@ -148,6 +183,7 @@ function evaluatePixel(samples) {
   ${colorBlend('maxVal', paletteStr)}
 }
 `;
+};
 
 // Advanced continuous color blending logic for evalscripts
 export function colorBlend(valExpr, stopsStr) {
@@ -204,6 +240,8 @@ export const PALETTE_HMI = "[[0, 0, 17, 0], [0.3, 0, 68, 0], [0.7, 0, 255, 187],
 export const PALETTE_SCRI = "[[0, 0, 0, 0], [0.2, 75, 0, 130], [0.6, 231, 76, 60], [1, 241, 196, 15]]";
 export const PALETTE_MSI_INV = "[[0, 212, 106, 36], [0.5, 239, 216, 122], [1, 28, 133, 166]]";
 export const PALETTE_METHANE = "[[0.0, 13, 23, 27], [0.3, 245, 120, 20], [0.75, 255, 180, 0], [1.0, 255, 255, 200]]";
+export const PALETTE_AWEI = "[[0, 48, 36, 18], [0.333, 193, 154, 72], [0.667, 35, 151, 181], [1, 8, 67, 128]]";
+export const PALETTE_NDRE = "[[0, 105, 56, 32], [0.333, 205, 167, 72], [0.667, 92, 151, 71], [1, 16, 91, 52]]";
 
 export const INDICES = {
     tc: {
@@ -247,6 +285,72 @@ export const INDICES = {
 `),
         fisBands: ['B08', 'B04', 'B03'],
         fisLogic: `return [sample.B08, sample.B04, sample.B03];`
+    },
+    swir_rgb: {
+        name: 'SWIR Surface Context (B12/B11/B04)',
+        sensor: 'Sentinel-2 L2A',
+        temporal: 'Context',
+        min: 'False Color RGB', max: '',
+        gradient: 'linear-gradient(to right, #5d2338, #b79448, #f2e7cf)',
+        formula: 'RGB = B12, B11, B04',
+        formulaStatus: 'Implemented SWIR2/SWIR1/Red false-color context view',
+        validationStatus: 'Context visualization only; colors are not material or contamination classes.',
+        info: 'SWIR2, SWIR1, and Red are assigned to RGB to expose broad differences among wet surfaces, vegetation, bare ground, pads, and substrate. This is an interpretation aid, not a brine or produced-water classifier.',
+        diffLabels: ['Darker Surface Response', 'Brighter Surface Response'],
+        evalscript: genEvalscript(['B12', 'B11', 'B04'], `
+  let factor = 2.5;
+  let r = sample.B12 * factor;
+  let g = sample.B11 * factor;
+  let b = sample.B04 * factor;
+  let brightness = (r + g + b) / 3;
+  if (typeof VISUAL_FILTER !== 'undefined' && brightness < VISUAL_FILTER) return [0,0,0,0];
+  return [r, g, b, 1];
+`),
+        fisBands: ['B12', 'B11', 'B04'],
+        fisLogic: `return [Math.max(sample.B12, sample.B11, sample.B04)];`
+    },
+    awei: {
+        name: 'Automated Water Extraction Index — Shadow Variant (AWEIsh)',
+        sensor: 'Sentinel-2 L2A',
+        temporal: 'Live',
+        min: 'Non-Water', max: 'Water Response',
+        gradient: 'linear-gradient(to right, #302412, #c19a48, #2397b5, #084380)',
+        formula: 'AWEIsh = B02 + 2.5·B03 − 1.5·(B08+B11) − 0.25·B12; display=max(0,5·AWEIsh)',
+        formulaStatus: 'Implemented established AWEI shadow-aware surface-water contrast',
+        validationStatus: 'Established water-extraction form; not a salinity, brine, or produced-water measurement.',
+        info: 'AWEIsh is an independent open-water cross-check for MNDWI that suppresses many shadow and bright-surface confounders. Positive response supports water-like surface context only.',
+        diffLabels: ['Water Recedes', 'Water Expands'],
+        evalscript: genEvalscript(['B02', 'B03', 'B08', 'B11', 'B12'], `
+  let awei = sample.B02 + 2.5 * sample.B03 - 1.5 * (sample.B08 + sample.B11) - 0.25 * sample.B12;
+  let mapped = Math.max(0, Math.min(1, awei * 5));
+  ${colorBlend('mapped', PALETTE_AWEI)}
+`),
+        fisBands: ['B02', 'B03', 'B08', 'B11', 'B12'],
+        fisLogic: `return [sample.B02 + 2.5 * sample.B03 - 1.5 * (sample.B08 + sample.B11) - 0.25 * sample.B12];`
+    },
+    ndre: {
+        name: 'Normalized Difference Red-Edge Index (NDRE)',
+        sensor: 'Sentinel-2 L2A',
+        temporal: 'Persistent',
+        min: 'Lower Red-Edge Response', max: 'Higher Red-Edge Response',
+        gradient: 'linear-gradient(to right, #693820, #cda748, #5c9747, #105b34)',
+        formula: '(B8A - B05) / (B8A + B05)',
+        formulaStatus: 'Implemented established red-edge vegetation response',
+        validationStatus: 'Vegetation-context indicator only; stress cannot be attributed to produced water without controls.',
+        info: 'NDRE uses narrow NIR and the first red-edge band to complement NDVI/SAVI when examining vegetation response. Phenology, drought, disease, management, grazing, and fire remain confounders.',
+        diffLabels: ['Lower Red-Edge Vitality', 'Higher Red-Edge Vitality'],
+        evalscript: genEvalscript(['B8A', 'B05'], `
+  let sum = sample.B8A + sample.B05;
+  if (sum === 0) return [0,0,0,0];
+  let val = (sample.B8A - sample.B05) / sum;
+  ${colorBlend('val + 0.1', PALETTE_NDRE)}
+`),
+        fisBands: ['B8A', 'B05'],
+        fisLogic: `
+  let sum = sample.B8A + sample.B05;
+  if (sum === 0) return [0];
+  return [(sample.B8A - sample.B05) / sum];
+`
     },
     ndmi: {
         name: 'Moisture Index (NDMI)',
@@ -326,17 +430,18 @@ export const INDICES = {
   let dryScore = (oVal < -0.42 && ndsiVal > 0.15 && bsiDry > 0.52)
       ? Math.max(0, Math.min(1, (ndsiVal - 0.15) / 0.16 * 0.45 + 0.55))
       : 0;
-  return [Math.min(Math.max(Math.max(wetScore, 0), dryScore), 1)];
+  let finalVal = Math.min(Math.max(Math.max(wetScore, 0), dryScore), 1);
+  return [finalVal < 0.60 ? 0 : finalVal];
 `
     },
     ndwi: {
-        name: 'Wetness Index (NDWI)',
+        name: 'Modified Water Index (MNDWI)',
         sensor: 'Sentinel-2 L2A',
         temporal: 'Live',
         min: 'Dry Surface', max: 'Saturated',
         gradient: 'linear-gradient(to right, #824614, #D7AA3C, #1450B4)',
         formula: '(B03 - B11) / (B03 + B11)',
-        info: 'Normalized Difference Water Index uses Green (B03) and SWIR (B11) bands. Green reflects off visible water bodies, while SWIR strongly absorbs it. This ratio effectively isolates open surface water from dry land and vegetation anomalies.',
+        info: 'Modified Normalized Difference Water Index (Xu, 2006 form) uses Green (B03) and SWIR1 (B11). It is an established open-water and wet-surface contrast, not a chemical or salinity measurement. The internal key remains ndwi for backward compatibility.',
         diffLabels: ['Dries / Recedes', 'Wetter / Expands'],
         evalscript: genEvalscript(['B03', 'B11'], `
   let sum = sample.B03 + sample.B11;
@@ -419,14 +524,16 @@ export const INDICES = {
 `
     },
     si: {
-        name: 'Salinity Index (SI)',
+        name: 'SWIR1–NIR Surface Contrast (SI legacy)',
         sensor: 'Sentinel-2 L2A',
         temporal: '0-12M',
-        min: 'Low Salt', max: 'High Salt',
+        min: 'NIR-Dominant', max: 'SWIR1-Dominant',
         gradient: 'linear-gradient(to right, #243340, #EFD87A, #F0501E)',
         formula: '(B11 - B08) / (B11 + B08)',
-        info: 'Normalized Difference Salinity Index uses SWIR (B11) and NIR (B08) to detect surface salt crusts. Salt flats have high reflectance in both, enabling the detection of damaging soil salinity accumulations.',
-        diffLabels: ['Saltier / Hazard', 'Less Salty / Recovery'],
+        formulaStatus: 'Implemented normalized SWIR1–NIR surface contrast',
+        validationStatus: 'Established band-ratio form; not calibrated here to salt concentration or produced water.',
+        info: 'Normalized SWIR1–NIR contrast. It responds to broad differences in surface moisture, vegetation, substrate, disturbance, and brightness. It may support salinity investigations after local field calibration, but it does not measure salt concentration by itself.',
+        diffLabels: ['Lower SWIR1–NIR Contrast', 'Higher SWIR1–NIR Contrast'],
         evalscript: genEvalscript(['B11', 'B08'], `
   let sum = sample.B11 + sample.B08;
   if(sum === 0) return [0,0,0,0];
@@ -469,14 +576,16 @@ export const INDICES = {
 `
     },
     ndsi: {
-        name: 'Saline Content (NDSI) (Brine)',
+        name: 'Dual-SWIR Contrast (NDTI/NBR2 form; NDSI legacy)',
         sensor: 'Sentinel-2 L2A',
         temporal: 'Persistent',
-        min: 'Dry / Fresh', max: 'High Brine',
+        min: 'Lower SWIR1/SWIR2 Contrast', max: 'Higher SWIR1/SWIR2 Contrast',
         gradient: 'linear-gradient(to right, #000000, #00FFFF, #FF00FF, #CCFF00)',
         formula: '(B11 - B12) / (B11 + B12)',
-        info: 'Normalized Difference Salinity Index (specifically the Brine variant using SWIR B11/B12). This index isolates the unique absorptive signature of highly saline produced water, distinguishing it from standard moist soil or freshwater bodies.',
-        diffLabels: ['Salinity Increase', 'Recovery'],
+        formulaStatus: 'Implemented NDTI/NBR2-form dual-SWIR contrast',
+        validationStatus: 'Established band-ratio form; not brine-specific and not calibrated here to salinity.',
+        info: 'Normalized SWIR1–SWIR2 contrast. The same algebra is widely used as NDTI/NBR2 for tillage, residue, burn, moisture, and other surface-condition studies. In Limn it is retained as a salinity-hypothesis component, but it is not brine-specific and does not retrieve salt concentration.',
+        diffLabels: ['Lower Dual-SWIR Contrast', 'Higher Dual-SWIR Contrast'],
         evalscript: genEvalscript(['B11', 'B12'], `
   let sum = sample.B11 + sample.B12;
   if(sum === 0) return [0,0,0,0];
@@ -491,14 +600,16 @@ export const INDICES = {
 `
     },
     csi: {
-        name: 'Contaminated Soil (Clay Ratio)',
+        name: 'SWIR1/SWIR2 Surface Ratio (CSI legacy)',
         sensor: 'Sentinel-2 L2A',
         temporal: 'Persistent',
-        min: 'Healthy Soil', max: 'Contaminated',
+        min: 'Lower Ratio', max: 'Higher Ratio',
         gradient: 'linear-gradient(to right, #A07832, #64DC50, #00FFFF)',
         formula: 'B11 / B12',
-        info: 'Contaminated Soil / Clay Ratio uses the ratio of SWIR bands (B11/B12). This index is highly sensitive to clay minerals, helping distinguish mechanically disturbed, stripped, or eroded topsoil from healthy surrounding earth.',
-        diffLabels: ['More Contaminated', 'Less Contaminated / Recovery'],
+        formulaStatus: 'Implemented SWIR1/SWIR2 surface ratio',
+        validationStatus: 'Contextual surface ratio; no contamination classification validation.',
+        info: 'Broad SWIR1/SWIR2 surface ratio sensitive to mineralogy, crop residue, moisture, disturbance, and substrate. It can provide clay/surface context, but it does not establish contamination without field or laboratory evidence.',
+        diffLabels: ['Lower SWIR Ratio', 'Higher SWIR Ratio'],
         evalscript: genEvalscript(['B11', 'B12'], `
   if(sample.B12 === 0) return [0,0,0,0];
   let val = sample.B11 / sample.B12;
@@ -512,14 +623,16 @@ export const INDICES = {
 `
     },
     hcai: {
-        name: 'Hydrocarbons (HCAI)',
+        name: 'SWIR1–Red Contrast (HCAI legacy)',
         sensor: 'Sentinel-2 L2A',
         temporal: '0-6M',
-        min: 'Background', max: 'High Contamination',
+        min: 'Lower Contrast', max: 'Higher Contrast',
         gradient: 'linear-gradient(to right, #F5DEB3, #8B4513, #000000)',
         formula: '(B11 - B04) / (B11 + B04)',
-        info: 'Hydrocarbon Absorption Index. Permian red dirt baseline is typically 0.15–0.30. Oil-contaminated surfaces absorb Red light dramatically, pushing HCAI to 0.40+ which clearly separates spills from bare soil.',
-        diffLabels: ['More Hydrocarbons', 'Less / Recovery'],
+        formulaStatus: 'Implemented normalized SWIR1–Red contrast',
+        validationStatus: 'Surface-response proxy; not a hydrocarbon absorption retrieval.',
+        info: 'Normalized SWIR1–Red surface contrast. Broad Sentinel-2 bands do not resolve the diagnostic narrow absorption feature used by hyperspectral Hydrocarbon Index methods. Treat this as a surface-response proxy, not a petroleum measurement.',
+        diffLabels: ['Lower SWIR1–Red Contrast', 'Higher SWIR1–Red Contrast'],
         evalscript: genEvalscript(['B11', 'B04'], `
   let sum = sample.B11 + sample.B04;
   if(sum === 0) return [0,0,0,0];
@@ -535,14 +648,16 @@ export const INDICES = {
 `
     },
     hmri: {
-        name: 'Heavy Metals (HMRI)',
+        name: 'SWIR2/Green Contrast (HMRI legacy)',
         sensor: 'Sentinel-2 L2A',
         temporal: '12M+',
-        min: 'Background', max: 'High Toxicity',
+        min: 'Lower Ratio', max: 'Higher Ratio',
         gradient: 'linear-gradient(to right, #E6E6FA, #800080, #FF00FF)',
         formula: 'B12 / B03',
-        info: 'Heavy Metal Reflectance Index tracks the ratio of SWIR (B12) to Green (B03) light. Permian caliche and red dirt baseline is high (1.5-1.9). Confirmed severe brine/produced water contamination precipitates heavy metals (barium, strontium) that push this ratio over 2.0.',
-        diffLabels: ['More Metals / Stress', 'Less / Recovery'],
+        formulaStatus: 'Implemented SWIR2/Green surface ratio',
+        validationStatus: 'Surface-response proxy; not calibrated to heavy-metal concentration.',
+        info: 'Broad SWIR2/Green contrast. Heavy-metal estimation in remote-sensing studies requires field concentrations and calibrated multivariate models; this single ratio cannot identify barium, strontium, radium, or total metal concentration.',
+        diffLabels: ['Lower SWIR2/Green Ratio', 'Higher SWIR2/Green Ratio'],
         evalscript: genEvalscript(['B12', 'B03'], `
   if(sample.B03 === 0) return [0,0,0,0];
   let val = sample.B12 / sample.B03;
@@ -556,14 +671,16 @@ export const INDICES = {
 `
     },
     ndoi: {
-        name: 'Oil Slicks (NDOI)',
+        name: 'Blue–SWIR2 Contrast (NDOI legacy)',
         sensor: 'Sentinel-2 L2A',
         temporal: '0-3M',
-        min: 'Background', max: 'Hydrocarbons',
+        min: 'SWIR2-Dominant', max: 'Blue-Dominant',
         gradient: 'linear-gradient(to right, #2c3e50, #7f8c8d, #f1c40f, #e74c3c)',
         formula: '(B02 - B12) / (B02 + B12)',
-        info: 'Normalized Difference Oil Index isolates thick crude oil/hydrocarbon slicks. It heavily contrasts the highly-absorptive SWIR2 band (B12) against the bright reflectance of the Blue band (B02).',
-        diffLabels: ['Less Oil', 'Concentrated Oil'],
+        formulaStatus: 'Implemented normalized Blue–SWIR2 contrast',
+        validationStatus: 'Surface-response proxy; not validated as an oil classifier.',
+        info: 'Normalized Blue–SWIR2 surface contrast. It can highlight water, bright surfaces, shadows, aerosols, or material differences, but a positive response is not uniquely attributable to oil.',
+        diffLabels: ['Lower Blue–SWIR2 Contrast', 'Higher Blue–SWIR2 Contrast'],
         evalscript: genEvalscript(['B02', 'B12'], `
   let sum = sample.B02 + sample.B12;
   if(sum === 0) return [0,0,0,0];
@@ -586,14 +703,16 @@ export const INDICES = {
 `
     },
     crsi: {
-        name: 'Salt Stress (CRSI)',
+        name: 'Inverted Canopy Response Index (1 − CRSI)',
         sensor: 'Sentinel-2 L2A',
         temporal: '6-24M',
-        min: 'Healthy Veg', max: 'Salt Shock',
+        min: 'Higher CRSI', max: 'Lower CRSI / Stress Response',
         gradient: 'linear-gradient(to right, #27ae60, #f1c40f, #e67e22, #c0392b)',
-        formula: 'sqrt((B08*B04 - B03*B02) / (B08*B04 + B03*B02))',
-        info: 'Canopy Response Salinity Index. Directly measures the physiological stress of salt brine on sparse vegetation (like scrub brush) rather than looking for bare salt crusts. Excellent secondary indicator for brine spreading off-pad.',
-        diffLabels: ['Healthy / Recovery', 'Salt-Induced Mortality'],
+        formula: '1 − clamp(sqrt((B08·B04 − B03·B02)/(B08·B04 + B03·B02)),0,1)',
+        formulaStatus: 'Implemented inverted CRSI display',
+        validationStatus: 'Established CRSI form; Limn has not calibrated the inverse to chloride or produced-water stress.',
+        info: 'The underlying Canopy Response Salinity Index is established for calibrated salinity-stress studies. Limn displays its inverse so larger values indicate lower CRSI response. Water, vegetation condition, soil background, and other stressors can also change the value; it is not a chloride measurement.',
+        diffLabels: ['Higher CRSI / Recovery', 'Lower CRSI / Stress Response'],
         evalscript: genEvalscript(['B02', 'B03', 'B04', 'B08'], `
   let top = (sample.B08 * sample.B04) - (sample.B03 * sample.B02);
   let bot = (sample.B08 * sample.B04) + (sample.B03 * sample.B02);
@@ -621,14 +740,16 @@ export const INDICES = {
 `
     },
     aoi: {
-        name: 'Anoxic Oxidation (AOI)',
+        name: 'Red/Blue × SWIR Surface Contrast (AOI legacy)',
         sensor: 'Sentinel-2 L2A',
         temporal: '0-6M',
-        min: 'Background', max: 'Oxidized Minerals',
+        min: 'Lower Product', max: 'Higher Product',
         gradient: 'linear-gradient(to right, #2c3e50, #8e44ad, #c0392b)',
         formula: '(B04 / B02) * (B11 / B12)',
-        info: 'Globe & Atlas · Limn composite calibration. Detects the chemical signature of deep-earth formation water oxidizing on the surface. Combines an iron oxide ratio (B04/B02) with a hydrocarbon absorption ratio (B11/B12) to identify the dark rust surface alteration characteristic of produced water spills.',
-        diffLabels: ['Less Oxidation', 'Extreme Oxidation'],
+        formulaStatus: 'Implemented Red/Blue × SWIR1/SWIR2 surface product',
+        validationStatus: 'Research-only surface proxy; no oxidation-state or produced-water validation.',
+        info: 'Product of Red/Blue and SWIR1/SWIR2 surface ratios. It may highlight iron-rich or mineralogically altered surfaces, but it does not establish anoxia, ferrous/ferric state, hydrocarbons, or produced-water causation without independent evidence.',
+        diffLabels: ['Lower Surface Product', 'Higher Surface Product'],
         evalscript: genEvalscript(['B02', 'B04', 'B11', 'B12'], `
   if(sample.B02 === 0 || sample.B12 === 0) return [0,0,0,0];
   let ironOxide = sample.B04 / sample.B02;
@@ -654,13 +775,15 @@ export const INDICES = {
 `
     },
     ehc: {
-        name: 'EHC — Evaporite Halo Composite (formerly Evaporite Halo / Visual)',
+        name: 'EHC — Three-Channel Surface Context Composite',
         sensor: 'Sentinel-2 L2A',
         temporal: '0-3M',
         min: 'False Color RGB', max: '',
         gradient: 'linear-gradient(to right, #ff0000, #00ff00, #0000ff)',
-        formula: 'R=NDOI, G=BSI, B=NDSI',
-        info: 'Globe & Atlas · Limn false-color composite calibration. Maps NDOI → Red (oil center), BSI → Green (mud footprint), NDSI → Blue (crystallized salt ring) to visually isolate the spatial morphology of blowout events (blowout morphology view). Useful for distinguishing localized anomalies from expanding plumes. Formerly known as Evaporite Halo / Visual composite.',
+        formula: 'R=max(0,3·Blue–SWIR2 contrast); G=max(0,2·BSI); B=max(0,4·dual-SWIR contrast); statistics=clamp(max(R,G,B),0,1)',
+        formulaStatus: 'Implemented RGB context composite; scalar statistics use maximum channel intensity',
+        validationStatus: 'Not validated as a morphology classifier or produced-water detector.',
+        info: 'Experimental false-color context view. Red represents Blue–SWIR2 contrast, green represents BSI, and blue represents dual-SWIR contrast. The colors can help inspect spatial pattern, but they do not identify an oil center, mud footprint, salt ring, or blowout morphology without independent event evidence.',
         diffLabels: ['N/A', 'N/A'],
         evalscript: `//VERSION=3
             function setup() {
@@ -672,21 +795,21 @@ export const INDICES = {
             function evaluatePixel(sample) {
                 if(sample.dataMask === 0) return [0,0,0,0];
                 
-                // Red Channel = NDOI (Oil)
+                // Red channel = Blue–SWIR2 surface contrast
                 let sumNdoi = sample.B02 + sample.B12;
                 let ndoi = sumNdoi === 0 ? 0 : (sample.B02 - sample.B12) / sumNdoi;
-                let red = Math.max(0, ndoi * 3); // Boost oil signal
+                let red = Math.max(0, ndoi * 3);
 
-                // Green Channel = BSI (Bare Soil/Mud)
+                // Green channel = BSI surface context
                 let bsiTop = (sample.B11 + sample.B04) - (sample.B08 + sample.B02);
                 let bsiBot = (sample.B11 + sample.B04) + (sample.B08 + sample.B02);
                 let bsi = bsiBot === 0 ? 0 : bsiTop / bsiBot;
                 let green = Math.max(0, bsi * 2);
 
-                // Blue Channel = NDSI (Brine/Salt)
+                // Blue channel = dual-SWIR surface contrast
                 let ndsiSum = sample.B11 + sample.B12;
                 let ndsi = ndsiSum === 0 ? 0 : (sample.B11 - sample.B12) / ndsiSum;
-                let blue = Math.max(0, ndsi * 4); // Salt is highly reflective
+                let blue = Math.max(0, ndsi * 4);
                 
                 let intensity = Math.max(red, green, blue);
                 if (typeof VISUAL_FILTER !== 'undefined' && intensity < VISUAL_FILTER) return [0,0,0,0];
@@ -694,10 +817,19 @@ export const INDICES = {
                 return [red, green, blue, 1];
             }`,
         fisBands: ['B02', 'B04', 'B08', 'B11', 'B12'],
-        fisLogic: `return [0];` // Complex RGB indices don't chart well
+        fisLogic: `
+  let sumNdoi = sample.B02 + sample.B12;
+  let red = sumNdoi === 0 ? 0 : Math.max(0, ((sample.B02 - sample.B12) / sumNdoi) * 3);
+  let bsiTop = (sample.B11 + sample.B04) - (sample.B08 + sample.B02);
+  let bsiBot = (sample.B11 + sample.B04) + (sample.B08 + sample.B02);
+  let green = bsiBot === 0 ? 0 : Math.max(0, (bsiTop / bsiBot) * 2);
+  let ndsiSum = sample.B11 + sample.B12;
+  let blue = ndsiSum === 0 ? 0 : Math.max(0, ((sample.B11 - sample.B12) / ndsiSum) * 4);
+  return [Math.min(1, Math.max(red, green, blue))];
+`
     },
     hpwi: {
-        name: 'OBEC — Oil-Brine Emulsion Composite (formerly HPWI)',
+        name: 'OBEC — Optical Brightness/Edge Contrast (legacy Oil-Brine Emulsion Composite)',
         sensor: 'Sentinel-2 L2A',
         temporal: '0-3M',
         min: 'Background', max: 'Optical Contrast Response',
@@ -748,23 +880,26 @@ export const INDICES = {
   let ndoi = Math.max(0, (sample.B02 - sample.B12) / sumNdoi);
   let ndsiSum = sample.B11 + sample.B12;
   let ndsi = ndsiSum === 0 ? 0 : (sample.B11 - sample.B12) / ndsiSum;
-  let brineBoost = Math.max(0, ndsi - 0.03) * 0.8;
+  let brineThreshold = Math.max(0.04, 0.06 - (DETECTION_SENSITIVITY * 0.03));
+  let brineBoost = Math.max(0, ndsi - brineThreshold) * 0.8;
   let chemSignal = Math.min(1, ndoi + brineBoost);
   let sumSmooth = sample.B03 + sample.B11;
   let smooth = sumSmooth === 0 ? 0 : Math.max(0, Math.min(1, ((sample.B03 - sample.B11)/sumSmooth + 0.3) / 0.6));
-  let hpwiResult = chemSignal * smooth * 6.0;
-  return [Math.min(1, hpwiResult)];
+  let mapped = Math.min(1, chemSignal * smooth * 6.0);
+  return [mapped < 0.08 ? 0 : mapped];
 `
     },
     fbc: {
-        name: 'Ferrugination-Brine Composite (FBC)',
+        name: 'Red/Blue–Dual-SWIR–Low-Vegetation Composite (FBC legacy)',
         sensor: 'Sentinel-2 L2A',
         temporal: '3-12M',
         min: 'Background', max: 'Iron+Brine Alteration',
         gradient: 'linear-gradient(to right, #1a0800, #8B2500, #D4581A, #FFB347)',
-        formula: 'sqrt(ironScore × brineScore) × (1 − NDVI)',
-        info: 'Globe & Atlas · Limn composite calibration. Targets the iron oxidation signature associated with produced water spills: deep Permian brine is rich in ferrous iron (Fe²⁺); when surfaced it oxidizes to ferric iron (Fe³⁺), creating rust-brown staining detectable via the Red/Blue ratio. Both the iron gate (B04/B02 > 1.4) and the brine gate (NDSI > 0.02) must fire simultaneously. The vegetation gate (1−NDVI) restricts detection to bare-ground pixels.',
-        diffLabels: ['Less Alteration', 'Active Iron+Brine Event'],
+        formula: 'clamp(150·(ironScore·dualSWIRScore·noVeg)^1.4,0,1)',
+        formulaStatus: 'Implemented red/blue × dual-SWIR × low-vegetation display composite',
+        validationStatus: 'Research-only surface-response proxy; no produced-water discrimination or iron-chemistry validation.',
+        info: 'Experimental co-occurrence composite using Red/Blue contrast, dual-SWIR contrast, and a low-vegetation gate. Iron-rich soils, substrate, moisture, residue, and disturbance can produce the same response; it does not retrieve iron oxidation state or brine chemistry.',
+        diffLabels: ['Lower Composite Response', 'Higher Composite Response'],
         evalscript: genEvalscript(['B02', 'B03', 'B04', 'B08', 'B11', 'B12'], `
   if (sample.dataMask === 0 || sample.B02 === 0) return [0,0,0,0];
 
@@ -800,25 +935,30 @@ export const INDICES = {
         fisBands: ['B02', 'B04', 'B08', 'B11', 'B12'],
         fisLogic: `
   if (sample.B02 === 0) return [0];
-  let ironScore = Math.max(0, (sample.B04 / sample.B02) - (1.4 - DETECTION_SENSITIVITY)) / 1.0;
+  let ironThreshold = Math.max(1.3, 1.4 - (DETECTION_SENSITIVITY * 0.3));
+  let ironScore = Math.max(0, (sample.B04 / sample.B02) - ironThreshold) / 1.0;
   let ndsiSum = sample.B11 + sample.B12;
   if (ndsiSum === 0) return [0];
   let ndsi = (sample.B11 - sample.B12) / ndsiSum;
-  let brineScore = Math.max(0, ndsi - (0.02 - (DETECTION_SENSITIVITY * 0.1)));
+  let brineThreshold = Math.max(0.02, 0.04 - (DETECTION_SENSITIVITY * 0.08));
+  let brineScore = Math.max(0, ndsi - brineThreshold);
   let ndviSum = sample.B08 + sample.B04;
   let noVeg = Math.max(0, 1.0 - Math.max(0, ndviSum === 0 ? 0 : (sample.B08 - sample.B04) / ndviSum));
-  return [Math.min(1, Math.sqrt(ironScore * brineScore) * noVeg * 25.0)];
+  let score = (ironScore * brineScore) * noVeg;
+  return [Math.min(1, Math.pow(score, 1.4) * 150.0)];
 `
     },
     reai: {
-        name: 'Red Edge Alteration Index (REAI)',
+        name: 'Red-Edge/Dual-SWIR Alteration Composite (REAI)',
         sensor: 'Sentinel-2 L2A',
         temporal: '3-12M',
-        min: 'Background', max: 'Ferric Mineral + Brine',
+        min: 'Lower Response', max: 'Higher Response',
         gradient: 'linear-gradient(to right, #0d1a2e, #2e5c8a, #c47a1e, #e8c44a)',
-        formula: '(B06 / B05) × NDSI',
-        info: 'Globe & Atlas · Limn composite calibration. Uses Sentinel-2\'s dedicated Red Edge bands (B05=705nm, B06=740nm). Over bare disturbed soil, a B06/B05 ratio exceeding ~1.10 indicates ferric mineral enrichment (goethite, hematite) from produced water iron precipitation — multiplied by NDSI to confirm co-located brine chemistry. Particularly sensitive to subtle early-stage iron staining invisible to standard visible/SWIR indices.',
-        diffLabels: ['No Alteration', 'Ferric + Brine Signal'],
+        formula: 'clamp(100·(redEdgeScore·dualSWIRScore)^2,0,1)',
+        formulaStatus: 'Implemented red-edge × dual-SWIR display composite',
+        validationStatus: 'Research-only surface-response proxy; no ferric-mineral or produced-water validation.',
+        info: 'Experimental product of a thresholded B06/B05 red-edge ratio and thresholded dual-SWIR contrast. Vegetation structure, soil, sensor geometry, moisture, and mineralogy can affect both terms; it does not confirm goethite, hematite, or brine chemistry.',
+        diffLabels: ['Lower Composite Response', 'Higher Composite Response'],
         evalscript: genEvalscript(['B05', 'B06', 'B11', 'B12'], `
   if (sample.dataMask === 0 || sample.B05 === 0) return [0,0,0,0];
 
@@ -847,21 +987,25 @@ export const INDICES = {
         fisBands: ['B05', 'B06', 'B11', 'B12'],
         fisLogic: `
   if (sample.B05 === 0) return [0];
-  let ironScore = Math.max(0, (sample.B06 / sample.B05) - (1.08 - DETECTION_SENSITIVITY)) / 0.45;
+  let ironThreshold = Math.max(1.08, 1.18 - (DETECTION_SENSITIVITY * 0.15));
+  let ironScore = Math.max(0, (sample.B06 / sample.B05) - ironThreshold) / 0.45;
   let ndsiSum = sample.B11 + sample.B12;
-  let brineScore = ndsiSum === 0 ? 0 : Math.max(0, (sample.B11 - sample.B12) / ndsiSum - (0.05 - (DETECTION_SENSITIVITY * 0.2)));
-  return [Math.min(1, ironScore * brineScore * 18.0)];
+  let brineThreshold = Math.max(0.06, 0.12 - (DETECTION_SENSITIVITY * 0.1));
+  let brineScore = ndsiSum === 0 ? 0 : Math.max(0, (sample.B11 - sample.B12) / ndsiSum - brineThreshold);
+  return [Math.min(1, Math.pow(ironScore * brineScore, 2.0) * 100.0)];
 `
     },
     vcbi: {
-        name: 'Vegetation-Confirmed Brine Index (VCBI)',
+        name: 'Vegetation-Stress/Dual-SWIR Composite (VCBI)',
         sensor: 'Sentinel-2 L2A',
         temporal: '6-24M',
-        min: 'No Stress', max: 'Brine-Kill Zone',
+        min: 'Lower Response', max: 'Higher Response',
         gradient: 'linear-gradient(to right, #0a2010, #1a6030, #c8a000, #e05010)',
-        formula: 'max(0, −CRSI) × NDSI',
-        info: 'Globe & Atlas · Limn composite calibration. Targets the off-pad migration front where produced water is actively killing surrounding brush. CRSI measures osmotic shock on vegetation; as chloride concentrations rise, CRSI collapses and goes negative. Multiplied by NDSI (brine chemistry), the index catches pixels where vegetation is simultaneously dying AND salt chemistry is measurable — the leading edge of a spill that may not yet show a strong chemical signature at its origin.',
-        diffLabels: ['Recovery / Less Stress', 'Active Brine-Kill'],
+        formula: 'clamp(30·(invertedCRSIScore·dualSWIRScore)^1.5,0,1)',
+        formulaStatus: 'Implemented inverted-CRSI × dual-SWIR display composite',
+        validationStatus: 'Research-only stress proxy; it does not attribute vegetation stress to chloride or produced water.',
+        info: 'Experimental co-occurrence of lower CRSI response and elevated dual-SWIR contrast. Drought, disease, grazing, fire, soil disturbance, and other stressors remain plausible causes; the composite does not confirm a brine-kill zone.',
+        diffLabels: ['Lower Composite Response', 'Higher Composite Response'],
         evalscript: genEvalscript(['B02', 'B03', 'B04', 'B08', 'B11', 'B12'], `
   if (sample.dataMask === 0) return [0,0,0,0];
 
@@ -895,19 +1039,21 @@ export const INDICES = {
   let top = (sample.B08 * sample.B04) - (sample.B03 * sample.B02);
   let bot = (sample.B08 * sample.B04) + (sample.B03 * sample.B02);
   let crsi = (bot <= 0 || top < 0) ? 0 : Math.sqrt(top / bot);
-  let stressScore = Math.max(0, (0.55 + DETECTION_SENSITIVITY) - crsi) / 0.55;
+  let stressThreshold = 0.55 + (DETECTION_SENSITIVITY * 0.2);
+  let stressScore = Math.max(0, stressThreshold - crsi) * (1.0 / 0.55);
   let ndsiSum = sample.B11 + sample.B12;
-  let brineScore = ndsiSum === 0 ? 0 : Math.max(0, (sample.B11 - sample.B12) / ndsiSum - (0.04 - (DETECTION_SENSITIVITY * 0.1)));
-  return [Math.min(1, stressScore * brineScore * 10.0)];
+  let brineThreshold = Math.max(0.05, 0.10 - (DETECTION_SENSITIVITY * 0.08));
+  let brineScore = ndsiSum === 0 ? 0 : Math.max(0, (sample.B11 - sample.B12) / ndsiSum - brineThreshold);
+  return [Math.min(1, Math.pow(stressScore * brineScore, 1.5) * 30.0)];
 `
     },
     pwi: {
-        name: 'PWCI — Produced Water Chemical Index (formerly PWI)',
+        name: 'PWCI — Produced-Water Contrast Index (formerly Produced Water Chemical Index / PWI)',
         sensor: 'Sentinel-2 L2A',
         temporal: '0-3M',
         min: 'Background', max: 'Three-Ratio Response',
         gradient: 'linear-gradient(to right, #000000, #00FFFF, #FF00FF, #CCFF00)',
-        formula: '(NDSI - τ₁) × (HCAI - τ₂)×2 × (HMRI - τ₃)×2, cubic stretch [τ from active basin preset; Permian: 0.10 / 0.30 / 2.0]',
+        formula: 'if BSI>mask: clamp((20·max(0,NDSI−τ₁)·2max(0,HCAI−τ₂)·2max(0,HMRI−τ₃))³,0,1); display≥0.05',
         formulaStatus: 'Implemented BSI-gated three-ratio screening architecture',
         validationStatus: 'Not validated as a detector: pipeline recall 81.5% with 96.7% background activation; shipped viewer was blank at 11/11 reviewed positives and 150/150 background controls.',
         info: 'Experimental three-ratio screening architecture. PWCI multiplies thresholded dual-SWIR, SWIR/Red, and SWIR2/Green proxies after a bare-soil gate, then applies a cubic display stretch. These broad Sentinel-2 ratios are not direct measurements of salinity, hydrocarbons, or heavy metals. The July 2026 threshold sweep found no useful separation between produced-water sites and Permian caliche at the tested 500 m single-scene support.',
@@ -921,17 +1067,17 @@ export const INDICES = {
   
   if (bsi <= __BSI_MASK__) return [0,0,0,0];
 
-  // 2. Brine (NDSI)
+  // 2. Dual-SWIR surface contrast (NDSI legacy key)
   let sumBrine = sample.B11 + sample.B12;
   if(sumBrine === 0) return [0,0,0,0];
   let brine = (sample.B11 - sample.B12) / sumBrine;
   
-  // 3. Hydrocarbons (HCAI)
+  // 3. SWIR1–Red surface contrast (HCAI legacy key)
   let sumHcai = sample.B11 + sample.B04;
   if(sumHcai === 0) return [0,0,0,0];
   let hcai = (sample.B11 - sample.B04) / sumHcai;
   
-  // 4. Heavy Metals (HMRI)
+  // 4. SWIR2/Green surface contrast (HMRI legacy key)
   if(sample.B03 === 0) return [0,0,0,0];
   let hmri = sample.B12 / sample.B03;
   
@@ -965,7 +1111,8 @@ export const INDICES = {
   let hmri = sample.B12 / sample.B03;
   
   let pwi = Math.max(0, ndsi - __PWI_SALINITY_OFFSET__) * Math.max(0, (hcai - __PWI_HC_OFFSET__) * 2) * Math.max(0, (hmri - __PWI_HMRI_OFFSET__) * 2);
-  return [Math.min(1.0, Math.pow(pwi * 20.0, 3.0))];
+  let mapped = Math.min(1.0, Math.pow(pwi * 20.0, 3.0));
+  return [mapped < 0.05 ? 0 : mapped];
 `
     },
     lbi: {
@@ -976,7 +1123,7 @@ export const INDICES = {
         gradient: 'linear-gradient(to right, #000000, #0055ff, #00d2ff, #ffffff)',
         formula: '20·max(0,NDSI−0.02)·max(0,NDWI+0.40)·max(0,0.45−NDVI)·G; G=1 when NDWI>0.30, else max(0,BSI+0.20); display≥0.08',
         formulaStatus: 'Implemented water/salinity response proxy with standing-water bypass',
-        validationStatus: 'Preliminary only: 4 standing-brine sites, 3 freshwater/brackish controls, and 150 caliche points did not establish brine-specific separation.',
+        validationStatus: 'Preliminary only: 2/4 standing-brine sites versus 0/3 freshwater controls at the reviewed threshold (two-sided Fisher exact p≈0.43); not brine-specific or validated.',
         info: 'Experimental liquid/salinity response proxy. It combines dual-SWIR contrast, wetness, low vegetation, and a surface gate; open water bypasses the BSI gate. Preliminary July 2026 sampling found low caliche activation but overlapping standing-brine and freshwater responses, so LBI must not be described as brine-specific or as a general produced-water detector.',
         diffLabels: ['Lower Liquid Response', 'Higher Liquid/Salinity Response'],
         evalscript: genEvalscript(['B02', 'B03', 'B04', 'B08', 'B11', 'B12'], `
@@ -1023,23 +1170,26 @@ export const INDICES = {
   let isStandingWater = ndwi > 0.30;
   if (bsi <= -0.25 && !isStandingWater) return [0];
   let surfaceGate = isStandingWater ? 1.0 : Math.max(0, bsi + 0.20);
-  return [
+  let score =
     Math.max(0, ndsi - 0.02) *
     Math.max(0, ndwi + 0.40) *
     Math.max(0, 0.45 - ndvi) *
-    surfaceGate
-  ];
+    surfaceGate;
+  let mapped = Math.min(1, score * 20.0);
+  return [mapped < 0.08 ? 0 : mapped];
 `
     },
     tri: {
-        name: 'Toxic Residue Index (TRI)',
+        name: 'Three-Ratio Residue Composite (TRI legacy)',
         sensor: 'Sentinel-2 L2A',
         temporal: '6M+',
-        min: 'Background', max: 'Toxic Mineral Scab',
+        min: 'Lower Response', max: 'Higher Response',
         gradient: 'linear-gradient(to right, #1a0a00, #804000, #9933ff, #ff00ff)',
-        formula: 'NDSI * HMRI * AOI',
-        info: 'Globe & Atlas · Limn composite calibration. Forensic tool for identifying historical spill footprints where liquid is no longer present. Detects the mineral "scab" left by produced water after evaporation — combining salt chemistry (NDSI), heavy metal precipitation (HMRI), and anoxic iron oxidation (AOI) in a three-way product gate.',
-        diffLabels: ['Residue Degradation', 'New Mineral Staining'],
+        formula: 'clamp((10·dualSWIRScore·SWIR2GreenScore·surfaceProductScore)^2,0,1)',
+        formulaStatus: 'Implemented three-ratio residue-response display composite',
+        validationStatus: 'Research-only surface proxy; no toxicity, metal, or produced-water attribution.',
+        info: 'Experimental product of dual-SWIR, SWIR2/Green, and Red/Blue×SWIR surface contrasts. It can highlight persistent material differences but does not identify a toxic scab or historical spill without independent records and field confirmation.',
+        diffLabels: ['Lower Composite Response', 'Higher Composite Response'],
         evalscript: genEvalscript(['B02', 'B03', 'B04', 'B11', 'B12'], `
   let ndsiSum = sample.B11 + sample.B12;
   let ndsi = ndsiSum === 0 ? 0 : (sample.B11 - sample.B12) / ndsiSum;
@@ -1063,18 +1213,21 @@ export const INDICES = {
   let ndsi = (sample.B11 + sample.B12) === 0 ? 0 : (sample.B11 - sample.B12) / (sample.B11 + sample.B12);
   let hmri = sample.B03 === 0 ? 0 : sample.B12 / sample.B03;
   let aoi = (sample.B02 === 0 || sample.B12 === 0) ? 0 : (sample.B04 / sample.B02) * (sample.B11 / sample.B12);
-  return [Math.max(0, ndsi - 0.05) * Math.max(0, (hmri - 1.5)/2) * Math.max(0, (aoi - 1.5)/2)];
+  let score = Math.max(0, ndsi - 0.05) * Math.max(0, (hmri - 1.5)/2) * Math.max(0, (aoi - 1.5)/2);
+  return [Math.min(1, Math.pow(score * 10, 2.0))];
 `
     },
     bpi: {
-        name: 'Brine-Pavement Index (BPI)',
+        name: 'Bare-Pad Three-Ratio Composite (BPI legacy)',
         sensor: 'Sentinel-2 L2A',
         temporal: 'Live',
-        min: 'Clean Surface', max: 'Contaminated Pavement',
+        min: 'Lower Response', max: 'Higher Response',
         gradient: 'linear-gradient(to right, #222222, #444444, #00FFFF, #FFFF00)',
-        formula: 'NDSI * HCAI * BSI',
-        info: 'Globe & Atlas · Limn composite calibration. Optimized for detecting leaks on caliche pads and lease roads — the primary tool for pad-level integrity monitoring. Requires brine (NDSI) and hydrocarbon (HCAI) signals co-located on a bare/compacted surface (BSI gate). Distinguishes pad pinhole leaks from off-pad vegetation kill zones.',
-        diffLabels: ['Surface Recovery', 'Active Pad Pinhole'],
+        formula: 'clamp(30·bareSoilScore·dualSWIRScore·SWIR1RedScore,0,1)',
+        formulaStatus: 'Implemented bare-surface three-ratio display composite',
+        validationStatus: 'Research-only pad-surface proxy; no pinhole-leak or contamination validation.',
+        info: 'Experimental co-occurrence of bare-soil, dual-SWIR, and SWIR1–Red contrasts. It can organize inspection of pads and roads, but cannot distinguish a leak from construction, grading, moisture, substrate, or residue without independent evidence.',
+        diffLabels: ['Lower Composite Response', 'Higher Composite Response'],
         evalscript: genEvalscript(['B02', 'B04', 'B08', 'B11', 'B12'], `
   let bsiTop = (sample.B11 + sample.B04) - (sample.B08 + sample.B02);
   let bsiBot = (sample.B11 + sample.B04) + (sample.B08 + sample.B02);
@@ -1102,18 +1255,22 @@ export const INDICES = {
   let bsi = (sample.B11+sample.B04+sample.B08+sample.B02) === 0 ? 0 : ((sample.B11+sample.B04)-(sample.B08+sample.B02))/((sample.B11+sample.B04)+(sample.B08+sample.B02));
   let ndsi = (sample.B11 + sample.B12) === 0 ? 0 : (sample.B11 - sample.B12) / (sample.B11 + sample.B12);
   let hcai = (sample.B11 + sample.B04) === 0 ? 0 : (sample.B11 - sample.B04) / (sample.B11 + sample.B04);
-  return [Math.max(0, bsi + __BSI_OFFSET__) * Math.max(0, ndsi - 0.03) * Math.max(0, hcai - 0.15)];
+  if (bsi <= __BSI_MASK__) return [0];
+  let score = Math.max(0, bsi + __BSI_OFFSET__) * Math.max(0, ndsi - 0.03) * Math.max(0, hcai - 0.15);
+  return [Math.min(1, score * 30.0)];
 `
     },
     vsi: {
-        name: 'Vegetation Stress Index (VSI)',
+        name: 'Vegetation/Dual-SWIR Stress Composite (VSI)',
         sensor: 'Sentinel-2 L2A',
         temporal: '3-24M',
-        min: 'Healthy', max: 'Metal/Brine Stress',
+        min: 'Lower Response', max: 'Higher Response',
         gradient: 'linear-gradient(to right, #005500, #FFFF00, #FF8800, #FF0000)',
-        formula: 'NDSI * RedEdgeDelta * MSI',
-        info: 'Globe & Atlas · Limn composite calibration. Detects the physiological impact of produced water before vegetation death — sub-lethal brine toxicity in surviving desert scrub. Uses Red-Edge blue-shifts (B07/B05) and SWIR/NIR moisture stress (B11/B8A) co-located with a salinity signature (NDSI). Earlier warning than VCBI, which requires vegetation mortality.',
-        diffLabels: ['Stress Alleviation', 'Escalating Toxicity'],
+        formula: 'clamp(10·dualSWIRScore·redEdgeStressScore·moistureStressScore,0,1)',
+        formulaStatus: 'Implemented vegetation and dual-SWIR stress display composite',
+        validationStatus: 'Research-only vegetation-stress proxy; no toxicity or produced-water attribution.',
+        info: 'Experimental product of dual-SWIR contrast, a red-edge term, and MSI. It may surface vegetation stress, but drought, phenology, fire, disease, grazing, and soil disturbance remain confounders.',
+        diffLabels: ['Lower Composite Response', 'Higher Composite Response'],
         evalscript: genEvalscript(['B05', 'B07', 'B11', 'B12', 'B8A'], `
   let ndsi = (sample.B11 + sample.B12) === 0 ? 0 : (sample.B11 - sample.B12) / (sample.B11 + sample.B12);
   let redEdgeDelta = (sample.B07 + sample.B05) === 0 ? 0 : (sample.B07 - sample.B05) / (sample.B07 + sample.B05);
@@ -1134,18 +1291,21 @@ export const INDICES = {
   let ndsi = (sample.B11 + sample.B12) === 0 ? 0 : (sample.B11 - sample.B12) / (sample.B11 + sample.B12);
   let redEdgeDelta = (sample.B07 + sample.B05) === 0 ? 0 : (sample.B07 - sample.B05) / (sample.B07 + sample.B05);
   let msi = sample.B8A === 0 ? 0 : sample.B11 / sample.B8A;
-  return [Math.max(0, ndsi) * Math.max(0, 0.4 - redEdgeDelta) * Math.max(0, msi - 1.0)];
+  let score = Math.max(0, ndsi) * Math.max(0, 0.4 - redEdgeDelta) * Math.max(0, msi - 1.0);
+  return [Math.min(1, score * 10.0)];
 `
     },
     cma: {
-        name: 'Clay-Mineral Alteration (CMA)',
+        name: 'Clay/Surface Contrast Composite (CMA)',
         sensor: 'Sentinel-2 L2A',
         temporal: 'Persistent',
-        min: 'Native Soil', max: 'Chemical Alteration',
+        min: 'Lower Response', max: 'Higher Response',
         gradient: 'linear-gradient(to right, #442200, #884400, #AA88AA, #FFFFFF)',
-        formula: 'NDSI * (B11/B12) * (B04/B02)',
-        info: 'Globe & Atlas · Limn composite calibration. Forensic index targeting the chemical modification of clay lattices by produced water residues. Uses SWIR-1/SWIR-2 ratios to isolate salt-clay interactions and visible Red/Blue ratios for iron-oxidation signatures. Persistent indicator — clay lattice disruption survives long after surface brine has evaporated.',
-        diffLabels: ['Naturalization', 'Chemical Staining'],
+        formula: 'clamp(15·dualSWIRScore·SWIRRatioScore·redBlueScore,0,1)',
+        formulaStatus: 'Implemented three-ratio surface display composite',
+        validationStatus: 'Research-only mineral/surface proxy; no clay-lattice or produced-water validation.',
+        info: 'Experimental combination of dual-SWIR, SWIR1/SWIR2, and Red/Blue surface contrasts. It may highlight persistent substrate differences but cannot establish clay-lattice disruption or chemical alteration.',
+        diffLabels: ['Lower Composite Response', 'Higher Composite Response'],
         evalscript: genEvalscript(['B02', 'B04', 'B11', 'B12'], `
   let ndsi = (sample.B11 + sample.B12) === 0 ? 0 : (sample.B11 - sample.B12) / (sample.B11 + sample.B12);
   let clayRatio = sample.B12 === 0 ? 0 : sample.B11 / sample.B12;
@@ -1166,18 +1326,21 @@ export const INDICES = {
   let ndsi = (sample.B11 + sample.B12) === 0 ? 0 : (sample.B11 - sample.B12) / (sample.B11 + sample.B12);
   let clayRatio = (sample.B12 === 0) ? 0 : sample.B11 / sample.B12;
   let ironIndex = (sample.B02 === 0) ? 0 : sample.B04 / sample.B02;
-  return [Math.max(0, ndsi) * Math.max(0, clayRatio - 1.2) * Math.max(0, ironIndex - 1.5)];
+  let score = Math.max(0, ndsi) * Math.max(0, clayRatio - 1.2) * Math.max(0, ironIndex - 1.5);
+  return [Math.min(1, score * 15.0)];
 `
     },
     phi: {
-        name: 'Petro-Hydrocarbon Index (PHI)',
+        name: 'SWIR-Shoulder Surface Composite (PHI legacy)',
         sensor: 'Sentinel-2 L2A',
         temporal: '0-6M',
-        min: 'Background', max: 'Hydrocarbon Rich',
+        min: 'Lower Response', max: 'Higher Response',
         gradient: 'linear-gradient(to right, #000000, #333333, #663300, #FFCC00)',
-        formula: 'NDSI * (B11/B12) * HCAI',
-        info: 'Globe & Atlas · Limn composite calibration. Isolates oily brine from clean runoff by combining the SWIR absorption shoulder of petroleum hydrocarbons (B11/B12 ratio), HCAI hydrocarbon signal, and NDSI salinity — a three-factor gate that separates oilfield produced water from natural saline seeps or irrigation drainage.',
-        diffLabels: ['Oil Degradation', 'New Oil/Brine Event'],
+        formula: 'clamp(20·dualSWIRScore·SWIRShoulderScore·SWIR1RedScore,0,1)',
+        formulaStatus: 'Implemented three-ratio SWIR/visible display composite',
+        validationStatus: 'Research-only surface proxy; not a petroleum or oily-brine retrieval.',
+        info: 'Experimental product of dual-SWIR, SWIR1/SWIR2, and SWIR1–Red contrasts. Sentinel-2 broad bands do not resolve a diagnostic petroleum absorption feature here, so the composite cannot separate oily brine from other surface materials without independent confirmation.',
+        diffLabels: ['Lower Composite Response', 'Higher Composite Response'],
         evalscript: genEvalscript(['B04', 'B11', 'B12'], `
   let ndsi = (sample.B11 + sample.B12) === 0 ? 0 : (sample.B11 - sample.B12) / (sample.B11 + sample.B12);
   let shoulder = sample.B12 === 0 ? 0 : sample.B11 / sample.B12;
@@ -1198,18 +1361,21 @@ export const INDICES = {
   let ndsi = (sample.B11 + sample.B12) === 0 ? 0 : (sample.B11 - sample.B12) / (sample.B11 + sample.B12);
   let shoulder = (sample.B12 === 0) ? 0 : sample.B11 / sample.B12;
   let hcai = (sample.B11 + sample.B04) === 0 ? 0 : (sample.B11 - sample.B04) / (sample.B11 + sample.B04);
-  return [Math.max(0, ndsi) * Math.max(0, shoulder - 1.0) * Math.max(0, hcai - 0.2)];
+  let score = Math.max(0, ndsi) * Math.max(0, shoulder - 1.0) * Math.max(0, hcai - 0.2);
+  return [Math.min(1, score * 20.0)];
 `
     },
     hmi: {
-        name: 'Heavy Metal Interaction (HMI)',
+        name: 'Green–SWIR Interaction Composite (HMI legacy)',
         sensor: 'Sentinel-2 L2A',
         temporal: '12M+',
-        min: 'Clean', max: 'Metal-Salt PPT',
+        min: 'Lower Response', max: 'Higher Response',
         gradient: 'linear-gradient(to right, #001100, #004400, #00FFBB, #FFFFFF)',
-        formula: '(B03/B02) * (B11/B12)',
-        info: 'Globe & Atlas · Limn composite calibration. Targets Barium and Strontium precipitation from produced water — heavy metals that settle into soil as brine evaporates. Uses green-reflectance shifts (B03/B02) caused by metal toxicity suppressing organic matter, combined with mineral salt precipitation signatures (B11/B12). Persistent for 12+ months after initial spill.',
-        diffLabels: ['Site Detoxification', 'Metal Accumulation'],
+        formula: 'clamp(10·greenBlueScore·SWIRRatioScore,0,1)',
+        formulaStatus: 'Implemented green/blue × SWIR-ratio display composite',
+        validationStatus: 'Research-only surface proxy; no barium, strontium, radium, or total-metal validation.',
+        info: 'Experimental product of Green/Blue and SWIR1/SWIR2 ratios. Heavy-metal concentration requires field sampling and calibrated modeling; this composite cannot identify metal precipitation or detoxification.',
+        diffLabels: ['Lower Composite Response', 'Higher Composite Response'],
         evalscript: genEvalscript(['B02', 'B03', 'B11', 'B12'], `
   let greenShift = sample.B02 === 0 ? 0 : sample.B03 / sample.B02;
   let saltPPT = sample.B12 === 0 ? 0 : sample.B11 / sample.B12;
@@ -1228,18 +1394,21 @@ export const INDICES = {
         fisLogic: `
   let greenShift = (sample.B02 === 0) ? 0 : sample.B03 / sample.B02;
   let saltPPT = (sample.B12 === 0) ? 0 : sample.B11 / sample.B12;
-  return [Math.max(0, greenShift - 1.1) * Math.max(0, saltPPT - 1.2)];
+  let score = Math.max(0, greenShift - 1.1) * Math.max(0, saltPPT - 1.2);
+  return [Math.min(1, score * 10.0)];
 `
     },
     scri: {
-        name: 'Salt Crust Roughness Index (SCRI)',
+        name: 'SAR Surface-Contrast Index (SCRI legacy)',
         sensor: 'Sentinel-1 GRD',
         temporal: '3-12M',
-        min: 'Background', max: 'Salt Crust Confirmed',
+        min: 'Lower Response', max: 'Higher Response',
         gradient: 'linear-gradient(to right, #000000, #4b0082, #e74c3c, #f1c40f)',
-        formula: 'log10(VH) + Salt_Proxy',
-        info: 'Globe & Atlas · Limn SAR-based composite calibration. Leverages the characteristic backscatter signature of salt crystallization on the soil surface: low VH (smooth surface, no volume scattering) combined with elevated VH relative to background. Penetrates dust, smoke, and cloud — provides mechanical verification of chemical salinity signatures seen in optical indices.',
-        diffLabels: ['Smoothing / Naturalization', 'New Salt Roughness'],
+        formula: 'clamp((0.5·max(0,(VH_dB+19)/9)·max(0,(VH_dB−VV_dB+6)/5))^2.5,0,1)',
+        formulaStatus: 'Implemented single-scene Sentinel-1 VV/VH surface-contrast proxy',
+        validationStatus: 'Not calibrated to electrical conductivity or validated as a salt-crust classifier.',
+        info: 'Experimental Sentinel-1 backscatter and polarization-contrast response. Roughness, moisture, vegetation, incidence angle, and substrate all affect VV/VH. It provides all-weather surface context but no optical salt proxy or chemical salinity confirmation.',
+        diffLabels: ['Lower SAR Contrast', 'Higher SAR Contrast'],
         evalscript: `//VERSION=3
 function setup() {
   return {
@@ -1272,13 +1441,13 @@ function evaluatePixel(sample) {
 `
     },
     s1_sar: {
-        name: 'SAR Moisture (VV/VH)',
+        name: 'Sentinel-1 VV Backscatter Context',
         sensor: 'Sentinel-1 GRD',
-        min: 'Dry / Smooth', max: 'Wet / Rough',
+        min: 'Lower VV Backscatter', max: 'Higher VV Backscatter',
         gradient: 'linear-gradient(to right, #000000, #448833, #CCDD55)',
-        formula: 'RGB [VV, VH, VV/VH]',
-        info: 'Synthetic Aperture Radar utilizes C-band microwaves (VV/VH polarizations) which penetrate clouds and darkness to measure surface roughness and dielectric constant. Smooth water surfaces appear dark, while rough terrain or physical structures appear brightly reflective.',
-        diffLabels: ['Smoother / Drier', 'Rougher / Wetter'],
+        formula: 'grayscale clamp((10·log10(VV)+20)/20,0,1)',
+        info: 'Single-channel Sentinel-1 VV backscatter context rendered in grayscale. Backscatter responds to roughness, dielectric properties, geometry, vegetation, and moisture; low or high values are not uniquely dry, wet, smooth, or rough.',
+        diffLabels: ['Lower VV Backscatter', 'Higher VV Backscatter'],
         evalscript: `//VERSION=3
 function setup() {
   return {
@@ -1289,7 +1458,7 @@ function setup() {
 function evaluatePixel(sample) {
   if (sample.dataMask === 0) return [0,0,0,0];
   // Convert power to decibels
-  let vv_db = Math.max(0, Math.log10(sample.VV) * 10 + 20) / 20; 
+  let vv_db = Math.max(0, Math.min(1, (Math.log10(sample.VV) * 10 + 20) / 20));
   
   if (typeof VISUAL_FILTER !== 'undefined' && vv_db < VISUAL_FILTER) return [0,0,0,0];
   
@@ -1299,19 +1468,20 @@ function evaluatePixel(sample) {
         fisBands: ['VV', 'VH'],
         fisLogic: `
   if (sample.VV <= 0) return [0];
-  // Return the backscatter intensity directly for statistical trending
-  return [sample.VV];
+  return [Math.max(0, Math.min(1, (Math.log10(sample.VV) * 10 + 20) / 20))];
 `
     },
     mvpi: {
-        name: 'Methane Venting Plume Index (MVPI)',
+        name: 'Single-Scene SWIR Ratio Screen (MVPI legacy)',
         sensor: 'Sentinel-2 L2A',
         temporal: 'Live',
-        min: 'Clean Ground', max: 'Methane Plume Anomaly',
+        min: 'Lower Response', max: 'Higher SWIR-Ratio Response',
         gradient: 'linear-gradient(to right, #0d171b, #f57814, #ffb400)',
-        formula: 'Bright Soil × SWIR Methane Ratio × Water/Veg Gates',
-        info: 'Methane super-emitter screening. Targets localized high-concentration venting plumes over highly reflective oil pads and soils by isolating B11/B12 gas absorption features.',
-        diffLabels: ['Plume Dispersal', 'Plume Expansion'],
+        formula: 'clamp(3·brightSurfaceGate·max(0,(B11/B12−1.15)·4)·waterReject·vegReject,0,1)',
+        formulaStatus: 'Implemented single-scene Sentinel-2 SWIR-ratio surface screen',
+        validationStatus: 'Not a methane retrieval; no MBSP/MBMP reference-scene fitting or plume validation.',
+        info: 'Experimental single-scene B11/B12 surface-ratio screen over bright, sparsely vegetated ground. Operational Sentinel-2 methane methods require scene fitting and commonly a non-plume reference observation; this layer must not be interpreted as methane detection.',
+        diffLabels: ['Lower SWIR-Ratio Response', 'Higher SWIR-Ratio Response'],
         evalscript: genEvalscript(['B03', 'B04', 'B08', 'B11', 'B12'], `
   if (sample.dataMask === 0) return [0,0,0,0];
   let ndvi = (sample.B08 - sample.B04) / (sample.B08 + sample.B04);
@@ -1334,7 +1504,7 @@ function evaluatePixel(sample) {
   let groundGate = Math.max(0.0, (swirMean - 0.20) * 2.0);
   let waterReject = sample.B03 > sample.B11 ? 0.0 : 1.0;
   let vegReject = ndvi > 0.15 ? 0.0 : 1.0;
-  return [waterReject * vegReject * groundGate * methaneScore];
+  return [Math.min(1.0, waterReject * vegReject * groundGate * methaneScore * 3.0)];
 `
     }
 };
@@ -1376,9 +1546,10 @@ export const CHART_COLORS = {
     mvpi: '#f57814'
 };
 
-export function getHighlightScript(indexKey, hexColor, chartValue, includeContext = false, activeBasin = 'permian') {
+export function getHighlightScript(indexKey, hexColor, chartValue, includeContext = false, activeBasin = 'permian', useScl = false) {
     const cfg = INDICES[indexKey];
     if (!cfg || !cfg.fisLogic) return '';
+    const isSar = cfg.sensor && cfg.sensor.includes('Sentinel-1');
     
     // Apply Dynamic Calibration Placeholders to the logic
     const cal = CALIBRATION_PRESETS[activeBasin || 'permian'];
@@ -1391,7 +1562,8 @@ export function getHighlightScript(indexKey, hexColor, chartValue, includeContex
         .replace(/__PWI_HMRI_OFFSET__/g, cal.pwiHmriOffset);
 
     // If context is requested, we need B04, B03, B02 for True Color background
-    const bandsList = [...new Set([...(cfg.fisBands || []), 'B04', 'B03', 'B02'])];
+    const contextBands = isSar ? [] : ['B04', 'B03', 'B02', ...(useScl ? ['SCL'] : [])];
+    const bandsList = [...new Set([...(cfg.fisBands || []), ...contextBands])];
     
     // Use dynamic chart value as the highlight threshold if available
     let rawThreshold = HIGHLIGHT_THRESHOLDS[indexKey] || 0.20;
@@ -1418,6 +1590,7 @@ function setup() {
 }
 function evaluatePixel(sample) {
   if (sample.dataMask === 0) return [0, 0, 0, 0];
+  ${isSar || !useScl ? '' : '// SCL_QA_START\n  if (!(sample.SCL === 4 || sample.SCL === 5 || sample.SCL === 6 || sample.SCL === 7)) return [0, 0, 0, 0];\n  // SCL_QA_END'}
   const calculate = (sample) => {
     ${logic}
   };

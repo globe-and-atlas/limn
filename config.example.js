@@ -15,6 +15,9 @@ window.CONFIG = {
     SENTINEL_CREDIT_GUARD: true,
     SENTINEL_LIVE_TILES: false,
     SENTINEL_MIN_ZOOM: 14,
+    // The bundled AGRICULTURE WMS layer is S2 L1C and does not expose SCL.
+    // Set true only for a Sentinel Hub WMS configuration backed by S2 L2A.
+    SENTINEL_WMS_SUPPORTS_SCL: false,
     // Optional Atlas-specific overrides. If omitted, Atlas uses the shared
     // Sentinel guard settings above.
     ATLAS_SENTINEL_CREDIT_GUARD: true,

@@ -4,9 +4,11 @@
 
 *Prepared from full codebase analysis of `/sentinel-explorer`. Designed for NotebookLM ingestion and self-directed learning.*
 
-> **⚠ Current scientific status (2026-07-20).** July controls supersede the recall-only interpretation in historical sections of this guide. The permissive pipeline paired PWCI/ASAI/OBEC recall of 81.5% / 77.8% / 66.7% with background activation of 96.7% / 71.3% / 71.3%. The shipped viewer activated on 0/150 background controls but was also blank at all 11 reviewed positives. A 1,224-combination sweep found no useful produced-water/caliche separation at the tested 500 m single-scene support. These are experimental screening architectures, not validated detectors. See `knowledge/domain/scientific-status-2026-07-20.md`.
+> **⚠ Current scientific status (2026-07-21).** July controls supersede the recall-only interpretation in historical sections of this guide. The permissive pipeline paired PWCI/ASAI/OBEC recall of 81.5% / 77.8% / 66.7% with background activation of 96.7% / 71.3% / 71.3%. The shipped viewer activated on 0/150 background controls but was also blank at all 11 reviewed positives. A 1,224-combination sweep found no useful produced-water/caliche separation at the tested 500 m single-scene support. These are experimental screening architectures, not validated detectors. Current analytics now return the same mapped/gated score shown by each evalscript. See `knowledge/domain/scientific-status-2026-07-20.md`.
 
-**Authorship note:** The standard spectral indices in this guide (NDVI, SAVI, NDWI, NDMI, MSI, BSI, NDSI, HCAI, HMRI, NDOI, CRSI) are established methods with citations in Section 18. The custom combinations and software implementations were developed by **Daniel Bally (Globe & Atlas, 2025–2026)** from those established components. Historical ✧/✧✧ symbols identify project-designed formulas; they do not establish scientific priority, patent novelty, or validation.
+> **Current app workflow.** Limn defaults to True Color, applies SCL pixel QA to primary L2A COG/GEE optical lenses, and promotes MNDWI, AWEIsh, NDMI, SAVI, BSI, dual-SWIR contrast, SWIR false color, NDRE, and the preliminary LBI response as complementary context. The optional bundled Sentinel Hub WMS carrier is L1C and cannot provide SCL, so the UI labels that provider limitation. PWCI, ASAI, and OBEC are retained in a collapsed negative-result drawer. Before/after swipe and Sentinel-1 VV context help investigate change and surface conditions; neither is presented as source attribution.
+
+**Authorship note:** NDVI, NDRE, SAVI, MNDWI, AWEIsh, NDMI, MSI, BSI, and CRSI are established methods. The legacy keys NDSI, HCAI, HMRI, and NDOI in Limn are broad-band surface contrasts, not direct implementations of chemical retrievals implied by their historical names. Project composites and software implementations were developed by **Daniel Bally (Globe & Atlas, 2025–2026)**. Historical ✧/✧✧ symbols identify project-designed formulas; they do not establish scientific priority, patent novelty, or validation.
 
 ---
 
@@ -19,11 +21,11 @@
 5. [How Satellite Data Becomes a Map Tile](#5-how-satellite-data-becomes-a-map-tile)
 6. [Evalscripts: The Programming Layer](#6-evalscripts-the-programming-layer)
 7. [Spectral Indices — The Science](#7-spectral-indices--the-science)
-8. [The Full Index Library (43 Indices)](#8-the-full-index-library-43-indices)
-9. [PWCI: Produced Water Chemical Index (formerly PWI) ✧✧ — Deep Dive](#9-pwci-produced-water-chemical-index-formerly-pwi-✧✧--deep-dive)
+8. [The Full Index Library (36 Lenses)](#8-the-full-index-library-36-lenses)
+9. [PWCI: Produced-Water Contrast Index (formerly PWI) ✧✧ — Deep Dive](#9-pwci-produced-water-contrast-index-formerly-pwi-✧✧--deep-dive)
 10. [ASAI: Arid Salinity Anomaly Index (formerly PWOI) ✧✧](#10-asai-arid-salinity-anomaly-index-formerly-pwoi-✧✧)
-11. [OBEC: Oil-Brine Emulsion Composite (formerly HPWI) ✧](#11-obec-oil-brine-emulsion-composite-formerly-hpwi-✧)
-11.5 [MVPI: Methane Venting Plume Index ✧✧](#115-mvpi-methane-venting-plume-index-✧✧)
+11. [OBEC: Optical Brightness/Edge Contrast (formerly HPWI) ✧](#11-obec-optical-brightnessedge-contrast-formerly-hpwi-✧)
+11.5 [MVPI legacy: Single-Scene SWIR Ratio Screen](#115-mvpi-legacy-single-scene-swir-ratio-screen)
 12. [SAR Indices: Sentinel-1 Processing](#12-sar-indices-sentinel-1-processing)
 13. [Multi-Temporal Analysis](#13-multi-temporal-analysis)
 14. [The Permian Basin Context](#14-the-permian-basin-context)
@@ -37,16 +39,16 @@
 
 ## 1. What This Application Does
 
-Sentinel Explorer is a browser-based geospatial intelligence tool purpose-built for one specific task: **detecting produced water spills at oil and gas well pads in the Permian Basin, West Texas and New Mexico.**
+Sentinel Explorer is a browser-based geospatial investigation tool for **screening surface context around documented produced-water events in the Permian Basin, West Texas and New Mexico.** It is not a validated produced-water or chemical detector.
 
 Produced water is the largest waste stream in oil and gas production. It is a highly toxic mixture of ancient formation brine (saltwater trapped underground for millions of years), residual crude oil hydrocarbons, and dissolved heavy metals including barium, strontium, and radium. When it spills — through pipeline failures, storage tank ruptures, or illegal discharge — it contaminates soil, groundwater, and vegetation over wide areas.
 
 The application uses two complementary Copernicus satellites:
 
-- **Sentinel-2** (optical/multispectral): 13 spectral bands from visible light through shortwave infrared. Cannot see through clouds but provides rich chemical and surface information.
+- **Sentinel-2** (optical/multispectral): 13 spectral bands from visible light through shortwave infrared. Cannot see through clouds and provides broad surface-reflectance information; chemical attribution requires independent evidence.
 - **Sentinel-1** (SAR/radar): Synthetic Aperture Radar that penetrates clouds and operates at night. Measures surface roughness and the dielectric constant of materials.
 
-The system streams these satellite images in real time through the **Copernicus Data Space Ecosystem (CDSE)** and **Sentinel Hub**, applying custom mathematical formulas called **evalscripts** directly on the satellite servers. Instead of downloading gigabytes of raw imagery, the app receives lightweight PNG map tiles pre-processed to highlight specific chemical or physical signatures.
+The system streams these satellite images in real time through the **Copernicus Data Space Ecosystem (CDSE)** and **Sentinel Hub**, applying custom mathematical formulas called **evalscripts** directly on the satellite servers. Instead of downloading gigabytes of raw imagery, the app receives lightweight PNG map tiles pre-processed to highlight spectral or surface contrasts.
 
 ---
 
@@ -109,22 +111,22 @@ Atmospherically corrected using the Sen2Cor algorithm. The atmospheric effects h
 
 ### 3.5 Bands Used in This App
 
-The following bands drive all 43 indices in this application:
+The following bands drive the application's 36 registered optical and radar lenses:
 
 | Band | Wavelength | Used For |
 |------|-----------|----------|
-| B02 (Blue) | 490 nm | NDOI (oil/water optical contrast), True Color |
-| B03 (Green) | 560 nm | NDWI, HMRI denominator, True Color, smoothness proxy |
-| B04 (Red) | 665 nm | NDVI, SAVI, HCAI (hydrocarbon absorption), True Color |
-| B05 (Red Edge 1) | 705 nm | REAI (Red Edge Alteration Index) |
+| B02 (Blue) | 490 nm | Blue–SWIR2 contrast, True Color |
+| B03 (Green) | 560 nm | MNDWI, SWIR2/Green denominator, True Color |
+| B04 (Red) | 665 nm | NDVI, SAVI, SWIR1–Red contrast, True Color |
+| B05 (Red Edge 1) | 705 nm | NDRE, REAI |
 | B06 (Red Edge 2) | 740 nm | REAI |
 | B07 (Red Edge 3) | 783 nm | VSI (Vegetation Stress Index) |
-| B08 (Broad NIR) | 842 nm | NDVI, SAVI, NDMI, BSI, NDSI-salinity |
-| B8A (Narrow NIR) | 865 nm | NDMI, VSI |
-| B11 (SWIR 1) | 1610 nm | NDWI, NDMI, NDSI, MSI, BSI, HCAI — used in nearly every index |
-| B12 (SWIR 2) | 2190 nm | NDSI-brine, CSI (clay), HMRI, PWI, FBC — mineral/chemical fingerprinting |
+| B08 (Broad NIR) | 842 nm | NDVI, SAVI, BSI, SWIR1–NIR contrast |
+| B8A (Narrow NIR) | 865 nm | NDMI, NDRE, VSI |
+| B11 (SWIR 1) | 1610 nm | MNDWI, NDMI, dual-SWIR, MSI, BSI, SWIR1–Red contrast |
+| B12 (SWIR 2) | 2190 nm | Dual-SWIR, SWIR1/SWIR2, SWIR2/Green, PWCI, FBC |
 
-**SWIR bands (B11, B12) are the workhorses of this application.** Liquid water, hydrocarbons, minerals, and salts all have distinctive absorption and reflectance features in the shortwave infrared — features that are invisible to the human eye but highly diagnostic to the satellite sensor.
+**SWIR bands (B11, B12) are the workhorses of this application.** Their broad responses are useful for water, moisture, mineral, vegetation, and surface-condition context. Sentinel-2's band widths and sampling do not make these ratios chemically diagnostic by themselves.
 
 ---
 
@@ -149,7 +151,7 @@ Different SAR bands interact with Earth's surface differently:
 - **L-band (23 cm):** Deeper canopy penetration, excellent for forests.
 - **X-band (3 cm):** Very surface-sensitive, excellent for urban structures.
 
-C-band SAR (Sentinel-1) is ideal for detecting surface features like produced water spills because brine pools create characteristic smooth surfaces at the centimeter scale that strongly absorb C-band energy.
+C-band SAR (Sentinel-1) is useful for cloud-independent surface context. Roughness, moisture, vegetation, incidence angle, and substrate are confounded, so a dark or bright return is not produced-water attribution.
 
 ### 4.3 IW Mode: Interferometric Wide Swath
 
@@ -179,7 +181,7 @@ Sentinel-1 transmits and receives in two polarization channels simultaneously:
 - Smooth surfaces → extremely dark VH (almost no depolarization)
 - Dense vegetation → bright VH (canopy causes polarization rotation)
 
-**Key insight for this app:** A brine pool or produced water spill creates an extremely smooth surface. Both VV and VH will be very low (dark). The ratio `VV/VH` approaches infinity (or very high values) because while both decrease, VH decreases more dramatically — smooth surfaces cannot cause the volume scattering needed to depolarize VV into VH. This ratio contrast is the physical basis of the SAR-based spill detection.
+**Key boundary for this app:** Calm water can be dark in both VV and VH, but so can other smooth or low-return surfaces. The app exposes VV context and a separate VH/VV-derived surface-contrast experiment; neither is a spill detector.
 
 ### 4.6 Backscatter in Decibels (dB)
 
@@ -335,7 +337,7 @@ The shortwave infrared (SWIR) region (1400–2500 nm, covered by Sentinel-2 B11 
 - **Minerals** have diagnostic spectral features in SWIR: clays absorb strongly around 2200 nm; carbonates (calcite, dolomite) absorb around 2340 nm; gypsum at 1450 nm.
 - **Salts and brine** alter the SWIR spectrum by disrupting the typical mineral lattice structure of soil.
 
-This is why **B11 and B12 appear in virtually every index in this application** — they are the bands most sensitive to the specific chemical changes produced by brine spills.
+This is why **B11 and B12 appear in many indices in this application**: they provide strong moisture and material contrast. Specific chemical interpretation requires spectroscopy, field samples, or a calibrated retrieval model.
 
 ### 7.3 The Normalized Difference Formula — Why Divide?
 
@@ -348,7 +350,7 @@ The normalized difference `(B11 - B12) / (B11 + B12)`:
 
 ---
 
-## 8. The Full Index Library (43 Indices)
+## 8. The Full Index Library (36 Lenses)
 
 ### 8.1 Standard Environmental Indices
 
@@ -368,18 +370,30 @@ The normalized difference `(B11 - B12) / (B11 + B12)`:
 - **Citation:** Huete, 1988
 - **When to use instead of NDVI:** Any time vegetation cover is <40% — virtually everywhere in this application.
 
-#### NDWI — Normalized Difference Water Index
-- **Formula (used here):** `(B03 - B11) / (B03 + B11)` (Gao variant)
+#### MNDWI — Modified Normalized Difference Water Index (internal key `ndwi`)
+- **Formula (used here):** `(B03 - B11) / (B03 + B11)` (Xu, 2006)
 - **Bands:** B03 (Green, 560nm), B11 (SWIR1, 1610nm)
 - **Physical basis:** Liquid water reflects green light and absorbs SWIR strongly. Vegetation and soil do the opposite. Positive NDWI = open water body or saturated soil. Negative NDWI = dry surface.
-- **Note:** The original McFeeters (1996) NDWI uses B03/B08 (Green/NIR). The Gao (1996) variant using Green/SWIR is more sensitive to canopy water content and is what this app uses (called "wetness index").
+- **Note:** McFeeters (1996) NDWI uses Green/NIR; Gao (1996) NDWI/NDMI uses NIR/SWIR. The Green/SWIR formula implemented here is Xu's MNDWI.
 - **Important for this app:** On dry Permian Basin soil, NDWI is typically very negative (−0.39 to −0.51) because B11 >> B03. This is the key insight behind the ASAI (formerly PWOI) dry brine mode — standard wetness detection fails in desert environments.
+
+#### AWEIsh — Automated Water Extraction Index (shadow variant)
+- **Formula:** `B02 + 2.5·B03 − 1.5·(B08+B11) − 0.25·B12`
+- **Bands:** B02, B03, B08, B11, B12
+- **Role:** An established water-extraction cross-check that can suppress many shadow and bright-surface confounders differently from MNDWI.
+- **Boundary:** Positive response supports water-like surface context only; it does not measure salinity, brine concentration, or produced-water source.
 
 #### NDMI — Normalized Difference Moisture Index
 - **Formula:** `(B8A - B11) / (B8A + B11)`
 - **Bands:** B8A (Narrow NIR, 865nm), B11 (SWIR1, 1610nm)
 - **Physical basis:** Measures vegetation canopy water content (leaf water). Used to detect drought stress and irrigation changes. Note: this is sometimes called NDWI-vegetation to distinguish from NDWI-water.
 - **Citation:** Gao, 1996
+
+#### NDRE — Normalized Difference Red-Edge Index
+- **Formula:** `(B8A - B05) / (B8A + B05)`
+- **Bands:** B8A (narrow NIR), B05 (red edge 1)
+- **Role:** Complements NDVI/SAVI when inspecting vegetation response and canopy condition.
+- **Boundary:** Phenology, drought, disease, grazing, fire, and land management are confounders; NDRE cannot attribute stress to produced water without independent controls.
 
 #### MSI — Moisture Stress Index
 - **Formula:** `B11 / B08`
@@ -394,111 +408,91 @@ The normalized difference `(B11 - B12) / (B11 + B12)`:
 - **Bands:** B11, B04, B08, B02
 - **Physical basis:** Bare soil reflects strongly in SWIR and Red but weakly in NIR and Blue (due to lack of green chlorophyll and vegetation cellular structure). Vegetation suppresses BSI (high B08, low B11 relative to what bare soil would produce). BSI is a critical masking layer in this app: pixels with BSI below threshold are excluded from spill indices since they are either water or vegetation, not exposed soil where spills would be visible.
 
-#### NDSI — Normalized Difference Salinity Index
-- **Formula (brine version used here):** `(B11 - B12) / (B11 + B12)`
+#### Dual-SWIR Contrast — NDSI legacy key (NDTI/NBR2 form)
+- **Formula:** `(B11 - B12) / (B11 + B12)`
 - **Bands:** B11 (SWIR1, 1610nm), B12 (SWIR2, 2190nm)
-- **Physical basis:** Salt and brine alter the shape of the SWIR reflectance curve. Normally, dry mineral soil has B11 slightly higher than B12. When brine (sodium chloride, calcium chloride, magnesium chloride) saturates or dries on the soil surface, it creates characteristic changes: hydrated salts absorb specifically around 1900 nm and 2200 nm, shifting the B11/B12 ratio. A positive NDSI (B11 > B12) in a dry desert environment can indicate elevated salt deposition.
+- **Interpretation:** The ratio responds to the broad SWIR curve, but the same algebra is widely used for tillage, residue, burn, moisture, and other surface conditions. It is retained as a salinity hypothesis component, not a brine-specific measurement.
 - **Citation:** Metternicht & Zinck, 2003
 
-#### CSI — Clay/Salinity Index
+#### CSI legacy — SWIR1/SWIR2 Surface Ratio
 - **Formula:** `B11 / B12`
-- **Physical basis:** Clay minerals have a strong absorption feature at 2200 nm (B12) due to Al-OH vibrational bonds. Carbonate minerals absorb at 2340 nm. The B11/B12 ratio distinguishes clay-rich soils (low ratio, B12 absorbed) from quartz/calcareous soils (higher ratio). When soil is disturbed by drilling or contaminated by brine, the clay mineralogy changes, altering this ratio.
+- **Interpretation:** The ratio is sensitive to mineralogy, residue, moisture, disturbance, and substrate. It can support contextual interpretation but does not establish clay type or contamination by itself.
 
-#### SI — Salinity Index (alternative)
-- **Formula:** `sqrt(B04 × B11)` (geometric mean)
-- **Physical basis:** Alternative salinity detection using geometric mean of Red and SWIR1. Used historically for saline soil mapping where Landsat SWIR was the only available band.
+#### SI legacy — SWIR1–NIR Surface Contrast
+- **Formula:** `(B11 - B08) / (B11 + B08)`
+- **Interpretation:** Broad normalized surface contrast. It may support locally calibrated salinity work, but Limn does not retrieve salt concentration from it.
 
 #### BSI (Normalized, aka NBSI)
 Used throughout as a masking criterion to identify bare soil vs. vegetated/water pixels.
 
 ### 8.3 Hydrocarbon and Chemical Indices
 
-#### HCAI — Hydrocarbon Absorption Index
+#### SWIR1–Red Contrast — HCAI legacy key
 - **Formula:** `(B11 - B04) / (B11 + B04)`
 - **Bands:** B11 (SWIR1, 1610nm), B04 (Red, 665nm)
-- **Physical basis:** Crude oil and petroleum hydrocarbons have characteristic absorption features around 1700–1800 nm (C-H bond overtone vibrations). B11 at 1610 nm sits on the shoulder of this absorption feature. Simultaneously, hydrocarbons absorb some visible red light, reducing B04. The ratio amplifies this contrast: oil-contaminated soil has relatively higher B11 (petroleum reflects SWIR) vs B04 (oil absorbs red).
-- **Important caveat:** This is a broad proxy. Reddish iron-rich soil (common in the Permian Basin) also elevates HCAI. The Permian Basin calibration subtracts 0.30 as the regional background.
+- **Interpretation:** Broad SWIR1–Red contrast is affected by soil color, iron oxides, vegetation, moisture, and illumination. Sentinel-2 B11 does not reproduce the narrow hyperspectral Hydrocarbon Index absorption retrieval; this is not a petroleum measurement.
 - **Citation:** Kühn et al., 2004
 
-#### HMRI — Heavy Metal Reflectance Index
+#### SWIR2/Green Contrast — HMRI legacy key
 - **Formula:** `B12 / B03`
 - **Bands:** B12 (SWIR2, 2190nm), B03 (Green, 560nm)
-- **Physical basis:** Produced water contains high concentrations of barium, strontium, and naturally occurring radioactive materials (NORM). When this precipitates into soil, it causes severe chemical alteration: heavy metal ions displace soil cations, disrupting mineral lattice structure and causing anomalous SWIR2 reflectance. Simultaneously, heavy metal toxicity kills all nearby vegetation and microbial life, suppressing the green reflectance contribution of organic matter. Result: B12 rises, B03 falls, ratio spikes.
-- **Important:** The Permian Basin background has HMRI ~1.0–1.9 (natural red-iron-rich caliche). Genuine heavy metal contamination starts at 2.0+.
+- **Interpretation:** Broad SWIR2/Green contrast is affected by brightness, vegetation, moisture, substrate, and mineralogy. Heavy-metal estimation requires field concentrations and calibrated multivariate models; no ratio threshold here establishes genuine metal contamination.
 - **Citation:** Choe et al., 2008
 
-#### NDOI — Normalized Difference Oil Index
+#### Blue–SWIR2 Contrast — NDOI legacy key
 - **Formula:** `(B02 - B12) / (B02 + B12)`
 - **Bands:** B02 (Blue, 490nm), B12 (SWIR2, 2190nm)
-- **Physical basis:** This index exploits the optical properties of oil films and dissolved organic compounds in saline water. Brine containing dissolved organics from the formation absorbs blue light and reflects SWIR2. A positive NDOI (B02 > B12) would indicate clean fresh water; a negative NDOI or depressed value indicates dissolved mineral/organic loading. When saturated brine is present, B02 drops (brine absorbs blue) while B12 rises (mineral content), driving NDOI negative.
+- **Interpretation:** Water, bright soil, aerosols, shadow, moisture, and material differences affect the normalized Blue–SWIR2 contrast. Its sign is not uniquely attributable to oil or dissolved organics.
 - **Related work:** Dekker et al., 2001 (optical water quality remote sensing)
 
-#### AOI — Anoxic Oxidation Index ✧
+#### Red/Blue × SWIR Surface Contrast — AOI legacy key
 - **Formula:** `(B04 / B02) × (B11 / B12)`
 - **Bands:** B04 (Red), B02 (Blue), B11 (SWIR1), B12 (SWIR2)
-- **Physical basis:** Tracks iron oxidation state changes and mineral alteration. Deep, ancient formation water is severely oxygen-starved and saturated with dissolved ferrous iron (Fe²⁺). When spilled or brought to the surface, this iron rapidly oxidizes to ferric iron (Fe³⁺), forming a dark "rust scab". AOI combines this iron-oxide staining (B04/B02) with SWIR mineral salt shifts (B11/B12) to isolate this specific signature.
+- **Interpretation:** The product can highlight broad material or iron-rich surface differences, but it does not establish anoxia, iron oxidation state, or produced-water causation.
 
-### 8.4 Advanced Spill-Specific Indices
+### 8.4 Project Surface-Response Composites
 
-#### FBC — Ferrugination-Brine Composite ✧
-- **Formula:** `sqrt(iron_oxide × NDSI) × (1 - NDVI)`
-- **Physical basis:** Combines iron staining (iron oxide from produced water oxidation) with salinity signal. Produced water spills commonly leave an orange-red ferric iron stain as brine oxidizes upon contact with air. The NDVI suppressor ensures this only fires in bare soil zones.
+These are reproducible screening formulas, not spill-specific or chemically specific indices. Exact display mapping and analytical parity are governed by `src/indices.js`.
 
-#### VCBI — Vegetation-Confirmed Brine Index ✧
-- **Formula:** Combines NDSI with red edge band anomalies
-- **Physical basis:** The most definitive spill indicator — requires BOTH a brine signature AND vegetation stress in the red edge bands. Healthy vegetation is never found in areas with active brine at concentrations sufficient to trigger NDSI.
-
-#### REAI — Red Edge Alteration Index ✧
-- **Formula:** `(B06 - B05) / (B06 + B05)`
-- **Bands:** B06 (Red Edge 2, 740nm), B05 (Red Edge 1, 705nm)
-- **Physical basis:** The "red edge" is a spectral region (680–740 nm) where vegetation reflectance transitions sharply from red absorption to NIR reflection. Chlorophyll content and leaf health strongly control the shape of this transition. Chemical stress from brine causes early senescence (premature death), shifting the red edge position to shorter wavelengths. REAI detects this shift.
-
-#### TRI — Toxic Residue Index ✧
-- **Formula:** `(NDSI - 0.05) × (HMRI - 1.5) × (AOI - 1.5) × 100`
-- **Physical basis:** Three-way product requiring elevated salinity, heavy metal precipitation, AND iron oxidation state change simultaneously. Targets chemically complex produced water residue.
-
-#### BPI — Brine-Pavement Index ✧
-- **Formula:** `BSI × (NDSI - 0.03) × (HCAI - 0.15) × 30`
-- **Physical basis:** Requires bare soil, elevated salinity, AND hydrocarbon signal. More specific than HCAI or NDSI alone — targets the co-presence of brine and petroleum residue.
-
-#### LBI — Liquid/Salinity Response Index ✧
-- **Formula:** `(NDSI - 0.02) × (NDWI + 0.40) × (0.45 - NDVI) × (BSI + 0.20) × 20`, with a hard reject when `BSI <= -0.25`.
-- **Physical basis:** Most sensitive to active liquid brine standing pools. Requires positive brine contrast, a wetness signal above the Permian dry baseline, low vegetation, and exposed bare/liquid surface context.
-
-#### VSI — Vegetation Stress Index ✧
-- **Formula:** `NDSI × (0.4 - RedEdgeDelta) × (MSI - 1.0) × 10`
-- **Physical basis:** Captures persistent salt stress effects on surviving vegetation. Even sparse desert scrub shows measurable stress when chronically contaminated by brine — lower NIR, compressed red edge, elevated moisture stress index.
-
-#### CMA — Clay-Mineral Alteration ✧
-- **Physical basis:** Tracks changes in clay mineral content of the soil surface. Produced water drilling fluids contain bentonite and other clay additives; brine-saturated soils undergo cation exchange that alters clay mineralogy.
-
-#### PHI — Petro-Hydrocarbon Index ✧
-- **Physical basis:** Focused on petroleum residue after the initial brine evaporates. Crude oil adhered to soil particles has a long environmental persistence and can be detected months after the initial spill.
-
-#### HMI — Heavy Metal Interaction ✧
-- **Physical basis:** Standalone heavy metal detection optimized for deep soil contamination zones.
+| Key | Current descriptive name | Implemented display summary | Scientific boundary |
+|---|---|---|---|
+| FBC | Red/Blue–Dual-SWIR–Low-Vegetation Composite | `clamp(150·(red_blue_score·dual_swir_score·no_veg)^1.4,0,1)` | No iron-state, brine, or spill attribution |
+| REAI | Red-Edge/Dual-SWIR Alteration Composite | `clamp(100·(red_edge_score·dual_swir_score)^2,0,1)` | No ferric-mineral attribution |
+| VCBI | Vegetation-Stress/Dual-SWIR Composite | `clamp(30·(inverse_crsi_score·dual_swir_score)^1.5,0,1)` | No chloride or migration attribution |
+| LBI | Liquid/Salinity Response Index | `20 × wetness/dual-SWIR/low-veg/surface gates`, with open-water bypass | Preliminary water response; standing brine overlaps freshwater controls |
+| TRI | Three-Ratio Residue Composite | `100 × three thresholded surface ratios` | No toxicity, metal, or spill-age retrieval |
+| BPI | Bare-Pad Three-Ratio Composite | `30 × bare-surface × dual-SWIR × SWIR1–Red terms` | No petroleum or brine classification |
+| VSI | Vegetation/Dual-SWIR Stress Composite | `10 × dual-SWIR × red-edge × moisture-stress terms` | Many non-produced-water stressors are confounded |
+| CMA | Clay/Surface Contrast Composite | `15 × dual-SWIR × SWIR ratio × Red/Blue ratio` | No clay-lattice alteration or causal attribution |
+| PHI | SWIR-Shoulder Surface Composite | `20 × dual-SWIR × SWIR ratio × SWIR1–Red term` | No oil classifier or oily-brine separator |
+| HMI | Green–SWIR Interaction Composite | `10 × Green/Blue term × SWIR ratio term` | No heavy-metal retrieval |
 
 ### 8.5 Visual Composites
 
 #### True Color
 - **Formula:** `return [B04 × 2.5, B03 × 2.5, B02 × 2.5, 1]`
 - **Visual output:** Natural-looking color image. The 2.5× brightness multiplier compensates for the fact that surface reflectance values are typically 0.1–0.4 (10–40%), which would appear very dark without brightening.
-- **Use:** Visual reference. Confirms geographic features. Not analytically useful for spill detection.
+- **Use:** Required first-pass evidence context. It reveals pads, ponds, roads, shadows, disturbance, and obvious scene problems before any index is interpreted; it does not classify produced water.
 
 #### False Color (NIR)
 - **Formula:** `return [B08 × 2.5, B04 × 2.5, B03 × 2.5, 1]` — NIR mapped to Red channel
 - **Visual output:** Healthy vegetation appears bright crimson/red (because NIR reflectance is very high for vegetation). Dry soil and built surfaces appear in tans and blues. Water is very dark.
 - **Use:** Classic vegetation mapping. Immediately distinguishes bare from vegetated areas.
 
-#### EHC — Evaporite Halo Composite ✧
-- **Formula:** `R = NDOI, G = BSI, B = NDSI`
-- **Physical basis:** Maps Hydrocarbons (NDOI) to Red, Bare Soil (BSI) to Green, and Salinity (NDSI) to Blue. This custom false-color composite is engineered to visually isolate the spatial morphology of localized produced water blowout events, showing a crude-oil center in Red, a mud footprint in Green, and a salt ring/evaporite halo in Blue.
+#### SWIR Surface Context (B12/B11/B04)
+- **Formula:** `RGB = B12 × 2.5, B11 × 2.5, B04 × 2.5`
+- **Use:** Broad false-color differentiation of wet surfaces, vegetation, bare ground, pads, and substrate.
+- **Boundary:** Display colors are not material classes, salinity estimates, or contamination labels.
+
+#### EHC — Three-Channel Surface Context Composite ✧
+- **Formula:** `R = Blue–SWIR2 contrast, G = BSI, B = dual-SWIR contrast`
+- **Interpretation:** A false-color context view. Channel colors are not material classes, and a halo-like pattern does not prove a blowout.
 
 ---
 
-## 9. PWCI: Produced Water Chemical Index (formerly PWI) ✧✧ — Deep Dive
+## 9. PWCI: Produced-Water Contrast Index (formerly PWI) ✧✧ — Deep Dive
 
-The PWCI (formerly PWI) is the centerpiece index of this application. It is a **custom composite** designed specifically for Permian Basin produced water detection.
+PWCI is a custom, reproducible three-contrast screening architecture. July testing found that it does not discriminate produced-water sites from Permian background at the tested support.
 
 ### 9.1 The Problem It Solves
 
@@ -508,36 +502,36 @@ Standard environmental indices (NDVI, NDMI, NDWI) detect vegetation stress and m
 3. Normal well pad construction (gravel roads, concrete pads) creates spectral anomalies
 4. Irrigation and natural seasonal moisture changes mimic spill signatures
 
-The PWI addresses this by requiring **three independent chemical proxies to be simultaneously elevated**. The probability of three independent false positives coinciding in the same pixel is very low.
+PWCI requires three correlated broad-band surface contrasts to be elevated simultaneously. Because the terms reuse related bands and respond to common background factors, their multiplication does not provide independent confirmation or a low false-positive guarantee.
 
 ### 9.2 The Three Component Indices
 
-**Component 1: NDSI (Brine/Salinity)**
+**Component 1: dual-SWIR contrast (NDSI legacy key)**
 ```
 NDSI = (B11 - B12) / (B11 + B12)
 ```
-Brine spills introduce extreme amounts of sodium chloride, calcium chloride, and magnesium chloride. These salts alter the SWIR reflectance curve: hydrated salts absorb around 1900 nm and 2200 nm, shifting the ratio of B11 to B12.
+The ratio responds to many surface conditions and is not brine-specific.
 
-**Component 2: HCAI (Hydrocarbons)**
+**Component 2: SWIR1–Red contrast (HCAI legacy key)**
 ```
 HCAI = (B11 - B04) / (B11 + B04)
 ```
-Produced water contains residual crude oil and aromatic hydrocarbons. These compounds absorb visible red light (B04) and have C-H bond overtone absorptions near B11's wavelength. Hydrocarbon-contaminated soil looks different in B11 vs B04.
+This broad-band contrast is not a hyperspectral hydrocarbon retrieval.
 
-**Component 3: HMRI (Heavy Metals)**
+**Component 3: SWIR2/Green contrast (HMRI legacy key)**
 ```
 HMRI = B12 / B03
 ```
-Heavy metals (barium, strontium, radium) precipitate from brine as it evaporates or contacts the soil. This causes severe chemical alteration: B12 increases (SWIR2 altered by mineralogy changes) and B03 decreases (heavy metal toxicity kills green organic matter).
+This broad ratio is not calibrated to any metal concentration.
 
 ### 9.3 The AND Gate: Why Multiplication
 
 The final composite multiplies all three:
 ```
-PWCI_raw = BrineScore × HydrocarbonScore × HeavyMetalScore
+PWCI_raw = DualSWIRScore × SWIR1RedScore × SWIR2GreenScore
 ```
 
-If **any one** component is zero, PWCI = 0. This is a logical AND gate. Natural features that look "brine-ish" (salt playas) will score high on NDSI but low on HCAI (no hydrocarbons). Industrial contamination that is brine AND oil but lacks heavy metal alteration will score zero. Only genuine produced water — which contains all three components by its chemical nature — will score nonzero. Formerly known as Produced Water Index (PWI).
+If any component is zero, PWCI is zero. This is a mathematical AND gate over surface contrasts, not chemical proof. Natural and industrial surfaces can activate or suppress the same terms.
 
 ### 9.4 Permian Basin Threshold Calibration
 
@@ -557,7 +551,7 @@ These thresholds were iteratively calibrated against 27 TRRC (Texas Railroad Com
 PWCI_final = min(1.0, pow(PWCI_raw × 20.0, 3.0))
 ```
 
-The cubic function creates a sharp "knee": marginal soil noise (PWI_raw = 0.001–0.01) cubes to near zero, while genuine spill signals (PWI_raw = 0.1+) saturate quickly toward 1.0. This creates a binary-looking output: near-zero for background, near-one for confirmed contamination. The map stays clean.
+The cubic function creates a sharp display "knee": small raw products approach zero and larger products saturate toward 1.0. The mapped value is a visualization score, not a probability or confirmation of contamination.
 
 ### 9.6 The BSI Masking Layer
 
@@ -618,27 +612,25 @@ ASAI (formerly PWOI) detects salt crusts that can persist for **months to years*
 
 ---
 
-## 11. OBEC: Oil-Brine Emulsion Composite (formerly HPWI) ✧
+## 11. OBEC: Optical Brightness/Edge Contrast (legacy HPWI) ✧
 
-OBEC (Oil-Brine Emulsion Composite, formerly HPWI) is the second major composite, designed to **cross-validate ASAI (formerly PWOI)**. While ASAI focuses on surface smoothness/physical characteristics, OBEC focuses on **chemical optical signatures** of dissolved minerals and organics.
+OBEC is an experimental combination of Blue–SWIR2, dual-SWIR, and MNDWI-derived surface contrasts. It is a comparison view, not an independent confirmation layer or oil/brine-emulsion retrieval.
 
 ### 11.1 The Four-Component Formula
 
 ```
 NDOI = max(0, (B02 - B12) / (B02 + B12))      # Blue/SWIR2 optical contrast
-NDSI_brine = (B11 - B12) / (B11 + B12)         # Brine signature
-brine_boost = max(0, NDSI - 0.03) × 0.8
+dual_swir = (B11 - B12) / (B11 + B12)
+contrast_boost = max(0, dual_swir - τ) × 0.8
 
-chem_signal = clamp(NDOI + brine_boost, 0, 1)   # Combined chemical
+surface_signal = clamp(NDOI + contrast_boost, 0, 1)
 smoothness = (B03 - B11) / (B03 + B11)          # Same as NDWI
 norm_smooth = clamp((smoothness + 0.3) / 0.6, 0, 1)
 
-hpwi_wet = clamp(chem_signal × norm_smooth × 6.0, 0, 1)
+obec = clamp(surface_signal × norm_smooth × 6.0, 0, 1)
 ```
 
-**NDOI (Normalized Difference Oil Index):** Brine and dissolved organics absorb blue light and reflect SWIR2 differently than clean soil. A characteristic feature of produced water is elevated mineral ion opacity in the blue wavelengths.
-
-**The combination:** `chem_signal × norm_smooth` requires both the chemical signature (NDOI + brine) AND the surface smoothness signature to be elevated simultaneously. This separates brine spills from natural saline soils (chemistry but no unusual smoothness) and water bodies (smoothness but wrong chemical signature).
+**Interpretation limit:** all terms are broad surface contrasts with known confounders. Their product did not establish produced-water/caliche separation in the July 2026 controls.
 
 ### 11.2 Historical Dry-Mode Experiment and Current Shipped Path
 
@@ -652,27 +644,24 @@ That experiment produced 66.7% development recall on 27 TRRC records and 71.3% b
 
 ---
 
-## 11.5 MVPI: Methane Venting Plume Index ✧✧
+## 11.5 MVPI legacy: Single-Scene SWIR Ratio Screen
 
-MVPI (Methane Venting Plume Index) is the third flagship original composite, designed to **track localized atmospheric methane venting plumes and wellhead blowouts** directly over bright caliche well pads and dry soils in the Permian Basin.
+The legacy MVPI experiment thresholds B11/B12 over bright, sparsely vegetated surfaces. It does not implement an MBSP/MBMP methane retrieval, reference-scene fitting, plume classification, or emissions estimate.
 
-### 11.5.1 Physical and Spectral Absorption Principles
+### 11.5.1 Physical and Retrieval Boundary
 
-Methane ($CH_4$) gas has strong, narrow absorption bands in the Shortwave Infrared (SWIR) region, particularly around $2300\text{ nm}$. 
+Methane has narrow SWIR absorption structure near 2.3 µm, and established Sentinel-2 methane methods can exploit the differing spectral responses of B11 and B12. Sentinel-2's broad bands, however, do not make a single B11/B12 ratio a methane measurement. Operational retrievals require radiometric modeling and typically a methane-free reference observation or equivalent scene fitting.
 
-- **Sentinel-2 Band 12 (SWIR-2, centered at 2190 nm):** Directly overlaps with this strong methane absorption feature. The presence of methane significantly attenuates the returned solar signal in this band.
-- **Sentinel-2 Band 11 (SWIR-1, centered at 1610 nm):** Acts as a clear reference band where methane does not display significant absorption.
-
-By calculating the ratio of SWIR-1 to SWIR-2 ($B11/B12$), we can detect localized methane plumes because the ratio increases dramatically as methane concentrations rise and SWIR-2 reflectance drops.
+An elevated B11/B12 ratio is spectrally degenerate with soil, evaporites, moisture, illumination, view geometry, and atmospheric effects. It cannot by itself establish a localized methane plume.
 
 ### 11.5.2 The Multi-Gate Consensus Formula
 
 Because high-albedo bare soils, dry salt crusts, and gravel well pads naturally alter SWIR reflectance, a simple ratio produces heavy false positives. To resolve this, MVPI integrates a strict four-part logical AND consensus structure:
 
 ```javascript
-// 1. SWIR Methane Gas Absorption Ratio
-let methaneRatio = B11 / Math.max(B12, 0.001);
-let methaneScore = Math.max(0.0, (methaneRatio - 1.15) * 4.0);
+// 1. Single-scene SWIR ratio response (not a gas retrieval)
+let swirRatio = B11 / Math.max(B12, 0.001);
+let swirRatioScore = Math.max(0.0, (swirRatio - 1.15) * 4.0);
 
 // 2. Bright Ground Gate (requires highly reflective background surface)
 let swirMean = (B11 + B12) / 2.0;
@@ -686,36 +675,35 @@ let ndvi = (B08 - B04) / (B08 + B04);
 let vegReject = ndvi > 0.15 ? 0.0 : 1.0;
 
 // 5. Cubed scaling for final visualization
-let score = waterReject * vegReject * groundGate * methaneScore;
+let score = waterReject * vegReject * groundGate * swirRatioScore;
 let mapped = Math.min(1.0, score * 3.0);
 ```
 
 ### 11.5.3 Authorship & Scientific IP Boundary
 
 - **What is Public Domain:** The basic physical science of SWIR methane gas mapping, multi-band ratioing ($B11/B12$), and Sentinel-2 gas retrievals are established scientific prior art (e.g., *Varon et al., 2021*).
-- **Original Project Contribution:** The specific multi-gate consensus composite formula pairing the $B11/B12$ ratio with a SWIR mean ground-brightness floor, a green-to-SWIR water reject gate, and an NDVI-based vegetation reject gate to suppress background false positives on bright Permian caliche sand pads.
+- **Project implementation:** The packaged single-scene ratio screen pairs $B11/B12$ with a SWIR mean ground-brightness floor, a green-to-SWIR water reject gate, and an NDVI-based vegetation reject gate. Its literature priority and methane-detection performance have not been established.
 
 ---
 
 ## 12. SAR Indices: Sentinel-1 Processing
 
-### 12.1 SCRI — Salt Crust Roughness Index ✧
+### 12.1 SCRI — SAR Surface-Contrast Index (legacy salt-crust hypothesis)
 
 The only true SAR index in this application (the others are Sentinel-2 based):
 
 - **Sensor:** Sentinel-1 GRD
 - **Bands:** VV, VH (C-band radar backscatter)
-- **Formula:** `VV / (VH + 0.001)`
-- **Physical basis:** Smooth salt-encrusted surfaces have very low VV (low backscatter, smooth surface sends energy away from satellite) AND even lower VH (no volume scatterers to depolarize VV into VH). The ratio VV/VH is elevated: while both are low, VH drops to near-zero faster.
+- **Formula:** `clamp((0.5 × max(0,(VH_dB+19)/9) × max(0,(VH_dB−VV_dB+6)/5))^2.5,0,1)`
+- **Interpretation:** Roughness, moisture, vegetation, incidence angle, and substrate affect VV/VH. The implementation contains no optical salt proxy and is not calibrated to electrical conductivity or validated as a salt-crust classifier.
 
 **Important distinction:** A normal water body also has low VV and VH. The difference for brine/salt crusts: in standard calm water, VV/VH is also high. But salt-encrusted soil is not perfectly smooth — it has a slight roughness texture from crystallization patterns that produces a slightly different radar response than open water.
 
-### 12.2 S1_SAR — Raw VV/VH Display
+### 12.2 S1_SAR — VV Backscatter Context
 - **Display formula:**
 ```javascript
 let vv = Math.max(0, Math.log10(sample.VV) * 10 + 20) / 20;
-let vh = Math.max(0, Math.log10(sample.VH) * 10 + 20) / 20;
-return [vv, vh, ratio * 0.5, 1];  // RGB: VV=red, VH=green, ratio proxy=blue
+return [vv, vv, vv, 1];  // grayscale VV context
 ```
 - **What colors mean:**
   - **Red (high VV):** Rough surfaces, dry soil, urban
@@ -822,7 +810,7 @@ For every barrel of oil produced, approximately **7–10 barrels of produced wat
 - **Total Dissolved Solids (TDS):** 50,000–300,000 mg/L (seawater is ~35,000 mg/L)
 - **Sodium:** Primary cation
 - **Chloride:** Primary anion
-- **Barium, Strontium:** Heavy metals that precipitate as sulfate minerals on spill contact with surface water
+- **Barium, Strontium:** Dissolved alkaline-earth constituents that can precipitate as sulfate minerals under suitable geochemical conditions
 - **Naturally Occurring Radioactive Materials (NORM):** Radium-226, Radium-228
 - **Residual crude oil:** Varying concentrations
 
@@ -839,7 +827,7 @@ All threshold offsets in this application (NDSI > 0.03, HCAI > 0.05, HMRI > 1.1)
 
 ### 14.3 The Texas Railroad Commission (TRRC)
 
-The Texas Railroad Commission is the state agency that regulates oil and gas production in Texas. It maintains a database of reported spill incidents. This application's 27-site validation dataset was compiled from **TRRC-confirmed produced water incidents** with known GPS coordinates and reported dates. The 8 "verified sourced" sites are those where the team personally confirmed the spill location from field reports.
+The Texas Railroad Commission regulates oil and gas production in Texas and publishes incident records. Limn's historical development sample is a curated snapshot with generalized or parcel-level coordinates; it is not a traceable set of 27 independently verified point locations. Current reports therefore describe these as development records and separate them from the smaller reviewed-site subset.
 
 ### 14.4 Key Spill Locations Monitored
 
@@ -1017,30 +1005,26 @@ All indices in this application are grounded in published remote sensing science
 
 ### Sentinel Explorer Composite Calibrations
 
-The following indices are Sentinel Explorer implementations and calibrations assembled for Permian Basin arid-desert conditions and produced water geochemistry.
-
-**Novelty Legend:**
-- ✧: Original composite/implementation
-- ✧✧: Novel analytical formulation
+The following are project implementations assembled for produced-water investigations. The symbols are historical catalog markers, not novelty or validation grades.
 
 | Index | Full Name | Year |
 |---|---|---|
-| **ASAI ✧✧** | Arid Salinity Anomaly Index — optical SAR proxy, dry brine mode (formerly PWOI / APEX) | 2026 |
-| **PWCI ✧✧** | Produced Water Chemical Index — three-way AND gate (brine × hydrocarbons × heavy metals) (formerly PWI) | 2025 |
-| **OBEC ✧** | Oil-Brine Emulsion Composite — chemical × smoothness cross-validator (formerly HPWI) | 2026 |
-| **FBC ✧** | Ferrugination-Brine Composite — iron oxidation × brine gate | 2026 |
-| **VCBI ✧** | Vegetation-Confirmed Brine Index — inverted CRSI × brine, leading-edge migration | 2026 |
+| **ASAI ✧✧** | Arid Salinity Anomaly Index — Sentinel-2 surface-response composite (formerly PWOI / APEX) | 2026 |
+| **PWCI ✧✧** | Produced-Water Contrast Index — three correlated surface contrasts (formerly PWI) | 2025 |
+| **OBEC ✧** | Optical Brightness/Edge Contrast — Blue/SWIR, dual-SWIR, and surface term (formerly HPWI) | 2026 |
+| **FBC ✧** | Red/Blue–Dual-SWIR–Low-Vegetation Composite | 2026 |
+| **VCBI ✧** | Vegetation-Stress/Dual-SWIR Composite | 2026 |
 | **LBI ✧** | Liquid/Salinity Response Index — preliminary standing-water/salinity screening | 2026 |
-| **TRI ✧** | Toxic Residue Index — forensic mineral scab after brine evaporation | 2026 |
-| **BPI ✧** | Brine-Pavement Index — pad-level integrity monitoring on caliche surfaces | 2026 |
-| **VSI ✧** | Vegetation Stress Index — sub-lethal brine toxicity in surviving desert scrub | 2026 |
-| **REAI ✧** | Red Edge Alteration Index — early iron staining via B05/B06 red-edge bands | 2026 |
-| **EHC ✧** | Evaporite Halo Composite — RGB false-color for blowout geometry (formerly EHC) | 2026 |
-| **AOI ✧** | Anoxic Oxidation Index — iron redox state signature from formation water | 2026 |
-| **SCRI ✧** | Salt Crust Roughness Index — SAR-based mechanical confirmation of salt crust | 2026 |
-| **CMA ✧** | Clay-Mineral Alteration — clay lattice disruption by produced water residues | 2026 |
-| **PHI ✧** | Petro-Hydrocarbon Index — oily brine vs. clean runoff via SWIR shoulder | 2026 |
-| **HMI ✧** | Heavy Metal Interaction — barium/strontium precipitation via green shift + SWIR | 2026 |
+| **TRI ✧** | Three-Ratio Residue Composite | 2026 |
+| **BPI ✧** | Bare-Pad Three-Ratio Composite | 2026 |
+| **VSI ✧** | Vegetation/Dual-SWIR Stress Composite | 2026 |
+| **REAI ✧** | Red-Edge/Dual-SWIR Alteration Composite | 2026 |
+| **EHC ✧** | Three-Channel Surface Context Composite | 2026 |
+| **AOI ✧** | Red/Blue × SWIR Surface Contrast | 2026 |
+| **SCRI ✧** | SAR Surface-Contrast Index | 2026 |
+| **CMA ✧** | Clay/Surface Contrast Composite | 2026 |
+| **PHI ✧** | SWIR-Shoulder Surface Composite | 2026 |
+| **HMI ✧** | Green–SWIR Interaction Composite | 2026 |
 
 If referencing these indices in publications or derivative work, cite the specific Sentinel Explorer implementation and validation context rather than describing the acronym, display name, or component formula as an original invention.
 
@@ -1126,7 +1110,7 @@ If referencing these indices in publications or derivative work, cite the specif
 
 **TOA (Top of Atmosphere):** Raw satellite reflectance including atmospheric effects. L1C product. Not used by this app (uses L2A surface reflectance instead).
 
-**TRRC (Texas Railroad Commission):** Texas state agency regulating oil and gas. Maintains public database of reported spill incidents used for validation.
+**TRRC (Texas Railroad Commission):** Texas state agency regulating oil and gas. Its public records informed Limn's historical development sample; the current snapshot is not treated as an independently verified validation dataset.
 
 **VH:** SAR cross-polarization. Vertical transmit, horizontal receive. Sensitive to volume scattering (vegetation canopy, foam). Near-zero over smooth surfaces.
 

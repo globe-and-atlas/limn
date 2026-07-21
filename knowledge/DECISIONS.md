@@ -1,5 +1,39 @@
 # Architecture Decisions — sentinel-explorer
 
+## Core Limn uses an evidence-first investigation stack (2026-07-21)
+
+**Decision:** True Color is the default lens. The primary stack is True Color, LBI, MNDWI, AWEIsh, NDMI, SAVI, BSI, dual-SWIR contrast, B12/B11/B04 SWIR false color, and NDRE. PWCI, ASAI, and OBEC remain executable in a collapsed **negative-result study** drawer, and the remaining custom composites remain in a collapsed research library.
+
+**Reason:** The July controls do not support presenting PWCI, ASAI, or OBEC as primary detectors. A context-first workflow better supports falsification: verify the surface and pixel quality, compare dates, examine water/moisture/soil/vegetation responses, and only then inspect experimental composites.
+
+**Quality contract:** Primary Sentinel-2 paths use SCL classes 4–7 as the renderable allow-list. COG and GEE now implement the same primary lenses and the current PWCI/ASAI/OBEC/LBI formulas, including the LBI standing-water bypass. Before/after swipe is available in COG; mathematical COG Diff/Cumulative remains disabled. Sentinel-1 is labeled surface context, not a produced-water or orbit-matched change detector.
+
+**Provider exception:** The bundled optional Sentinel Hub `AGRICULTURE` WMS carrier is Sentinel-2 L1C and cannot accept the L2A-only SCL band. Limn removes the marked SCL gate only for that WMS configuration and visibly reports `WMS: no SCL band`; L2A COG/GEE retain pixel QA. `SENTINEL_WMS_SUPPORTS_SCL` may be enabled only for a verified L2A WMS carrier.
+
+**Scientific boundary:** AWEIsh and NDRE are established contextual formulas. SWIR false color is a visualization. Adding them improves interpretation and failure-mode awareness but does not improve the measured produced-water accuracy of the experimental composites. Correlated agreement does not count as independent confirmation.
+
+**Product separation:** This change is confined to original Limn. It does not add produced-water content, formulas, controls, or claims to Limn Atlas, its 91-method catalog, or the Atlas preprint.
+
+**Verification:** Core formula parity, UI contract, GEE/COG route tests, bookmark QC, syntax checks, and browser smoke checks are the release gate.
+
+---
+
+## Core Limn analytics now match rendered formulas and use surface-response names (2026-07-21)
+
+**Decision:** Keep the historical internal keys for compatibility, but rename broad-band chemical-sounding layers and composites by what their formulas actually measure. `ndwi` is displayed as Xu MNDWI; NDSI/HCAI/HMRI/NDOI legacy keys are dual-SWIR, SWIR1–Red, SWIR2/Green, and Blue–SWIR2 surface contrasts. PWCI, OBEC, FBC, REAI, VCBI, TRI, BPI, VSI, CMA, PHI, HMI, EHC, SCRI, and MVPI now state explicit non-retrieval and non-validation boundaries.
+
+**Formula parity:** `fisLogic` now returns the same sensitivity thresholds, nonlinear scaling, blanking gates, and displayed score used by each corresponding evalscript. The parity set covers ASAI, OBEC, FBC, REAI, VCBI, PWCI, LBI, TRI, BPI, VSI, CMA, PHI, HMI, MVPI, EHC, SCRI, and Sentinel-1 VV context. These values are display/screening scores, not probabilities.
+
+**UI boundary:** AOI scan and report actions are enabled only for the guarded Sentinel Hub provider because the COG/GEE route does not implement equivalent analytics. Investigate search still exposes unavailable layers as disabled results so capability discovery does not silently change by provider. Report generation has one authoritative event path.
+
+**Evidence boundary:** LBI's 2/4 standing-brine versus 0/3 freshwater result remains preliminary (two-sided Fisher exact p≈0.43), not brine specificity. PWCI/ASAI/OBEC remain negative-result screening architectures. MVPI is a legacy single-scene SWIR ratio screen, not methane retrieval.
+
+**Separation:** This decision applies only to original Limn's produced-water investigation surfaces. No Atlas formula, catalog, preprint inventory, or 91-index artifact is changed by this reconciliation.
+
+**Verification:** `tests/test_core_formula_parity.mjs`, `tests/test_core_ui_contract.mjs`, the science-status test, bookmark QC, syntax checks, and browser interaction checks form the release gate.
+
+---
+
 ## Atlas is organized by capability family, not index count (2026-07-20)
 
 **Decision:** Preserve all 91 Atlas records while organizing them into 24 capability families. Each record now carries a method role: 15 `primary`, 10 `variant`, 12 `component`, 1 `reference`, 51 `research-model`, and 2 `retired`. Family membership describes a shared physical question or decision; it does not establish scientific equivalence, novelty, or validation.

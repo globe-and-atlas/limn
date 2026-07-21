@@ -12,7 +12,7 @@
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
     <meta property="og:title" content="Limn | Globe & Atlas Environmental Intelligence">
-    <meta property="og:description" content="Advanced multi-spectral and SAR satellite screening for produced water spills, calibrated for dry desert caliche soils.">
+    <meta property="og:description" content="Experimental multispectral and SAR surface-context screening around produced-water events, with explicit formula and validation limits.">
     <meta property="og:url" content="https://explorer.globeandatlas.com">
 
     <!-- Favicon -->
@@ -95,6 +95,8 @@
 
 <body>
 
+    <a class="skip-link" href="#main">Skip to main content</a>
+
     <!-- Loading Overlay -->
     <div id="loading" class="loading-overlay">
         <div class="loading-card">
@@ -109,7 +111,7 @@
     <!-- App Container -->
     <div class="app-container">
         <!-- Map Area -->
-        <main class="map-container" role="main">
+        <main id="main" class="map-container" role="main" tabindex="-1">
             <div id="map"></div>
 
             <!-- Index Legend (Bottom Right) -->
@@ -144,7 +146,7 @@
                 </div>
                 <div class="bottom-chart-container">
                     <div class="chart-wrapper">
-                        <div class="chart-section-label">Primary PW Detection</div>
+                        <div class="chart-section-label">Primary Screening Response</div>
                         <canvas id="primaryTrendChart"></canvas>
                     </div>
                     <div class="chart-wrapper">
@@ -174,7 +176,8 @@
                     </svg>
                     Docs
                 </a>
-                <div class="sentinel-guard-mini" aria-label="Sentinel Hub credit guard">
+                <fieldset class="sentinel-guard-mini">
+                    <legend class="sr-only">Sentinel Hub credit guard</legend>
                     <label class="sentinel-live-toggle" for="toggle-sentinel-live" title="Arm Sentinel Hub WMS tiles">
                         <input type="checkbox" id="toggle-sentinel-live">
                         <span>Sentinel</span>
@@ -184,7 +187,7 @@
                         <input type="range" id="sentinel-min-zoom" min="10" max="17" step="1" value="14" aria-label="Minimum Sentinel Hub zoom slider">
                     </div>
                     <span id="sentinel-guard-status" class="sentinel-guard-status">Guarded</span>
-                </div>
+                </fieldset>
             </div>
         </main> <!-- End of map-container -->
 
@@ -234,7 +237,7 @@
             <div id="layout-pane-suite-grid" class="ui-layout-pane" style="display: none;">
                 <!-- Sidebar Navigation Tabs -->
                 <nav class="sidebar-tabs">
-                    <button class="tab-btn active" data-tab="detection">DETECTION</button>
+                    <button class="tab-btn active" data-tab="detection">LENSES</button>
                 <button class="tab-btn" data-tab="analysis">ANALYSIS</button>
                 <button class="tab-btn" data-tab="ground">GROUND</button>
                 <button class="tab-btn" data-tab="settings">SETTINGS</button>
@@ -243,119 +246,126 @@
             <div class="tab-content-container">
                 <!-- Tab 1: Detection -->
                 <div id="tab-detection" class="tab-pane active">
-                    <!-- Experimental produced-water screening composites -->
+                    <!-- Evidence-first produced-water investigation stack -->
                     <div class="index-suite-container suite-primary">
-                        <h3>Experimental Spill Screening</h3>
-                        <div class="index-grid" role="group" aria-label="Produced water composites">
-                            <button class="index-btn idx-pwoi" data-index="pwoi" data-tooltip="ASAI — experimental Sentinel-2 arid-surface and salinity proxy. July 2026 controls did not support produced-water discrimination; use for visual screening, not detection.">
-                                <span class="index-short">ASAI</span>
-                                <span class="index-full index-full-bold">Arid Salinity Anomaly Index</span>
+                        <div class="suite-heading-row">
+                            <div>
+                                <h3>Investigation Stack</h3>
+                                <p>Interpret context first; treat every response as a candidate.</p>
+                            </div>
+                            <span class="quality-chip" data-quality="scl" title="Pixel-quality status follows the active imagery provider.">Pixel QA: provider</span>
+                        </div>
+                        <div class="index-grid" role="group" aria-label="Primary investigation lenses">
+                            <button class="index-btn idx-tc" data-index="tc" data-tooltip="True Color — default visual context. Inspect the actual surface before interpreting any index response.">
+                                <span class="index-short">RGB</span>
+                                <span class="index-full index-full-bold">True Color Context</span>
                             </button>
-                            <button class="index-btn idx-hpwi" data-index="hpwi" data-tooltip="OBEC — experimental Sentinel-2 optical-contrast proxy. Its broad bands do not retrieve oil or prove an emulsion; July 2026 controls found no useful produced-water discrimination.">
-                                <span class="index-short">OBEC</span>
-                                <span class="index-full index-full-bold">Oil-Brine Emulsion Composite</span>
-                            </button>
-                            <button class="index-btn idx-pwi" data-index="pwi" data-tooltip="PWCI — experimental three-ratio, BSI-gated screening architecture. The ratios are not direct chemical measurements and did not separate spills from Permian caliche in July 2026 controls.">
-                                <span class="index-short">PWCI</span>
-                                <span class="index-full index-full-bold">Produced Water Chemical Index</span>
-                            </button>
-                            <button class="index-btn idx-lbi" data-index="lbi" data-tooltip="LBI — experimental liquid/salinity response proxy. Preliminary controls do not establish brine specificity or produced-water accuracy.">
+                            <button class="index-btn idx-lbi" data-index="lbi" data-tooltip="LBI — preliminary liquid/salinity response hypothesis. Useful for standing-liquid candidates; not brine-specific or validated for produced water.">
                                 <span class="index-short">LBI</span>
-                                <span class="index-full index-full-bold">Liquid/Salinity Response</span>
+                                <span class="index-full index-full-bold">Liquid Candidate Response</span>
                             </button>
-                            <button class="index-btn idx-fbc" data-index="fbc" data-tooltip="Forensic Brine Composite. Uses SWIR bands to detect residual salts after liquid evaporation.">
-                                <span class="index-short">FBC</span>
-                                <span class="index-full index-full-bold">Iron-Brine Composite</span>
+                            <button class="index-btn idx-ndwi" data-index="ndwi" data-tooltip="MNDWI — established Green/SWIR1 open-water and wet-surface context; not a salinity measurement.">
+                                <span class="index-short">MNDWI</span>
+                                <span class="index-full index-full-bold">Water / Wet Surface</span>
                             </button>
-                            <button class="index-btn idx-vcbi" data-index="vcbi">
-                                <span class="index-short">VCBI</span>
-                                <span class="index-full index-full-bold">Veg-Confirmed Brine</span>
+                            <button class="index-btn idx-awei" data-index="awei" data-tooltip="AWEIsh — established shadow-aware surface-water extraction cross-check; not salinity or source attribution.">
+                                <span class="index-short">AWEI</span>
+                                <span class="index-full index-full-bold">Water Cross-Check</span>
                             </button>
-                            <button class="index-btn idx-reai" data-index="reai">
-                                <span class="index-short">REAI</span>
-                                <span class="index-full index-full-bold">Red Edge Alteration</span>
+                            <button class="index-btn idx-ndmi" data-index="ndmi" data-tooltip="NDMI — established moisture response in vegetation and surface context; many causes remain possible.">
+                                <span class="index-short">NDMI</span>
+                                <span class="index-full index-full-bold">Moisture Response</span>
                             </button>
-                            <button class="index-btn idx-ehc" data-index="ehc" data-tooltip="EHC — Evaporite Halo Composite (formerly Evaporite Halo / Visual). Custom RGB false-color proxy designed to visually isolate blowout spatial morphology (oil center, mud footprint, salt ring).">
-                                <span class="index-short">EHC</span>
-                                <span class="index-full index-full-bold">Evaporite Halo Composite</span>
+                            <button class="index-btn idx-savi" data-index="savi" data-tooltip="SAVI — arid-land vegetation context with soil-brightness adjustment; stress is not source attribution.">
+                                <span class="index-short">SAVI</span>
+                                <span class="index-full index-full-bold">Arid Vegetation</span>
                             </button>
-                            <button class="index-btn idx-vsi" data-index="vsi">
-                                <span class="index-short">VSI</span>
-                                <span class="index-full index-full-bold">Veg Stress Index</span>
+                            <button class="index-btn idx-bsi" data-index="bsi" data-tooltip="BSI — exposed-soil, pad, and disturbance context. Caliche and ordinary bare ground are expected responses.">
+                                <span class="index-short">BSI</span>
+                                <span class="index-full index-full-bold">Bare Soil / Disturbance</span>
                             </button>
-                            <button class="index-btn" data-index="crsi">
-                                <span class="index-short">CRSI</span>
-                                <span class="index-full">Salt Stress / Mortality</span>
+                            <button class="index-btn idx-ndsi" data-index="ndsi" data-tooltip="Dual-SWIR/NBR2-form contrast — material and moisture context; not a salt-concentration or brine measurement.">
+                                <span class="index-short">SWIR Δ</span>
+                                <span class="index-full index-full-bold">Dual-SWIR Context</span>
                             </button>
-                            <button class="index-btn idx-aoi" data-index="aoi">
-                                <span class="index-short">AOI</span>
-                                <span class="index-full">Anoxic Oxidation</span>
+                            <button class="index-btn idx-swir-rgb" data-index="swir_rgb" data-tooltip="B12/B11/B04 false color — broad wetness, substrate, vegetation, and disturbance interpretation; colors are not material classes.">
+                                <span class="index-short">SWIR RGB</span>
+                                <span class="index-full index-full-bold">Surface Context Composite</span>
                             </button>
-                            <button class="index-btn idx-bpi" data-index="bpi">
-                                <span class="index-short">BPI</span>
-                                <span class="index-full index-full-bold">Brine-Pavement Index</span>
-                            </button>
-                            <button class="index-btn idx-tri" data-index="tri">
-                                <span class="index-short">TRI</span>
-                                <span class="index-full index-full-bold">Toxic Residue Index</span>
-                            </button>
-                            <button class="index-btn idx-scri" data-index="scri">
-                                <span class="index-short">SCRI</span>
-                                <span class="index-full index-full-bold">Salt Crust Roughness</span>
-                            </button>
-                            <button class="index-btn idx-phi" data-index="phi">
-                                <span class="index-short">PHI</span>
-                                <span class="index-full index-full-bold">Petro-Hydrocarbon Index</span>
-                            </button>
-                            <button class="index-btn idx-cma" data-index="cma">
-                                <span class="index-short">CMA</span>
-                                <span class="index-full index-full-bold">Clay-Mineral Alteration</span>
-                            </button>
-                            <button class="index-btn idx-hmi" data-index="hmi">
-                                <span class="index-short">HMI</span>
-                                <span class="index-full index-full-bold">Heavy Metal Interaction</span>
+                            <button class="index-btn idx-ndre" data-index="ndre" data-tooltip="NDRE — red-edge vegetation response that complements NDVI/SAVI; stress still requires temporal and field context.">
+                                <span class="index-short">NDRE</span>
+                                <span class="index-full index-full-bold">Red-Edge Vegetation</span>
                             </button>
                         </div>
+                        <button type="button" id="btn-primary-compare" class="investigation-action-btn">Open Before / After Compare</button>
                     </div>
+
+                    <details class="index-suite-container suite-negative-result">
+                        <summary>Experimental composites — negative-result study</summary>
+                        <p class="suite-note">Retained for reproducibility. July controls found no useful produced-water/caliche operating point.</p>
+                        <div class="index-grid" role="group" aria-label="Negative-result experimental composites">
+                            <button class="index-btn idx-pwi" data-index="pwi" data-tooltip="PWCI — experimental three-ratio architecture retained to reproduce the threshold-sweep negative result.">
+                                <span class="index-short">PWCI</span><span class="index-full index-full-bold">Three-Ratio Experiment</span>
+                            </button>
+                            <button class="index-btn idx-pwoi" data-index="pwoi" data-tooltip="ASAI — experimental wet/dry arid-surface proxy; not a produced-water detector.">
+                                <span class="index-short">ASAI</span><span class="index-full index-full-bold">Wet / Dry Surface Experiment</span>
+                            </button>
+                            <button class="index-btn idx-hpwi" data-index="hpwi" data-tooltip="OBEC — experimental optical-contrast proxy; not an oil, emulsion, or produced-water detector.">
+                                <span class="index-short">OBEC</span><span class="index-full index-full-bold">Optical Contrast Experiment</span>
+                            </button>
+                        </div>
+                    </details>
+
+                    <details class="index-suite-container suite-research-library">
+                        <summary>Additional research-only surface composites</summary>
+                        <div class="index-grid" role="group" aria-label="Additional research-only composites">
+                            <button class="index-btn idx-fbc" data-index="fbc"><span class="index-short">FBC</span><span class="index-full">Red/Blue + Dual-SWIR</span></button>
+                            <button class="index-btn idx-vcbi" data-index="vcbi"><span class="index-short">VCBI</span><span class="index-full">Veg/Dual-SWIR Response</span></button>
+                            <button class="index-btn idx-reai" data-index="reai"><span class="index-short">REAI</span><span class="index-full">Red-Edge/Dual-SWIR</span></button>
+                            <button class="index-btn idx-ehc" data-index="ehc" data-tooltip="EHC — false-color context composite; colors and patterns are not contamination classes."><span class="index-short">EHC</span><span class="index-full">Surface Context RGB</span></button>
+                            <button class="index-btn idx-vsi" data-index="vsi"><span class="index-short">VSI</span><span class="index-full">Veg/Dual-SWIR Stress</span></button>
+                            <button class="index-btn" data-index="crsi"><span class="index-short">CRSI</span><span class="index-full">Inverted Canopy Response</span></button>
+                            <button class="index-btn idx-aoi" data-index="aoi"><span class="index-short">AOI</span><span class="index-full">Red/Blue × SWIR</span></button>
+                            <button class="index-btn idx-bpi" data-index="bpi"><span class="index-short">BPI</span><span class="index-full">Bare-Pad Three-Ratio</span></button>
+                            <button class="index-btn idx-tri" data-index="tri"><span class="index-short">TRI</span><span class="index-full">Three-Ratio Residue</span></button>
+                            <button class="index-btn idx-scri" data-index="scri"><span class="index-short">SCRI</span><span class="index-full">SAR Surface Contrast</span></button>
+                            <button class="index-btn idx-mvpi" data-index="mvpi" data-tooltip="Legacy single-scene SWIR surface-ratio screen; not a methane retrieval."><span class="index-short">MVPI</span><span class="index-full">SWIR Ratio Screen</span></button>
+                            <button class="index-btn idx-phi" data-index="phi"><span class="index-short">PHI</span><span class="index-full">SWIR-Shoulder Surface</span></button>
+                            <button class="index-btn idx-cma" data-index="cma"><span class="index-short">CMA</span><span class="index-full">Clay/Surface Contrast</span></button>
+                            <button class="index-btn idx-hmi" data-index="hmi"><span class="index-short">HMI</span><span class="index-full">Green–SWIR Interaction</span></button>
+                        </div>
+                    </details>
 
                     <!-- Divider -->
                     <div class="section-divider"></div>
 
-                    <!-- Standard algorithms directly relevant to produced water detection -->
+                    <!-- Legacy component ratios retained for produced-water hypothesis inspection -->
                     <div class="index-suite-container suite-diagnostic">
-                        <h3>Standard PW Indicators</h3>
-                        <div class="index-grid" role="group" aria-label="Standard produced water indicator indices">
-                            <button class="index-btn idx-ndsi" data-index="ndsi">
-                                <span class="index-short">NDSI</span>
-                                <span class="index-full index-full-bold">Saline Content (Brine)</span>
-                            </button>
+                        <h3>Legacy Surface-Contrast Components</h3>
+                        <div class="index-grid" role="group" aria-label="Legacy surface-contrast component indices">
                             <button class="index-btn" data-index="hcai">
                                 <span class="index-short">HCAI</span>
-                                <span class="index-full">Hydrocarbons</span>
+                                <span class="index-full">SWIR1–Red Contrast</span>
                             </button>
                             <button class="index-btn" data-index="hmri">
                                 <span class="index-short">HMRI</span>
-                                <span class="index-full">Heavy Metals</span>
+                                <span class="index-full">SWIR2/Green Contrast</span>
                             </button>
                             <button class="index-btn" data-index="csi">
                                 <span class="index-short">CSI</span>
-                                <span class="index-full">Contaminated Soil</span>
+                                <span class="index-full">SWIR1/SWIR2 Ratio</span>
                             </button>
                             <button class="index-btn" data-index="ndoi">
                                 <span class="index-short">NDOI</span>
-                                <span class="index-full">Oil Slicks</span>
+                                <span class="index-full">Blue–SWIR2 Contrast</span>
                             </button>
                             <button class="index-btn" data-index="si">
                                 <span class="index-short">SI</span>
-                                <span class="index-full">Salinity / Crust</span>
-                            </button>
-                            <button class="index-btn idx-bsi" data-index="bsi">
-                                <span class="index-short">BSI</span>
-                                <span class="index-full index-full-bold">Bare Soil Index</span>
+                                <span class="index-full">SWIR1–NIR Contrast</span>
                             </button>
                             <button class="index-btn" data-index="s1_sar">
                                 <span class="index-short">SAR</span>
-                                <span class="index-full">S1 VV/VH Radar</span>
+                                <span class="index-full">S1 VV Backscatter</span>
                             </button>
                         </div>
                     </div>
@@ -371,29 +381,16 @@
                                 <span class="index-short">OFF</span>
                                 <span class="index-full">Hide Satellite</span>
                             </button>
-                            <button class="index-btn" data-index="tc">
-                                <span class="index-short">TC</span>
-                                <span class="index-full">True Color</span>
+                            <button class="index-btn" data-index="fc">
+                                <span class="index-short">FC</span><span class="index-full">False Color NIR</span>
                             </button>
                             <button class="index-btn" data-index="ndvi">
                                 <span class="index-short">NDVI</span>
                                 <span class="index-full">Vegetation Health</span>
                             </button>
-                            <button class="index-btn" data-index="ndwi">
-                                <span class="index-short">NDWI</span>
-                                <span class="index-full">Wetness / Ponding</span>
-                            </button>
-                            <button class="index-btn" data-index="ndmi">
-                                <span class="index-short">NDMI</span>
-                                <span class="index-full">Moisture Stress</span>
-                            </button>
                             <button class="index-btn" data-index="msi">
                                 <span class="index-short">MSI</span>
                                 <span class="index-full">Drought / Canopy</span>
-                            </button>
-                            <button class="index-btn" data-index="savi">
-                                <span class="index-short">SAVI</span>
-                                <span class="index-full">Arid Vegetation</span>
                             </button>
                         </div>
                     </div>
@@ -491,7 +488,8 @@
                             <button id="btn-draw-aoi" class="tool-btn tool-btn--flex">Draw Rectangle</button>
                             <button id="btn-draw-poly" class="tool-btn tool-btn--flex">Draw Polygon</button>
                         </div>
-                        <button id="btn-scan-aoi" class="tool-btn tool-btn--scan mt-2">
+                        <button id="btn-scan-aoi" class="tool-btn tool-btn--scan mt-2" disabled aria-disabled="true"
+                            title="Draw an Area of Interest and enable the guarded Sentinel analytics provider.">
                             Scan AOI for Anomalies (1YR)
                         </button>
                         <button id="btn-generate-report" class="tool-btn w-full mt-2" disabled>Generate
@@ -530,7 +528,7 @@
                     </section>
 
                     <section class="control-group">
-                        <h3>Detection Sensitivity</h3>
+                        <h3>Display Threshold</h3>
                         <div class="settings-box">
                             <div class="sensitivity-header">
                                 <label for="sensitivity-slider" class="sensitivity-label">
@@ -538,7 +536,7 @@
                                 </label>
                                 <span id="sensitivity-val" class="sensitivity-val">Baseline</span>
                             </div>
-                            <input type="range" id="sensitivity-slider" class="sensitivity-slider" min="-50" max="50" step="1" value="0" aria-label="Detection sensitivity slider">
+                            <input type="range" id="sensitivity-slider" class="sensitivity-slider" min="-50" max="50" step="1" value="0" aria-label="Experimental composite display threshold slider">
                             <div class="sensitivity-ticks">
                                 <span>Restrictive</span>
                                 <span>Aggressive</span>
@@ -553,34 +551,51 @@
             <!-- UI Layout Pane 2: Focused Triage (Thematic Wizard) -->
             <div id="layout-pane-focused-triage" class="ui-layout-pane active" style="display: flex;">
                 <div class="triage-container">
-                    <h3>Screen Spill</h3>
+                    <h3>Investigate Surface Response</h3>
                     <div class="workflow-summary" aria-live="polite">
                         <div class="workflow-summary__row">
                             <span class="workflow-summary__label">Lens</span>
-                            <strong id="workflow-lens">OBEC</strong>
+                            <strong id="workflow-lens">True Color</strong>
                         </div>
                         <div class="workflow-summary__row">
                             <span class="workflow-summary__label">Site</span>
                             <strong id="workflow-site">Lake Boehmer (Imperial, TX)</strong>
                         </div>
-                        <div class="workflow-summary__note" id="workflow-evidence">Continuous brine target · representative imagery date</div>
+                        <div class="workflow-summary__note" id="workflow-evidence">Documented event context · imagery is not chemical confirmation</div>
+                        <div class="workflow-quality-row">
+                            <span class="quality-chip" data-quality="scl" title="Pixel-quality status follows the active imagery provider.">Pixel QA: provider</span>
+                            <span class="quality-chip quality-chip--conditional" id="workflow-temporal-status">Single scene</span>
+                        </div>
                     </div>
                     
                     <div class="triage-grid">
                         <!-- Triage Card 1: Produced Water & Oilfield Leaks -->
                         <div class="triage-card" data-triage="oilfield-spill">
-                            <span class="triage-section-label">Detection Lens</span>
+                            <span class="triage-section-label">Evidence Lens</span>
                             <div class="triage-tags">
-                                <button type="button" class="triage-tag-pill" data-index="hpwi" data-tooltip="<strong>OBEC</strong><br>Experimental optical-contrast screening proxy; not a validated emulsion or produced-water detector.">OBEC</button>
-                                <button type="button" class="triage-tag-pill" data-index="lbi" data-tooltip="<strong>LBI — Liquid/Salinity Response</strong><br>Preliminary water/salinity proxy; current small-sample controls do not establish brine specificity.">LBI</button>
-                                <button type="button" class="triage-tag-pill" data-index="pwoi" data-tooltip="<strong>ASAI</strong><br>Experimental arid salinity/surface proxy; not a validated produced-water detector.">ASAI</button>
-                                <button type="button" class="triage-tag-pill" data-index="pwi" data-tooltip="<strong>PWCI</strong><br>Experimental three-ratio screening architecture; July 2026 controls found no useful caliche discrimination.">PWCI</button>
-                                <button type="button" class="triage-tag-pill" data-index="ehc" data-tooltip="<strong>EHC — Evaporite Halo Composite</strong><br>False-color morphology view: red oil-center proxy, green bare mud footprint, blue salt/crystal ring. Excellent for reading spill shape, not a standalone proof score.">EHC</button>
-                                <button type="button" class="triage-tag-pill" data-index="bpi" data-tooltip="<strong>BPI — Brine-Pavement Index</strong><br>Exploratory compacted-surface context proxy; not independently validated for brine or hydrocarbons.">BPI</button>
-                                <button type="button" class="triage-tag-pill" data-index="fbc" data-tooltip="<strong>FBC — Ferrugination-Brine Composite</strong><br>Exploratory iron/SWIR and dual-SWIR context proxy; not a direct chemistry measurement.">FBC</button>
-                                <button type="button" class="triage-tag-pill" data-index="vsi" data-tooltip="<strong>VSI — Vegetation Stress Index</strong><br>Exploratory vegetation-stress context; drought, disease, management, and other causes remain confounders.">VSI</button>
-                                <button type="button" class="triage-tag-pill" data-index="mvpi" data-tooltip="<strong>MVPI — Methane Venting Plume Index</strong><br>SWIR gas-absorption proxy targeting localized super-emitter plumes over bright well pads. Fuses B11/B12 ratios with hard water, vegetation, and low-albedo rejection gates.">MVPI</button>
+                                <button type="button" class="triage-tag-pill" data-index="tc" data-tooltip="<strong>True Color</strong><br>Default visual context. Inspect the surface before interpreting any proxy.">RGB</button>
+                                <button type="button" class="triage-tag-pill" data-index="lbi" data-tooltip="<strong>LBI</strong><br>Preliminary standing-liquid/salinity response; not brine-specific or validated for produced water.">LBI</button>
+                                <button type="button" class="triage-tag-pill" data-index="ndwi" data-tooltip="<strong>MNDWI</strong><br>Established water/wet-surface contrast; not a salinity measurement.">MNDWI</button>
+                                <button type="button" class="triage-tag-pill" data-index="awei" data-tooltip="<strong>AWEIsh</strong><br>Shadow-aware water cross-check; not source attribution.">AWEI</button>
+                                <button type="button" class="triage-tag-pill" data-index="ndmi" data-tooltip="<strong>NDMI</strong><br>Moisture context in canopy and surface response.">NDMI</button>
+                                <button type="button" class="triage-tag-pill" data-index="savi" data-tooltip="<strong>SAVI</strong><br>Arid vegetation response with soil-brightness adjustment.">SAVI</button>
+                                <button type="button" class="triage-tag-pill" data-index="bsi" data-tooltip="<strong>BSI</strong><br>Bare-soil, pad, and disturbance context; caliche is an expected confounder.">BSI</button>
+                                <button type="button" class="triage-tag-pill" data-index="ndsi" data-tooltip="<strong>Dual-SWIR</strong><br>NBR2-form material/moisture context; not salt concentration.">SWIR Δ</button>
+                                <button type="button" class="triage-tag-pill" data-index="swir_rgb" data-tooltip="<strong>SWIR RGB</strong><br>B12/B11/B04 context composite; colors are not material classes.">SWIR RGB</button>
+                                <button type="button" class="triage-tag-pill" data-index="ndre" data-tooltip="<strong>NDRE</strong><br>Red-edge vegetation response; stress still requires temporal controls.">NDRE</button>
                             </div>
+                            <div class="triage-actions" aria-label="Investigation actions">
+                                <button type="button" class="investigation-action-btn compare-action">Before / After</button>
+                                <button type="button" class="investigation-action-btn sar-action" data-index="s1_sar">S1 surface context</button>
+                            </div>
+                            <details class="triage-research-details">
+                                <summary>Experimental composites retained for the negative-result study</summary>
+                                <div class="triage-tags triage-tags--research">
+                                    <button type="button" class="triage-tag-pill" data-index="pwi" data-tooltip="<strong>PWCI</strong><br>Retained to reproduce the three-gate negative result; not a produced-water detector.">PWCI</button>
+                                    <button type="button" class="triage-tag-pill" data-index="pwoi" data-tooltip="<strong>ASAI</strong><br>Experimental wet/dry arid-surface proxy; not a produced-water detector.">ASAI</button>
+                                    <button type="button" class="triage-tag-pill" data-index="hpwi" data-tooltip="<strong>OBEC</strong><br>Experimental optical-contrast proxy; not oil, emulsion, or produced-water identification.">OBEC</button>
+                                </div>
+                            </details>
                         </div>
 
                     </div>
@@ -723,7 +738,7 @@
 
                     <div class="report-metrics report-panel-box" id="report-scanned-anomalies-panel">
                         <h4 class="report-panel-title report-panel-title--orange">
-                            1-Year Scan: Hazardous Events (PWCI Index)</h4>
+                            1-Year Scan: Candidate Screening Responses</h4>
                         <div id="scanned-anomalies-list" class="anomaly-grid">
                             <!-- Populated via JS with Screenshots -->
                         </div>
@@ -791,10 +806,10 @@
             }
         });
     </script>
-    <script type="module" src="src/indices.js?v=77"></script>
-    <script type="module" src="src/charts.js?v=77"></script>
-    <script type="module" src="src/report.js?v=77"></script>
-    <script type="module" src="src/app.js?v=77"></script>
+    <script type="module" src="src/indices.js?v=78"></script>
+    <script type="module" src="src/charts.js?v=78"></script>
+    <script type="module" src="src/report.js?v=78"></script>
+    <script type="module" src="src/app.js?v=78"></script>
     <script>
         // JS-powered tooltip for .chart-info-badge
         // Uses body-level element to avoid modal overflow-y clipping
