@@ -101,3 +101,4 @@
 - 2026-07-21 11:47 — commit: fix: make negative COG screens visibly render | LIMN_PRODUCED_WATER_SPEC.md,PUBLIC_SCIENCE_GUIDE.md,README.md,execution/render_cog_tile.py,package.json
 - 2026-07-21 13:35 — commit: feat: restore Limn gate diagnostics | LIMN_PRODUCED_WATER_SPEC.md,PUBLIC_SCIENCE_GUIDE.md,README.md,SENTINEL_SCIENCE_GUIDE.md,execution/render_cog_tile.py
 - 2026-07-21 14:04 — commit: feat: add spill evidence timeline | LIMN_PRODUCED_WATER_SPEC.md,PUBLIC_SCIENCE_GUIDE.md,README.md,SENTINEL_SCIENCE_GUIDE.md,index.html
+- 2026-07-23 14:10 — commit: feat: Sentinel-only date filtering, salinity/produced-water badges, KSI/VSSI indices | atlas.html,directives/filter_sentinel_dates.md,execution/render_cog_tile.py,index.html,knowledge/DECISIONS.md
