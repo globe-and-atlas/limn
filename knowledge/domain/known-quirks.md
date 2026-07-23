@@ -29,9 +29,11 @@ The evalscript comment stripper regex:
 ```
 Has a known edge case: it can incorrectly strip content after `://` in URL strings if they appear in evalscript logic. Evalscripts don't currently contain URLs, so this is safe but worth knowing.
 
-## ALL_DATES is Daily from 2020-01-01
+## ALL_DATES is Daily from 2020-01-01 (but the rendered selector is filtered)
 
 The date array is generated at load time from 2020-01-01 to today, one entry per day. That's ~2200+ entries. The selector is grouped by month via `<optgroup>` to keep it usable. Avoid iterating `ALL_DATES` in tight loops — use `findIndex` or direct index access.
+
+As of 2026-07-23, the *rendered* `<option>` list is a filtered subset of `ALL_DATES` — only dates with a real Sentinel-1/Sentinel-2 scene (per CDSE STAC catalog) survive, tagged `' [S]'`. `ALL_DATES` itself is unchanged and still the full 2200+ synthetic daily array; `date-single` option values are still indices into it (see `populateGroupedDates()` in `src/app.js` and `[[architecture.md]]`'s "Sentinel-Only Date Filtering" section). Before the first catalog probe resolves, the full unfiltered list is shown (fail open).
 
 ## Token is Cached Module-Scoped in auth.js
 

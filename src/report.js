@@ -7,6 +7,7 @@ import { getCDSEToken } from './auth.js';
 import { INDICES } from './indices.js';
 import { getScriptContent } from './map.js?v=78';
 import { showToast } from './ui.js?v=78';
+import { fetchValidSentinelDates } from './sentinel-catalog.js';
 
 const SH_WMS_URL = 'https://sh.dataspace.copernicus.eu/ogc/wms/959ea2c5-5892-4b36-82b3-76e6bdb93c8a';
 
@@ -419,8 +420,8 @@ export async function initRrcSpillOverlay() {
 
 export async function probeAcquisitions() {
     if (!window.state.map) return;
-    
-    let sensorMap = {};
+
+    let validDates = new Set();
     let isTrialMode = false;
 
     try {
@@ -428,122 +429,32 @@ export async function probeAcquisitions() {
         const token = await getCDSEToken();
         const bbox = [center.lng - 0.05, center.lat - 0.05, center.lng + 0.05, center.lat + 0.05];
 
-        // Search back to START_YEAR for metadata density
+        // Search back to START_YEAR for full selector coverage
         const latest = new Date();
         const past = new Date(Date.UTC(window.CONFIG.START_YEAR || 2020, 0, 1));
+        const fromISO = `${past.toISOString().split('.')[0]}Z`;
+        const toISO = `${latest.toISOString().split('.')[0]}Z`;
 
-        const collections = ["sentinel-2-l2a", "landsat-ot-l1"];
-
-        for (const colId of collections) {
-            const payload = {
-                collections: [colId],
-                datetime: `${past.toISOString().split('.')[0]}Z/${latest.toISOString().split('.')[0]}Z`,
-                bbox: bbox,
-                limit: 100 // Maximum allowed by SH Catalog API
-            };
-
-            try {
-                const resp = await fetch('https://sh.dataspace.copernicus.eu/api/v1/catalog/1.0.0/search', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
-                    body: JSON.stringify(payload)
-                });
-
-                if (!resp.ok) {
-                    const errBody = await resp.text();
-                    console.warn(`[Probe] Catalog Failed for ${colId} (${resp.status}):`, errBody);
-                    publishSentinelHubError(resp.status, errBody);
-                    if (resp.status === 401 || resp.status === 403) isTrialMode = true;
-                    continue;
-                }
-
-                const data = await resp.json();
-                if (data && data.features) {
-                    data.features.forEach(f => {
-                        const dateStr = f.properties.datetime.split('T')[0];
-                        if (!sensorMap[dateStr]) sensorMap[dateStr] = new Set();
-                        if (colId.includes('sentinel-2')) sensorMap[dateStr].add('S2');
-                        if (colId.includes('landsat')) sensorMap[dateStr].add('L8');
-                    });
-                }
-            } catch (innerError) {
-                console.warn(`[Probe] Error fetching ${colId}:`, innerError);
-                isTrialMode = true;
-            }
-        }
+        const result = await fetchValidSentinelDates(bbox, fromISO, toISO, token, publishSentinelHubError);
+        validDates = result.validDates;
+        isTrialMode = result.authError;
     } catch (e) {
         console.warn("Probe failed (switching to Trial Mode for UI tags):", e);
         isTrialMode = true;
     }
 
-    // IF in Trial Mode (Auth Error), generate consistent mock tags for UI verification
-    if (Object.keys(sensorMap).length === 0 || isTrialMode) {
+    // IF in Trial Mode (auth error) or the AOI genuinely returned nothing, generate a consistent
+    // mock distribution so the selector still shows a usable, non-empty date list (fail open).
+    if (isTrialMode || validDates.size === 0) {
         window.ALL_DATES.forEach((d, i) => {
-            // Pseudo-random but consistent mock distribution
-            if (i % 4 === 0) sensorMap[d.value] = new Set(['S2']);
-            else if (i % 7 === 0) sensorMap[d.value] = new Set(['L8']);
-            else if (i % 11 === 0) sensorMap[d.value] = new Set(['S2', 'L8']);
+            if (i % 5 === 0) validDates.add(d.value); // roughly S2/S1 combined revisit cadence
         });
     }
 
-    // Update the Dropdown Options
-    const allSelects = document.querySelectorAll('#date-single, #date-t1, #date-t2');
-    allSelects.forEach(selectEl => {
-        const options = selectEl.querySelectorAll('option');
-        
-        options.forEach(opt => {
-            let val = opt.value;
-            // For date-single, value is index. For T1/T2, value is 'YYYY-MM-DD'
-            const dateStr = selectEl.id === 'date-single' ? (window.ALL_DATES[parseInt(val)] ? window.ALL_DATES[parseInt(val)].value : null) : val;
-            
-            const idxKey = selectEl.id === 'date-single' ? parseInt(opt.value) : window.ALL_DATES.findIndex(d => d.value === opt.value);
-            const originalLabel = window.ALL_DATES[idxKey] ? (selectEl.id === 'date-single' ? window.ALL_DATES[idxKey].displayStr : window.ALL_DATES[idxKey].label) : opt.value;
-
-            const sensors = sensorMap[dateStr];
-            
-            // Reset state
-            opt.textContent = originalLabel;
-            opt.className = '';
-            opt.style.display = ''; // Default visible
-
-            // Re-apply anomaly marker
-            if (window.state.anomalousDates && window.state.anomalousDates.includes(dateStr)) {
-                opt.textContent = '⚠️ ' + opt.textContent;
-                opt.style.color = '#FF8F00';
-                opt.style.fontWeight = 'bold';
-            }
-
-            if (sensors) {
-                if (sensors.has('S2') && sensors.has('L8')) {
-                    opt.className = 'opt-fusion';
-                    opt.textContent += ' [F]';
-                } else if (sensors.has('S2')) {
-                    opt.className = 'opt-s2';
-                    opt.textContent += ' [S]';
-                } else if (sensors.has('L8')) {
-                    opt.className = 'opt-l8';
-                    opt.textContent += ' [L]';
-                }
-            }
-            // Dates without known imagery remain visible (untagged)
-            // Hiding them would truncate the selector when catalog limit < full date range
-        });
-        
-        // If the currently selected option is now hidden, select the first visible one
-        if (selectEl.selectedOptions.length > 0 && selectEl.selectedOptions[0].style.display === 'none') {
-            const firstVisible = Array.from(options).find(o => o.style.display !== 'none');
-            if (firstVisible) {
-                selectEl.value = firstVisible.value;
-            }
-        }
-
-        // If an optgroup becomes empty, hide it
-        selectEl.querySelectorAll('optgroup').forEach(group => {
-            const groupOpts = group.querySelectorAll('option');
-            const hasVisible = Array.from(groupOpts).some(o => o.style.display !== 'none');
-            group.style.display = hasVisible ? '' : 'none';
-        });
-    });
+    window.state.validSentinelDates = validDates;
+    if (typeof window.rebuildDateSelectors === 'function') {
+        window.rebuildDateSelectors(validDates);
+    }
 }
 
 // ── REPORT MODAL FOCUS & KEYBOARD ──────────────────

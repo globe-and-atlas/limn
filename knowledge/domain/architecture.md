@@ -11,8 +11,10 @@
 | `map.js` | Leaflet init, WMS layer construction, `applyIndex`, `getScriptContent` | `indices.js`, `charts.js` |
 | `ui.js` | `showToast`, `switchTab`, `updateUI`, global keydown listener | — |
 | `charts.js` | Hover highlight, peak detection, thumbnail gallery, `buildHighlightUrl` | `indices.js` |
-| `report.js` | HTML export, `generateReport`, `initRrcSpillOverlay`, `probeAcquisitions` | `auth.js`, `indices.js`, `map.js`, `ui.js` |
+| `report.js` | HTML export, `generateReport`, `initRrcSpillOverlay`, `probeAcquisitions` | `auth.js`, `indices.js`, `map.js`, `ui.js`, `sentinel-catalog.js` |
+| `sentinel-catalog.js` | Shared SH Catalog (STAC) pagination + client-side cache; returns the set of dates with a real S1/S2 scene for a bbox/date-range | — |
 | `app.js` | Orchestrator: state, event bindings, date selectors, scan AOI, chart render, triple layout modes | all of the above |
+| `atlas-app.js` | Limn Atlas orchestrator: bookmark navigation, WMS/GEE tile requests, its own date `<select>` + catalog probe | `atlas-indices.js`, `atlas-sar-demos.js`, `atlas-s5p-demos.js`, `atlas-evidence.js`, `auth.js`, `sentinel-catalog.js` |
 
 ## State Object (`state` in app.js / `window.state` globally)
 
@@ -37,6 +39,7 @@
   rightGroup,       // Compare mode right LayerGroup
   sbsControl,       // Leaflet side-by-side control
   anomalousDates,   // ['YYYY-MM-DD', ...] flagged by scan
+  validSentinelDates, // Set of 'YYYY-MM-DD' with a real S1/S2 scene; null until first catalog probe resolves (see below)
   rrcSpillLayer,    // Leaflet layer group for RRC markers
   rrcSpillData,     // Cached GeoJSON after first fetch
   drawnItems,       // L.FeatureGroup for drawn AOI
@@ -51,6 +54,19 @@
 
 This affects any code that reads `opt.value` from a selector — must resolve via `ALL_DATES[parseInt(opt.value)]` for `date-single`. See `highlightAnomalies()` in app.js.
 
+## Sentinel-Only Date Filtering (2026-07-23)
+
+Both apps' date selectors now only contain dates with a real Sentinel-1 GRD or Sentinel-2 L2A scene
+(per CDSE STAC catalog), tagged `' [S]'`. Landsat does not count toward validity. Key pieces:
+
+- `src/sentinel-catalog.js` — shared, paginated, cached `fetchValidSentinelDates(bbox, fromISO, toISO, token, onError)`. Pagination assumes SH Catalog's cursor is a top-level `next` token echoed back in the next POST body (with a STAC `links[rel=next].body.next` fallback) — **unverified against a live token this session**; worth confirming against a real CDSE account before trusting deep pagination.
+- `src/app.js` — `populateGroupedDates(selectEl, dates, isValueIndex, validSet)` is now module-scope (was a DOMContentLoaded-local closure). When filtering with a `validSet`, it computes `date-single`'s option value via `ALL_DATES.indexOf(dateObj)` (the **global** array), never the filtered subset being iterated — this is what keeps the "value is an index into ALL_DATES" contract intact after filtering.
+- `closestDateIndex(targetStr, validSet)` (app.js) — shared snapping helper used by `setClosestDateValue()` (spill-bookmark jump) and the FIS trend-chart click handler, so a curated spill/chart date that isn't itself a valid Sentinel date lands on the nearest one instead of setting a `<select>` to a nonexistent option value (which silently blanks the control).
+- `window.rebuildDateSelectors(validSet)` (app.js) — re-renders all three selects once `probeAcquisitions()` resolves; called from `report.js`.
+- Atlas mirrors this with its own `populateAtlasDateOptions` / `closestAtlasDateValue` / `rebuildAtlasDateSelector` / `probeAtlasAcquisitions` in `atlas-app.js` (kept as a sibling implementation, not shared, since Atlas has one string-valued date instead of index+string across 3 selects). Atlas's `<input type="date">` was replaced with a grouped `<select id="date-input">` for this — same id, so the existing `.value`-based read/write call sites needed no renaming, only snap-safety at the bookmark-jump site (`selectIndex()`).
+- **Fail-open contract**: before the first probe resolves, or if CDSE auth fails, both apps fall back to showing the full unfiltered date range (Limn) / a mocked ~1-in-5 valid-date pattern (both, once trial mode is detected) rather than an empty selector.
+- **Gate removed**: `probeAcquisitions()` in `app.js` previously had `if (isGeeProviderActive()) return;`, which silently skipped ALL catalog probing (hence all tagging) whenever the active provider wasn't `sentinelhub` — i.e. always, under the actual default (`cog`). This made the pre-existing `[S]/[L]/[F]` tagging dead code in normal usage, matching the (accurate, it turns out) claim in `api-contracts.md` that GEE mode "skips ... acquisition probing." The gate was removed because catalog lookups only need CDSE OAuth credentials and are independent of which provider serves map tiles; `isSentinelCreditGuardBlocking()` remains as a no-op-outside-`sentinelhub` guard.
+
 ## Global Window Exports
 
 Functions/objects explicitly exposed to `window` for cross-module access:
@@ -64,6 +80,7 @@ Functions/objects explicitly exposed to `window` for cross-module access:
 - `window.reportChartInst`, `window.primaryChartInst`, `window.secondaryChartInst` — Chart.js instances
 - `window.renderFocusedTriage` — orchestrates Focused Triage cards and filters
 - `window.renderCommandConsole` — drives search input queries and tag filtering in Command HUD
+- `window.rebuildDateSelectors` — re-renders date-single/date-t1/date-t2 against a valid-Sentinel-date set (called from report.js's `probeAcquisitions()`)
 
 ## Deep Fusion Scripts (HPWI, APEX)
 

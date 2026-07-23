@@ -2,15 +2,32 @@
 
 ## Last Known State
 
-**Date:** 2026-06-25
+**Date:** 2026-07-23
 **Active projects this session:** limn
-**Agent:** Antigravity AI
-**Handoff-from:** OpenAI Codex
-**Handoff-type:** pickup
-**Goal:** Relocate index title, coordinates, and band math to map legend and remove the top-left capture overlay.
-**Status:** Completed. Removed the top-left capture info box and its trigger button entirely. Added new legend-name, legend-location, legend-coords, legend-formula, and legend-bands elements inside the map legend in atlas.html and dynamically populated them in src/atlas-app.js. The coordinates display on their own line below the place name, and the index formula and active bands are styled inside the legend box in capture mode. Widened the legend container width to max-width 380px in capture mode.
+**Agent:** Claude Code CLI (Sonnet 5)
+**Handoff-from:** Claude Code CLI
+**Handoff-type:** continuation
+**Goal:** (1) Filter both apps' date selectors to only show dates with a real Sentinel-1/Sentinel-2 scene, tagged `[S]`; remove dates with no Sentinel collection. (2) For Limn, add capability badges to index buttons marking which are salinity-related and/or part of the produced-water/brine screening set.
+**Status:** Both completed. See `knowledge/DECISIONS.md` "Date selectors filter to Sentinel-only dates in both apps" and "Index buttons carry salinity/produced-water capability badges" for full detail. Date-selector work: new shared `src/sentinel-catalog.js`; `app.js`/`atlas-app.js`/`report.js` reworked; Atlas's native date input replaced with a `<select>`; new `tests/test_date_selector_filter.mjs`; discovered and removed a dead-code provider gate that had silently disabled all catalog probing under the default COG provider. Badge work: `tags` field added to 13 `INDICES` entries in `src/indices.js`, rendered via `CAPABILITY_BADGES`/`capabilityBadgesHTML()` in `src/app.js` on both the Suite Grid and Command Console. All test suites pass; verified in headless Chrome.
 
 ## Active Checkpoints
+
+### 2026-07-23 - Salinity/produced-water capability badges (Claude Code CLI / Sonnet 5)
+- Added `tags: ['salinity']` and/or `tags: ['salinity', 'produced-water']` to 13 of 38 `INDICES` entries in `src/indices.js`, derived from a keyword scan of each index's own name/formula/info/validationStatus text (not guessed) — see `knowledge/DECISIONS.md` for the exact inclusion/exclusion reasoning
+- Hoisted a `CAPABILITY_BADGES` map + `capabilityBadgesHTML()` helper to module scope in `src/app.js`; wired into the existing per-button decoration loop (Suite Grid) and the Command Console's dynamic button template
+- Added `.capability-badge`/`.capability-salinity`/`.capability-produced-water` CSS in `style.css`, deliberately NOT `pointer-events: none` (unlike `.temporal-badge`) so each badge shows its own tooltip via the existing `index.html` JS tooltip handler
+- Verified via headless Chrome: exactly the intended 13 index keys render the correct badge(s) in both the Suite Grid and Command Console, zero page errors; full existing test suite still passes
+
+### 2026-07-23 - Sentinel-only date selector filtering (Claude Code CLI / Sonnet 5)
+- Built shared `src/sentinel-catalog.js` (paginated + cached CDSE STAC catalog lookup, S1/S2 only)
+- Reworked `src/report.js` `probeAcquisitions()` to use it; hoisted `populateGroupedDates()` in `src/app.js` out of its `DOMContentLoaded` closure so it can filter+retag date-single/date-t1/date-t2 post-probe via new `window.rebuildDateSelectors()`
+- Added `closestDateIndex()` snap-to-valid helper; fixed `setClosestDateValue()` (spill-bookmark jump) and the FIS chart click handler, both of which could previously set a `<select>` to a now-filtered-out (nonexistent) option value
+- Replaced Limn Atlas's native `<input type="date">` with a grouped `<select id="date-input">`; added sibling `probeAtlasAcquisitions()`/`populateAtlasDateOptions()`/`closestAtlasDateValue()`/`rebuildAtlasDateSelector()` in `src/atlas-app.js`
+- **Key discovery:** `app.js`'s `probeAcquisitions()` wrapper had `if (isGeeProviderActive()) return;`, silently skipping all catalog probing (and all `[S]/[L]/[F]` tagging) under the actual default provider (`cog`) — removed, since catalog lookups don't depend on tile-serving provider
+- New test: `tests/test_date_selector_filter.mjs` (puppeteer, both apps, asserts trial-mode fallback actually filters not just tags)
+- Ran full existing suite (`test.js`, `test_fetch.js`, `test_pwi.js`, all `.mjs` tests) — all pass; manually verified spill-bookmark click lands on a valid `[S]`-tagged option in headless Chrome
+- Wrote Validation Contract directive `directives/filter_sentinel_dates.md` before implementation per workspace convention
+- Open/unverified: SH Catalog pagination cursor shape assumed (`next` token + STAC `links[rel=next]` fallback), not exercised against a live CDSE token this session (no credentials configured in this environment)
 
 ### 2026-07-19 - Preprint QC audit (Claude Code CLI / Fable 5)
 - Full QC of PUBLIC_SCIENCE_GUIDE.md (May 2026 preprint) vs code at publication commit, current code, validation pipeline, and June verified-site QC

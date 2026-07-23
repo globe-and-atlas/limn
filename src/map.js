@@ -27,6 +27,8 @@ import {
     PALETTE_APEX,
     PALETTE_AWEI,
     PALETTE_NDRE,
+    PALETTE_KSI,
+    PALETTE_VSSI,
     adaptEvalscriptForSentinelWms,
     INDICES
 } from './indices.js';
@@ -439,6 +441,8 @@ export function getScriptContent(config, activeIndex, isDiff, isCumulative = fal
         else if (activeIndex === 'savi') { logic = "((sample.B08 - sample.B04) / (sample.B08 + sample.B04 + 0.5)) * 1.5 + 0.2"; palette = PALETTE_VEG; }
         else if (activeIndex === 'msi') { logic = "sample.B11 / sample.B08"; palette = PALETTE_MSI; }
         else if (activeIndex === 'si') { logic = "(sample.B11 - sample.B08) / (sample.B11 + sample.B08) + 0.5"; palette = PALETTE_NDWI; } // Corrected fallback
+        else if (activeIndex === 'ksi') { logic = "Math.max(0, (Math.sqrt(Math.max(0, sample.B03) * Math.max(0, sample.B04)) - 0.05) * 4.0)"; palette = PALETTE_KSI; }
+        else if (activeIndex === 'vssi') { logic = "Math.max(0, Math.min(1, ((2 * sample.B03 - 5 * (sample.B04 + sample.B08)) + 2.2) / 1.8))"; palette = PALETTE_VSSI; }
         else if (activeIndex === 'ndsi') { logic = "(sample.B11 - sample.B12) / (sample.B11 + sample.B12) + 0.1"; palette = PALETTE_BRINE; }
         else if (activeIndex === 'bsi') { logic = "((sample.B11 + sample.B04) - (sample.B08 + sample.B02)) / ((sample.B11 + sample.B04) + (sample.B08 + sample.B02))"; palette = PALETTE_BSI; }
         else if (activeIndex === 'awei') { logic = "Math.max(0, (sample.B02 + 2.5*sample.B03 - 1.5*(sample.B08+sample.B11) - 0.25*sample.B12) * 5)"; palette = PALETTE_AWEI; }
@@ -472,6 +476,8 @@ export function getScriptContent(config, activeIndex, isDiff, isCumulative = fal
         if (activeIndex === 'ndwi') bands = ['B03', 'B11'];
         if (activeIndex === 'ndvi' || activeIndex === 'savi') bands = ['B08', 'B04'];
         if (activeIndex === 'msi' || activeIndex === 'si') bands = ['B11', 'B08'];
+        if (activeIndex === 'ksi') bands = ['B03', 'B04'];
+        if (activeIndex === 'vssi') bands = ['B03', 'B04', 'B08'];
         if (activeIndex === 'ndsi' || activeIndex === 'csi') bands = ['B11', 'B12'];
         if (activeIndex === 'bsi') bands = ['B02', 'B04', 'B08', 'B11'];
         if (activeIndex === 'awei') bands = ['B02', 'B03', 'B08', 'B11', 'B12'];
@@ -639,6 +645,8 @@ function evaluatePixel(samples) {
             else if (activeIndex === 'savi') calc = '(((sample.B08-sample.B04)/(sample.B08+sample.B04+0.5))*1.5)';
             else if (activeIndex === 'msi') calc = '-(sample.B11/sample.B08)';
             else if (activeIndex === 'si') calc = '-((sample.B11-sample.B08)/(sample.B11+sample.B08))';
+            else if (activeIndex === 'ksi') calc = '-(Math.sqrt(Math.max(0, sample.B03) * Math.max(0, sample.B04)))';
+            else if (activeIndex === 'vssi') calc = '-(2*sample.B03 - 5*(sample.B04+sample.B08))';
             else if (activeIndex === 'ndsi') calc = '-((sample.B11-sample.B12)/(sample.B11+sample.B12))';
             else if (activeIndex === 'bsi') calc = '-(((sample.B11+sample.B04)-(sample.B08+sample.B02))/((sample.B11+sample.B04)+(sample.B08+sample.B02)))';
             else if (activeIndex === 'awei') calc = '(sample.B02+2.5*sample.B03-1.5*(sample.B08+sample.B11)-0.25*sample.B12)';
@@ -668,6 +676,8 @@ function evaluatePixel(samples) {
             if (activeIndex === 'ndwi') bands = ['B03', 'B11'];
             if (activeIndex === 'ndvi' || activeIndex === 'savi') bands = ['B08', 'B04'];
             if (activeIndex === 'msi' || activeIndex === 'si') bands = ['B11', 'B08'];
+            if (activeIndex === 'ksi') bands = ['B03', 'B04'];
+            if (activeIndex === 'vssi') bands = ['B03', 'B04', 'B08'];
             if (activeIndex === 'ndsi' || activeIndex === 'csi') bands = ['B11', 'B12'];
             if (activeIndex === 'bsi') bands = ['B02', 'B04', 'B08', 'B11'];
             if (activeIndex === 'awei') bands = ['B02', 'B03', 'B08', 'B11', 'B12'];

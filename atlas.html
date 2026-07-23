@@ -87,6 +87,41 @@
     #idx-search:focus { border-color: rgba(0,210,255,0.4); }
     #idx-search::placeholder { color: #64748B; }
 
+    .coord-row {
+      display: flex;
+      gap: 6px;
+      padding: 0 12px 8px;
+      flex-shrink: 0;
+    }
+    #atlas-coord-input {
+      flex: 1;
+      min-width: 0;
+      padding: 7px 12px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 8px;
+      color: #fff;
+      font-size: 12px;
+      font-family: 'JetBrains Mono', monospace;
+      outline: none;
+    }
+    #atlas-coord-input:focus { border-color: rgba(0,210,255,0.4); }
+    #atlas-coord-input::placeholder { color: #64748B; }
+    #atlas-coord-input.is-invalid { border-color: rgba(255,87,87,0.6); }
+    #atlas-coord-go {
+      flex-shrink: 0;
+      padding: 7px 12px;
+      background: rgba(0,210,255,0.12);
+      border: 1px solid rgba(0,210,255,0.3);
+      border-radius: 8px;
+      color: #00D2FF;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.4px;
+      cursor: pointer;
+    }
+    #atlas-coord-go:hover { background: rgba(0,210,255,0.2); }
+
     .sidebar-mode-switch {
       display: grid;
       grid-template-columns: 1.1fr 0.85fr 0.95fr;
@@ -335,6 +370,11 @@
       outline: none;
     }
     .hud-input:focus { border-color: rgba(0,210,255,0.4); }
+
+    select.date-dropdown {
+      color-scheme: dark;
+      max-width: 190px;
+    }
 
     #opacity-slider {
       -webkit-appearance: none;
@@ -1948,6 +1988,10 @@
       <div class="search-row">
         <input id="idx-search" type="text" placeholder="Search methods, families, sensors…" autocomplete="off">
       </div>
+      <div class="coord-row">
+        <input id="atlas-coord-input" type="text" placeholder="lat, lng" autocomplete="off" inputmode="decimal" aria-label="Go to coordinates">
+        <button id="atlas-coord-go" type="button" aria-label="Go to coordinates">GO</button>
+      </div>
       <div class="sidebar-mode-switch" aria-label="Atlas navigation view">
         <button class="sidebar-mode active" type="button" data-sidebar-mode="capabilities" aria-pressed="true">Capabilities</button>
         <button class="sidebar-mode" type="button" data-sidebar-mode="domains" aria-pressed="false">Domains</button>
@@ -1967,7 +2011,7 @@
       <div class="atlas-hud">
         <div class="hud-panel">
           <span class="hud-label">Date</span>
-          <input id="date-input" type="date" class="hud-input" value="2021-08-01">
+          <select id="date-input" class="hud-input date-dropdown"></select>
         </div>
         <div class="hud-panel">
           <span class="hud-label">Opacity</span>

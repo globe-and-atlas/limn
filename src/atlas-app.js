@@ -13,6 +13,8 @@ import {
 import { SAR_DEMO_INDICES, SAR_DEMO_DOMAIN } from './atlas-sar-demos.js?v=2';
 import { S5P_DEMO_INDICES, S5P_DEMO_DOMAIN } from './atlas-s5p-demos.js?v=2';
 import { countsAsAtlasCitation, getAtlasEvidence, getAtlasTrust } from './atlas-evidence.js?v=4';
+import { getCDSEToken } from './auth.js';
+import { fetchValidSentinelDates } from './sentinel-catalog.js';
 
 // The 91 proposed specifications plus the live Sentinel-1 SAR and Sentinel-5P
 // TROPOMI demonstrators (kept separate so the catalog stays exactly
@@ -124,7 +126,7 @@ function refreshAtlasConfig() {
   return atlasConfig;
 }
 
-let map, wmsLayer, bookmarkFocusLayer, activeKey = null;
+let map, wmsLayer, bookmarkFocusLayer, coordMarker, activeKey = null;
 let mapMirror = null;
 let mirrorBaseLayer = null;
 let BASE_TILES;
@@ -151,7 +153,133 @@ const state = {
   captureCardCollapsed: false,
   captureInfoCollapsed: false,
   sidebarMode: 'capabilities',
+  validSentinelDates: null, // Set of 'YYYY-MM-DD' strings with a real S1/S2 scene; null until first probe resolves
 };
+
+const ATLAS_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const ATLAS_START_YEAR = 2020;
+const ATLAS_ALL_DATES = (() => {
+  const out = [];
+  const today = new Date();
+  let iterDate = new Date(Date.UTC(ATLAS_START_YEAR, 0, 1));
+  while (iterDate <= today) {
+    const y = iterDate.getUTCFullYear();
+    const m = iterDate.getUTCMonth();
+    const d = iterDate.getUTCDate();
+    const mm = String(m + 1).padStart(2, '0');
+    const dd = String(d).padStart(2, '0');
+    out.push({ value: `${y}-${mm}-${dd}`, label: `${ATLAS_MONTHS[m]} ${d}, ${y}` });
+    iterDate.setUTCDate(iterDate.getUTCDate() + 1);
+  }
+  return out;
+})();
+
+// Populates the Atlas date <select> with grouped-by-month options. When `validSet` is provided,
+// only dates present in it render (tagged ' [S]') — the fail-open unfiltered list is used before
+// the first catalog probe resolves.
+function populateAtlasDateOptions(selectEl, validSet) {
+  if (!selectEl) return;
+  selectEl.innerHTML = '';
+
+  const filtered = validSet ? ATLAS_ALL_DATES.filter(d => validSet.has(d.value)) : ATLAS_ALL_DATES;
+  const sorted = [...filtered].reverse(); // newest first
+
+  let currentYear = null;
+  let currentMonth = null;
+  let currentGroup = null;
+
+  for (const dateObj of sorted) {
+    const [yr, mm] = dateObj.value.split('-');
+    const mon = ATLAS_MONTHS[parseInt(mm, 10) - 1] || '???';
+
+    if (mon !== currentMonth || yr !== currentYear) {
+      currentYear = yr;
+      currentMonth = mon;
+      currentGroup = document.createElement('optgroup');
+      currentGroup.label = `${mon} ${yr}`;
+      selectEl.appendChild(currentGroup);
+    }
+
+    const opt = document.createElement('option');
+    opt.value = dateObj.value;
+    opt.textContent = dateObj.label + (validSet ? ' [S]' : '');
+    if (validSet) opt.className = 'opt-s2';
+    currentGroup.appendChild(opt);
+  }
+}
+
+// Finds the date string (from ATLAS_ALL_DATES) closest to targetStr, restricted to validSet when
+// one is available (fail open otherwise).
+function closestAtlasDateValue(targetStr, validSet) {
+  const target = new Date(targetStr).getTime();
+  if (Number.isNaN(target)) return null;
+
+  const restrict = validSet && validSet.size > 0;
+  let closestValue = null;
+  let minDiff = Infinity;
+  ATLAS_ALL_DATES.forEach((dateOption) => {
+    if (restrict && !validSet.has(dateOption.value)) return;
+    const diff = Math.abs(new Date(dateOption.value).getTime() - target);
+    if (diff < minDiff) {
+      minDiff = diff;
+      closestValue = dateOption.value;
+    }
+  });
+  return closestValue;
+}
+
+// Re-renders the date <select> against a freshly-probed valid-date set, preserving the current
+// selection where it survives filtering and snapping to the nearest valid date otherwise.
+function rebuildAtlasDateSelector(validSet) {
+  const dateInput = document.getElementById('date-input');
+  if (!dateInput) return;
+
+  const prevDate = dateInput.value || state.date;
+  populateAtlasDateOptions(dateInput, validSet);
+
+  const snapped = closestAtlasDateValue(prevDate, validSet);
+  if (snapped) {
+    dateInput.value = snapped;
+    state.date = snapped;
+  }
+}
+
+// Probes the CDSE STAC catalog for the current map view and rebuilds the date selector. Mirrors
+// Limn's probeAcquisitions() (src/report.js) — kept as a sibling implementation rather than a
+// shared function because Atlas has no compare-mode selects and a single string-valued date state.
+async function probeAtlasAcquisitions() {
+  if (!map) return;
+
+  let validDates = new Set();
+  let isTrialMode = false;
+
+  try {
+    const center = map.getCenter();
+    const token = await getCDSEToken();
+    const bbox = [center.lng - 0.05, center.lat - 0.05, center.lng + 0.05, center.lat + 0.05];
+
+    const latest = new Date();
+    const past = new Date(Date.UTC((window.CONFIG || {}).START_YEAR || ATLAS_START_YEAR, 0, 1));
+    const fromISO = `${past.toISOString().split('.')[0]}Z`;
+    const toISO = `${latest.toISOString().split('.')[0]}Z`;
+
+    const result = await fetchValidSentinelDates(bbox, fromISO, toISO, token);
+    validDates = result.validDates;
+    isTrialMode = result.authError;
+  } catch (e) {
+    console.warn('[Atlas Probe] failed (switching to trial mode for UI tags):', e);
+    isTrialMode = true;
+  }
+
+  if (isTrialMode || validDates.size === 0) {
+    ATLAS_ALL_DATES.forEach((d, i) => {
+      if (i % 5 === 0) validDates.add(d.value); // roughly S2/S1 combined revisit cadence
+    });
+  }
+
+  state.validSentinelDates = validDates;
+  rebuildAtlasDateSelector(validDates);
+}
 
 window.getAtlasProviderState = () => {
   refreshAtlasConfig();
@@ -1614,7 +1742,13 @@ function selectIndex(key) {
   // Navigate to bookmark
   const bm = idx.bookmark;
   state.date = bm.date;
-  document.getElementById('date-input').value = bm.date;
+  const dateInputEl = document.getElementById('date-input');
+  if (dateInputEl) {
+    // The curated bookmark date may not survive AOI-based Sentinel-date filtering; if the dropdown
+    // has no option for it, show the nearest date it does have instead of leaving it blank.
+    const hasOption = !!dateInputEl.querySelector(`option[value="${bm.date}"]`);
+    dateInputEl.value = hasOption ? bm.date : (closestAtlasDateValue(bm.date, state.validSentinelDates) || bm.date);
+  }
 
   map.setView([bm.lat, bm.lng], bm.zoom, { animate: true });
 
@@ -1995,6 +2129,10 @@ function initMap() {
     updateLegendMetadata();
   });
 
+  map.on('moveend', () => {
+    setTimeout(() => probeAtlasAcquisitions(), 1600);
+  });
+
   // Base layer toggle
   document.getElementById('toggle-base').addEventListener('click', () => {
     const keys = Object.keys(BASE_TILES);
@@ -2011,8 +2149,9 @@ function initControls() {
   syncAtlasSentinelState();
   updateAtlasSentinelUI();
 
-  // Date input
+  // Date select (unfiltered until the first catalog probe resolves)
   const dateInput = document.getElementById('date-input');
+  populateAtlasDateOptions(dateInput, null);
   dateInput.value = state.date;
   dateInput.addEventListener('change', () => {
     state.date = dateInput.value;
@@ -2042,6 +2181,46 @@ function initControls() {
   // Search filter
   const search = document.getElementById('idx-search');
   search.addEventListener('input', applySidebarSearch);
+
+  // Go to manually entered coordinates
+  const coordInput = document.getElementById('atlas-coord-input');
+  const coordGoBtn = document.getElementById('atlas-coord-go');
+  const coordRegex = /^(-?\d+(?:\.\d+)?)[,\s]+(-?\d+(?:\.\d+)?)$/;
+
+  const handleCoordGo = () => {
+    const query = coordInput.value.trim();
+    const match = query.match(coordRegex);
+    const lat = match ? parseFloat(match[1]) : NaN;
+    const lng = match ? parseFloat(match[2]) : NaN;
+
+    if (!match || Math.abs(lat) > 90 || Math.abs(lng) > 180) {
+      coordInput.classList.add('is-invalid');
+      return;
+    }
+    coordInput.classList.remove('is-invalid');
+
+    map.flyTo([lat, lng], Math.max(map.getZoom(), 14), { duration: 1.5 });
+
+    if (coordMarker) map.removeLayer(coordMarker);
+    coordMarker = L.circleMarker([lat, lng], {
+      radius: 9,
+      color: '#fff',
+      weight: 2,
+      fillColor: '#00D2FF',
+      fillOpacity: 0.9,
+      className: 'pulse-marker'
+    }).addTo(map);
+    coordMarker.bindTooltip(`${lat.toFixed(5)}, ${lng.toFixed(5)}`, {
+      direction: 'top',
+      opacity: 0.95
+    });
+  };
+
+  coordGoBtn.addEventListener('click', handleCoordGo);
+  coordInput.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') handleCoordGo();
+  });
+  coordInput.addEventListener('input', () => coordInput.classList.remove('is-invalid'));
 
   // Cloud cover slider
   const maxccSlider = document.getElementById('maxcc-slider');

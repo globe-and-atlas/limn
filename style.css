@@ -1274,6 +1274,28 @@ button {
     flex-shrink: 0;
 }
 
+/* Capability badges: which index is salinity-related and/or part of the produced-water/brine
+   screening set. Unlike .temporal-badge, pointer-events stay enabled so each badge can show its
+   own [data-tooltip] text (see index.html's JS tooltip handler) instead of the button's tooltip. */
+.capability-badge {
+    font-size: 11px;
+    line-height: 1;
+    padding: 2px 3px;
+    border-radius: 3px;
+    cursor: help;
+    flex-shrink: 0;
+}
+
+.capability-salinity {
+    background: rgba(125, 211, 252, 0.1);
+    border: 1px solid rgba(125, 211, 252, 0.25);
+}
+
+.capability-produced-water {
+    background: rgba(255, 179, 71, 0.1);
+    border: 1px solid rgba(255, 179, 71, 0.3);
+}
+
 .index-info-wrapper {
     display: flex;
     align-items: center;
@@ -1532,18 +1554,9 @@ button {
 
 /* Slate */
 
-/* Date Sensor Indicators */
+/* Date Sensor Indicators — Sentinel-1/Sentinel-2 only; dates without a scene are removed, not styled */
 option.opt-s2 {
     color: #00D2FF;
-}
-
-option.opt-l8 {
-    color: #FF00FF;
-}
-
-option.opt-fusion {
-    color: #FFD700;
-    font-weight: bold;
 }
 
 .temporal-stable {

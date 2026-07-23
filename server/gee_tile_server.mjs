@@ -38,7 +38,7 @@ const COG_PREWARM_RADIUS = Number(process.env.COG_PREWARM_RADIUS || 0);
 const COG_SUPPORTED_INDEXES = new Set([
     'tc', 'truecolor', 'true-color', 'swir_rgb',
     'awei', 'ndre', 'ndmi', 'ndwi', 'ndvi', 'savi', 'bsi', 'ndsi',
-    'si', 'csi', 'hcai', 'hmri', 'ndoi',
+    'si', 'csi', 'hcai', 'hmri', 'ndoi', 'ksi', 'vssi',
     'pwi', 'hpwi', 'pwoi', 'lbi'
 ]);
 const COG_DEMO_INDEXES = ['hpwi', 'lbi', 'pwoi', 'pwi'];

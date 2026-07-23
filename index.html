@@ -222,6 +222,11 @@
                     <input type="text" id="loc-search-input" class="search-input" placeholder="lat, lng or place" aria-label="Search for location">
                     <button id="btn-search-loc" class="tool-btn search-btn" aria-label="Search location">GO</button>
                 </div>
+                <div class="location-picker" role="group" aria-label="Preset locations">
+                    <button class="loc-btn active" data-loc="dixon">Hugh Dixon No.1-9</button>
+                    <button class="loc-btn" data-loc="rocker">Rocker B "B" 1</button>
+                    <button class="loc-btn" data-loc="sweatt">John W Sweatt 1</button>
+                </div>
                 <div class="coord-display">
                     <span class="coord-label">LAT:</span> <span id="disp-lat">31.8933°</span>
                     <span class="coord-label coord-label--lng">LNG:</span> <span
@@ -365,6 +370,14 @@
                             <button class="index-btn" data-index="si">
                                 <span class="index-short">SI</span>
                                 <span class="index-full">SWIR1–NIR Contrast</span>
+                            </button>
+                            <button class="index-btn" data-index="ksi" data-tooltip="<strong>KSI</strong><br>Khan (2001) visible-band salinity index — sqrt(Green×Red). Independent of the SWIR ratios used elsewhere; not a chloride or EC measurement.">
+                                <span class="index-short">KSI</span>
+                                <span class="index-full">Khan Salinity Index</span>
+                            </button>
+                            <button class="index-btn" data-index="vssi" data-tooltip="<strong>VSSI</strong><br>Bannari (2008) vegetation soil-salinity index. Bare/salt-stressed ground scores high; healthy high-NIR vegetation scores low.">
+                                <span class="index-short">VSSI</span>
+                                <span class="index-full">Vegetation Soil Salinity</span>
                             </button>
                             <button class="index-btn" data-index="s1_sar">
                                 <span class="index-short">SAR</span>
@@ -620,7 +633,7 @@
                             </div>
                             <div class="triage-actions" aria-label="Investigation actions">
                                 <button type="button" class="investigation-action-btn compare-action">Before / After</button>
-                                <button type="button" class="investigation-action-btn sar-action" data-index="s1_sar">S1 surface context</button>
+                                <button type="button" class="investigation-action-btn sar-action" data-index="s1_sar" data-tooltip="<strong>New Liquid Surface (SAR Δ)</strong><br>Compares Sentinel-1 VV backscatter between two dates. A new dark/smooth patch can indicate a new standing-liquid surface — an established SAR change-detection method, cloud/weather-independent. It is a screening signal, not a chemical produced-water measurement.">New Liquid Surface (SAR Δ)</button>
                             </div>
                             <details class="triage-gate-details">
                                 <summary>Gate diagnostics · component responses</summary>
@@ -628,6 +641,8 @@
                                 <div class="triage-tags triage-tags--diagnostic">
                                     <button type="button" class="triage-tag-pill" data-index="ndsi" data-tooltip="<strong>Dual-SWIR / NBR2 form</strong><br>SWIR1–SWIR2 material and moisture context; not salt concentration or brine identification.">SWIR Δ</button>
                                     <button type="button" class="triage-tag-pill" data-index="si" data-tooltip="<strong>SI</strong><br>SWIR1–NIR surface contrast. Sensitive to moisture, substrate, and vegetation; not salt concentration.">SI</button>
+                                    <button type="button" class="triage-tag-pill" data-index="ksi" data-tooltip="<strong>KSI</strong><br>Khan (2001) visible-band salinity index — sqrt(Green×Red). Independent of the SWIR ratios above; not a chloride or EC measurement.">KSI</button>
+                                    <button type="button" class="triage-tag-pill" data-index="vssi" data-tooltip="<strong>VSSI</strong><br>Bannari (2008) vegetation soil-salinity index. Bare/salt-stressed ground scores high; drought and grazing are confounders.">VSSI</button>
                                     <button type="button" class="triage-tag-pill" data-index="hcai" data-tooltip="<strong>HCAI</strong><br>SWIR1–Red surface contrast. Sentinel-2 broad bands do not retrieve petroleum or hydrocarbons.">HCAI</button>
                                     <button type="button" class="triage-tag-pill" data-index="ndoi" data-tooltip="<strong>NDOI</strong><br>Blue–SWIR2 surface contrast; not oil identification.">NDOI</button>
                                     <button type="button" class="triage-tag-pill" data-index="csi" data-tooltip="<strong>CSI</strong><br>SWIR1/SWIR2 ratio for mineralogy, moisture, and substrate context; not contamination measurement.">CSI</button>

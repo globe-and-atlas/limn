@@ -242,6 +242,8 @@ export const PALETTE_MSI_INV = "[[0, 212, 106, 36], [0.5, 239, 216, 122], [1, 28
 export const PALETTE_METHANE = "[[0.0, 13, 23, 27], [0.3, 245, 120, 20], [0.75, 255, 180, 0], [1.0, 255, 255, 200]]";
 export const PALETTE_AWEI = "[[0, 48, 36, 18], [0.333, 193, 154, 72], [0.667, 35, 151, 181], [1, 8, 67, 128]]";
 export const PALETTE_NDRE = "[[0, 105, 56, 32], [0.333, 205, 167, 72], [0.667, 92, 151, 71], [1, 16, 91, 52]]";
+export const PALETTE_KSI = "[[0, 46, 35, 24], [0.4, 180, 150, 90], [0.75, 235, 225, 190], [1, 255, 255, 255]]"; // Dark soil -> Tan -> Pale crust -> White
+export const PALETTE_VSSI = "[[0, 46, 125, 50], [0.4, 189, 183, 107], [0.7, 205, 133, 63], [1, 178, 34, 34]]"; // Forest green -> Khaki -> Peru -> Firebrick
 
 export const INDICES = {
     tc: {
@@ -376,6 +378,7 @@ export const INDICES = {
     },
     pwoi: {
         name: "ASAI — Arid Salinity Anomaly Index (formerly PWOI / APEX)",
+        tags: ['salinity', 'produced-water'],
         sensor: "Sentinel-2 L2A",
         min: 0,
         max: 1,
@@ -525,6 +528,7 @@ export const INDICES = {
     },
     si: {
         name: 'SWIR1–NIR Surface Contrast (SI legacy)',
+        tags: ['salinity'],
         sensor: 'Sentinel-2 L2A',
         temporal: '0-12M',
         min: 'NIR-Dominant', max: 'SWIR1-Dominant',
@@ -547,6 +551,29 @@ export const INDICES = {
   let sum = sample.B11 + sample.B08;
   if(sum === 0) return [0];
   return [(sample.B11 - sample.B08) / sum];
+`
+    },
+    ksi: {
+        name: 'Khan Salinity Index (KSI)',
+        tags: ['salinity'],
+        sensor: 'Sentinel-2 L2A',
+        temporal: 'Persistent',
+        min: 'Low Reflectance / Vegetated', max: 'Bright / Salt-Crust-Like',
+        gradient: 'linear-gradient(to right, #2e2318, #b4965a, #ebe1be, #ffffff)',
+        formula: 'sqrt(B03 × B04)',
+        formulaStatus: 'Implemented established Khan (2001) visible-band salinity index',
+        validationStatus: 'Established literature form (Khan et al., 2001); Limn has not calibrated it to chloride, EC, or produced-water specificity.',
+        info: 'Classic soil-salinity index using only the visible Green and Red bands — independent of the SWIR ratios used elsewhere in this suite, so it fails differently. Bright, low-vegetation salt crusts raise the score, but bare caliche, dry playa, and other bright soils can also raise it. It is not a chloride or EC measurement.',
+        diffLabels: ['Higher Salinity-Index Response', 'Lower Salinity-Index Response'],
+        evalscript: genEvalscript(['B03', 'B04'], `
+  let ksi = Math.sqrt(Math.max(0, sample.B03) * Math.max(0, sample.B04));
+  let mapped = Math.max(0, (ksi - 0.05) * 4.0);
+  ${colorBlend('mapped', PALETTE_KSI)}
+`),
+        fisBands: ['B03', 'B04'],
+        fisLogic: `
+  let ksi = Math.sqrt(Math.max(0, sample.B03) * Math.max(0, sample.B04));
+  return [Math.max(0, (ksi - 0.05) * 4.0)];
 `
     },
     bsi: {
@@ -576,6 +603,7 @@ export const INDICES = {
     },
     ndsi: {
         name: 'Dual-SWIR Contrast (NDTI/NBR2 form; NDSI legacy)',
+        tags: ['salinity'],
         sensor: 'Sentinel-2 L2A',
         temporal: 'Persistent',
         min: 'Lower SWIR1/SWIR2 Contrast', max: 'Higher SWIR1/SWIR2 Contrast',
@@ -704,6 +732,7 @@ export const INDICES = {
     },
     crsi: {
         name: 'Inverted Canopy Response Index (1 − CRSI)',
+        tags: ['salinity'],
         sensor: 'Sentinel-2 L2A',
         temporal: '6-24M',
         min: 'Higher CRSI', max: 'Lower CRSI / Stress Response',
@@ -737,6 +766,29 @@ export const INDICES = {
   if(bot === 0 || top < 0) return [0];
   let crsi = Math.sqrt(top / bot);
   return [1.0 - Math.min(1, Math.max(0, crsi))];
+`
+    },
+    vssi: {
+        name: 'Vegetation Soil Salinity Index (VSSI)',
+        tags: ['salinity'],
+        sensor: 'Sentinel-2 L2A',
+        temporal: '3-12M',
+        min: 'Healthy Vegetation', max: 'Bare / Salt-Affected',
+        gradient: 'linear-gradient(to right, #2e7d32, #bdb76b, #cd853f, #b22222)',
+        formula: '2·B03 − 5·(B04+B08)',
+        formulaStatus: 'Implemented established Bannari (2008) vegetation soil-salinity index',
+        validationStatus: 'Established literature form (Bannari et al., 2008), developed for irrigated agricultural salinity mapping; Limn has not calibrated it to Permian rangeland/caliche conditions or produced-water specificity.',
+        info: 'Combines Green reflectance with a heavily-weighted Red+NIR penalty so healthy, high-NIR vegetation scores low and bare or salt-stressed ground (low NIR) scores high. Complements CRSI: CRSI reads canopy chloride stress, VSSI reads the surface directly. Drought, grazing, and disturbed bare ground are confounders, not source attribution.',
+        diffLabels: ['Increasing Bare / Salt-Affected Response', 'Recovery / Revegetation'],
+        evalscript: genEvalscript(['B03', 'B04', 'B08'], `
+  let vssi = 2 * sample.B03 - 5 * (sample.B04 + sample.B08);
+  let mapped = Math.max(0, Math.min(1, (vssi + 2.2) / 1.8));
+  ${colorBlend('mapped', PALETTE_VSSI)}
+`),
+        fisBands: ['B03', 'B04', 'B08'],
+        fisLogic: `
+  let vssi = 2 * sample.B03 - 5 * (sample.B04 + sample.B08);
+  return [Math.max(0, Math.min(1, (vssi + 2.2) / 1.8))];
 `
     },
     aoi: {
@@ -830,6 +882,7 @@ export const INDICES = {
     },
     hpwi: {
         name: 'OBEC — Optical Brightness/Edge Contrast (legacy Oil-Brine Emulsion Composite)',
+        tags: ['salinity', 'produced-water'],
         sensor: 'Sentinel-2 L2A',
         temporal: '0-3M',
         min: 'Background', max: 'Optical Contrast Response',
@@ -891,6 +944,7 @@ export const INDICES = {
     },
     fbc: {
         name: 'Red/Blue–Dual-SWIR–Low-Vegetation Composite (FBC legacy)',
+        tags: ['salinity', 'produced-water'],
         sensor: 'Sentinel-2 L2A',
         temporal: '3-12M',
         min: 'Background', max: 'Iron+Brine Alteration',
@@ -950,6 +1004,7 @@ export const INDICES = {
     },
     reai: {
         name: 'Red-Edge/Dual-SWIR Alteration Composite (REAI)',
+        tags: ['salinity'],
         sensor: 'Sentinel-2 L2A',
         temporal: '3-12M',
         min: 'Lower Response', max: 'Higher Response',
@@ -997,6 +1052,7 @@ export const INDICES = {
     },
     vcbi: {
         name: 'Vegetation-Stress/Dual-SWIR Composite (VCBI)',
+        tags: ['salinity'],
         sensor: 'Sentinel-2 L2A',
         temporal: '6-24M',
         min: 'Lower Response', max: 'Higher Response',
@@ -1049,6 +1105,7 @@ export const INDICES = {
     },
     pwi: {
         name: 'PWCI — Produced-Water Contrast Index (formerly Produced Water Chemical Index / PWI)',
+        tags: ['salinity', 'produced-water'],
         sensor: 'Sentinel-2 L2A',
         temporal: '0-3M',
         min: 'Background', max: 'Three-Ratio Response',
@@ -1117,6 +1174,7 @@ export const INDICES = {
     },
     lbi: {
         name: 'LBI — Liquid/Salinity Response Index (formerly Liquid Brine Index)',
+        tags: ['salinity', 'produced-water'],
         sensor: 'Sentinel-2 L2A',
         temporal: '0-3M',
         min: 'Background', max: 'Liquid/Salinity Response',
@@ -1400,6 +1458,7 @@ export const INDICES = {
     },
     scri: {
         name: 'SAR Surface-Contrast Index (SCRI legacy)',
+        tags: ['salinity'],
         sensor: 'Sentinel-1 GRD',
         temporal: '3-12M',
         min: 'Lower Response', max: 'Higher Response',
@@ -1543,7 +1602,7 @@ export const CHART_COLORS = {
     hmri: '#808080', ndoi: '#000000', crsi: '#FF5555', aoi: '#5555FF',
     ehc: '#333333', reai: '#FF0055', vcbi: '#AA0000', cma: '#AA88AA',
     phi: '#FF00FF', hmi: '#444444', pwoi: '#8C00FF',
-    mvpi: '#f57814'
+    mvpi: '#f57814', ksi: '#EBE1BE', vssi: '#B22222'
 };
 
 export function getHighlightScript(indexKey, hexColor, chartValue, includeContext = false, activeBasin = 'permian', useScl = false) {

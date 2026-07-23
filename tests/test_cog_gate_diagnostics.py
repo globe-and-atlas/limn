@@ -56,6 +56,16 @@ class CogGateDiagnosticParityTest(unittest.TestCase):
                 [(36, 51, 64), (180, 130, 40), (220, 140, 50), (240, 80, 30)],
                 [0, 0.15, 0.3, 1],
             ),
+            "ksi": (
+                np.maximum(0, (np.sqrt(np.maximum(0, b["B03"]) * np.maximum(0, b["B04"])) - 0.05) * 4.0),
+                [(46, 35, 24), (180, 150, 90), (235, 225, 190), (255, 255, 255)],
+                [0, 0.4, 0.75, 1],
+            ),
+            "vssi": (
+                (2 * b["B03"] - 5 * (b["B04"] + b["B08"]) + 2.2) / 1.8,
+                [(46, 125, 50), (189, 183, 107), (205, 133, 63), (178, 34, 34)],
+                [0, 0.4, 0.7, 1],
+            ),
             "csi": (
                 (np.divide(b["B11"], b["B12"] + 0.0001) - 0.5) / 2.0,
                 [(160, 120, 50), (100, 220, 80), (0, 255, 255)],
@@ -84,6 +94,8 @@ class CogGateDiagnosticParityTest(unittest.TestCase):
     def test_renderer_band_contract_includes_each_diagnostic(self) -> None:
         self.assertEqual(COG.INDEX_BANDS["ndsi"], ["B11", "B12"])
         self.assertEqual(COG.INDEX_BANDS["si"], ["B11", "B08"])
+        self.assertEqual(COG.INDEX_BANDS["ksi"], ["B03", "B04"])
+        self.assertEqual(COG.INDEX_BANDS["vssi"], ["B03", "B04", "B08"])
         self.assertEqual(COG.INDEX_BANDS["csi"], ["B11", "B12"])
         self.assertEqual(COG.INDEX_BANDS["hcai"], ["B11", "B04"])
         self.assertEqual(COG.INDEX_BANDS["hmri"], ["B12", "B03"])

@@ -336,6 +336,7 @@ const INDEX_SHORT_LABELS = {
     tc: 'RGB', ndwi: 'MNDWI', ndmi: 'NDMI', savi: 'SAVI', bsi: 'BSI', ndsi: 'SWIR Δ',
     si: 'SI', csi: 'CSI', hcai: 'HCAI', hmri: 'HMRI', ndoi: 'NDOI',
     awei: 'AWEI', ndre: 'NDRE', swir_rgb: 'SWIR RGB', s1_sar: 'S1',
+    ksi: 'KSI', vssi: 'VSSI',
 };
 const DEFAULT_SPILL_ID = 'lake-boehmer-pecos-orphan';
 const DEFAULT_INDEX = 'tc';
@@ -343,15 +344,32 @@ const COG_PROVIDER_KEYS = new Set(['cog', 'sentinel-cog', 'sentinel2-cog']);
 const COG_SUPPORTED_INDEX_KEYS = new Set([
     'none', 'tc', 'truecolor', 'true-color', 'swir_rgb',
     'awei', 'ndre', 'ndmi', 'ndwi', 'ndvi', 'savi', 'bsi', 'ndsi',
-    'si', 'csi', 'hcai', 'hmri', 'ndoi',
+    'si', 'csi', 'hcai', 'hmri', 'ndoi', 'ksi', 'vssi',
     'pwi', 'hpwi', 'pwoi', 'lbi'
 ]);
 const COG_SCREEN_INDEX_KEYS = new Set([
     'tc', 'lbi', 'ndwi', 'awei', 'ndmi', 'savi', 'bsi', 'ndsi', 'swir_rgb', 'ndre',
-    'si', 'csi', 'hcai', 'hmri', 'ndoi',
+    'si', 'csi', 'hcai', 'hmri', 'ndoi', 'ksi', 'vssi',
     'pwi', 'pwoi', 'hpwi'
 ]);
 const SCREENING_VISIBILITY_INDEX_KEYS = new Set(['pwi', 'hpwi', 'pwoi', 'lbi']);
+
+// Capability badges surfaced on index buttons so a user doesn't have to guess which lens is
+// salinity-related and/or part of Limn's dedicated produced-water/brine screening set. Driven by
+// each entry's `tags` array in indices.js — see knowledge/DECISIONS.md for how those were assigned.
+const CAPABILITY_BADGES = {
+    salinity: { icon: '🧂', label: 'Salinity screening hypothesis — not a validated salt-concentration/EC measurement.' },
+    'produced-water': { icon: '🛢️', label: "Part of Limn's produced-water/brine screening set — see the info tooltip for validation status." }
+};
+
+function capabilityBadgesHTML(tags) {
+    if (!Array.isArray(tags) || !tags.length) return '';
+    return tags.map(tag => {
+        const def = CAPABILITY_BADGES[tag];
+        if (!def) return '';
+        return `<span class="capability-badge capability-${tag}" data-tooltip="${def.label}" aria-label="${def.label}">${def.icon}</span>`;
+    }).join('');
+}
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const START_YEAR = 2020;
@@ -484,7 +502,9 @@ function updateAnalyticsControlAvailability() {
 }
 
 async function probeAcquisitions() {
-    if (isGeeProviderActive()) return;
+    // Catalog probing only needs CDSE OAuth credentials — it is independent of which provider
+    // (COG/GEE/Sentinel Hub) actually serves map tiles, so it must run under the default COG
+    // provider too. isSentinelCreditGuardBlocking() is a no-op outside 'sentinelhub' mode anyway.
     if (isSentinelCreditGuardBlocking()) return;
     return probeAcquisitionsFromReport();
 }
@@ -654,10 +674,12 @@ const state = {
     secondaryChart: null,
 
     anomalousDates: [], // Array of 'YYYY-MM-DD' strings flagged by the scanner
+    validSentinelDates: null, // Set of 'YYYY-MM-DD' strings with a real S1/S2 scene; null until first catalog probe resolves
     rrcSpillLayer: null, // Leaflet layer group for RRC spill markers
     rrcSpillData: null,   // Cached GeoJSON after first fetch
     hoverHighlightLayer: null, // Temporary overlay for chart-hover highlighting
-    hoverMarker: null
+    hoverMarker: null,
+    searchMarker: null // Marker dropped at manually entered/searched coordinates
 };
 
 // Expose core objects to global window scope for modular accessibility
@@ -698,18 +720,8 @@ function getActiveSpill() {
 }
 
 function setClosestDateValue(targetStr) {
-    const target = new Date(targetStr).getTime();
-    if (Number.isNaN(target)) return null;
-
-    let closestIdx = 0;
-    let minDiff = Infinity;
-    ALL_DATES.forEach((dateOption, index) => {
-        const diff = Math.abs(new Date(dateOption.value).getTime() - target);
-        if (diff < minDiff) {
-            minDiff = diff;
-            closestIdx = index;
-        }
-    });
+    const closestIdx = closestDateIndex(targetStr, state.validSentinelDates);
+    if (closestIdx == null) return null;
 
     state.monthIndex = closestIdx;
     const dateSingleEl = document.getElementById('date-single');
@@ -984,7 +996,9 @@ function setCogUiAvailability() {
     document.querySelectorAll('.sar-action').forEach(button => {
         button.disabled = isCog;
         button.setAttribute('aria-disabled', isCog ? 'true' : 'false');
-        button.title = isCog ? 'Sentinel-1 context requires the guarded Sentinel provider.' : 'Open Sentinel-1 surface context in compare mode.';
+        button.title = isCog
+            ? 'Sentinel-1 context requires the guarded Sentinel provider. Arm "Sentinel" in the header to enable.'
+            : 'Compares VV backscatter between two dates — a new dark/smooth patch can indicate a new liquid surface. Screening signal only, not a chemical measurement.';
     });
 
     const btnSwipe = document.getElementById('btn-swipe');
@@ -1135,6 +1149,108 @@ export function renderSpillBookmarks(indexKey = state.activeIndex) {
 }
 window.renderSpillBookmarks = renderSpillBookmarks;
 
+// Populates a select element with grouped dates. When `validSet` (a Set of 'YYYY-MM-DD' strings)
+// is provided, only dates present in it are rendered (tagged ' [S]') — used once the CDSE catalog
+// probe has resolved. Left null/undefined, every synthetic ALL_DATES entry renders unfiltered,
+// which is the fail-open state before the first probe resolves.
+function populateGroupedDates(selectEl, dates, isValueIndex = false, validSet = null) {
+    if (!selectEl) return;
+    selectEl.innerHTML = '';
+
+    let currentYear = null;
+    let currentMonth = null;
+    let currentMonthGroup = null;
+
+    const filtered = validSet ? dates.filter(d => validSet.has(d.value)) : dates;
+    // Newest dates at the top
+    const sorted = [...filtered].reverse();
+
+    for (const dateObj of sorted) {
+        const dateValue = dateObj.value; // e.g. "2026-03-17"
+        const dateText = (dateObj.displayStr || dateObj.label || dateValue) + (validSet ? ' [S]' : '');
+
+        const parts = dateValue.split('-');
+        const yr = parts[0];
+        const monIdx = parseInt(parts[1], 10) - 1;
+        const mon = MONTHS[monIdx] || '???';
+
+        if (mon !== currentMonth || yr !== currentYear) {
+            currentYear = yr;
+            currentMonth = mon;
+            currentMonthGroup = document.createElement('optgroup');
+            currentMonthGroup.label = `${mon} ${yr}`;
+            selectEl.appendChild(currentMonthGroup);
+        }
+
+        const opt = document.createElement('option');
+        if (isValueIndex) {
+            // Value must be an index into the GLOBAL ALL_DATES array, not the (possibly filtered)
+            // `dates` being iterated here — downstream code reads window.ALL_DATES[selectEl.value].
+            opt.value = ALL_DATES.indexOf(dateObj).toString();
+        } else {
+            opt.value = dateValue;
+        }
+        opt.textContent = dateText;
+        if (validSet) opt.className = 'opt-s2';
+        currentMonthGroup.appendChild(opt);
+    }
+}
+
+// Finds the index (into ALL_DATES) of the valid Sentinel date closest to targetStr. Falls back to
+// the closest date in the full ALL_DATES array when no validSet is available yet (fail open).
+function closestDateIndex(targetStr, validSet) {
+    const target = new Date(targetStr).getTime();
+    if (Number.isNaN(target)) return null;
+
+    const restrict = validSet && validSet.size > 0;
+    let closestIdx = null;
+    let minDiff = Infinity;
+    ALL_DATES.forEach((dateOption, index) => {
+        if (restrict && !validSet.has(dateOption.value)) return;
+        const diff = Math.abs(new Date(dateOption.value).getTime() - target);
+        if (diff < minDiff) {
+            minDiff = diff;
+            closestIdx = index;
+        }
+    });
+    return closestIdx;
+}
+
+// Re-renders date-single/date-t1/date-t2 against a freshly-probed valid-date set, preserving the
+// current selection where it survives filtering and snapping to the nearest valid date otherwise.
+function rebuildDateSelectors(validSet) {
+    const selSingle = document.getElementById('date-single');
+    const t1Sel = document.getElementById('date-t1');
+    const t2Sel = document.getElementById('date-t2');
+
+    const prevSingleDate = selSingle ? (ALL_DATES[parseInt(selSingle.value, 10)]?.value || null) : null;
+    const prevT1 = t1Sel ? t1Sel.value : null;
+    const prevT2 = t2Sel ? t2Sel.value : null;
+
+    if (selSingle) populateGroupedDates(selSingle, ALL_DATES, true, validSet);
+    if (t1Sel) populateGroupedDates(t1Sel, ALL_DATES, false, validSet);
+    if (t2Sel) populateGroupedDates(t2Sel, ALL_DATES, false, validSet);
+
+    if (selSingle) {
+        const idx = closestDateIndex(prevSingleDate || ALL_DATES[ALL_DATES.length - 1].value, validSet);
+        if (idx != null) {
+            selSingle.value = idx.toString();
+            state.monthIndex = idx;
+        }
+    }
+    if (t1Sel && prevT1 && !t1Sel.querySelector(`option[value="${prevT1}"]`)) {
+        t1Sel.selectedIndex = 0;
+    } else if (t1Sel && prevT1) {
+        t1Sel.value = prevT1;
+    }
+    if (t2Sel && prevT2 && !t2Sel.querySelector(`option[value="${prevT2}"]`)) {
+        t2Sel.selectedIndex = Math.min(10, t2Sel.options.length - 1);
+    } else if (t2Sel && prevT2) {
+        t2Sel.value = prevT2;
+    }
+}
+window.rebuildDateSelectors = rebuildDateSelectors;
+
 // ── INIT ───────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
     if (isSentinelOnlyShareMode()) {
@@ -1144,53 +1260,11 @@ document.addEventListener('DOMContentLoaded', () => {
     const vBadge = document.getElementById('app-version-badge');
     if (vBadge) vBadge.textContent = APP_VERSION;
 
-    // Helper to populate a select element with grouped dates
-    function populateGroupedDates(selectEl, dates, isValueIndex = false) {
-        if (!selectEl) return;
-        selectEl.innerHTML = '';
-        
-        let currentYear = null;
-        let currentMonth = null;
-        let currentMonthGroup = null;
-
-        // Newest dates at the top
-        const sorted = [...dates].reverse();
-
-        for (const dateObj of sorted) {
-            const dateValue = dateObj.value; // e.g. "2026-03-17"
-            const dateText = dateObj.displayStr || dateObj.label || dateValue;
-            
-            const parts = dateValue.split('-');
-            const yr = parts[0];
-            const monIdx = parseInt(parts[1], 10) - 1;
-            const mon = MONTHS[monIdx] || '???';
-
-            if (mon !== currentMonth || yr !== currentYear) {
-                currentYear = yr;
-                currentMonth = mon;
-                currentMonthGroup = document.createElement('optgroup');
-                currentMonthGroup.label = `${mon} ${yr}`;
-                selectEl.appendChild(currentMonthGroup);
-            }
-
-            const opt = document.createElement('option');
-            if (isValueIndex) {
-                // Find index in the ORIGINAL (ascending) dates array
-                const idx = dates.indexOf(dateObj);
-                opt.value = idx.toString();
-            } else {
-                opt.value = dateValue;
-            }
-            opt.textContent = dateText;
-            currentMonthGroup.appendChild(opt);
-        }
-    }
-
     const selSingle = document.getElementById('date-single');
     const t1Sel = document.getElementById('date-t1');
     const t2Sel = document.getElementById('date-t2');
 
-    // Populate all selectors found in the DOM
+    // Populate all selectors found in the DOM (unfiltered until the first catalog probe resolves)
     if (selSingle) populateGroupedDates(selSingle, ALL_DATES, true);
     if (t1Sel) populateGroupedDates(t1Sel, ALL_DATES, false);
     if (t2Sel) populateGroupedDates(t2Sel, ALL_DATES, false);
@@ -1198,9 +1272,9 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initial Defaults
     state.monthIndex = ALL_DATES.length - 1; // Newest entry in chronological array
     if (selSingle) selSingle.value = state.monthIndex.toString();
-    
+
     // In newest-first mode, index 0 is most recent
-    if (t1Sel) t1Sel.selectedIndex = 0; 
+    if (t1Sel) t1Sel.selectedIndex = 0;
     if (t2Sel) t2Sel.selectedIndex = Math.min(10, t2Sel.options.length - 1); // Select a date ~10 steps prior
 
 
@@ -1406,6 +1480,27 @@ function bindEvents() {
                     infoIcon.onclick = (e) => e.stopPropagation();
                 }
                 
+                // Capability Badges (Salinity / Produced-Water Brine Screen) — rendered before the
+                // temporal badge so the temporal badge stays the last/rightmost item.
+                if (Array.isArray(cfg.tags) && cfg.tags.length && !btn.querySelector('.capability-badge')) {
+                    let tagCont = btn.querySelector('.tag-container');
+                    if (!tagCont) {
+                        tagCont = document.createElement('div');
+                        tagCont.className = 'tag-container';
+                        btn.insertBefore(tagCont, btn.firstChild);
+                    }
+                    cfg.tags.forEach(tag => {
+                        const def = CAPABILITY_BADGES[tag];
+                        if (!def) return;
+                        const badge = document.createElement('span');
+                        badge.className = `capability-badge capability-${tag}`;
+                        badge.textContent = def.icon;
+                        badge.setAttribute('data-tooltip', def.label);
+                        badge.setAttribute('aria-label', def.label);
+                        tagCont.appendChild(badge);
+                    });
+                }
+
                 // Temporal Badge — always the last item in tag-container (pinned right via CSS)
                 if (cfg.temporal) {
                     let badge = btn.querySelector('.temporal-badge');
@@ -1476,6 +1571,7 @@ function bindEvents() {
 
             state.map.flyTo([loc.lat, loc.lng], loc.zoom, { duration: 1.5 });
             document.getElementById('loc-search-input').value = '';
+            clearSearchMarker(); // Preset AOIs aren't manually entered coords
 
             // Re-probe acquisitions for the new view
             setTimeout(() => probeAcquisitions(), 1600);
@@ -1487,6 +1583,29 @@ function bindEvents() {
     // Custom Location Search
     const searchBtn = document.getElementById('btn-search-loc');
     const searchInput = document.getElementById('loc-search-input');
+
+    function clearSearchMarker() {
+        if (state.searchMarker) {
+            state.map.removeLayer(state.searchMarker);
+            state.searchMarker = null;
+        }
+    }
+
+    function showSearchMarker(lat, lng, label) {
+        clearSearchMarker();
+        state.searchMarker = L.circleMarker([lat, lng], {
+            radius: 9,
+            color: '#fff',
+            weight: 2,
+            fillColor: '#00D2FF',
+            fillOpacity: 0.9,
+            className: 'pulse-marker'
+        }).addTo(state.map);
+        state.searchMarker.bindTooltip(label || `${lat.toFixed(5)}, ${lng.toFixed(5)}`, {
+            direction: 'top',
+            opacity: 0.95
+        });
+    }
 
     const handleLocationSearch = async () => {
         const query = searchInput.value.trim();
@@ -1531,8 +1650,9 @@ function bindEvents() {
             document.getElementById('disp-lat').innerText = lat.toFixed(4) + '°';
             document.getElementById('disp-lng').innerText = lng.toFixed(4) + '°';
 
-            // Fly to the new location
+            // Fly to the new location and mark it
             state.map.flyTo([lat, lng], 14, { duration: 1.5 });
+            showSearchMarker(lat, lng, match ? null : query);
 
         } catch (err) {
             console.error("Location search error:", err);
@@ -2112,8 +2232,8 @@ function evaluatePixel(sample) {
                             markActiveWorkflowControls();
                         }
 
-                    const dateIdx = ALL_DATES.findIndex(d => d.value === dateStr);
-                    if (dateIdx !== -1) {
+                    const dateIdx = closestDateIndex(dateStr, state.validSentinelDates);
+                    if (dateIdx != null) {
                         state.monthIndex = dateIdx;
                         const dateSingleEl = document.getElementById('date-single');
                         if (dateSingleEl) dateSingleEl.value = dateIdx;
@@ -3591,6 +3711,7 @@ export function renderCommandConsole() {
             if (!providerReady) btn.title = 'Listed for scientific reference; not available in the current COG renderer.';
             
             btn.innerHTML = `
+                ${idx.tags && idx.tags.length ? `<div class="tag-container">${capabilityBadgesHTML(idx.tags)}</div>` : ''}
                 <span class="index-short">${key.toUpperCase()}</span>
                 <span class="index-full index-full-bold">${idx.name.split(' (')[0]}</span>
             `;

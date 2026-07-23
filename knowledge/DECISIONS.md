@@ -1,5 +1,39 @@
 # Architecture Decisions — sentinel-explorer
 
+## Index buttons carry salinity/produced-water capability badges (2026-07-23)
+
+**Decision:** Added a `tags` array field to 13 of Limn's 38 `INDICES` entries in `src/indices.js` (`ndsi`, `si`, `ksi`, `crsi`, `vssi`, `lbi`, `pwoi`, `scri`, `pwi`, `hpwi`, `fbc`, `reai`, `vcbi`), each `'salinity'` and/or `'produced-water'`. A small 🧂/🛢️ badge now renders on the corresponding index buttons in both the main Suite Grid and the Command Console search results, with a hover tooltip, so a user doesn't have to open every index's info panel or guess which button to click for a salinity or produced-water/brine screening task.
+
+**Categorization method — not a guess:** Ran a keyword scan (`salin|brine|chlorid|salt`) across every index's own `name`/`formula`/`info`/`validationStatus` text, then manually excluded hits that were pure disclaimers ("not a salinity measurement", "not a chloride retrieval") versus hits where the index's own designed hypothesis is actually about salinity/brine. **Salinity** = the index's own name or description frames it as a salinity/salt/brine-hypothesis proxy (even while disclaiming validation) — e.g. `ksi` is literally "Khan Salinity Index," `ndsi`'s own info calls it "a salinity-hypothesis component." **Produced-water** = the narrower subset the app itself already treats as its dedicated produced-water/brine screening set — verified via `HIGHLIGHT_THRESHOLDS`' own inline comments (`// Forensic Brine Composite` for `fbc`, `// Hot-Pixel PW Index` for `hpwi`, `// Active liquid brine after stricter wet/bare gates` for `lbi`) plus each entry's literal name (`pwi` = "Produced-Water Contrast Index," `pwoi` = "formerly PWOI," `hpwi` = "legacy Oil-Brine Emulsion Composite"). Excluded from produced-water despite having an internal NDSI/"brine" gate as one ingredient: `reai`, `vcbi`, `ndsi`, `si`, `ksi`, `crsi`, `vssi`, `scri` — none of these are in `HIGHLIGHT_THRESHOLDS` with a produced-water-specific comment, and their own docs frame them as general surface/vegetation/mineralogy proxies, not produced-water tools.
+
+**Why this framing matters:** Limn's whole posture (see the evidence-first stack decision above) is that none of these composites are validated detectors — badges label a *screening hypothesis category*, not a claim of detection capability. The tooltip text on both badge types repeats this explicitly.
+
+**Implementation:** `CAPABILITY_BADGES` map + `capabilityBadgesHTML()` helper hoisted to module scope in `src/app.js`; rendered via the existing per-button decoration loop (same one that adds the `.temporal-badge`) for the static Suite Grid, and via the `idx.tags` check in the Command Console's dynamic button template. Badges are NOT `pointer-events: none` (unlike `.temporal-badge`) so each can show its own `[data-tooltip]` text independently, using the existing capture-phase `mouseenter`/`closest('[data-tooltip]')` JS tooltip handler in `index.html`.
+
+**Scope boundary:** Only the main Suite Grid and Command Console surfaces got badges. `triage-tag-pill` (Focused Triage) and `evidence-lens-btn` (evidence timeline) were left untouched — those are compact pill/lens buttons where a third badge would be visually cramped, and the user's request was framed around "which to poke," which those two secondary surfaces aren't the primary answer to.
+
+**Verification:** `node --check` on `src/app.js`/`src/indices.js`; full existing test suite still passes (`test.js`, `test_core_ui_contract.mjs`, `test_core_formula_parity.mjs`, `test_scientific_status.mjs`, `test_spill_evidence_timeline.mjs`, `test_share_sentinel_only.mjs`, `test_date_selector_filter.mjs`); manually verified in headless Chrome that exactly the 13 intended index keys render the correct badge combination in both the Suite Grid and Command Console, with zero page errors.
+
+---
+
+## Date selectors filter to Sentinel-only dates in both apps (2026-07-23)
+
+**Decision:** In Limn (`date-single`/`date-t1`/`date-t2`) and Limn Atlas (`date-input`), only dates with a real Sentinel-1 GRD or Sentinel-2 L2A scene (per CDSE STAC catalog for the current AOI) remain as selectable options, each tagged `' [S]'`. Landsat presence alone does not count. Invalid dates are removed outright, not shown disabled.
+
+**Locked scope (confirmed with user):** Sentinel-only (not Landsat); full removal not disable; Atlas's native `<input type="date">` replaced with a grouped `<select>` (native date inputs can't tag/filter arbitrary days); full STAC pagination + client-side caching in scope (no bounded-recent-window shortcut).
+
+**Why:** User request — Sentinel imagery in the date selector should be marked, and dates without any Sentinel collection shouldn't be offered at all.
+
+**Key discovery mid-implementation:** `app.js`'s `probeAcquisitions()` wrapper had `if (isGeeProviderActive()) return;`, which skipped catalog probing (and therefore ALL tagging, including the pre-existing cosmetic `[S]/[L]/[F]` tags) whenever the provider wasn't `sentinelhub` — i.e. always, under the real default (`cog`). This matched `api-contracts.md`'s documented claim that GEE mode skips acquisition probing, but meant the feature was fully dead in normal usage. Removed the gate since catalog lookups only need CDSE OAuth credentials, independent of tile-serving provider.
+
+**Implementation:** New shared `src/sentinel-catalog.js` (`fetchValidSentinelDates`) used by both `report.js` (Limn) and `atlas-app.js` (Atlas); paginates the SH Catalog/STAC API and caches per bbox+date-range client-side. `populateGroupedDates()` in `app.js` was hoisted out of its `DOMContentLoaded` closure so it can be re-invoked by `window.rebuildDateSelectors()` once the probe resolves. `date-single`'s option values still resolve via the global `ALL_DATES.indexOf()`, not the filtered subset, preserving the pre-existing index-based value contract (see `[[architecture.md]]`). Spill-bookmark jump (`setClosestDateValue`) and the FIS trend-chart click handler now snap to the nearest *valid* date via a shared `closestDateIndex()` helper instead of risking a blank/nonexistent `<select>` value. Fail-open: before the first probe resolves (or on CDSE auth failure), both apps show a usable date list rather than an empty one.
+
+**Open/unverified:** SH Catalog API pagination is implemented against an assumed cursor shape (`next` token) with a STAC `links[rel=next]` fallback — not exercised against a live CDSE token this session (no credentials configured in this environment). Worth a real-account smoke test before trusting deep pagination beyond one page.
+
+**Verification:** `tests/test_date_selector_filter.mjs` (new) — puppeteer smoke test for both apps confirming the trial/mock-mode fallback actually filters (not just tags) each selector. All prior test suites (`test.js`, `test_fetch.js`, `test_pwi.js`, `test_core_ui_contract.mjs`, `test_core_formula_parity.mjs`, `test_scientific_status.mjs`, `test_spill_evidence_timeline.mjs`, `test_atlas_formula_v2.mjs`, `test_atlas_capability_families.mjs`, `test_atlas_gee_smoke.mjs`, `test_share_sentinel_only.mjs`) still pass. Manually verified in a real headless-Chrome session that clicking a spill bookmark lands `date-single` on a valid, `[S]`-tagged, non-blank option.
+
+---
+
 ## Core Limn uses an evidence-first investigation stack (2026-07-21)
 
 **Decision:** True Color is the default lens. The primary stack is True Color, LBI, MNDWI, AWEIsh, NDMI, SAVI, BSI, dual-SWIR contrast, B12/B11/B04 SWIR false color, and NDRE. PWCI, ASAI, and OBEC remain executable in a collapsed **negative-result study** drawer, and the remaining custom composites remain in a collapsed research library.
