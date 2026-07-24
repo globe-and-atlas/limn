@@ -129,3 +129,4 @@
 - 2026-07-21 14:04 — commit: feat: add spill evidence timeline | LIMN_PRODUCED_WATER_SPEC.md,PUBLIC_SCIENCE_GUIDE.md,README.md,SENTINEL_SCIENCE_GUIDE.md,index.html
 - 2026-07-23 14:10 — commit: feat: Sentinel-only date filtering, salinity/produced-water badges, KSI/VSSI indices | atlas.html,directives/filter_sentinel_dates.md,execution/render_cog_tile.py,index.html,knowledge/DECISIONS.md
 - 2026-07-23 14:10 — commit: docs: append auto-generated post-commit session checkpoint | knowledge/SESSION.md
+- 2026-07-24 06:38 — commit: fix: Atlas EC-ACI honesty + LinkedIn grammar; hotspot-loop SCL bug; brine calibration site | directives/fix_atlas_lead_qc_findings.md,directives/fix_hotspot_loop_and_add_brine_site.md,execution/limn_hotspot_loop.py,knowledge/DECISIONS.md,knowledge/ERRORS.md
