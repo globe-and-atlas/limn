@@ -98,7 +98,7 @@ def normalized(value: str) -> str:
 def load_targets(args: argparse.Namespace) -> dict[str, Any]:
     code = r"""
 import fs from 'node:fs';
-import { INDICES, CALIBRATION_PRESETS } from './src/indices.js';
+import { INDICES, CALIBRATION_PRESETS, adaptEvalscriptForSentinelWms } from './src/indices.js';
 
 const source = fs.readFileSync('./src/app.js', 'utf8');
 const marker = 'const SPILL_BOOKMARKS = [';
@@ -144,10 +144,14 @@ const materialize = (script, basin, sensitivity, visualFilter) => {
     .replace(/__PWI_HC_OFFSET__/g, cal.pwiHydrocarbonOffset)
     .replace(/__PWI_HMRI_OFFSET__/g, cal.pwiHmriOffset);
   out = out.replace('//VERSION=3', '');
-  return `//VERSION=3
+  const finalScript = `//VERSION=3
 const VISUAL_FILTER = ${visualFilter};
 const DETECTION_SENSITIVITY = ${sensitivity / 100};
 ${out}`;
+  // This loop always renders against the public L1C AGRICULTURE WMS fallback, which has no SCL
+  // band. Mirror src/map.js getScriptContent()'s final step: strip the L2A-only SCL input and its
+  // marked QA block so the request does not 400 with "Collection 'S2L1C' has no band 'SCL'".
+  return adaptEvalscriptForSentinelWms(finalScript, false);
 };
 
 const slim = {};

@@ -328,6 +328,23 @@ const SPILL_BOOKMARKS = [
         confidence: 'High (Exact NMOCD row)',
         note: 'NMOCD row nAPP2611452043 documents a major OXY Sand Dunes Water Tank Facility produced-water release in Eddy County: 500 BBL released and 160 BBL lost. Loop review found only a BPI facility/tank signal; this is context, not chemistry proof.',
         indices: ['bpi'],
+    },
+    {
+        id: 'brine-calibration-31892-2025',
+        label: 'Brine Calibration Site (Midland Co.)',
+        date: '2025-12-01',
+        displayDate: 'Dec 2025',
+        lat: 31.892457, lng: -101.864001, zoom: 15,
+        volume: 'Reported wet brine activity',
+        source: 'User-reported observation (calibration target)',
+        sourceUrl: '',
+        sourceUrls: [],
+        evidenceClass: 'produced-water-context',
+        eventDate: '2025-11-01/2025-12-31',
+        dateRole: 'measured peak-signal imagery date within the reported window',
+        confidence: 'User-supplied coordinates; no public filing resolved',
+        note: 'Context-only calibration target. User-reported wet brine activity Nov–Dec 2025 over an active Permian oilfield pad cluster. Hotspot-loop measurement (2026-07-24) found pad-scale OBEC signal at 2025-12-01 (coherent but modest, ~1.4% largest component) plus a broad BPI facility/tank response; PWCI, ASAI, and LBI were blank or weak. The OBEC signal is scene/provider dependent — it renders via Sentinel WMS but is faint on the default COG scene — so treat this as facility/surface context for threshold calibration, not proof of a produced-water release. No public regulator filing has been resolved for these coordinates.',
+        indices: ['hpwi'],
     }
 ];
 

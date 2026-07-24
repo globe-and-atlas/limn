@@ -542,12 +542,6 @@ function firstSentence(text, fallback = '') {
   return (match ? match[1] : clean).trim();
 }
 
-function sentenceCase(text) {
-  const clean = String(text || '').trim();
-  if (!clean) return '';
-  return clean.charAt(0).toLowerCase() + clean.slice(1);
-}
-
 function trimWords(text, limit) {
   const words = String(text || '').trim().split(/\s+/).filter(Boolean);
   if (words.length <= limit) return words.join(' ');
@@ -561,7 +555,7 @@ function linkedinGroundTruthForIndex(idx) {
   const role = methodRoleMeta(idx);
   const familyLabel = capability?.label || 'Operational sensor demonstration';
   const visualAnchor = `One ${role.label.toLowerCase()} method from the ${familyLabel} family: ${idx.acronym} over ${bm.label || 'the selected bookmark'} on ${bm.date || state.date}.`;
-  const observation = `${idx.acronym} uses ${bands} to make ${sentenceCase(firstSentence(idx.physics, idx.name))}`;
+  const observation = `${idx.acronym} uses ${bands}. ${firstSentence(idx.physics, idx.name)}`;
   const why = firstSentence(idx.benefit, 'It turns an otherwise subtle landscape condition into a visible inspection target.');
   const question = `What does ${idx.acronym} add beyond sibling methods in ${familyLabel}, and what nearby look-alikes could make it lie?`;
   const post = [

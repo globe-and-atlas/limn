@@ -6,16 +6,18 @@ Use this workflow before promoting or changing produced-water spill bookmarks in
 
 ## Command
 
-Focused proof/default baseline check:
+Focused proof/default baseline check (all 14 current bookmarks — the earlier 9-target list predated the 2026-06-08 NM expansion and the 2026-07-24 calibration site):
 
 ```bash
 python3 execution/limn_hotspot_loop.py \
-  --targets lake-boehmer-pecos-orphan,meister-2022,crane-crevice-2023,toyah-2024,apache-balmorhea-2020,antina-ranch-2021,enlink-midstream-chickadee-2023,eog-klondike-2025,oxy-mesa-verde-2025 \
+  --targets lake-boehmer-pecos-orphan,meister-2022,crane-crevice-2023,toyah-2024,apache-balmorhea-2020,antina-ranch-2021,enlink-midstream-chickadee-2023,eog-klondike-2025,oxy-mesa-verde-2025,black-river-cimarex-2023,matador-desoto-spring-2025,oxy-lea-flowline-2026,oxy-sand-dunes-2026,brine-calibration-31892-2025 \
   --indices pwi,pwoi,hpwi,lbi,bpi \
   --include-control-negatives \
   --size 320 \
   --budget-per-target 1
 ```
+
+> **2026-07-24 fix:** the loop's inline `materialize()` now applies `adaptEvalscriptForSentinelWms(script, false)` (matching `getScriptContent()` in `src/map.js`). Before this fix — from 2026-07-21 to 2026-07-24 — every request returned `HTTP 400: Collection 'S2L1C' has no band 'SCL'` and the loop was completely non-functional. If you see that error again, the adapter call was lost. See `knowledge/ERRORS.md`.
 
 Exploratory fallback check for weak proof targets:
 

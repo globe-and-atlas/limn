@@ -967,7 +967,7 @@ const RAW_ATLAS_INDICES = [
   bookmark:{lat:33.45, lng:-112.07, zoom:11, date:'2021-07-20', label:'Phoenix AZ metro — urban heat island'},
   source: 'WMO July 2019 hottest-month analysis',
   sourceUrl: 'https://wmo.int/media/july-matched-and-maybe-broke-record-hottest-month-analysis-began',
-  justification: 'Targets the Phoenix, AZ, metro area during the peak heat period of July 20, 2021, contrasting evapotranspirative canopy with dry asphalt to map heat island intensity.',
+  justification: 'Targets the Phoenix, AZ, metro area during the extreme summer 2021 heat window, contrasting low-canopy/dry-surface context with vegetated areas. See FORMULA_V2_OVERRIDES.ecaci for the corrected bookmark date (2021-07-05, replacing 2021-07-20 after a no-data gap was found in the original WMS render) and the honest physics/benefit text — this base field is not read by atlas-app.js but is kept accurate for anyone reading source.',
   evalscript: genEvalscript(['B04','B08','B11'],`
   let ndvi=(sample.B08-sample.B04)/(sample.B08+sample.B04+0.001);
   let msi=sample.B11/(sample.B08+0.001);
@@ -1778,6 +1778,11 @@ const FORMULA_V2_OVERRIDES = {
     proposedFormula: 'ΔBSI_upslope × TurbidityAnomaly_downstream × Persistence with flow-network linkage',
     physics: 'The live formula adds same-pixel bare-surface and water-turbidity features. It does not compute upslope/downstream linkage, change, or persistence.',
     benefit: 'Context layer for designing an erosion-delivery time-series study.',
+    // 2026-07-23 QC: this WMS response has a smaller no-data gap at the bookmarked date. Swept
+    // ±60 days/step 15; every date before 2023-03-17 is before the levee breach this bookmark
+    // documents, and both tested post-breach alternatives (04-01, 05-16) still showed a gap (or a
+    // larger one). Keeping the current date; mitigate by cropping tight when using this as a
+    // lead image rather than the full bookmark extent.
   },
   rdoci: {
     name: 'CDOM Spectral-Slope Research Specification',
@@ -1863,6 +1868,22 @@ const FORMULA_V2_OVERRIDES = {
     proposedFormula: 'Field-informed mineral/turbidity anomaly with mine, channel, and time-series context',
     physics: 'The live formula contains no mine-proximity term and cannot uniquely identify jarosite, sulfate, or a tailings release from Sentinel-2 ratios.',
     benefit: 'Mining-area iron/SWIR context for field-informed mineral analysis.',
+  },
+  ecaci: {
+    name: 'Urban Canopy-Loss & Dry-Surface Context Index',
+    platform: 'Sentinel-2',
+    platformShort: 'S2',
+    formula: 'max(0, 0.4 − NDVI) × max(0, MSI − 0.8) × 3',
+    implementedFormula: 'max(0, 0.4 − NDVI) × max(0, MSI − 0.8) × 3',
+    proposedFormula: 'LST-based heat-island model = f(ECOSTRESS/thermal LST, NDVI, surface moisture, urban morphology, time-of-day)',
+    physics: 'The live layer combines an NDVI deficit with a SWIR/NIR moisture-stress ratio (MSI = B11/B08) over Sentinel-2 optical bands only. It does not read ECOSTRESS or any thermal data, and the output is not a land-surface-temperature or heat-island-intensity measurement.',
+    benefit: 'Screens neighborhoods for low-canopy, dry-surface context associated with urban heat exposure. Measuring heat-island intensity itself requires thermal/LST data this layer does not use.',
+    requiredInputs: ['Sentinel-2 L2A'],
+    units: 'Uncalibrated dimensionless screening score',
+    // 2026-07-23 QC: the 2021-07-20 bookmark had a large no-data gap covering roughly a third of
+    // the tile in this layer's WMS response. 2021-07-05 renders full-frame with no gap and a
+    // stronger urban/desert contrast, while staying inside the same extreme-heat summer window.
+    bookmark: { date: '2021-07-05' },
   },
   amdphi: {
     name: 'AMD Iron-Mineral Calibration Specification',
@@ -2058,8 +2079,11 @@ const ARTICLE_LEADS = {
   },
   ecaci: {
     articleAngle: 'Phoenix exposed-surface and low-canopy context during extreme summer heat.',
-    acquisitionTimestamp: '2021-07-16T18:09:21.024Z',
-    acquisitionCloudCover: '16.71%',
+    // Bookmark moved from 2021-07-20 to 2021-07-05 (see FORMULA_V2_OVERRIDES.ecaci) to drop a
+    // large no-data gap in the WMS response. The prior timestamp/cloud-cover pair belonged to the
+    // old date; left null rather than re-asserting unverified numbers for the new one.
+    acquisitionTimestamp: null,
+    acquisitionCloudCover: null,
   },
   tdrasi: {
     articleAngle: 'Cerro de Pasco mining-area iron/SWIR context without mineral or spill-boundary attribution.',

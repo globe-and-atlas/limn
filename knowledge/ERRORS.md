@@ -6,6 +6,14 @@
 - Fix: Generated evalscripts now mark their SCL QA block explicitly. `getScriptContent()` removes the `SCL` input and only that marked block for Sentinel WMS unless `SENTINEL_WMS_SUPPORTS_SCL: true` is configured for a verified L2A WMS layer. WMS chart-highlight scripts follow the same contract. The app reports `WMS: no SCL band` while the L1C fallback is active; COG/GEE retain SCL masking.
 - Verification: Core parity tests assert both the default L1C-compatible output and the explicit L2A opt-in. Live WMS verification must confirm HTTP 200 for the configured layer without exposing the private instance URL.
 
+## 2026-07-23 follow-up — the fix never reached `execution/limn_hotspot_loop.py`
+
+- Error: Running `execution/limn_hotspot_loop.py` (the official spill-bookmark re-validation script) now fails on every single request with the exact same `HTTP 400: Collection 'S2L1C' has no band 'SCL'` this entry already describes.
+- Cause: The 2026-07-21 fix above only touched the real app's render path (`getScriptContent()` in `src/map.js`, which calls `adaptEvalscriptForSentinelWms()`). `limn_hotspot_loop.py`'s own `build_wms_params()` builds its WMS request straight from `index["evalscript"]` — a second, independent code path that duplicates but never received the SCL fix.
+- Impact: Nobody has been able to successfully re-run the official spill-bookmark validation since 2026-07-21. Every "OBEC/LBI strong at X" claim currently in `SPILL_BOOKMARKS`' chip text (`src/app.js`) dates from the 2026-06-07/06-08 hotspot-loop runs and had not been re-verified against current evalscripts until manually checked (bypassing the broken script) during a 2026-07-23 QC pass — see `knowledge/DECISIONS.md`.
+- Fix: **Applied 2026-07-24.** Added `adaptEvalscriptForSentinelWms` to the embedded Node import in `load_targets()` and wrapped `materialize()`'s return in `adaptEvalscriptForSentinelWms(finalScript, false)` — as the final transform after calibration-placeholder substitution and the VISUAL_FILTER/DETECTION_SENSITIVITY prefix, matching `getScriptContent()`'s ordering exactly. (Note: the fix lives in `materialize()` inside the JS blob, not `build_wms_params()` — the Python side just base64-encodes whatever `materialize()` emitted.)
+- Verification: re-ran the loop on matador-desoto-spring-2025 + lake-boehmer-pecos-orphan (flagships) and the new brine calibration site (±45-day sweep, 10 indices) — all requests now return `status: ok` with real strong/moderate/blank verdicts instead of `http-400`. Confirmed via node that every optical evalscript is SCL-free after adaptation (no `'SCL'` token, no `SCL_QA_START` block).
+
 ---
 
 # 2026-07-19 — batch_analyze_spills.py NameError: Path not defined (validation pipeline broken)

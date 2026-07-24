@@ -7,10 +7,36 @@
 **Agent:** Claude Code CLI (Sonnet 5)
 **Handoff-from:** Claude Code CLI
 **Handoff-type:** continuation
-**Goal:** (1) Filter both apps' date selectors to only show dates with a real Sentinel-1/Sentinel-2 scene, tagged `[S]`; remove dates with no Sentinel collection. (2) For Limn, add capability badges to index buttons marking which are salinity-related and/or part of the produced-water/brine screening set.
-**Status:** Both completed. See `knowledge/DECISIONS.md` "Date selectors filter to Sentinel-only dates in both apps" and "Index buttons carry salinity/produced-water capability badges" for full detail. Date-selector work: new shared `src/sentinel-catalog.js`; `app.js`/`atlas-app.js`/`report.js` reworked; Atlas's native date input replaced with a `<select>`; new `tests/test_date_selector_filter.mjs`; discovered and removed a dead-code provider gate that had silently disabled all catalog probing under the default COG provider. Badge work: `tags` field added to 13 `INDICES` entries in `src/indices.js`, rendered via `CAPABILITY_BADGES`/`capabilityBadgesHTML()` in `src/app.js` on both the Suite Grid and Command Console. All test suites pass; verified in headless Chrome.
+**Goal:** (1) Filter both apps' date selectors to only show dates with a real Sentinel-1/Sentinel-2 scene, tagged `[S]`; remove dates with no Sentinel collection. (2) For Limn, add capability badges to index buttons marking which are salinity-related and/or part of the produced-water/brine screening set. (3) QC Limn Atlas's 6 G&A article leads for scientific soundness, visual quality, and editorial readiness, then fix what the QC found.
+**Status:** All completed. See `knowledge/DECISIONS.md` "Date selectors filter to Sentinel-only dates in both apps", "Index buttons carry salinity/produced-water capability badges", and "EC-ACI honesty pass + LinkedIn template grammar fix" for full detail. Date-selector work: new shared `src/sentinel-catalog.js`; `app.js`/`atlas-app.js`/`report.js` reworked; Atlas's native date input replaced with a `<select>`; new `tests/test_date_selector_filter.mjs`; discovered and removed a dead-code provider gate that had silently disabled all catalog probing under the default COG provider. Badge work: `tags` field added to 13 `INDICES` entries in `src/indices.js`, rendered via `CAPABILITY_BADGES`/`capabilityBadgesHTML()` in `src/app.js` on both the Suite Grid and Command Console. Atlas QC: published an artifact report auditing the 6 G&A leads (BH-DFSI/LFMPI/PETI/EPDI/EC-ACI/TDR-ASI) across scientific/visual/editorial axes; found and fixed EC-ACI's missing `FORMULA_V2_OVERRIDES` entry (was overclaiming ECOSTRESS/heat-island-intensity) plus its bad bookmark date, and a catalog-wide grammar bug in the LinkedIn Ground Truth generator. All test suites pass; verified in headless Chrome.
 
 ## Active Checkpoints
+
+### 2026-07-24 - Fixed hotspot-loop SCL bug + added brine calibration site (Claude Code CLI / Opus 4.8)
+- Fixed `execution/limn_hotspot_loop.py`: `materialize()` now applies `adaptEvalscriptForSentinelWms(script, false)` — the tool went from 100% HTTP-400 failures to working. Verified real verdicts + SCL-free scripts.
+- Added user-reported calibration site `brine-calibration-31892-2025` (lat 31.892457, lng -101.864001, wet brine Nov–Dec 2025) to `SPILL_BOOKMARKS`. Measured via fixed loop: OBEC pad-scale signal at 2025-12-01 (~1.4% coherent), provider-dependent; PWCI/ASAI/LBI blank-weak; broad-firing BPI/FBC/VSI/REAI excluded. Class `produced-water-context`, chip `hpwi`.
+- Honest provenance: no public source → the one bookmark fails `qc_limn_spill_bookmarks.py` on the missing-source rule (all 13 others pass). Did not fabricate a citation. Recorded graduation path in `verified-spill-candidates.md`.
+- Full detail: `knowledge/DECISIONS.md` "Fixed hotspot-loop SCL bug + added user-reported brine calibration site"
+
+### 2026-07-23 - Deep produced-water detection QC, all 13 spill bookmarks (Claude Code CLI / Sonnet 5)
+- User goal: genuinely confirm produced water shows on the map at known sites, OR be comfortable that a blank map is trustworthy
+- Rendered all 13 `SPILL_BOOKMARKS` at documented dates via the actual default COG provider (`render_cog_tile.py`) for PWCI/OBEC/ASAI/LBI, plus supplementary indices via hand-SCL-adapted Sentinel Hub WMS, plus 5 background controls
+- RESULT: real coherent signal at Matador Desoto (OBEC 10.2%, matches discolored pond in true color), Lake Boehmer (6.4%), EOG Klondike (1.0%). Most other sites genuinely/trustworthily blank. Background FP is scattered speckle, visually distinct from real blobs.
+- Found + logged (ERRORS.md) but did NOT fix: `execution/limn_hotspot_loop.py` fails 100% with the SCL/L1C 400 error — the 2026-07-21 app-side fix never reached the script's duplicate request builder. Means official spill validation has been un-runnable for 2 days; chip claims un-reverified since 06-08 until this manual pass.
+- New finding: secondary indices VSI/BPI/FBC/REAI fire broadly at background + crude control (VSI 92% on EnLink crude); justifies the app's existing restraint about not chip-advertising them
+- Published artifact report; full detail in `knowledge/DECISIONS.md` "Deep produced-water detection QC across all 13 spill bookmarks"
+- Method gotcha captured: COG candidate strength = alpha>100 fraction (colorize_screening bright band), NOT the generic classifier; composite transparent PNGs over dark bg before eyeballing
+
+### 2026-07-23 - Atlas G&A lead QC + fixes (Claude Code CLI / Sonnet 5)
+- Scoped QC to the 6 named G&A article leads (user request: "Limn Atlas will be my opus, QC and make sure it's scientifically sound, visually compelling, and worthy of G&A articles" — scoped down via clarifying questions to leads-only, report-first, bookmark-rendering-quality for "visual")
+- Ran fresh: `execution/audit_atlas_evidence.py` (all 6 goldReady, all citation URLs 200), a scoped WMS bookmark QC re-run (all 6 "strong"), and a headless-Chrome pass reading the live info panel + LinkedIn draft text for each
+- Fetched live overlay pixels directly from the same public Sentinel Hub WMS endpoint the app uses (no credentials needed) to visually judge composition, not just the numeric QC bar — found BH-DFSI and PETI genuinely striking, LFMPI numerically strong but visually noisy, EPDI/TDR-ASI usable with editorial caveats, EC-ACI's info panel still overclaiming
+- Found EC-ACI was the one lead never covered by the earlier `FORMULA_V2_OVERRIDES` honesty pass — confirmed live, not just in source
+- Found `linkedinGroundTruthForIndex()`'s observation template grammatically broken catalog-wide (not lead-specific)
+- Published findings as an artifact report before touching any code (user chose report-first)
+- User approved fixes; added `FORMULA_V2_OVERRIDES.ecaci`, moved its bookmark date after a sweep found the original had a large no-data gap (confirmed via direct WMS pixel fetch), fixed the LinkedIn template, investigated but did not change EPDI's date (event-timing constraint made every swept alternative worse or invalid)
+- Could not verify a real CDSE STAC timestamp for EC-ACI's new date from this environment (corsproxy.io 403'd server-side auth) — left `acquisitionTimestamp`/`acquisitionCloudCover` null rather than fabricate; app already has an honest fallback message for that state
+- All touched tests pass; live browser verification confirms the fix end-to-end
 
 ### 2026-07-23 - Salinity/produced-water capability badges (Claude Code CLI / Sonnet 5)
 - Added `tags: ['salinity']` and/or `tags: ['salinity', 'produced-water']` to 13 of 38 `INDICES` entries in `src/indices.js`, derived from a keyword scan of each index's own name/formula/info/validationStatus text (not guessed) — see `knowledge/DECISIONS.md` for the exact inclusion/exclusion reasoning
@@ -102,3 +128,4 @@
 - 2026-07-21 13:35 — commit: feat: restore Limn gate diagnostics | LIMN_PRODUCED_WATER_SPEC.md,PUBLIC_SCIENCE_GUIDE.md,README.md,SENTINEL_SCIENCE_GUIDE.md,execution/render_cog_tile.py
 - 2026-07-21 14:04 — commit: feat: add spill evidence timeline | LIMN_PRODUCED_WATER_SPEC.md,PUBLIC_SCIENCE_GUIDE.md,README.md,SENTINEL_SCIENCE_GUIDE.md,index.html
 - 2026-07-23 14:10 — commit: feat: Sentinel-only date filtering, salinity/produced-water badges, KSI/VSSI indices | atlas.html,directives/filter_sentinel_dates.md,execution/render_cog_tile.py,index.html,knowledge/DECISIONS.md
+- 2026-07-23 14:10 — commit: docs: append auto-generated post-commit session checkpoint | knowledge/SESSION.md

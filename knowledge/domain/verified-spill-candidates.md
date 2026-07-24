@@ -1,8 +1,15 @@
 # Verified Produced-Water Spill Candidates
 
-Last updated: 2026-06-08
+Last updated: 2026-07-24
 
 Use this note when deciding whether a documented spill belongs in `SPILL_BOOKMARKS`.
+
+## 2026-07-24 — User-reported calibration target (unsourced)
+
+- `brine-calibration-31892-2025` — User-reported wet brine activity Nov–Dec 2025 at exact coordinates **lat 31.892457, lng -101.864001** (active Permian oilfield pad cluster, Midland County area). Added to `SPILL_BOOKMARKS` as `produced-water-context` and as a testing/calibration target at the user's explicit request.
+  - **Measured (fixed hotspot loop, 2026-07-24, ±45-day sweep across the window):** peak coherent signal is **OBEC (`hpwi`) at 2025-12-01**, ~1.4% largest connected component — pad-scale blobs aligned with the well pads in true color, not a single large release footprint. PWCI/ASAI/LBI blank-to-weak. BPI/FBC/VSI/REAI scored "strong" but are the broad-firing indices flagged in the 2026-07-23 QC (fire at background + the crude control too), so not treated as evidence; VSI was uniform-guard rejected.
+  - **Provider caveat:** the OBEC signal is scene/provider dependent — visible via Sentinel WMS but faint on the default COG scene for the same window. Advertised chip is `hpwi` with an explicit note about this.
+  - **Provenance:** NO public regulator filing resolved for these coordinates. `sourceUrl` is empty; `execution/qc_limn_spill_bookmarks.py` therefore (correctly) reports this one bookmark as `fail` on the missing-source rule. Not resolved by adding a Copernicus Browser link (disallowed as a numbered source per the 2026-06-16 rule below). **To graduate this from calibration-target to a context/proof bookmark, a public NMOCD/TRRC filing or news/agency source for the Nov–Dec 2025 activity must be found.**
 
 ## Promoted in 2026-06-08 Pass
 
