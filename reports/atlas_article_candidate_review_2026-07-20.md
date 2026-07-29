@@ -15,6 +15,17 @@ The current six-story lead set is suitable for Globe & Atlas articles after repl
 | EC-ACI | Urban Surface Condition | Primary | Phoenix exposed-surface heat context | 2021-07-20 | 2021-07-16T18:09:21.024Z | 16.71% | Optical heat-vulnerability context, not land-surface temperature or health outcome |
 | TDR-ASI | Mining Surfaces & Risk | Primary | Cerro de Pasco mining-area context | 2021-08-01 | 2021-07-24T15:17:09.024Z | 0.00% | Iron/SWIR surface context, not mineral identification or a mapped tailings release |
 
+## 2026-07-25 amendment — EC-ACI water gate and ramp controls
+
+The live EC-ACI formula now includes an explicit water rejection gate:
+`WaterReject × max(0, 0.4 − NDVI) × max(0, MSI − 0.8) × 3`.
+
+Use EC-ACI language as water-rejected low-canopy/dry-surface context. The gate is intended to keep canals, ponds, and rivers from rendering as high dry-surface score; it is not a water classifier, impervious-surface classifier, land-surface-temperature retrieval, or heat-island-intensity measurement.
+
+The current EC-ACI bookmark endpoint is `2021-07-05`, replacing `2021-07-20` after a no-data gap was found in the older WMS render. The revised-date acquisition timestamp is not yet verified, so do not reuse the `2021-07-16T18:09:21.024Z` timestamp from the July 20 capture audit for new captions.
+
+Atlas also now has a HUD `Ramp` selector for screenshot legibility. Non-native ramps change overlay colors only; they do not change the index formula, date, provider, cloud tolerance, or Sentinel search window.
+
 ## Seed framing rule
 
 Open each article with the environmental question and location, then identify the displayed formula as the family's primary Atlas method. Explain one sibling variant or component only when it reveals a useful limitation. Never turn sibling methods into multiple novelty claims, and never describe a family assignment as validation.

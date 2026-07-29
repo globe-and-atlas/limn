@@ -1,12 +1,14 @@
 # Atlas Article Captures
 
-Last updated: 2026-07-20
+Last updated: 2026-07-25
 
 ## Current G&A lead set
 
 Use BH-DFSI, LFMPI, PETI, EPDI, EC-ACI, and TDR-ASI as the default six article candidates. SF-EII is retired from the live catalog, and RRFI remains useful context but is not a lead because its current overlay is only moderate.
 
 Each candidate is the primary method in a capability family. Captions and drafts should name the family once, describe the selected method's role, and avoid presenting sibling variants as independent inventions. The current pairings are BH-DFSI / Fire Effects & Recovery, LFMPI / Fuel Moisture Context, PETI / Aquatic Blooms & Pigments, EPDI / Water Condition & Plumes, EC-ACI / Urban Surface Condition, and TDR-ASI / Mining Surfaces & Risk.
+
+EC-ACI now uses `WaterReject × max(0, 0.4 − NDVI) × max(0, MSI − 0.8) × 3`. Screenshot captions should call it water-rejected low-canopy/dry-surface context. Do not describe the gate as a water classifier, an impervious-surface classifier, land-surface temperature, or heat-island intensity.
 
 Use `execution/capture_atlas_articles.py` when generating article-ready Limn Atlas assets from selected index bookmarks.
 
@@ -80,3 +82,4 @@ The tour provides:
 - External references from the Atlas registry.
 - CDSE STAC acquisition metadata from the generated capture sidecars.
 - Caption guidance that distinguishes exact-event references from phenomenon references.
+- HUD ramp guidance for switching away from native colors when an overlay blends into aerial imagery; ramp changes are presentation-only.

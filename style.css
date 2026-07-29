@@ -4277,11 +4277,22 @@ input[type=range]::-webkit-slider-runnable-track {
     color: #fff !important;
 }
 
-/* Force smooth image interpolation on Leaflet map tiles */
+/* Force smooth image interpolation on Leaflet map tiles across browsers */
 .leaflet-tile,
-.leaflet-tile-container img {
+.leaflet-tile-container img,
+.leaflet-tile-container canvas {
     image-rendering: auto !important;
+    image-rendering: -webkit-optimize-contrast !important;
     image-rendering: smooth !important;
+    -ms-interpolation-mode: bicubic !important;
 }
+
+/* Radiant spectral anomaly glow effect and anti-pixelation smoothing over dark terrain */
+.leaflet-overlay-pane .leaflet-layer img,
+.leaflet-tile-pane .leaflet-layer:not(:first-child) img {
+    filter: blur(0.75px) drop-shadow(0 0 6px rgba(0, 210, 255, 0.45)) saturate(1.25) brightness(1.08) !important;
+    transition: filter 0.3s ease;
+}
+
 
 

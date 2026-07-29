@@ -40,6 +40,7 @@ for (const index of ATLAS_INDICES) {
   if (index.canRender) {
     assert.equal(index.maturity, 'M3', `${index.acronym} live proxy is M3`);
     assert.ok(index.implementedFormula, `${index.acronym} live proxy exposes its implemented formula`);
+    assert.match(index.evalscript, /var s=/, `${index.acronym} live proxy uses colorBlend stops so Atlas ramp overrides can recolor it`);
   }
 }
 
@@ -72,6 +73,17 @@ assert.match(byKey('reenbi').formula, /R803 \/ Rc803/, 'REENBI uses conventional
 assert.doesNotMatch(byKey('tseai').formula, /\/ Σ/, 'TSEAI removes the dimensionally incompatible ratio');
 assert.match(byKey('nfcai').physics, /launched in 2025/, 'NFCAI has the correct NISAR launch year');
 assert.doesNotMatch(byKey('puenpi').formula, /− NPP_PACE/, 'PUENPI no longer subtracts aquatic production as a loss term');
+
+const ecaci = byKey('ecaci');
+assert.match(ecaci.formula, /WaterReject/, 'EC-ACI public formula exposes the water gate');
+assert.match(ecaci.implementedFormula, /WaterReject/, 'EC-ACI implemented formula exposes the water gate');
+assert.match(ecaci.evalscript, /['"]B03['"]/, 'EC-ACI reads B03 for water rejection');
+assert.match(ecaci.evalscript, /let ndwi=/, 'EC-ACI computes NDWI for water rejection');
+assert.match(ecaci.evalscript, /let mndwi=/, 'EC-ACI computes MNDWI for water rejection');
+assert.match(ecaci.evalscript, /let waterReject=/, 'EC-ACI defines an explicit waterReject gate');
+assert.match(ecaci.evalscript, /waterReject\*Math\.max\(0,0\.4-ndvi\)/, 'EC-ACI multiplies the dry-surface score by waterReject');
+assert.match(ecaci.physics, /water rejection gate/i, 'EC-ACI physics explains open-water suppression');
+assert.doesNotMatch(ecaci.physics, /ECOSTRESS.*read/i, 'EC-ACI does not imply it reads ECOSTRESS');
 
 assert.equal(byKey('tfidi').bookmark.date, '2021-08-17', 'TFIDI uses the stronger tested tidal-zone date');
 assert.equal(byKey('ipvsi').bookmark.date, '2021-09-01', 'IPVSI uses the stronger tested invasion-context date');

@@ -52,3 +52,8 @@ during the 2026-07-25 scientific review. Documented in
 it was corrected in the deployment on 2026-07-23, after the snapshot, so the
 published row still carries its pre-correction ECOSTRESS claim. Do not "fix" the
 app to match the paper — check which side is newer first.
+
+**2026-07-25 EC-ACI drift:** the live app moved one step farther toward the
+implemented method by adding an explicit Sentinel-2 water rejection gate to the
+EC-ACI score. This remains a per-record formula/prose correction, not a change
+to the Atlas counts, roles, maturity split, or validation level.

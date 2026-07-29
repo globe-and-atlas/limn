@@ -12,6 +12,22 @@
 
 ## Active Checkpoints
 
+### 2026-07-27 13:34 - Smooth and Glowing Imagery Rendering Fix (Antigravity AI / Gemini 3.6 Flash)
+- **Goal:** Fix pixelated satellite spectral imagery and restore smooth, glowing visual appearance in Limn.
+- **Root Causes Fixed:**
+  1. `style.css` contained invalid `image-rendering: smooth !important;`, which Chrome discarded and defaulted to un-smoothed tile scaling. Fixed with cross-browser smooth image-rendering declarations (`-webkit-optimize-contrast`, `smooth`, `bicubic`).
+  2. Added sub-pixel anti-aliasing blur and radiant drop-shadow bloom filter (`blur(0.75px) drop-shadow(0 0 6px rgba(0,210,255,0.45)) saturate(1.25) brightness(1.08) !important`) to Leaflet spectral anomaly overlay layers to eliminate 10m/20m stair-stepped block edges and bring back radiant hotspot glowing over dark terrain.
+  3. Upgraded Sentinel Hub V3 evalscript setup generators in `src/indices.js` from `upsampling: "BILINEAR"` to `upsampling: "BICUBIC"` and `downsampling: "BICUBIC"` for smooth cubic spatial interpolation across 10m/20m bands.
+  4. Fixed `colorBlend` palette alpha helper in `src/indices.js` (`getAlpha = (s) => (s.length >= 5 ? s[4] : 1.0)`) so 4-element `[pos, r, g, b]` stops do not default `a0` to 1.0.
+  5. Upgraded deterministic COG band reading in `execution/render_cog_tile.py` to `Resampling.cubic`.
+- **Verification:** All 4 test suites pass (`test_core_ui_contract.mjs`, `test_core_formula_parity.mjs`, `test_cog_gate_diagnostics.py`, `test_scientific_status.mjs`). Headless Chrome Puppeteer probes confirmed BICUBIC evalscripts and smooth sub-pixel blur overlay filtering on Lake Boehmer MNDWI scene.
+
+### 2026-07-25 17:08 - EC-ACI water gate + Atlas ramp selector (OpenAI Codex / GPT-5)
+- User saw EC-ACI render water as red while some runway surfaces did not. Root cause: the live formula scored low NDVI and high MSI without excluding water, so low-NIR water could satisfy the dry-surface proxy.
+- Changed EC-ACI to read B03, compute NDWI/MNDWI water rejection, and multiply the dry-surface score by `waterReject`.
+- Added Atlas HUD color-ramp options for screenshot legibility over aerial imagery; ramps replace Sentinel WMS color stops and legend display without changing formula math.
+- Updated authorship/documentation/report guidance to keep EC-ACI framed as water-rejected optical surface context, not heat intensity, water classification, or impervious-surface classification.
+
 ### 2026-07-25 (cont.) - Closeout: finding narrowed, QC reproduced, both repos published (Claude Code CLI / Opus 5)
 - **Radiometric finding narrowed twice, both times by checking real metadata.** Earth Search publishes `earthsearch:boa_offset_applied`; it is `true` for most items, so a bare `DN/10000` was correct for those. The defect is the subset where it is `false` on baseline >= 04.00: 38 of 589 items (6.5%) over the Permian bbox, in 2022 and 2025, none in 2023-2024. The hazard is that it is scene-dependent, so no date rule fixes it. The shipped fix already reads the flag per item and is unchanged — only the characterisation was wrong.
 - **No recorded result was ever affected.** Threshold chain uses the Statistics API. The 07-23 COG visual QC re-ran with offset 0.0 on all 56 tiles, reproducing the qualitative result. Percentage deltas vs the ad-hoc pass are parameter-driven, not offset-driven.
@@ -185,4 +201,5 @@
 - 2026-07-25 15:44 — commit: docs: append auto-generated post-commit session checkpoint | knowledge/SESSION.md
 - 2026-07-25 15:47 — commit: docs: append auto-generated post-commit session checkpoint | knowledge/SESSION.md
 - 2026-07-25 16:09 — commit: docs: add ATLAS.md and restructure README around both apps | ATLAS.md,README.md
+- 2026-07-25 16:09 — commit: docs: append auto-generated post-commit session checkpoint | knowledge/SESSION.md
 - 2026-07-25 16:09 — commit: docs: append auto-generated post-commit session checkpoint | knowledge/SESSION.md

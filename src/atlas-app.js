@@ -38,6 +38,44 @@ function evaluatePixel(sample) {
   return [sample.B04*2.5, sample.B03*2.5, sample.B02*2.5, 1];
 }`;
 
+const ATLAS_COLOR_RAMPS = {
+  native: {
+    label: 'Native',
+    stops: null,
+    gradient: null,
+  },
+  contrast: {
+    label: 'High contrast',
+    stops: [[0,0,0,0],[0.25,13,17,23,0.55],[0.5,0,210,255,0.78],[0.75,255,255,255,0.9],[1,255,184,77,0.95]],
+    gradient: 'linear-gradient(to right, rgba(0,0,0,0), rgba(13,17,23,0.55), rgba(0,210,255,0.78), rgba(255,255,255,0.9), rgba(255,184,77,0.95))',
+  },
+  'cyan-magenta': {
+    label: 'Cyan/Magenta',
+    stops: [[0,0,0,0],[0.25,0,180,216,0.62],[0.55,255,255,255,0.86],[0.8,255,64,160,0.92],[1,255,213,79,0.95]],
+    gradient: 'linear-gradient(to right, rgba(0,0,0,0), rgba(0,180,216,0.62), rgba(255,255,255,0.86), rgba(255,64,160,0.92), rgba(255,213,79,0.95))',
+  },
+  'blue-amber': {
+    label: 'Blue/Amber',
+    stops: [[0,0,0,0],[0.3,23,92,255,0.62],[0.58,255,255,255,0.86],[0.8,255,196,82,0.9],[1,255,111,64,0.95]],
+    gradient: 'linear-gradient(to right, rgba(0,0,0,0), rgba(23,92,255,0.62), rgba(255,255,255,0.86), rgba(255,196,82,0.9), rgba(255,111,64,0.95))',
+  },
+  viridis: {
+    label: 'Viridis',
+    stops: [[0,0,0,0],[0.25,68,1,84,0.62],[0.5,33,145,140,0.82],[0.75,94,201,98,0.9],[1,253,231,37,0.95]],
+    gradient: 'linear-gradient(to right, rgba(0,0,0,0), rgba(68,1,84,0.62), rgba(33,145,140,0.82), rgba(94,201,98,0.9), rgba(253,231,37,0.95))',
+  },
+  magma: {
+    label: 'Magma',
+    stops: [[0,0,0,0],[0.22,28,16,68,0.62],[0.48,126,3,168,0.8],[0.74,238,104,55,0.9],[1,252,253,191,0.95]],
+    gradient: 'linear-gradient(to right, rgba(0,0,0,0), rgba(28,16,68,0.62), rgba(126,3,168,0.8), rgba(238,104,55,0.9), rgba(252,253,191,0.95))',
+  },
+  'lime-rose': {
+    label: 'Lime/Rose',
+    stops: [[0,0,0,0],[0.25,20,184,166,0.62],[0.5,217,249,157,0.84],[0.74,255,255,255,0.9],[1,244,63,94,0.95]],
+    gradient: 'linear-gradient(to right, rgba(0,0,0,0), rgba(20,184,166,0.62), rgba(217,249,157,0.84), rgba(255,255,255,0.9), rgba(244,63,94,0.95))',
+  },
+};
+
 let runtimeAtlasImageProviderOverride = null;
 let runtimeAtlasWmsSource = null;
 
@@ -155,6 +193,7 @@ const state = {
   captureCardCollapsed: false,
   captureInfoCollapsed: false,
   sidebarMode: 'capabilities',
+  colorRamp: 'native',
   validSentinelDates: null, // Set of 'YYYY-MM-DD' strings with a real S1/S2 scene; null until first probe resolves
 };
 
@@ -298,6 +337,7 @@ window.getAtlasProviderState = () => {
     guardStatus: map ? getAtlasSentinelGuardStatus() : null,
     bookmarkFocusVisible: state.bookmarkFocusVisible === true,
     bookmarkFocusCount: bookmarkFocusMarkers.size,
+    colorRamp: state.colorRamp,
     status: document.getElementById('atlas-sentinel-status')?.textContent || '',
   };
 };
@@ -430,7 +470,28 @@ function getWmsCarrierLayer(idx) {
 }
 
 function getDisplayEvalscript(idx) {
-  return idx.canRender ? idx.evalscript : CONTEXT_TRUE_COLOR_EVALSCRIPT;
+  if (!idx.canRender) return CONTEXT_TRUE_COLOR_EVALSCRIPT;
+  return applyAtlasColorRampToEvalscript(idx.evalscript);
+}
+
+function selectedAtlasColorRamp() {
+  return ATLAS_COLOR_RAMPS[state.colorRamp] || ATLAS_COLOR_RAMPS.native;
+}
+
+function atlasGradientForIndex(idx) {
+  return selectedAtlasColorRamp().gradient || idx.gradient || 'linear-gradient(to right, #111, #fff)';
+}
+
+function updateLegendGradient(idx) {
+  const grad = document.getElementById('legend-gradient');
+  if (grad) grad.style.background = atlasGradientForIndex(idx);
+}
+
+function applyAtlasColorRampToEvalscript(evalscript) {
+  const ramp = selectedAtlasColorRamp();
+  if (!ramp.stops) return evalscript;
+  const stops = JSON.stringify(ramp.stops);
+  return String(evalscript).replace(/var s=(\[[\s\S]*?\]);var i=0;/, `var s=${stops};var i=0;`);
 }
 
 // --- Coverage model ------------------------------------------------------
@@ -1821,8 +1882,7 @@ function selectIndex(key) {
   note.className = `cov-note cov-note--${coverageTier(idx)}`;
 
   // Update legend
-  const grad = document.getElementById('legend-gradient');
-  grad.style.background = idx.gradient || 'linear-gradient(to right, #111, #fff)';
+  updateLegendGradient(idx);
   document.getElementById('legend-label').textContent = idx.acronym;
   const nameLabel = document.getElementById('legend-name-label');
   if (nameLabel) nameLabel.textContent = idx.name || '';
@@ -2224,6 +2284,24 @@ function initControls() {
       wmsLayer.setOpacity(state.opacity);
     }
   });
+
+  const rampSelect = document.getElementById('atlas-ramp-select');
+  if (rampSelect) {
+    rampSelect.innerHTML = '';
+    Object.entries(ATLAS_COLOR_RAMPS).forEach(([value, config]) => {
+      const option = document.createElement('option');
+      option.value = value;
+      option.textContent = config.label;
+      rampSelect.appendChild(option);
+    });
+    rampSelect.value = state.colorRamp;
+    rampSelect.addEventListener('change', () => {
+      state.colorRamp = ATLAS_COLOR_RAMPS[rampSelect.value] ? rampSelect.value : 'native';
+      const idx = ATLAS_INDICES.find(index => index.key === activeKey);
+      if (idx) updateLegendGradient(idx);
+      if (!state.paused && idx && isSentinelProvider()) renderActive();
+    });
+  }
 
   // Family/domain/research navigation
   document.querySelectorAll('[data-sidebar-mode]').forEach(button => {

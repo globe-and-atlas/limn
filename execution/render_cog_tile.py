@@ -296,7 +296,7 @@ def read_bands(item: dict, needed_bands: Iterable[str], bounds: TileBounds, size
     offset = item_boa_offset(item)
     for band in needed_bands:
         href = item["assets"][band]
-        raw = read_asset(href, bounds.mercator, size, Resampling.bilinear).astype("float32")
+        raw = read_asset(href, bounds.mercator, size, Resampling.cubic).astype("float32")
         # Nodata reads back as 0; keep it at 0 so the validity mask below still
         # sees it as empty rather than turning it into a negative reflectance.
         filled = raw > 0

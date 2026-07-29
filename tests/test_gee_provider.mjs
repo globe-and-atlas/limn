@@ -52,6 +52,9 @@ assert.match(atlasHtml, /id="info-linkedin-ground-truth"/, 'Atlas info panel sho
 assert.match(atlasHtml, /One image\. One observation\. One reason it matters\. One interpretive prompt\./, 'Atlas LinkedIn guidance should teach the weekly post shape');
 assert.match(atlasHtml, /id="copy-linkedin-ground-truth"/, 'Atlas LinkedIn guidance should provide a copy draft control');
 assert.match(atlasHtml, /id="toggle-capture"/, 'Atlas should expose a capture-mode HUD control');
+assert.match(atlasHtml, /id="atlas-ramp-select"/, 'Atlas should expose an overlay color-ramp selector');
+assert.match(atlasHtml, /value="magma"/, 'Atlas ramp selector should include a magma option');
+assert.match(atlasHtml, /value="lime-rose"/, 'Atlas ramp selector should include a high-contrast lime/rose option');
 assert.match(atlasHtml, /id="capture-card"/, 'Atlas should include a dedicated LinkedIn screenshot overlay');
 assert.match(atlasHtml, /data-capture-view="context"/, 'Atlas capture card should include a context-only comparison view');
 assert.match(atlasHtml, /data-capture-view="overlay"/, 'Atlas capture card should include an overlay comparison view');
@@ -151,6 +154,10 @@ assert.match(atlasApp, /this\._maxConcurrent = options\.maxConcurrent \|\| 2/, '
 assert.match(atlasApp, /detectRetina:\s*true/, 'Atlas GEE tiles should request sharper retina tiles on high-DPI displays');
 assert.match(atlasApp, /applyAtlasTiles\(idx, bm\.date\)/, 'Atlas selection should use provider-neutral rendering');
 assert.match(atlasApp, /applyWMS\(getDisplayEvalscript\(idx\), date, opts\)/, 'Atlas Sentinel fallback should remain explicit');
+assert.match(atlasApp, /const ATLAS_COLOR_RAMPS/, 'Atlas should centralize selectable overlay color ramps');
+assert.match(atlasApp, /function applyAtlasColorRampToEvalscript/, 'Atlas should apply ramp overrides at evalscript render time');
+assert.match(atlasApp, /colorRamp: state\.colorRamp/, 'Atlas provider state should expose the selected ramp');
+assert.match(atlasApp, /atlas-ramp-select/, 'Atlas should wire the color-ramp selector');
 assert.match(server, /GEE_MAP_NAME_\$\{safeApp\}_\$\{safeIndex\}/, 'GEE server should support app-scoped map names');
 assert.match(server, /@google\/earthengine/, 'GEE server should use the official Earth Engine client');
 assert.match(server, /import 'dotenv\/config'/, 'GEE server should load local .env values');

@@ -1,3 +1,28 @@
+# Objective — EC-ACI Water Gate and Atlas Ramp Selector (2026-07-25)
+
+Implement a simple Sentinel-2 water rejection gate for EC-ACI so open water does not present as high urban dry-surface context, and add selectable Atlas overlay color ramps for scenes where the native palette blends into aerial imagery.
+
+## Validation Contract — EC-ACI Water Gate and Atlas Ramp Selector
+
+- [x] EC-ACI evalscript includes `B03` in its Sentinel-2 inputs.
+- [x] EC-ACI evalscript calculates an explicit water rejection gate from green/NIR or green/SWIR contrast.
+- [x] EC-ACI high-score value is multiplied by the water rejection gate.
+- [x] EC-ACI public formula and implemented formula mention `WaterReject`.
+- [x] EC-ACI explanatory copy says the layer is water-rejected optical surface context, not land-surface temperature or an impervious/water classifier.
+- [x] Atlas exposes a visible color-ramp select control.
+- [x] Atlas color-ramp options include at least six choices, including the native ramp.
+- [x] Non-native ramps replace only the color stops used for rendering and legend display.
+- [x] Non-native ramps do not alter index formula math, date, provider, or opacity state.
+- [x] Atlas provider state exposes the selected color ramp for browser regression checks.
+- [x] Relevant Limn Atlas docs record the EC-ACI water-gate caveat and ramp guidance.
+- [x] `node --check src/atlas-indices.js` passes.
+- [x] `node --check src/atlas-app.js` passes.
+- [x] Focused Atlas formula and provider tests pass.
+- [x] Browser smoke test confirms the ramp selector is present and stateful.
+- [x] `git diff --check` passes.
+
+---
+
 # Objective — Relocate Title to Legend and Remove Info Box (2026-06-25)
 
 Recalibrate capture mode by removing the top-left Screenshot Info Overlay entirely and placing the spelled-out index title inside the map legend panel.

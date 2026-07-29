@@ -1,5 +1,15 @@
 # Architecture Decisions — sentinel-explorer
 
+## EC-ACI water gate and Atlas ramp selector (2026-07-25)
+
+**Decision:** Add an explicit Sentinel-2 water rejection gate to EC-ACI and add a HUD color-ramp selector to Limn Atlas.
+
+**Why:** EC-ACI's previous live score used low/negative NDVI and elevated MSI. Open water can satisfy that combination because NIR is very low, while parts of asphalt/runway may fail the MSI threshold. That made canals/ponds render red in some Phoenix frames even when some runway surfaces did not. The scientifically honest fix is not to claim a better heat detector; it is to suppress obvious water before scoring low-canopy/dry-surface context.
+
+**How applied:** EC-ACI now reads B03, computes NDWI and MNDWI, and multiplies the dry-surface score by `waterReject`. Public formula/prose now says `WaterReject × max(0, 0.4 − NDVI) × max(0, MSI − 0.8) × 3` and explicitly excludes land-surface temperature, heat-island intensity, water classification, and impervious-surface classification.
+
+**Interface:** Atlas now exposes a `Ramp` select with Native, High contrast, Cyan/Magenta, Blue/Amber, Viridis, Magma, and Lime/Rose. Non-native ramps replace the evalscript color stops and legend gradient for Sentinel WMS overlays only; they do not change formula math, dates, provider state, opacity, cloud tolerance, or validation claims.
+
 ## Scientific review: claims corrected to match executing code; app corrects forward of preprint v2 (2026-07-25)
 
 **Context:** Deep scientific review ahead of (a) writing more about band combinations and (b) featuring Limn Atlas in FRGS and Chartered Geographer applications. Both uses require that a stated formula be exactly what executes.

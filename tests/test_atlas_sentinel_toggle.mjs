@@ -126,6 +126,38 @@ try {
     throw new Error('Atlas did not request GEE tiles before Sentinel toggle.');
   }
 
+  const rampControls = await page.evaluate(() => {
+    const select = document.getElementById('atlas-ramp-select');
+    const legend = document.getElementById('legend-gradient');
+    const before = legend?.style.background || '';
+    if (!select) return { exists: false, options: [], selected: '', before, after: '', reset: '', providerState: window.getAtlasProviderState() };
+    select.value = 'magma';
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+    const after = legend?.style.background || '';
+    const providerState = window.getAtlasProviderState();
+    select.value = 'native';
+    select.dispatchEvent(new Event('change', { bubbles: true }));
+    const reset = legend?.style.background || '';
+    return {
+      exists: true,
+      options: Array.from(select.options).map(option => option.value),
+      selected: select.value,
+      before,
+      after,
+      reset,
+      providerState,
+    };
+  });
+  if (!rampControls.exists || rampControls.options.length < 6 || !rampControls.options.includes('native') || !rampControls.options.includes('magma')) {
+    throw new Error(`Atlas ramp selector is missing expected options: ${JSON.stringify(rampControls)}`);
+  }
+  if (rampControls.providerState.colorRamp !== 'magma') {
+    throw new Error(`Atlas provider state did not expose selected ramp: ${JSON.stringify(rampControls)}`);
+  }
+  if (!rampControls.after || rampControls.after === rampControls.before || rampControls.reset !== rampControls.before) {
+    throw new Error(`Atlas ramp selector did not update and restore the legend gradient: ${JSON.stringify(rampControls)}`);
+  }
+
   const familyNavigation = await page.evaluate(async () => {
     const snapshot = () => ({
       activeMode: document.querySelector('[data-sidebar-mode].active')?.dataset.sidebarMode || '',

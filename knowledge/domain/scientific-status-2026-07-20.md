@@ -56,6 +56,7 @@ The current small-sample study contains 4 standing-brine sites, 3 freshwater/bra
 - All entries remain below independent V1 evaluation.
 - SF-EII and AMDPHI are retired from live rendering.
 - LFMPI is a normalized NDMI-deficit proxy, not percent live-fuel moisture.
+- EC-ACI is a water-rejected low-canopy/dry-surface context proxy, not land-surface temperature, heat-island intensity, water classification, or impervious-surface classification.
 - Formula descriptions for 23 live layers are reconciled to the shipped evalscripts.
 - Contribution type (C1–C3), implementation maturity (M1–M3), event context, calibration, and validation are separate fields.
 
@@ -63,7 +64,7 @@ The current small-sample study contains 4 standing-brine sites, 3 freshwater/bra
 
 The 2026-07-20 public-WMS audit found no weak, blank, or erroring live bookmark. After adopting stronger tested dates for TFIDI (`2021-08-17`) and IPVSI (`2021-09-01`), 35 live bookmarks are strong and two are moderate (RRFI and MP-PDI). Overlay strength means the visualization is legible; it does not establish scientific accuracy.
 
-Recommended Globe & Atlas article leads are BH-DFSI, LFMPI, PETI, EPDI, EC-ACI, and TDR-ASI. Each combines a strong current overlay, an interpretable story, event/place context, and a resolved representative Sentinel acquisition timestamp. Bookmark dates remain WMS-window endpoints and must not be printed as acquisition timestamps.
+Recommended Globe & Atlas article leads are BH-DFSI, LFMPI, PETI, EPDI, EC-ACI, and TDR-ASI. Each combines a strong current overlay, an interpretable story, and event/place context. Most lead records have resolved representative Sentinel acquisition timestamps; EC-ACI's revised 2021-07-05 bookmark does not yet have a verified acquisition timestamp and should be captioned without inventing one. Bookmark dates remain WMS-window endpoints and must not be printed as acquisition timestamps.
 
 Each lead is a **primary method inside a capability family**, not a standalone novelty claim: BH-DFSI (Fire Effects & Recovery), LFMPI (Fuel Moisture Context), PETI (Aquatic Blooms & Pigments), EPDI (Water Condition & Plumes), EC-ACI (Urban Surface Condition), and TDR-ASI (Mining Surfaces & Risk). Article seeds should name that relationship and use sibling variants only as comparisons.
 

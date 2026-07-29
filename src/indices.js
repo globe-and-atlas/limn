@@ -43,8 +43,8 @@ function setup() {
   return {
     input: [${inputBands.map(b => `'${b}'`).join(', ')}, "dataMask"],
     output: { bands: 4 },
-    upsampling: "BILINEAR",
-    downsampling: "BILINEAR"
+    upsampling: "BICUBIC",
+    downsampling: "BICUBIC"
   };
 }
 function evaluatePixel(sample) {
@@ -70,8 +70,8 @@ function setup() {
     input: [${inputBands.map(b => `'${b}'`).join(', ')}, "dataMask"],
     output: { bands: 4 },
     mosaicking: "ORBIT",
-    upsampling: "BILINEAR",
-    downsampling: "BILINEAR"
+    upsampling: "BICUBIC",
+    downsampling: "BICUBIC"
   };
 }
 function evaluatePixel(samples) {
@@ -116,8 +116,8 @@ function setup() {
     ],
     output: { bands: 4 },
     mosaicking: "ORBIT",
-    upsampling: "BILINEAR",
-    downsampling: "BILINEAR"
+    upsampling: "BICUBIC",
+    downsampling: "BICUBIC"
   };
 }
 
@@ -167,8 +167,8 @@ function setup() {
     input: [${inputBands.map(b => `'${b}'`).join(', ')}, "dataMask"],
     output: { bands: 4 },
     mosaicking: "ORBIT",
-    upsampling: "BILINEAR",
-    downsampling: "BILINEAR"
+    upsampling: "BICUBIC",
+    downsampling: "BICUBIC"
   };
 }
 
@@ -203,15 +203,15 @@ export function colorBlend(valExpr, stopsStr) {
   const stops = ${stopsStr};
   let i = 0;
   while (i < stops.length - 1 && v >= stops[i+1][0]) { i++; }
+  const getAlpha = (s) => (s.length >= 5 ? s[4] : 1.0);
   if (i === stops.length - 1) { 
       let s = stops[i];
-      let a = (s.length > 4) ? s[4] : 1.0;
-      return [s[1]/255, s[2]/255, s[3]/255, a];
+      return [s[1]/255, s[2]/255, s[3]/255, getAlpha(s)];
   }
   let s0 = stops[i], s1 = stops[i+1];
   let t = (v - s0[0]) / (s1[0] - s0[0]);
-  let a0 = (s0.length > 4) ? s0[4] : 1.0;
-  let a1 = (s1.length > 4) ? s1[4] : 1.0;
+  let a0 = getAlpha(s0);
+  let a1 = getAlpha(s1);
   return [
       (s0[1] + t * (s1[1] - s0[1])) / 255,
       (s0[2] + t * (s1[2] - s0[2])) / 255,

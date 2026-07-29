@@ -58,9 +58,9 @@ export const authorshipClaims = {
   ecaci: {
     level: "Framing claim",
     strength: "Medium",
-    claim: "The original contribution is EC-ACI as an optical microclimate-shelter contrast score for comparing evapotranspirative canopy presence against dry impervious exposure.",
-    doNotClaim: "This composite does not assert measured air temperature, land-surface temperature, urban heat island discovery, or ownership of impervious-surface mapping.",
-    why: "Urban heat remote sensing is crowded; the original contribution is the 10 m shelter-contrast interpretation and communication layer."
+    claim: "The original contribution is EC-ACI as a water-rejected optical microclimate-shelter contrast score for comparing evapotranspirative canopy presence against dry-surface exposure.",
+    doNotClaim: "This composite does not assert measured air temperature, land-surface temperature, urban heat island discovery, water classification, or ownership of impervious-surface mapping.",
+    why: "Urban heat remote sensing is crowded; the original contribution is the 10 m shelter-contrast interpretation, now with an explicit water gate to keep open water out of the dry-surface score."
   },
   lrdvsi: {
     level: "Strong boundary-zone claim",

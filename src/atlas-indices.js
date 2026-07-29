@@ -38,6 +38,7 @@ const P = {
   fuel:    [[0,19,23,15],[0.3,142,207,128],[0.6,230,180,80],[0.85,217,134,79],[1,226,102,90]],
   silt:    [[0,13,23,32],[0.3,111,201,220],[0.6,188,174,101],[0.85,217,134,79],[1,226,102,90]],
   scum:    [[0,13,34,39],[0.3,111,201,220],[0.6,142,207,128],[0.85,230,180,80],[1,226,102,90]],
+  smoke:   [[0,30,18,10,0],[0.25,122,61,18,0.45],[0.55,200,115,31,0.72],[0.8,232,160,42,0.88],[1,242,210,74,0.95]],
 };
 
 // Domain CSS gradient for legend bar
@@ -330,7 +331,7 @@ const RAW_ATLAS_INDICES = [
   source:'NOAA GML long-range smoke from Bootleg and Dixie fires',
   sourceUrl:'https://gml.noaa.gov/aero/net/bld/2021_fires.html',
   justification:'Live tile renders the TROPOMI UV Absorbing Aerosol Index (340/380 nm) — the available proxy for the full AOD-ratio composition index, which needs AOD products TROPOMI does not carry at 550 nm. Karpathy-loop WMS QC selected the August 11, 2021 Bootleg Fire smoke scene with 79.114% visible/high-signal coverage after transparent background gating.',
-  evalscript: genEvalscript(['AER_AI_340_380'], `var aai=Math.max(0,Math.min(1,sample.AER_AI_340_380/3.5));if(aai<=0.08)return[0,0,0,0];return [0.55+0.45*aai, 0.45*(1-aai)+0.15, 0.12, Math.min(0.95,0.25+aai*0.75)];`)
+  evalscript: genEvalscript(['AER_AI_340_380'], `var aai=Math.max(0,Math.min(1,sample.AER_AI_340_380/3.5));if(aai<=0.08)return[0,0,0,0];return ${cb('aai',P.smoke)};`)
 },
 {
   key:'pcsii', acronym:'PCSII', domain:'wildfire',
@@ -960,18 +961,21 @@ const RAW_ATLAS_INDICES = [
   key:'ecaci', acronym:'EC-ACI', domain:'urban',
   name:'Evapotranspirative Canopy & Asphalt Contrast Index',
   platform:'Sentinel-2 + ECOSTRESS', platformShort:'S2', novelty:'T2', canRender:true,
-  formula:'(1−NDVI) × low_moisture_proxy',
-  physics:'Urban heat islands form where high-albedo vegetation is replaced by low-albedo asphalt. S2 NDVI loss combined with MSI moisture stress proxies urban heat island formation without thermal data.',
-  benefit:'Maps urban heat island intensity at neighborhood scale — guides heat-resilience infrastructure investment.',
+  formula:'WaterReject × max(0,0.4−NDVI) × max(0,MSI−0.8) × 3',
+  physics:'Sentinel-2 NDVI loss plus MSI moisture stress screens low-canopy, dry-surface urban context. A green/NIR water gate suppresses open water so it does not masquerade as dry impervious exposure.',
+  benefit:'Maps water-rejected exposed-surface context at neighborhood scale — guides heat-resilience review without claiming measured temperature.',
   gradient: G.urban,
   bookmark:{lat:33.45, lng:-112.07, zoom:11, date:'2021-07-20', label:'Phoenix AZ metro — urban heat island'},
   source: 'WMO July 2019 hottest-month analysis',
   sourceUrl: 'https://wmo.int/media/july-matched-and-maybe-broke-record-hottest-month-analysis-began',
   justification: 'Targets the Phoenix, AZ, metro area during the extreme summer 2021 heat window, contrasting low-canopy/dry-surface context with vegetated areas. See FORMULA_V2_OVERRIDES.ecaci for the corrected bookmark date (2021-07-05, replacing 2021-07-20 after a no-data gap was found in the original WMS render) and the honest physics/benefit text — this base field is not read by atlas-app.js but is kept accurate for anyone reading source.',
-  evalscript: genEvalscript(['B04','B08','B11'],`
+  evalscript: genEvalscript(['B03','B04','B08','B11'],`
   let ndvi=(sample.B08-sample.B04)/(sample.B08+sample.B04+0.001);
   let msi=sample.B11/(sample.B08+0.001);
-  let val=Math.max(0,0.4-ndvi)*Math.max(0,msi-0.8)*3;
+  let ndwi=(sample.B03-sample.B08)/(sample.B03+sample.B08+0.001);
+  let mndwi=(sample.B03-sample.B11)/(sample.B03+sample.B11+0.001);
+  let waterReject=(ndwi<0.05&&mndwi<0.10)?1:0;
+  let val=waterReject*Math.max(0,0.4-ndvi)*Math.max(0,msi-0.8)*3;
   return ${cb('Math.min(1,val)',P.urban)};`)
 },
 {
@@ -1897,14 +1901,14 @@ const FORMULA_V2_OVERRIDES = {
     benefit: 'Mining-area iron/SWIR context for field-informed mineral analysis.',
   },
   ecaci: {
-    name: 'Urban Canopy-Loss & Dry-Surface Context Index',
+    name: 'Urban Canopy-Loss & Water-Rejected Dry-Surface Context Index',
     platform: 'Sentinel-2',
     platformShort: 'S2',
-    formula: 'max(0, 0.4 − NDVI) × max(0, MSI − 0.8) × 3',
-    implementedFormula: 'max(0, 0.4 − NDVI) × max(0, MSI − 0.8) × 3',
+    formula: 'WaterReject × max(0, 0.4 − NDVI) × max(0, MSI − 0.8) × 3',
+    implementedFormula: 'WaterReject × max(0, 0.4 − NDVI) × max(0, MSI − 0.8) × 3',
     proposedFormula: 'LST-based heat-island model = f(ECOSTRESS/thermal LST, NDVI, surface moisture, urban morphology, time-of-day)',
-    physics: 'The live layer combines an NDVI deficit with a SWIR/NIR moisture-stress ratio (MSI = B11/B08) over Sentinel-2 optical bands only. It does not read ECOSTRESS or any thermal data, and the output is not a land-surface-temperature or heat-island-intensity measurement.',
-    benefit: 'Screens neighborhoods for low-canopy, dry-surface context associated with urban heat exposure. Measuring heat-island intensity itself requires thermal/LST data this layer does not use.',
+    physics: 'The live layer combines an NDVI deficit with a SWIR/NIR moisture-stress ratio (MSI = B11/B08) over Sentinel-2 optical bands only, then applies a simple water rejection gate from NDWI and MNDWI so canals, ponds, and rivers do not become high dry-surface scores. It does not read ECOSTRESS or any thermal data, and the output is not a land-surface-temperature, impervious-surface, water, or heat-island-intensity measurement.',
+    benefit: 'Screens neighborhoods for low-canopy, dry-surface context associated with urban heat exposure while suppressing open water. Measuring heat-island intensity itself requires thermal/LST data this layer does not use.',
     requiredInputs: ['Sentinel-2 L2A'],
     units: 'Uncalibrated dimensionless screening score',
     // 2026-07-23 QC: the 2021-07-20 bookmark had a large no-data gap covering roughly a third of
@@ -2160,7 +2164,7 @@ const ARTICLE_LEADS = {
     acquisitionCloudCover: '6.90%',
   },
   ecaci: {
-    articleAngle: 'Phoenix exposed-surface and low-canopy context during extreme summer heat.',
+    articleAngle: 'Phoenix water-rejected exposed-surface and low-canopy context during extreme summer heat.',
     // Bookmark moved from 2021-07-20 to 2021-07-05 (see FORMULA_V2_OVERRIDES.ecaci) to drop a
     // large no-data gap in the WMS response. The prior timestamp/cloud-cover pair belonged to the
     // old date; left null rather than re-asserting unverified numbers for the new one.

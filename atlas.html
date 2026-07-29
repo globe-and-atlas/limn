@@ -371,9 +371,17 @@
     }
     .hud-input:focus { border-color: rgba(0,210,255,0.4); }
 
-    select.date-dropdown {
+    select.date-dropdown,
+    select.atlas-ramp-select {
       color-scheme: dark;
+    }
+
+    select.date-dropdown {
       max-width: 190px;
+    }
+
+    select.atlas-ramp-select {
+      width: 150px;
     }
 
     #opacity-slider {
@@ -2016,6 +2024,18 @@
         <div class="hud-panel">
           <span class="hud-label">Opacity</span>
           <input id="opacity-slider" type="range" min="0" max="1" step="0.05" value="0.85">
+        </div>
+        <div class="hud-panel">
+          <span class="hud-label">Ramp</span>
+          <select id="atlas-ramp-select" class="hud-input atlas-ramp-select" aria-label="Atlas overlay color ramp">
+            <option value="native">Native</option>
+            <option value="contrast">High contrast</option>
+            <option value="cyan-magenta">Cyan/Magenta</option>
+            <option value="blue-amber">Blue/Amber</option>
+            <option value="viridis">Viridis</option>
+            <option value="magma">Magma</option>
+            <option value="lime-rose">Lime/Rose</option>
+          </select>
         </div>
         <div class="hud-panel">
           <span class="hud-label">Cloud</span>
