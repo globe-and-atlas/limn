@@ -14,7 +14,12 @@ function evaluatePixel(sample) {
   return [val, val, val, 1.0];
 }
 `);
-const SH_WMS_URL = 'https://sh.dataspace.copernicus.eu/ogc/wms/959ea2c5-5892-4b36-82b3-76e6bdb93c8a';
+const SH_INSTANCE_ID = process.env.CDSE_INSTANCE_ID;
+if (!SH_INSTANCE_ID) {
+  console.error('Set CDSE_INSTANCE_ID before running this script (see .env.example).');
+  process.exit(1);
+}
+const SH_WMS_URL = `https://sh.dataspace.copernicus.eu/ogc/wms/${SH_INSTANCE_ID}`;
 const url = `${SH_WMS_URL}?SERVICE=WMS&REQUEST=GetMap&LAYERS=AGRICULTURE&FORMAT=image/png&TRANSPARENT=false&VERSION=1.3.0&TIME=2024-04-10/2024-04-30&MAXCC=15&WIDTH=400&HEIGHT=300&CRS=CRS:84&BBOX=-103.9369,31.5345,-103.9315,31.5384&EVALSCRIPT=${encodeURIComponent(b64Bg)}`;
 
 fetch(url).then(res => {

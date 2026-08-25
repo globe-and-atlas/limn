@@ -473,8 +473,8 @@ Verify Limn Atlas source/citation links and bookmark/date choices so the info pa
 - Fixed CSRC so the Lake Taihu bookmark now cites a Lake Taihu satellite-monitoring source.
 - Updated MP-PDI from zoom 9 to zoom 10 to satisfy the Sentinel-2 minimum zoom rule.
 - Updated S1-OWF, S5P-NO2, and S5P-SO2 demo bookmarks to the best previously measured hotspot coordinates.
-- Confirmed `sh-d7374040-889f-4013-aac2-046a15f6d8ba` is not accepted as an OGC WMS configuration endpoint.
-- Verified `83a6b821-c0ad-43b1-848f-06f7b6b528a7` as the alternate OGC WMS configuration id; direct `GetCapabilities` returned `200 application/xml`.
+- Confirmed the `sh-d...` prefixed configuration id is not accepted as an OGC WMS configuration endpoint.
+- Verified the alternate OGC WMS configuration id (see `config-v1.js`, not committed); direct `GetCapabilities` returned `200 application/xml`.
 - Browser verification passed for PETI and CSRC citations after cache-busting Atlas data imports.
 - Fresh-process catalog verifier passed for PETI/CSRC sources, MP-PDI zoom, S1/S5P demo coordinates, and absence of the invalid `sh-d...` WMS id.
 - Verification passed: `node --check src/atlas-app.js`, `node --check src/atlas-indices.js`, `node --check src/atlas-sar-demos.js`, `node --check src/atlas-s5p-demos.js`, `python3 -m py_compile execution/qc_atlas_bookmarks.py`, `node tests/test_gee_provider.mjs`, `node tests/test_atlas_sentinel_toggle.mjs`, fresh-process catalog verifier, and `git diff --check`.
