@@ -203,3 +203,5 @@
 - 2026-07-25 16:09 — commit: docs: add ATLAS.md and restructure README around both apps | ATLAS.md,README.md
 - 2026-07-25 16:09 — commit: docs: append auto-generated post-commit session checkpoint | knowledge/SESSION.md
 - 2026-07-25 16:09 — commit: docs: append auto-generated post-commit session checkpoint | knowledge/SESSION.md
+- 2026-07-28 21:09 — commit: feat: implement EC-ACI water-rejection gate, upgrade visual rendering to bicubic interpolation, and add Atlas HUD color-ramp controls. | .claude/agent-memory/web-ui-tester/MEMORY.md,.claude/agent-memory/web-ui-tester/project_limn_coord_marker.md,.claude/agent-memory/web-ui-tester/project_limn_ksi_vssi_sar.md,.claude/agent-memory/web-ui-tester/reference_playwright_via_npx_cache.md,atlas.html
+- 2026-08-24 22:34 — commit: fix: stop hardcoding Sentinel Hub instance ID in test script and dev notes | task.md,tests/test_gif_fetch.js

@@ -1,6 +1,6 @@
-# CLAUDE.md
+# Agent Instructions
 
-This file provides guidance to Claude Code when working in this repository.
+> **This is the canonical file for this project.** `CLAUDE.md` imports it via `@AGENTS.md`. `GEMINI.md` stays thin since Antigravity reads both files in the same directory. Tool-agnostic conventions (3-layer architecture, Contract, Checkpointing) live in the global config for each tool and the workspace-root `AGENTS.md` — both auto-concatenate with this file. Don't restate that content here.
 
 ## Project Overview
 
@@ -57,20 +57,6 @@ node tests/test_pwi.js
 
 NDMI, NDWI, NDSI (Salinity), NDVI, SAVI, MSI, Brine/NDSI, Clay Ratio, HCAI (Hydrocarbons), HMRI (Heavy Metals), PWI (Produced Water Index — composite), SAR VV/VH, True Color, False Color.
 
----
+## Safety
 
-## Agent Instructions
-
-You operate within a **3-layer architecture**.
-
-**Layer 1 - Directives** (`directives/`): Markdown SOPs for goals, inputs, tools, outputs.
-**Layer 2 - Orchestration** (you): Read directives → call scripts → handle errors.
-**Layer 3 - Execution** (`execution/`): Deterministic scripts with error handling.
-
-Before acting:
-1. Identify target directive(s) in `directives/` (or say "none found")
-2. List intended execution scripts (or say "none found")
-3. State expected output and location
-4. Confirm safety: never commit `config-v1.js`, `config.js`, `app-config.js`, `.env`, or `.tmp/`
-
-Log to `.tmp/runlog.md` for complex tasks.
+Never commit `config-v1.js`, `config.js`, `app-config.js`, `.env`, or `.tmp/`.
