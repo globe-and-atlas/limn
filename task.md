@@ -5,8 +5,8 @@
 - [x] Site choices come from the real bookmark registry.
 - [x] Research controls remain accessible.
 - [x] Browser workflow tests pass.
-- [ ] Public GitHub receives the implementation.
-- [ ] Render runs the implementation.
+- [x] Public GitHub receives the implementation.
+- [x] Render runs the implementation.
 
 ---
 

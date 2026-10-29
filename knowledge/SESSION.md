@@ -1,10 +1,10 @@
 # Light Guided Explorer — 2026-10-29
 
 Goal: implement selected light design, test, publish to public/main, redeploy Render.
-Status: implementation ready for deployment. Place / Imagery / View, native dates, primary lenses, research disclosure, Advanced tools, responsive layout implemented. Browser route passes; core UI, science status, Render routing, core/scan parity, spill timeline, GEE provider, Limn/Atlas date filtering pass. No scientific formula changes.
+Status: deployed and verified on Render Free, commit d56b413 (UI commit adcf348), deploy dep-dbhm4tfb9u1s73f78ak0. Place / Imagery / View, native dates, primary lenses, research disclosure, Advanced tools, responsive layout implemented. Browser route passes; core UI, science status, Render routing, core/scan parity, spill timeline, GEE provider, Limn/Atlas date filtering pass. No scientific formula changes.
 
 S.D.G.: Surface investigators get a clearer route from location to imagery to comparison.
-Feynman gap: Real deployed layout and tile loading still require post-deployment verification.
+Feynman gap: Live Explore/Compare switching, lens selection, real imagery and acquisition 2025-12-02 verified. Free-tier cold tile latency remains; sustained load was not benchmarked.
 
 # Session State — sentinel-explorer
 
@@ -283,3 +283,5 @@ Feynman gap: The code now reports what scene was shown, but the pixels still can
 - 2026-10-29 09:18 — commit: Bundle browser runtime assets to fix Render startup | index.html,knowledge/ERRORS.md,knowledge/domain/deps.md,src/vendor/SOURCES.md,src/vendor/chart.LICENSE
 - 2026-10-29 09:21 — commit: Install Rasterio Linux library and queue free-tier tile requests | Dockerfile,server/gee_tile_server.mjs
 - 2026-10-29 09:47 — commit: Remove per-tile glow causing artificial cyan grid | RENDER_DEPLOY.md,knowledge/ERRORS.md,knowledge/SESSION.md,style.css,task.md
+- 2026-10-29 10:12 — commit: Implement light Guided Explorer and comparison workflow | index.html,knowledge/INDEX.md,knowledge/SESSION.md,knowledge/procedural/light-guided-ui.md,src/app.js
+- 2026-10-29 10:12 — commit: Ignore detached tile nodes during browser style assertion | tests/test.cjs
