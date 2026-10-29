@@ -1,9 +1,9 @@
 # Restore previous interface — 2026-10-29
 
 - [x] Previous dark interface restored.
-- [ ] Browser smoke passes.
-- [ ] Revert pushed to public GitHub.
-- [ ] Render serves previous interface.
+- [x] Browser smoke passes.
+- [x] Revert pushed to public GitHub.
+- [x] Render serves previous interface.
 
 # Objective — Light Guided Explorer (2026-10-29)
 

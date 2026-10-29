@@ -1,6 +1,6 @@
 # Restore dark interface — 2026-10-29
 
-User rejected implemented light design. Restored frontend and browser tests to 32d43b3, preserving prior grid fix. Light design code removed; deployment pending.
+User rejected implemented light design. Restored frontend and browser tests to 32d43b3, preserving prior grid fix. Light design code removed. Browser smoke passed; b496902 pushed to public/main and Render deployment succeeded in 41.6s. Live reload confirms no guided-controls and restored LIMN sidebar.
 
 # Light Guided Explorer — 2026-10-29
 
@@ -290,3 +290,4 @@ Feynman gap: The code now reports what scene was shown, but the pixels still can
 - 2026-10-29 10:12 — commit: Implement light Guided Explorer and comparison workflow | index.html,knowledge/INDEX.md,knowledge/SESSION.md,knowledge/procedural/light-guided-ui.md,src/app.js
 - 2026-10-29 10:12 — commit: Ignore detached tile nodes during browser style assertion | tests/test.cjs
 - 2026-10-29 10:14 — commit: Record verified light UI deployment | knowledge/SESSION.md,task.md
+- 2026-10-29 10:17 — commit: Restore previous dark Limn interface | index.html,knowledge/SESSION.md,src/app.js,src/light-ui.css,src/light-ui.js
