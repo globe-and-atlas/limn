@@ -35,3 +35,5 @@
 
 ## Error Log
 - [ERRORS.md](ERRORS.md) — Chronological bug log with root causes and fixes; 2026-10-25 COG metadata channel fix
+
+- [light-guided-ui.md](procedural/light-guided-ui.md) — 2026-10-29 guided UI controller ownership and verification workflow

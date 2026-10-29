@@ -2,6 +2,7 @@
    Limn - Core Logic (ES Module Entry Point)
    ========================================================================== */
 
+import { initLightUi } from './light-ui.js';
 import { getCDSEToken } from './auth.js';
 
 import {
@@ -1386,6 +1387,11 @@ document.addEventListener('DOMContentLoaded', () => {
     state.baseLayerInst.bringToBack();
 
     bindEvents();
+    initLightUi({
+        state, sites: SPILL_BOOKMARKS,
+        onSite: id => { selectSpill(getSpillById(id), { fly: true }); applyIndex(); },
+        onLens: key => { state.activeIndex = key; applyIndex(); },
+    });
     syncSentinelCreditGuardState();
     updateSentinelGuardUI();
 

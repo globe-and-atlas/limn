@@ -1,4 +1,20 @@
+# Light Guided Explorer — 2026-10-29
+
+Goal: implement selected light design, test, publish to public/main, redeploy Render.
+Status: implementation ready for deployment. Place / Imagery / View, native dates, primary lenses, research disclosure, Advanced tools, responsive layout implemented. Browser route passes; core UI, science status, Render routing, core/scan parity, spill timeline, GEE provider, Limn/Atlas date filtering pass. No scientific formula changes.
+
+S.D.G.: Surface investigators get a clearer route from location to imagery to comparison.
+Feynman gap: Real deployed layout and tile loading still require post-deployment verification.
+
 # Session State — sentinel-explorer
+
+## 2026-10-29 — Artificial tile-grid fix
+
+User screenshot revealed rectangular cyan outlines. Removed per-tile CSS blur/drop-shadow/saturation/brightness from style.css; browser smoke asserts computed tile filter is none. Commit 32d43b3 pushed to public/main and manually deployed on Render. Live OXY/SWIR check showed 48 tile images with filter none and returned scene metadata for 2026-06-08. Some tiles were still loading on Free compute during visual check; removal of the edge-producing filter is verified.
+
+S.D.G.: Investigators see surface contrasts without synthetic cyan tile-boundary outlines.
+Feynman gap: Cloud mosaics and per-tile acquisition choices may still create ordinary seams; this fix removes the CSS glow artifact only.
+
 
 ## 2026-10-29 — Render live deployment verified
 
@@ -266,3 +282,4 @@ Feynman gap: The code now reports what scene was shown, but the pixels still can
 - 2026-10-29 08:55 — commit: Patch Render Pillow dependency and audit Python runtime requirements | knowledge/SESSION.md,knowledge/domain/deps.md,requirements-render.txt,task.md
 - 2026-10-29 09:18 — commit: Bundle browser runtime assets to fix Render startup | index.html,knowledge/ERRORS.md,knowledge/domain/deps.md,src/vendor/SOURCES.md,src/vendor/chart.LICENSE
 - 2026-10-29 09:21 — commit: Install Rasterio Linux library and queue free-tier tile requests | Dockerfile,server/gee_tile_server.mjs
+- 2026-10-29 09:47 — commit: Remove per-tile glow causing artificial cyan grid | RENDER_DEPLOY.md,knowledge/ERRORS.md,knowledge/SESSION.md,style.css,task.md

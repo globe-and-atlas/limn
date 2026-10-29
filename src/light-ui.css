@@ -1,0 +1,68 @@
+/* Limn Guided Explorer — warm paper, ink, and restrained teal. */
+body.limn-light { --bg-base:#f5f4ef; --bg-panel:#fffefa; --bg-panel-hover:#eaf1ee; --text-main:#1c3035; --text-dim:#4c6266; --text-dark:#314e54; --text-muted:#53696d; --accent-blue:#086574; --accent-primary:#086574; --accent-green:#12735b; --accent-orange:#915b08; --border-color:#d7dfdc; --border-glow:#b1cecb; --panel-blur:none; --shadow-lg:0 8px 30px #203b4220; color-scheme:light; }
+.limn-light::before { display:none; }
+.light-masthead { height:64px; position:fixed; top:0; left:0; right:0; z-index:1500; display:flex; align-items:center; justify-content:space-between; padding:0 26px; background:#fffefa; border-bottom:1px solid #d7dfdc; }
+.light-brand { font:32px Georgia,serif; letter-spacing:1px; color:#183a43; text-decoration:none; }
+.light-brand span { font:13px var(--font-ui); letter-spacing:0; margin-left:12px; color:#52696d; }
+.light-masthead nav { display:flex; align-self:stretch; gap:20px; }
+.light-masthead button { background:none; color:#40575c; border:0; min-height:44px; padding:0 16px; font-size:15px; cursor:pointer; border-radius:0; }
+.light-masthead nav button[aria-pressed=true] { color:#075c69; border-bottom:3px solid #087481; font-weight:700; }
+.limn-light .app-container { padding-top:64px; }
+.limn-light .map-container { height:calc(100dvh - 64px); margin-left:360px; }
+.limn-light .sidebar { top:64px!important; left:0!important; bottom:0!important; width:360px!important; border-radius:0; background:#fffefa!important; padding:25px 24px; border:0; border-right:1px solid #d7dfdc; box-shadow:none; }
+.limn-light:not(.light-advanced) .sidebar > :not(#guided-controls) { display:none!important; }
+.limn-light.light-advanced #guided-controls { display:none; }
+.guide-eyebrow { font-size:10px; letter-spacing:1.7px; color:#597075; margin-bottom:26px; }
+.guide-step { position:relative; padding-left:35px; margin:0 0 25px; }
+.guide-step h2 { font:23px Georgia,serif; color:#18373f; margin:0 0 14px; text-transform:none; letter-spacing:0; }
+.guide-number { position:absolute; left:0; top:-2px; width:25px; height:25px; border-radius:50%; background:#086574; color:white; display:grid; place-items:center; font-size:12px; }
+#guided-controls label { display:block; font-size:12px; font-weight:600; color:#435d62; margin:12px 0 7px; }
+#guided-controls select, #guided-controls input { color:#203b42!important; background:white!important; border:1px solid #cbd6d3!important; width:100%; min-height:44px; border-radius:7px; padding:9px; font:13px var(--font-ui); }
+#guided-controls .search-box { margin:10px 0; gap:6px; }
+#guided-controls .search-box input { min-width:0; font-size:12px; }
+#guided-controls .search-btn { background:#edf3f1; color:#135b65; border:1px solid #cbd6d3; min-height:44px; }
+#guide-coordinates { font:11px var(--font-mono); margin:10px 0; color:#52696d; }
+#guided-controls details { border-top:1px solid #dce3df; margin-top:12px; padding-top:10px; }
+#guided-controls summary { min-height:32px; cursor:pointer; color:#28535c; font-size:12px; }
+#guided-controls details p, .guide-caption { color:#53696d; font-size:12px; line-height:1.6; margin:5px 0; }
+#guide-acquisitions { overflow-wrap:anywhere; font-size:11px!important; }
+.guide-lenses { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:12px; }
+.guide-lenses button { text-align:left; border:1px solid #d4dfda; border-radius:9px; background:#fff; color:#22434b; min-height:83px; padding:12px 9px; cursor:pointer; }
+.guide-lenses button[aria-pressed=true] { background:#e3f2ef; border-color:#08717d; box-shadow:inset 0 0 0 1px #08717d; }
+.guide-lenses strong { display:block; font-size:12px; margin-bottom:6px; }
+.guide-lenses span { display:block; font-size:10px; line-height:1.5; color:#53696d; }
+.guide-primary { background:#075c69; color:white; border:0; border-radius:7px; margin-top:18px; padding:13px 10px; width:100%; min-height:46px; cursor:pointer; font-size:12px; }
+.guide-primary span { float:right; }
+.guide-footnote { border-top:1px solid #dce3df; padding-top:14px; color:#53696d; font-size:11px; line-height:1.6; }
+.limn-light button:focus-visible,.limn-light select:focus-visible,.limn-light summary:focus-visible,.limn-light input:focus-visible { outline:3px solid #278a9b!important; outline-offset:3px; }
+.limn-light .glass-panel, .limn-light .map-controls-tr, .limn-light .legend-panel { background:#fffefaf5!important; color:#233f46; border-color:#d4dfda; backdrop-filter:none; box-shadow:0 4px 20px #193b421c; }
+.limn-light .layer-toggle { color:#3f5a60; min-height:38px; }
+.limn-light .layer-toggle.active { background:#075c69; color:white; border-color:#075c69; box-shadow:none; }
+.limn-light .sentinel-guard-mini { display:none; }
+.limn-light.light-advanced .sentinel-guard-mini { display:flex; }
+.limn-light .map-controls-tr { top:18px; right:18px; padding:5px; border-radius:8px; }
+.limn-light .legend-panel { bottom:105px; right:18px; max-width:270px; border-radius:9px; }
+.limn-light .legend-header h3 { font-size:13px; line-height:1.4; }
+.limn-light .sensor-tag { color:#4b656a; background:#e8eeeb; }
+.limn-light .scientific-status-display { color:#52666a; border-color:#d7dfdc; font-size:10px; }
+.light-map-context { position:absolute; bottom:20px; left:20px; right:20px; max-width:650px; z-index:1000; background:#fffefa; border:1px solid #d7dfdc; border-radius:10px; padding:14px 18px; box-shadow:0 4px 20px #193b4218; }
+.light-map-context summary { font:17px Georgia,serif; color:#1f4149; cursor:pointer; }
+.light-map-context p { color:#52696d; font-size:12px; line-height:1.6; margin-top:10px; }
+.limn-light .map-layer-status { top:20px; left:20px; transform:none; background:#fffefa; color:#31585f; border-color:#cadad5; box-shadow:0 2px 12px #203b4220; }
+.limn-light .loading-overlay { background:#f5f4ef; }
+.limn-light .loading-card { background:#fffefa; border-color:#d7dfdc; }
+.limn-light .loading-text { color:#456169; }
+.limn-light .tooltip { background:#fffefa; color:#243f45; border-color:#cbd6d3; }
+@media(max-width:760px) { .light-masthead { height:58px; padding:0 12px; } .light-brand { font-size:23px; } .light-brand span { display:none; } .light-masthead nav { gap:0; } .light-masthead button { padding:0 9px; font-size:12px; } .limn-light .app-container { padding-top:58px; } .limn-light .map-container { margin-left:0; height:calc(55dvh - 58px); } .limn-light .sidebar { top:55dvh!important; left:0!important; width:100%!important; height:45dvh; padding:18px 24px; border-top:1px solid #cbd6d3; } #guided-controls { max-width:650px; margin:auto; } .limn-light .legend-panel { bottom:55px; max-width:210px; } .light-map-context { bottom:8px; left:8px; right:auto; max-width:250px; padding:9px 12px; } .light-map-context summary { font-size:13px; } .limn-light .map-controls-tr { top:8px; right:8px; } .limn-light .map-layer-status { top:62px; left:8px; max-width:240px; } }
+
+/* Keep inherited legacy panel/button rules from collapsing guided controls. */
+.limn-light .sidebar { max-width:none!important; }
+#guided-controls .search-box { display:flex; align-items:stretch; }
+#guided-controls .search-box input { flex:1 1 0; width:0; }
+#guided-controls .search-box button { flex:0 0 44px; width:44px; padding:8px; }
+.limn-light #active-index-name { color:#203e46!important; }
+.limn-light .legend-panel .formula-display { color:#405e65; }
+@media(max-width:760px) { .limn-light .sidebar { max-width:none!important; min-width:0; margin:0!important; } .limn-light .legend-panel { display:none; } }
+
+.guide-acquired { color:#174f5a; font-size:12px; line-height:1.6; margin:8px 0; }
+@media(max-width:760px) { .limn-light .map-container,.limn-light #map { min-height:0!important; } .limn-light .sidebar { right:0!important; transition:none; } }

@@ -1,8 +1,20 @@
+# Objective — Light Guided Explorer (2026-10-29)
+
+- [x] Explore uses the Place / Imagery / View flow.
+- [x] Compare exposes the existing date selectors.
+- [x] Site choices come from the real bookmark registry.
+- [x] Research controls remain accessible.
+- [x] Browser workflow tests pass.
+- [ ] Public GitHub receives the implementation.
+- [ ] Render runs the implementation.
+
+---
+
 # Objective — Remove rendered tile grid (2026-10-29)
 
-- [ ] Map tile images have no CSS filter.
-- [ ] Browser smoke checks computed tile filters.
-- [ ] Live Render deployment displays unfiltered tiles.
+- [x] Map tile images have no CSS filter.
+- [x] Browser smoke checks computed tile filters.
+- [x] Live Render deployment displays unfiltered tiles.
 
 ---
 
