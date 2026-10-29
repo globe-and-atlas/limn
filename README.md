@@ -21,14 +21,14 @@ Built on free Copernicus satellite data (Sentinel-2 optical + Sentinel-1 SAR), i
 
 ## What it does
 
-- **Visualizes 36 optical and radar lenses** across Sentinel-2 L2A and Sentinel-1 GRD, including established context indices and explicitly experimental produced-water composites
+- **Defines 38 optical and radar lenses** across Sentinel-2 L2A and Sentinel-1 GRD; 21 are available on the default COG provider. These include context indices and explicitly experimental produced-water composites.
 - **Streams live WMS tiles** using Sentinel Hub's processing API, with calibration injection so thresholds tune without rebuilding evalscripts
 - **Computes multi-temporal differences** — compare any two dates to see what changed
 - **Accumulates signals** with cumulative MAX mode — catches spills that dried up before your query date
 - **Scans an area of interest** with the Statistics API — draw a polygon, get an anomaly timeline across 8 indices simultaneously
 - **Bookmarks documented spill and context sites** across the Permian Basin, with explicit evidence class, source, date role, and coordinate precision
 
-**Current scientific status (2026-07-21):** PWCI, ASAI, and OBEC are experimental screening architectures, not validated detectors. The development pipeline paired recall of 81.5% / 77.8% / 66.7% with background activation of 96.7% / 71.3% / 71.3%. The shipped precision-first viewer produced 0/150 background activations but was also blank at all 11 reviewed positive sites. A 1,224-combination threshold sweep found no useful produced-water/caliche separation at the tested 500 m single-scene support. LBI's 2/4 standing-brine versus 0/3 freshwater result is preliminary (two-sided Fisher exact p≈0.43). See [the current status note](knowledge/domain/scientific-status-2026-07-20.md) and [investigation summary](reports/investigation_summary_2026-07-20.md).
+**Current scientific status (2026-10-25):** PWCI, ASAI, and OBEC are experimental screening architectures, not validated detectors. The development pipeline paired recall of 81.5% / 77.8% / 66.7% with background activation of 96.7% / 71.3% / 71.3%. The shipped precision-first viewer produced 0/150 background activations but was also blank at all 11 reviewed positive sites. A 1,224-combination threshold sweep found no useful produced-water/caliche separation at the tested 500 m single-scene support. LBI responded at 2/4 labeled standing-brine sites, but one of the three archived nominal water controls is about 3.3 km from its named lake. The old 0/3 comparison is not valid as a three-waterbody test. See [the current status note](knowledge/domain/scientific-status-2026-07-20.md) and [corrected LBI study](reports/lbi_brine_validation_2026-07-20.md).
 
 **Limn Atlas is documented separately.** `atlas.html` organizes 91 proposed environmental index specifications into 24 capability families across twelve domains — 37 render live, 16 are executable but non-live, 38 are specified concepts or retired formulas. It is published as the *Global Spectral Index Atlas* preprint. Atlas overlays are inspectable context, not extensions of Limn's produced-water validation. **See [ATLAS.md](ATLAS.md).**
 
@@ -47,6 +47,10 @@ python3 -m http.server 8080
 Then open `http://localhost:8080`.
 
 ---
+
+## Deploy the produced-water app
+
+See [RENDER_DEPLOY.md](RENDER_DEPLOY.md) for the Docker package and Render Free Blueprint.
 
 ## Setup: Sentinel-2 COGs and Google Earth Engine
 
@@ -180,7 +184,7 @@ atlas.html           # Limn Atlas entry point — see ATLAS.md
 config.example.js    # Credential template — copy to config-v1.js and fill in
 src/
   app.js             # Map init, WMS layers, spill bookmarks
-  indices.js         # All 36 lens definitions, evalscripts, and calibration presets
+  indices.js         # All 38 lens definitions, evalscripts, and calibration presets
   map.js             # WMS tile construction and request management
   ui.js              # Control panels and UI logic
   charts.js          # Statistics API scan, anomaly timeline chart

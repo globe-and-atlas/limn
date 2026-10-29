@@ -218,6 +218,12 @@ const RateLimitedTile = L.TileLayer.extend({
                     return null;
                 }
                 if (!response.ok) throw await buildGeeFetchError(response);
+                const metadata = response.headers.get('X-Limn-COG-Metadata');
+                if (metadata) {
+                    try {
+                        this.fire('tilemetadata', { metadata: JSON.parse(decodeURIComponent(metadata)), url });
+                    } catch (_) { /* Image can still render if metadata is malformed. */ }
+                }
                 return response.blob();
             })
             .then(blob => {
@@ -305,7 +311,7 @@ export function getCOGLayer(state, config, timeStr, isDiff, overrideIndex = null
         crossOrigin: 'anonymous',
         updateWhenIdle: true,
         detectRetina: false,
-        maxConcurrent: 6,
+        maxConcurrent: Number(config.COG_MAX_CONCURRENT || 2),
         retries: 2,
         retryDelay: 1200
     });
@@ -323,6 +329,10 @@ export function getCOGLayer(state, config, timeStr, isDiff, overrideIndex = null
 
     layer.on('tileloadstart', () => {
         if (state.map) state.map.fire('tileloadstart', { layer: activeIdx });
+    });
+
+    layer.on('tilemetadata', (event) => {
+        if (state.map) state.map.fire('cogtilemetadata', { ...event, layer: activeIdx, target: timeStr });
     });
 
     layer.on('load', () => {

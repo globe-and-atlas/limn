@@ -890,8 +890,8 @@ export const INDICES = {
     },
     hpwi: {
         name: 'OBEC — Optical Brightness/Edge Contrast (legacy Oil-Brine Emulsion Composite)',
-        primaryScreener: true,
-        fieldRole: 'Primary screener for pad-scale optical contrast and flowline releases. Combines hydrocarbon NDOI with dual-SWIR salinity and surface smoothness.',
+        primaryScreener: false,
+        fieldRole: 'Experimental optical-contrast response; the reviewed development set did not establish useful spill/background separation.',
         tags: ['salinity', 'produced-water'],
         sensor: 'Sentinel-2 L2A',
         temporal: '0-3M',
@@ -1184,8 +1184,8 @@ export const INDICES = {
     },
     lbi: {
         name: 'LBI — Liquid/Salinity Response Index (formerly Liquid Brine Index)',
-        primaryScreener: true,
-        fieldRole: 'Primary screener for standing liquid brine, containment pit overflows, and crater blowouts. Bypasses bare-soil mask when standing water is detected.',
+        primaryScreener: false,
+        fieldRole: 'Preliminary standing-water response; the small control comparison includes a misplaced off-lake point.',
         tags: ['salinity', 'produced-water'],
         sensor: 'Sentinel-2 L2A',
         temporal: '0-3M',
@@ -1193,7 +1193,7 @@ export const INDICES = {
         gradient: 'linear-gradient(to right, #000000, #0055ff, #00d2ff, #ffffff)',
         formula: '20·max(0,NDSI−0.02)·max(0,NDWI+0.40)·max(0,0.45−NDVI)·G; G=1 when NDWI>0.30, else max(0,BSI+0.20); display≥0.08',
         formulaStatus: 'Implemented water/salinity response proxy with standing-water bypass',
-        validationStatus: 'Preliminary only: 2/4 standing-brine sites versus 0/3 freshwater controls at the reviewed threshold (two-sided Fisher exact p≈0.43); not brine-specific or validated.',
+        validationStatus: 'Preliminary only: 2/4 labeled standing-brine sites responded. The archived 0/3 freshwater/brackish comparison includes an off-lake point and is not valid as stated; not brine-specific or validated.',
         info: 'Experimental liquid/salinity response proxy. It combines dual-SWIR contrast, wetness, low vegetation, and a surface gate; open water bypasses the BSI gate. Preliminary July 2026 sampling found low caliche activation but overlapping standing-brine and freshwater responses, so LBI must not be described as brine-specific or as a general produced-water detector.',
         diffLabels: ['Lower Liquid Response', 'Higher Liquid/Salinity Response'],
         evalscript: genEvalscript(['B02', 'B03', 'B04', 'B08', 'B11', 'B12'], `
@@ -1579,6 +1579,44 @@ function evaluatePixel(sample) {
 `
     }
 };
+
+// The AOI Statistics scan uses the same scalar logic as the map's highlight
+// evaluator. Keep the ordered output contract in one place for app.js charts.
+export const AOI_HISTORY_KEYS = Object.freeze([
+    'pwi', 'hpwi', 'pwoi', 'ndmi', 'ndwi', 'savi', 'vsi', 'tri', 'bpi', 'lbi'
+]);
+
+export function buildAoiHistoryEvalscript(activeBasin = 'permian', sensitivity = 0) {
+    const cal = CALIBRATION_PRESETS[activeBasin] || CALIBRATION_PRESETS.permian;
+    const bands = [...new Set(AOI_HISTORY_KEYS.flatMap(key => INDICES[key].fisBands || []))];
+    const values = AOI_HISTORY_KEYS.map(key => {
+        const logic = INDICES[key].fisLogic
+            .replace(/__BSI_MASK__/g, cal.bsiMask)
+            .replace(/__BSI_OFFSET__/g, cal.bsiOffset)
+            .replace(/__NDWI_OFFSET__/g, cal.ndwiOffset)
+            .replace(/__PWI_SALINITY_OFFSET__/g, cal.pwiSalinityOffset)
+            .replace(/__PWI_HC_OFFSET__/g, cal.pwiHydrocarbonOffset)
+            .replace(/__PWI_HMRI_OFFSET__/g, cal.pwiHmriOffset);
+        return `(function() { ${logic} })()[0]`;
+    });
+    const invalid = AOI_HISTORY_KEYS.map(() => 'NaN').join(',');
+    return `//VERSION=3
+const DETECTION_SENSITIVITY = ${Number(sensitivity) / 100};
+function setup() {
+  return {
+    input: ${JSON.stringify([...bands, 'SCL', 'dataMask'])},
+    output: [
+      { id: "default", bands: ${AOI_HISTORY_KEYS.length}, sampleType: "FLOAT32" },
+      { id: "dataMask", bands: 1, sampleType: "UINT8" }
+    ]
+  };
+}
+function evaluatePixel(sample) {
+  const clearPixel = sample.SCL === 4 || sample.SCL === 5 || sample.SCL === 6 || sample.SCL === 7;
+  if (sample.dataMask === 0 || !clearPixel) return { default: [${invalid}], dataMask: [0] };
+  return { default: [${values.join(',\n    ')}], dataMask: [1] };
+}`;
+}
 
 // Per-index thresholds matching the scan rule engine
 export const HIGHLIGHT_THRESHOLDS = {

@@ -6,6 +6,8 @@
 
 **Browser tile endpoint contract**: `/api/cog/tiles/{z}/{x}/{y}`
 
+**2026-10-25 acquisition provenance contract:** `render_cog_tile.py` writes the selected STAC item ID and acquisition datetime as a JSON line on **stderr**. `server/gee_tile_server.mjs` parses that line, stores it beside each cached PNG as `.png.json`, and returns it in the URL-encoded `X-Limn-COG-Metadata` header on both new renders and disk-cache hits. The browser decodes that header and shows loaded tile acquisitions in the investigation summary. Scene selection remains per tile and cloud-first within the date search window; displayed target dates do not pin an acquisition.
+
 Query params sent by `getCOGLayer()`:
 - `index`: active Limn index key, currently `tc`, `pwi`, `hpwi`, `pwoi`, or `lbi`
 - `time`: `YYYY-MM-DD` or range `YYYY-MM-DD/YYYY-MM-DD`

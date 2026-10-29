@@ -1,0 +1,17 @@
+**
+!Dockerfile
+!package.json
+!package-lock.json
+!requirements-render.txt
+!server/
+!server/gee_tile_server.mjs
+!execution/
+!execution/render_cog_tile.py
+!src/
+!src/**
+!index.html
+!style.css
+!data/
+!data/rrc_spills.json
+src/**/AGENTS.md
+src/test_*

@@ -12,7 +12,7 @@ const atlasHtml = read('atlas.html');
 const atlasEvidence = read('src/atlas-evidence.js');
 const atlasCaptureScript = read('execution/capture_atlas_articles.py');
 const map = read('src/map.js');
-const smoke = read('tests/test.js');
+const smoke = read('tests/test.cjs');
 const shareHtml = read('share.html');
 const server = read('server/gee_tile_server.mjs');
 const cogRenderer = read('execution/render_cog_tile.py');
@@ -122,7 +122,7 @@ assert.match(map, /Public Sentinel-2 COGs \/ Element84 Earth Search/, 'COG attri
 assert.match(map, /fire\('tileloadfinish', \{ layer: activeIdx \}\)/, 'tile completion events should identify the selected lens');
 assert.match(map, /onRemove\(map\)[\s\S]*controller\.abort\(\)/, 'removed COG layers should abort stale in-flight tile requests');
 assert.match(map, /getCOGLayer[\s\S]*tileSize:\s*256[\s\S]*zoomOffset:\s*0/, 'COG layers should render smooth 1:1 256px tiles without 2x DOM stretching');
-assert.match(map, /getCOGLayer[\s\S]*detectRetina:\s*false[\s\S]*maxConcurrent:\s*6/, 'COG layers should avoid Retina request multiplication and load the active view concurrently');
+assert.match(map, /getCOGLayer[\s\S]*detectRetina:\s*false[\s\S]*maxConcurrent:\s*Number\(config\.COG_MAX_CONCURRENT \|\| 2\)/, 'COG layers should avoid Retina request multiplication and honor the configured concurrency budget');
 assert.match(map, /export function getGEELayer/, 'map should provide a GEE tile layer');
 assert.match(map, /\/api\/gee\/tiles/, 'map should keep the GEE endpoint available');
 assert.match(map, /Google Earth Engine \/ Copernicus Sentinel-2/, 'GEE attribution should be visible on tiles');

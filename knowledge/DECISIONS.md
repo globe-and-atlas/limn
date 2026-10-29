@@ -305,3 +305,7 @@
 **Why:** TRRC spill records use parcel centroid coordinates, not the exact spill GPS. A 500m bbox around a centroid frequently captures mixed caliche + vegetation pixels, depressing BSI near zero even at confirmed spill sites. The hard gate produced 0% PWI detection on the 2026-03-08 validation run.
 
 **How applied:** `pwi = pow(pwi_base × 50.0, 1.2) × bsi_weight`. Floor of 0.3 ensures a centroid mis-hit doesn't zero the full score; sites with strong spill chemistry still reach 1.0 via the cubic scaling.
+
+## 2026-10-29 — Public COG-only deployment
+
+Use one Docker web service on Render Free for frontend plus COG rendering. Generate public browser config without credentials when DEPLOY_COG_ONLY=1; disable GEE/prewarm endpoints in that mode. Serve static files through an allowlist rather than repository-root fallback. Limit deployment COG concurrency to one globally and one per browser layer. This preserves arbitrary site/date exploration while constraining memory; 429 responses indicate busy capacity. Local route tests pass; actual hosted memory and image build remain unverified.

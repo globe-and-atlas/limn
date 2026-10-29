@@ -4,11 +4,11 @@
 
 import { getCDSEToken } from './auth.js';
 
-import { 
-    INDICES, 
-    CALIBRATION_PRESETS, 
-    genEvalscript, 
-    genDiffEvalscript, 
+import {
+    INDICES,
+    buildAoiHistoryEvalscript,
+    genEvalscript,
+    genDiffEvalscript,
     genCumulativeEvalscript,
     colorBlend,
     PALETTE_NDMI,
@@ -65,6 +65,7 @@ import {
     switchTab,
     updateUI as updateUIDelegate
 } from './ui.js?v=78';
+import { thresholdResponseIntervals } from './response-intervals.js';
 import { buildSpillEvidenceTimeline } from './evidence-timeline.js';
 
 const AOI_LOCATIONS = {
@@ -531,6 +532,11 @@ function applyIndex(isScrubbing = false) {
     enforceCogTemporalConstraints();
     syncSentinelCreditGuardState();
     state.indexVisible = true;
+    state.cogSceneItems = new Set();
+    const sceneStatus = document.getElementById('cog-scene-status');
+    if (sceneStatus) sceneStatus.textContent = isCogProviderActive()
+        ? 'Acquisition: waiting for COG tile metadata; date controls are search targets.'
+        : 'Acquisition ID is not available in this panel for the selected provider.';
     applyIndexDelegate(state, getActiveConfig(), isScrubbing);
     updateUI();
 }
@@ -541,24 +547,24 @@ function updateUI() {
     updateUIDelegate(state, INDICES);
     setCogUiAvailability();
     updateSentinelGuardUI();
-    
+
     // Geochemical Basin & Sensitivity Calibration UI Isolation
     const SPILL_INDEX_KEYS = ['pwi', 'pwoi', 'hpwi', 'ehc', 'lbi', 'fbc', 'reai', 'vcbi', 'aoi', 'cma', 'hmi', 'phi', 'tri', 'bpi', 'mvpi'];
     const isSpillIndex = SPILL_INDEX_KEYS.includes(state.activeIndex);
-    
+
     const settingsContainers = document.querySelectorAll('#tab-settings .control-group');
     settingsContainers.forEach(container => {
         // Exclude opacity control from calibration isolation
         if (container.classList.contains('op-control')) return;
-        
+
         const select = container.querySelector('select');
         const slider = container.querySelector('input[type="range"]');
-        
+
         if (!isSpillIndex) {
             container.style.opacity = '0.4';
             container.style.pointerEvents = 'none';
             container.style.position = 'relative';
-            
+
             // Add a clean overlay message if not already present
             let msgOverlay = container.querySelector('.calibration-overlay-msg');
             if (!msgOverlay) {
@@ -872,9 +878,9 @@ function updateWorkflowSummary(spill = getActiveSpill(), indexKey = state.active
 function updateWorkflowTemporalStatus() {
     const temporalStatus = document.getElementById('workflow-temporal-status');
     if (!temporalStatus) return;
-    temporalStatus.textContent = state.mode === 'compare'
+        temporalStatus.textContent = state.mode === 'compare'
         ? (state.activeEvidenceComparison || (state.compareType === 'swipe' ? 'Before / after active' : 'Change view active'))
-        : (state.activeEvidenceStage ? `${state.activeEvidenceStage} scene` : 'Single scene');
+        : (state.activeEvidenceStage ? `${state.activeEvidenceStage} target · acquisition varies` : 'Single scene');
     temporalStatus.classList.toggle('quality-chip--conditional', state.mode !== 'compare');
 }
 
@@ -886,7 +892,7 @@ function updatePixelQualityStatus() {
         chip.textContent = sclAvailable ? 'SCL pixel QA on' : 'WMS: no SCL band';
         chip.classList.toggle('quality-chip--conditional', !sclAvailable);
         chip.title = sclAvailable
-            ? 'Sentinel-2 Scene Classification masks cloud, shadow, snow, saturated, dark-feature, and no-data pixels.'
+            ? 'Sentinel-2 Scene Classification rejects cloud, shadow, snow, saturated, dark-feature, and no-data classes. Class 7 (unclassified/low cloud probability) remains allowed, so haze and residual cloud are possible.'
             : 'The active Sentinel Hub WMS layer is Sentinel-2 L1C, which has no SCL band. Limn omits the SCL gate for this provider; use COG/GEE or an L2A WMS configuration for pixel-level SCL QA.';
     });
 }
@@ -1143,7 +1149,7 @@ export function renderSpillBookmarks(indexKey = state.activeIndex) {
         btn.setAttribute('data-tooltip', tooltipText);
 
         btn.innerHTML = `<span class="spill-name">${spill.label}</span><span class="spill-date-tag">${spill.displayDate}</span>`;
-        
+
         btn.addEventListener('click', () => {
             selectSpill(spill, { fly: true });
 
@@ -1300,7 +1306,7 @@ document.addEventListener('DOMContentLoaded', () => {
         ? { lat: initialSpill.lat, lng: initialSpill.lng, zoom: initialSpill.zoom }
         : AOI_LOCATIONS[state.activeLoc];
     state.map = initLeafletMap('map', initialMapLocation);
-    
+
     // Bind Map Events for Loading & Errors
     const mapLoader = document.getElementById('map-loader');
     const mapLayerStatus = document.getElementById('map-layer-status');
@@ -1328,6 +1334,24 @@ document.addEventListener('DOMContentLoaded', () => {
         if (event?.layer && event.layer !== state.activeIndex) return;
         if (mapLoader) mapLoader.classList.remove('active');
         setMapLayerStatus('ready', event?.layer);
+    });
+    state.map.on('cogtilemetadata', (event) => {
+        if (event?.layer !== state.activeIndex || !event.metadata?.item) return;
+        const sceneStatus = document.getElementById('cog-scene-status');
+        if (!sceneStatus) return;
+        const acquired = String(event.metadata.datetime || '').slice(0, 10);
+        const entry = `${acquired || 'undated'} · ${event.metadata.item}`;
+        state.cogSceneItems ||= new Set();
+        state.cogSceneItems.add(entry);
+        const items = [...state.cogSceneItems];
+        const eventDate = getActiveSpill()?.eventDate;
+        const crossesEvent = eventDate && acquired && (
+            (state.activeEvidenceStage === 'before' && acquired >= eventDate) ||
+            (state.activeEvidenceStage === 'event' && acquired < eventDate)
+        );
+        const timingNote = crossesEvent ? ' Selected acquisition crosses the documented event boundary.' : '';
+        sceneStatus.textContent = `COG tile acquisition${items.length === 1 ? '' : 's'}: ${items.slice(0, 3).join(' | ')}${items.length > 3 ? ` | +${items.length - 3} more` : ''}. Selection can vary by tile; dates above are search targets.${timingNote}`;
+        sceneStatus.title = items.join('\n');
     });
     state.map.on('tileerror', (e) => {
         if (e?.layer && e.layer !== state.activeIndex) return;
@@ -1493,7 +1517,7 @@ function getAutoBaselineDate(activeDateStr, targetDaysBack = 30) {
             }
             state.compareType = 'diff';
             state.activeEvidenceComparison = `Auto Baseline Δ (${autoT1} vs ${activeT2})`;
-            
+
             const swipeBtn = document.getElementById('btn-swipe');
             const diffBtn = document.getElementById('btn-diff');
             const cumBtn = document.getElementById('btn-cumulative');
@@ -1512,7 +1536,7 @@ function getAutoBaselineDate(activeDateStr, targetDaysBack = 30) {
     document.querySelectorAll('.index-btn').forEach(btn => {
         const shortSpan = btn.querySelector('.index-short');
         const fullSpan = btn.querySelector('.index-full');
-        
+
         if (shortSpan) {
             // Ensure Name container exists
             let nameWrapper = btn.querySelector('.index-name-wrapper');
@@ -1552,11 +1576,11 @@ function getAutoBaselineDate(activeDateStr, targetDaysBack = 30) {
                     const tooltipText = btn.getAttribute('data-tooltip') || `<strong>${cfg.name}</strong><br>${cfg.info}`;
                     btn.setAttribute('data-tooltip', tooltipText);
                     infoIcon.setAttribute('data-tooltip', tooltipText);
-                    
+
                     // Prevent button click when clicking info icon
                     infoIcon.onclick = (e) => e.stopPropagation();
                 }
-                
+
                 // Capability Badges (Salinity / Produced-Water Brine Screen) — rendered before the
                 // temporal badge so the temporal badge stays the last/rightmost item.
                 if (Array.isArray(cfg.tags) && cfg.tags.length && !btn.querySelector('.capability-badge')) {
@@ -1610,7 +1634,7 @@ function getAutoBaselineDate(activeDateStr, targetDaysBack = 30) {
             target.classList.add('active');
             target.setAttribute('aria-checked', 'true');
             state.activeIndex = target.dataset.index;
-            
+
             // Render Dynamic Bookmarks for this standard index
             renderSpillBookmarks(state.activeIndex);
             updateWorkflowSummary();
@@ -2000,95 +2024,8 @@ function getAutoBaselineDate(activeDateStr, targetDaysBack = 30) {
             const startDate = new Date();
             startDate.setUTCFullYear(startDate.getUTCFullYear() - 1); // 1 Year lookback
 
-            // 2. Setup Evalscript
-            // The scanner checks: PWI, HPWI, PWOI (primary spill composites) and NDMI, NDWI, SAVI (env)
-            const cal = CALIBRATION_PRESETS[state.activeBasin || 'permian'];
-            const pwiLogic = INDICES.pwi.fisLogic
-                .replace(/__BSI_MASK__/g, cal.bsiMask)
-                .replace(/__PWI_SALINITY_OFFSET__/g, cal.pwiSalinityOffset)
-                .replace(/__PWI_HC_OFFSET__/g, cal.pwiHydrocarbonOffset)
-                .replace(/__PWI_HMRI_OFFSET__/g, cal.pwiHmriOffset);
-
-            const fisScript = `//VERSION=3
-const DETECTION_SENSITIVITY = ${state.sensitivity / 100};
-function setup() {
-  return {
-    input: ["B02", "B03", "B04", "B05", "B07", "B08", "B11", "B12", "B8A", "SCL", "dataMask"],
-    output: [
-      { id: "default", bands: 10, sampleType: "FLOAT32" },
-      { id: "dataMask", bands: 1, sampleType: "UINT8" }
-    ]
-  };
-}
-function evaluatePixel(sample) {
-  const clearPixel = sample.SCL === 4 || sample.SCL === 5 || sample.SCL === 6 || sample.SCL === 7;
-  if (sample.dataMask === 0 || !clearPixel) return { default: [NaN,NaN,NaN,NaN,NaN,NaN,NaN,NaN,NaN,NaN], dataMask: [0] };
-
-  // Shared intermediates
-  let ndsiSum = sample.B11 + sample.B12;
-  let ndsi = ndsiSum === 0 ? 0 : (sample.B11 - sample.B12) / ndsiSum;
-  let ndviSum = sample.B08 + sample.B04;
-  let ndvi = ndviSum === 0 ? 0 : (sample.B08 - sample.B04) / ndviSum;
-  let hcaiSum = sample.B11 + sample.B04;
-  let hcai = hcaiSum === 0 ? 0 : (sample.B11 - sample.B04) / hcaiSum;
-  let bsiNum = (sample.B11 + sample.B04) - (sample.B08 + sample.B02);
-  let bsiDen = (sample.B11 + sample.B04) + (sample.B08 + sample.B02);
-  let bsi = bsiDen === 0 ? 0 : bsiNum / bsiDen;
-  let hmri = sample.B03 === 0 ? 0 : sample.B12 / sample.B03;
-
-  // B0: PWI
-  let val_pwi = (function() { ${pwiLogic} })()[0];
-
-  // B1: HPWI
-  let sumNdoi = sample.B02 + sample.B12;
-  let ndoi = sumNdoi === 0 ? 0 : Math.max(0, (sample.B02 - sample.B12) / sumNdoi);
-  let brineBoost = Math.max(0, ndsi - 0.03) * 0.8;
-  let chemSignal = Math.min(1, ndoi + brineBoost);
-  let sumSmooth = sample.B03 + sample.B11;
-  let smooth = sumSmooth === 0 ? 0 : Math.max(0, Math.min(1, ((sample.B03 - sample.B11)/sumSmooth + 0.3) / 0.6));
-  let val_hpwi = Math.min(1, chemSignal * smooth * 6.0);
-
-  // B2: PWOI — optical proxy composite (reuses sumSmooth and ndsiSum from shared intermediates)
-  let apexOVal = sumSmooth === 0 ? 0 : (sample.B03 - sample.B11) / sumSmooth;
-  let apexRadarProxy = Math.max(0, Math.min(1.2, (apexOVal + 0.3) / 0.6));
-  let apexBrineBoost = ndsiSum === 0 ? 0 : Math.max(0, (sample.B11 - sample.B12) / ndsiSum) * 0.4;
-  let apexMoisture = apexOVal + 0.3 + apexBrineBoost;
-  let val_apex = Math.min(Math.max(
-      (apexRadarProxy > 0.7 && apexMoisture > 0.45)
-          ? (apexRadarProxy * 0.4 + apexMoisture * 0.6 + 0.25)
-          : (apexRadarProxy * 0.3 + apexMoisture * 0.7),
-      0), 1);
-
-  // B3: NDMI
-  let sum_ndmi = sample.B8A + sample.B11;
-  let val_ndmi = sum_ndmi === 0 ? NaN : (sample.B8A - sample.B11) / sum_ndmi;
-
-  // B4: NDWI
-  let sum_ndwi = sample.B03 + sample.B11;
-  let val_ndwi = sum_ndwi === 0 ? NaN : (sample.B03 - sample.B11) / sum_ndwi;
-
-  // B5: SAVI
-  let val_savi = ((sample.B08 - sample.B04) / (ndviSum + 0.5)) * 1.5;
-
-  // B6: VSI — Veg Stress Index (S2 only, real)
-  let redEdgeSum = sample.B07 + sample.B05;
-  let redEdgeDelta = redEdgeSum === 0 ? 0 : (sample.B07 - sample.B05) / redEdgeSum;
-  let msi = sample.B8A === 0 ? 0 : sample.B11 / sample.B8A;
-  let val_vsi = Math.max(0, ndsi) * Math.max(0, 0.4 - redEdgeDelta) * Math.max(0, msi - 1.0) * 10.0;
-
-  // B7: TRI — Toxic Residue Index (S2 only, real)
-  let aoi = (sample.B02 === 0 || sample.B12 === 0) ? 0 : (sample.B04 / sample.B02) * (sample.B11 / sample.B12);
-  let val_tri = Math.max(0, ndsi - 0.05) * Math.max(0, (hmri - 1.5) / 2) * Math.max(0, (aoi - 1.5) / 2) * 10;
-
-  // B8: BPI — Brine-Pavement Index (S2 only, real)
-  let val_bpi = Math.max(0, bsi) * Math.max(0, ndsi - 0.03) * Math.max(0, hcai - 0.15) * 30.0;
-
-  // B9: LBI — Liquid/Salinity Response Index (S2 only, real)
-  let ndwi_lbi = sum_ndwi === 0 ? 0 : (sample.B03 - sample.B11) / sum_ndwi;
-  let val_lbi = bsi <= -0.25 ? 0 : Math.max(0, ndsi - 0.02) * Math.max(0, ndwi_lbi + 0.40) * Math.max(0, 0.45 - ndvi) * Math.max(0, bsi + 0.20) * 20.0;
-
-  return { default: [val_pwi, val_hpwi, val_apex, val_ndmi, val_ndwi, val_savi, val_vsi, val_tri, val_bpi, val_lbi], dataMask: [1] };
-}`;
+            // Reuse the exact per-lens scalar logic used by map highlights.
+            const fisScript = buildAoiHistoryEvalscript(state.activeBasin, state.sensitivity);
 
             const geojson = aoiDrawnItem.toGeoJSON();
             const statsPayload = {
@@ -2128,7 +2065,7 @@ function evaluatePixel(sample) {
             // Clear existing anomalies
             state.anomalousDates = [];
 
-            // Define "Danger" Thresholds (modified by sensitivity)
+            // Experimental surface-response thresholds (modified by sensitivity)
             const THRESHOLDS = {
                 pwi: 0.10 - (state.sensitivity / 100 * 0.2),
                 lbi: 0.08,
@@ -2137,7 +2074,7 @@ function evaluatePixel(sample) {
             };
 
             const timelineLabels = [];
-            const timelineData = { 
+            const timelineData = {
                 pwi: [], hpwi: [], pwoi: [], lbi: [], // Primary
                 vsi: [], scri: [], tri: [], bpi: [], // Secondary Effective
                 ndmi: [], ndwi: [] // Standard/Env for rules
@@ -2172,7 +2109,7 @@ function evaluatePixel(sample) {
                         timelineData.ndmi.push(ndmi);
                         timelineData.ndwi.push(ndwi);
 
-                        // Rule Engine: Flag if PWI spikes OR if there's a strong Spill signature (HPWI/PWOI)
+                        // Flag AOI means above exploratory response thresholds; this is not a hazard classifier.
                         if ((pwi  > THRESHOLDS.pwi) ||
                             (hpwi > 0.05) ||
                             (pwoi > 0.05) ||
@@ -2200,9 +2137,9 @@ function evaluatePixel(sample) {
             }
 
             if (state.anomalousDates.length > 0) {
-                showToast(`Scan Complete: ${state.anomalousDates.length} hazardous dates identified`, 'warning');
+                showToast(`Scan complete: ${state.anomalousDates.length} dates above experimental surface-response thresholds`, 'warning');
             } else {
-                showToast('Scan Complete: No major anomalies detected', 'success');
+                showToast('Scan complete: no response above these experimental thresholds', 'success');
             }
 
             // Re-render UI to show highlights
@@ -2218,7 +2155,7 @@ function evaluatePixel(sample) {
 
         } catch (err) {
             console.error("Anomaly scan failed", err);
-            showToast("Anomaly Scan failed. Check browser console for details.", 'warning');
+            showToast("AOI surface-response scan failed. Check browser console for details.", 'warning');
         } finally {
             btn.innerText = originalText;
             btn.disabled = false;
@@ -2281,7 +2218,7 @@ function evaluatePixel(sample) {
                         const datasetIdx = nearest[0].datasetIndex;
                         const label = chart.data.datasets[datasetIdx].label.toLowerCase();
                         const chartValue = chart.data.datasets[datasetIdx].data[idx];
-                        
+
                         // Trigger map highlight
                         showHoverHighlight(date, label, chartValue);
                     }
@@ -2366,8 +2303,8 @@ function evaluatePixel(sample) {
                         ? (ALL_DATES[parseInt(opt.value, 10)] || {}).value
                         : opt.value;
                     if (dateStr && anomalySet.has(dateStr)) {
-                        if (!opt.text.includes('⚠️')) {
-                            opt.text = '⚠️ ' + opt.text;
+                        if (!opt.text.includes('• ')) {
+                            opt.text = '• ' + opt.text;
                             opt.style.color = '#FF8F00';
                             opt.style.fontWeight = 'bold';
                         }
@@ -2448,7 +2385,7 @@ function evaluatePixel(sample) {
   let mask = sample.dataMask;
   const clearPixel = ${isSar ? 'true' : '(sample.SCL === 4 || sample.SCL === 5 || sample.SCL === 6 || sample.SCL === 7)'};
   if (mask === 0 || !clearPixel) return { default: ${isSar ? '[NaN]' : '[NaN, NaN, NaN, NaN]'}, dataMask: [0] };
-  
+
   let val_active = (function() {
     ${idx.fisLogic}
   })()[0];
@@ -2660,7 +2597,7 @@ function evaluatePixel(sample) {
                         throw new Error(`Data Sparsity Error: CDSE Analytics Hub evaluated ${rawRecordsCount} time slices over the period, but 0 slices contained successfully computed index pixels for this AOI.`);
                     }
 
-                    // 1. Interpolate '0' values (often false measurements/clouds for most indices)
+                    // Preserve zero responses; missing scores are not replaced with neighbors.
                     let chartLabels = [];
                     let dataArr = [];
                     let ndmiArr = [];
@@ -2674,25 +2611,6 @@ function evaluatePixel(sample) {
                         let vals = validData[d];
                         let val = vals.active;
 
-                        if (val === 0 || isNaN(val)) {
-                            let leftVal = null, rightVal = null;
-                            for (let j = i - 1; j >= 0; j--) {
-                                if (validData[sortedDates[j]].active !== 0 && !isNaN(validData[sortedDates[j]].active)) { leftVal = validData[sortedDates[j]].active; break; }
-                            }
-                            for (let j = i + 1; j < sortedDates.length; j++) {
-                                if (validData[sortedDates[j]].active !== 0 && !isNaN(validData[sortedDates[j]].active)) { rightVal = validData[sortedDates[j]].active; break; }
-                            }
-                            if (leftVal !== null && rightVal !== null) {
-                                val = (leftVal + rightVal) / 2;
-                            } else if (leftVal !== null) {
-                                val = leftVal;
-                            } else if (rightVal !== null) {
-                                val = rightVal;
-                            } else {
-                                val = 0;
-                            }
-                        }
-
                         chartLabels.push(d.slice(0, 10)); // YYYY-MM-DD
                         dataArr.push(val);
                         ndmiArr.push(isNaN(vals.ndmi) ? null : vals.ndmi);
@@ -2700,64 +2618,8 @@ function evaluatePixel(sample) {
                         ndsiArr.push(isNaN(vals.ndsi) ? null : vals.ndsi);
                     }
 
-                    // 1.5 Secondary Smoothing (Detect anomalous sharp drops/outliers)
-                    // If a point drops below 30% of the average of its immediate neighbors, 
-                    // and those neighbors are reasonably elevated (e.g. > 0.05), we interpolate it.
-                    let outliersSmoothed = 0;
-                    for (let i = 1; i < dataArr.length - 1; i++) {
-                        let prev = dataArr[i - 1];
-                        let next = dataArr[i + 1];
-                        let curr = dataArr[i];
-
-                        let neighborAvg = (prev + next) / 2;
-
-                        if (neighborAvg > 0.05) {
-                            if (curr < (neighborAvg * 0.3)) {
-                                dataArr[i] = neighborAvg; // Interpolate the outlier
-                                outliersSmoothed++;
-                            }
-                        }
-                    }
-
-                    // 2. Metrics Calculation (Multi-Event Detection)
-                    let leakEvents = [];
-                    let isLeakActive = false;
-                    let currentLeakStart = null;
-                    let currentLeakMax = -Infinity;
-
-                    let baseThreshold = 0.1; // Threshold for significant deviation
-
-                    for (let i = 0; i < dataArr.length; i++) {
-                        let val = dataArr[i];
-
-                        if (!isLeakActive && val > baseThreshold) {
-                            // Look back to find where it started rising
-                            let startIdx = i;
-                            while (startIdx > 0 && dataArr[startIdx - 1] < dataArr[startIdx] && dataArr[startIdx - 1] < baseThreshold) {
-                                startIdx--;
-                            }
-                            isLeakActive = true;
-                            currentLeakStart = chartLabels[startIdx];
-                            currentLeakMax = val;
-                        } else if (isLeakActive) {
-                            if (val > currentLeakMax) {
-                                currentLeakMax = val;
-                            }
-
-                            if (val < baseThreshold || i === dataArr.length - 1) {
-                                // Leak ended
-                                let endDate = (val < baseThreshold) ? chartLabels[i] : 'Ongoing';
-                                leakEvents.push({
-                                    start: currentLeakStart,
-                                    end: endDate,
-                                    max: currentLeakMax
-                                });
-                                isLeakActive = false;
-                                currentLeakStart = null;
-                                currentLeakMax = -Infinity;
-                            }
-                        }
-                    }
+                    // Describe raw sampled responses; no inferred leak onset or recovery.
+                    const responseIntervals = thresholdResponseIntervals(chartLabels, dataArr, 0.1);
 
                     // Update DOM Metrics Panel in LIVE app UI (not just export)
                     const metricPanel = document.getElementById('report-metrics-panel');
@@ -2766,20 +2628,17 @@ function evaluatePixel(sample) {
 
                         let eventsContainer = document.getElementById('metric-leak-events');
                         if (eventsContainer) {
-                            if (leakEvents.length === 0) {
-                                eventsContainer.innerHTML = '<span style="color: var(--text-muted);">No significant anomalous events detected above baseline threshold.</span>';
+                            if (responseIntervals.length === 0) {
+                                eventsContainer.innerHTML = '<span style="color: var(--text-muted);">No observed scores above the experimental 0.1 threshold. This does not establish absence of a release.</span>';
                             } else {
-                                let html = leakEvents.map((evt, idx) => `
+                                let html = responseIntervals.map((evt, idx) => `
                                     <div style="margin-bottom: 8px; padding-bottom: 8px; border-bottom: 1px solid rgba(255,255,255,0.05);">
-                                        <strong style="color: var(--accent-orange);">Event ${idx + 1}:</strong> 
+                                        <strong style="color: var(--accent-orange);">Response interval ${idx + 1}:</strong>
                                         <span style="font-family: var(--font-mono);">${evt.start}</span> to <span style="font-family: var(--font-mono);">${evt.end}</span><br>
-                                        <span style="color: var(--text-muted); font-size: 11px;">Peak Severity: ${evt.max.toFixed(4)}</span>
+                                        <span style="color: var(--text-muted); font-size: 11px;">Peak index score: ${evt.max.toFixed(4)}</span>
                                     </div>
                                 `).join('');
 
-                                if (outliersSmoothed > 0) {
-                                    html += `<div style="color: var(--text-dim); font-size: 10px; margin-top: 4px;">*Includes ${outliersSmoothed} interpolated outlier${outliersSmoothed > 1 ? 's' : ''}</div>`;
-                                }
                                 eventsContainer.innerHTML = html;
                             }
                         }
@@ -2813,7 +2672,7 @@ function evaluatePixel(sample) {
                                     <img src="${tcUrl}" style="position: absolute; top:0; left:0; width:100%; height:100%; object-fit: cover; background: #222;" alt="Base">
                                     <img src="${pwiUrl}" style="position: absolute; top:0; left:0; width:100%; height:100%; object-fit: cover; opacity: 0.85;" alt="PWI">
                                     <div style="position: absolute; bottom: 8px; left: 8px; background: rgba(0,0,0,0.8); border: 1px solid rgba(255,140,0,0.5); padding: 4px 8px; border-radius: 4px; color: var(--accent-orange); font-family: var(--font-mono); font-size: 11px; font-weight: bold;">
-                                        ⚠️ ${dateStr}
+                                        Response · ${dateStr}
                                     </div>
                                 </div>
                                 `;
@@ -2965,13 +2824,13 @@ function evaluatePixel(sample) {
                                         const date = chartLabels[idx];
                                         const datasetIdx = nearest[0].datasetIndex;
                                         const rawLabel = chart.data.datasets[datasetIdx].label;
-                                        
+
                                         // Parse index key from label (e.g. "Moisture Context (NDMI)" -> "ndmi")
                                         const match = rawLabel.match(/\(([^)]+)\)/);
                                         const indexKey = match ? match[1].toLowerCase() : rawLabel.toLowerCase();
-                                        
+
                                         const chartValue = chart.data.datasets[datasetIdx].data[idx];
-                                        
+
                                         showHoverHighlight(date, indexKey, chartValue);
                                     }
                                 } else {
@@ -3410,18 +3269,18 @@ function evaluatePixel(sample) {
     // UI Layout Mode Switcher Bindings
     const uiModeBtns = document.querySelectorAll('.ui-mode-btn');
     const uiLayoutPanes = document.querySelectorAll('.ui-layout-pane');
-    
+
     uiModeBtns.forEach(btn => {
         btn.addEventListener('click', (e) => {
             const targetLayout = e.currentTarget.dataset.layout;
-            
+
             // Toggle active button state
             uiModeBtns.forEach(b => {
                 const isActive = b.dataset.layout === targetLayout;
                 b.classList.toggle('active', isActive);
                 b.setAttribute('aria-selected', isActive ? 'true' : 'false');
             });
-            
+
             // Toggle active pane visibility
             uiLayoutPanes.forEach(pane => {
                 if (pane.id === `layout-pane-${targetLayout}`) {
@@ -3451,7 +3310,7 @@ function evaluatePixel(sample) {
 
 export function renderFocusedTriage() {
     const triageCards = document.querySelectorAll('.triage-card');
-    
+
     function activateIndex(indexKey, card, { preserveTemporal = false } = {}) {
         if (!isIndexProviderReady(indexKey)) {
             enforceCogIndexSupport();
@@ -3460,17 +3319,17 @@ export function renderFocusedTriage() {
         }
         state.activeIndex = indexKey;
         state.indexVisible = true;
-        
+
         // Highlight active index button in original suite list
         document.querySelectorAll('.index-btn').forEach(btn => {
             btn.classList.toggle('active', btn.dataset.index === indexKey);
         });
-        
+
         // Highlight the active pill inside the card
         card.querySelectorAll('.triage-tag-pill').forEach(pill => {
             pill.classList.toggle('active', pill.dataset.index === indexKey);
         });
-        
+
         // Render bookmarks for this selected index
         renderSpillBookmarks(indexKey);
 
@@ -3497,7 +3356,7 @@ export function renderFocusedTriage() {
         const newCard = card.cloneNode(true);
         newCard.querySelectorAll('.triage-bookmarks').forEach(el => el.remove());
         card.parentNode.replaceChild(newCard, card);
-        
+
         // Find default primary index for this card
         const triageType = newCard.dataset.triage;
         let defaultIndex = DEFAULT_INDEX;
@@ -3511,7 +3370,7 @@ export function renderFocusedTriage() {
             if (e.target.closest('button, summary, details')) {
                 return;
             }
-            
+
             // Clear other active cards
             const currentActiveCards = document.querySelectorAll('.triage-card');
             currentActiveCards.forEach(c => {
@@ -3519,7 +3378,7 @@ export function renderFocusedTriage() {
                 c.querySelectorAll('.triage-tag-pill').forEach(p => p.classList.remove('active'));
             });
             newCard.classList.add('active');
-            
+
             activateIndex(defaultIndex, newCard);
         });
 
@@ -3533,7 +3392,7 @@ export function renderFocusedTriage() {
                     setCogUiAvailability();
                     return;
                 }
-                
+
                 // Clear other active cards and make this card active
                 const currentActiveCards = document.querySelectorAll('.triage-card');
                 currentActiveCards.forEach(c => {
@@ -3541,7 +3400,7 @@ export function renderFocusedTriage() {
                     c.querySelectorAll('.triage-tag-pill').forEach(p => p.classList.remove('active'));
                 });
                 newCard.classList.add('active');
-                
+
                 const indexKey = pill.dataset.index;
                 activateIndex(indexKey, newCard);
             });
@@ -3740,10 +3599,10 @@ export function renderCommandConsole() {
     const resultsContainer = document.getElementById('hud-index-results');
     const bookmarkResults = document.getElementById('hud-bookmark-results');
     const bookmarkGroup = document.querySelector('.hud-bookmarks-group');
-    
+
     let activeTag = null;
     let searchQuery = '';
-    
+
     // Tag categories map
     const tagMap = {
         water: ['lbi', 'ndwi', 'awei', 'ndmi'],
@@ -3765,7 +3624,7 @@ export function renderCommandConsole() {
             if (activeTag && (!tagMap[activeTag] || !tagMap[activeTag].includes(key))) {
                 return false;
             }
-            
+
             // Text search filtering
             if (searchQuery) {
                 const q = searchQuery.toLowerCase();
@@ -3775,7 +3634,7 @@ export function renderCommandConsole() {
                 const shortMatch = key.toLowerCase().includes(q);
                 if (!nameMatch && !formulaMatch && !infoMatch && !shortMatch) return false;
             }
-            
+
             return true;
         });
 
@@ -3789,13 +3648,13 @@ export function renderCommandConsole() {
             btn.disabled = !providerReady;
             btn.setAttribute('aria-disabled', providerReady ? 'false' : 'true');
             if (!providerReady) btn.title = 'Listed for scientific reference; not available in the current COG renderer.';
-            
+
             btn.innerHTML = `
                 ${idx.tags && idx.tags.length ? `<div class="tag-container">${capabilityBadgesHTML(idx.tags)}</div>` : ''}
                 <span class="index-short">${key.toUpperCase()}</span>
                 <span class="index-full index-full-bold">${idx.name.split(' (')[0]}</span>
             `;
-            
+
             btn.addEventListener('click', () => {
                 if (!isIndexProviderReady(key)) {
                     enforceCogIndexSupport();
@@ -3805,17 +3664,17 @@ export function renderCommandConsole() {
                 state.activeIndex = key;
                 document.querySelectorAll('#hud-index-results .index-btn').forEach(b => b.classList.remove('active'));
                 btn.classList.add('active');
-                
+
                 // Keep original index buttons in sync
                 document.querySelectorAll('.index-btn').forEach(b => {
                     b.classList.toggle('active', b.dataset.index === key);
                 });
-                
+
                 applyIndex();
                 renderSpillBookmarks(key);
                 updateWorkflowSummary(getActiveSpill(), key);
                 markActiveWorkflowControls();
-                
+
                 // Show matching bookmarks for this selected index in the HUD
                 renderHUDBookmarks(key);
             });
@@ -3825,7 +3684,7 @@ export function renderCommandConsole() {
         if (matches.length === 0) {
             resultsContainer.innerHTML = `<div style="color:var(--text-dim);font-size:11px;padding:12px;">No matching indices found.</div>`;
         }
-        
+
         // Render bookmarks for the active index if it's in the results
         if (state.activeIndex && matches.includes(state.activeIndex)) {
             renderHUDBookmarks(state.activeIndex);
@@ -3844,14 +3703,14 @@ export function renderCommandConsole() {
                 btn.dataset.spillId = spill.id || spill.label.replace(/\s+/g, '-').toLowerCase();
                 btn.classList.toggle('active', btn.dataset.spillId === state.activeSpillId);
                 btn.innerHTML = `<span class="spill-name">${spill.label}</span><span class="spill-date-tag">${spill.displayDate}</span>`;
-                
+
                 btn.addEventListener('click', () => {
                     selectSpill(spill, { fly: true });
-                    
+
                     document.querySelectorAll('#hud-bookmark-results .spill-bookmark-btn').forEach(b => b.classList.remove('active'));
                     btn.classList.add('active');
                     markActiveWorkflowControls();
-                    
+
                     if (state.mode !== 'single') {
                         setTemporalMode('single');
                     } else {
@@ -3887,7 +3746,7 @@ export function renderCommandConsole() {
         // Remove existing listener
         const newPill = pill.cloneNode(true);
         pill.parentNode.replaceChild(newPill, pill);
-        
+
         newPill.addEventListener('click', () => {
             const tag = newPill.dataset.tag;
             if (activeTag === tag) {

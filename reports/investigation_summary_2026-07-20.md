@@ -83,7 +83,7 @@ An earlier claim of mine — "LBI does 63% recall at 1.3% FP" — was a **thresh
 - **The multi-gate consensus architecture** — a sound design pattern (didn't pay off here, but valid).
 - **The negative result itself** — rigorous, reproducible, and useful to the field.
 - **The verified-site program** — real sourcing/coordinates/QC discipline; a reusable asset.
-- **LBI — preliminary standing-water/salinity response hypothesis.** The shipped per-pixel evalscript fired at 2/4 standing-brine sites (including an independent pond hit at 14.6% coverage), 0/149 caliche boxes, and 0/3 freshwater controls. The freshwater comparison is underpowered and not statistically significant (two-sided Fisher exact p≈0.43), so this does not establish brine specificity or detector accuracy. See `reports/lbi_brine_validation_2026-07-20.md`.
+- **LBI — preliminary standing-water/salinity response hypothesis.** The shipped per-pixel evalscript fired at 2/4 labeled standing-brine sites (including a recycling-pond response at 14.6% coverage) and 0/149 sampled caliche boxes. One of the three archived nominal water controls is off-lake, so the old 0/3 comparison and p≈0.43 calculation are historical, not a valid three-waterbody specificity assessment. The remaining water controls require scene and chemistry checks. See `reports/lbi_brine_validation_2026-07-20.md`.
 - **Component ratios** (NDVI/NDWI/NDMI/NDSI/BSI/NDCI/…) — legitimate, correctly implemented, but established prior art, not novel.
 
 ---

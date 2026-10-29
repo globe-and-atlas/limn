@@ -4,7 +4,8 @@
     "purpose": "Preliminary validation of the Liquid Brine Index (LBI) against its actual target — large standing brine bodies — as distinct from diffuse produced-water spills.",
     "classes": {
       "standing_brine": "Documented persistent/standing hypersaline brine water (lakes, ponds, blowout pools).",
-      "freshwater_control": "Known regional freshwater or brackish reservoirs — tests whether LBI is brine-specific vs. a generic water detector.",
+      "freshwater_control": "Nominal regional fresh or brackish reservoir controls; scene footprints and chemistry still require verification.",
+      "excluded_control": "Archived off-lake point retained for provenance; do not score as an open-water control.",
       "note": "Small positive N; Lake Boehmer is the app's stated LBI calibration site (circular) and is flagged. Caliche negatives come from execution/background_raw.csv (n=150)."
     },
     "created": "2026-07-20",
@@ -15,7 +16,7 @@
     {"type": "Feature", "properties": {"label": "standing_brine", "name": "Meister Ranch geyser pool", "date": "2022-01-02"}, "geometry": {"type": "Point", "coordinates": [-102.6171, 31.3826]}},
     {"type": "Feature", "properties": {"label": "standing_brine", "name": "Matador Desoto Spring recycling pond", "date": "2025-09-21"}, "geometry": {"type": "Point", "coordinates": [-103.28241, 32.07605]}},
     {"type": "Feature", "properties": {"label": "standing_brine", "name": "Toyah well blowout pool", "date": "2024-10-02"}, "geometry": {"type": "Point", "coordinates": [-103.872, 31.320]}},
-    {"type": "Feature", "properties": {"label": "freshwater_control", "name": "Balmorhea Lake (spring-fed, fresh)", "date": "2023-07-15"}, "geometry": {"type": "Point", "coordinates": [-103.760, 30.978]}},
+    {"type": "Feature", "properties": {"label": "excluded_control", "name": "Former Balmorhea Lake control — off-lake point", "date": "2023-07-15", "flag": "Excluded from freshwater comparison: sampled point is approximately 3.3 km from the reported lake dam; archived scene and water chemistry remain unverified."}, "geometry": {"type": "Point", "coordinates": [-103.760, 30.978]}},
     {"type": "Feature", "properties": {"label": "freshwater_control", "name": "Red Bluff Reservoir (brackish)", "date": "2023-07-15", "flag": "known brackish, not fully fresh"}, "geometry": {"type": "Point", "coordinates": [-103.92, 31.90]}},
     {"type": "Feature", "properties": {"label": "freshwater_control", "name": "Lake Colorado City (fresh reservoir)", "date": "2023-07-15"}, "geometry": {"type": "Point", "coordinates": [-100.918, 32.312]}}
   ]

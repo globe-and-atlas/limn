@@ -499,3 +499,14 @@
 **Fix:** `build_wms_url()` now accepts `wms_url` explicitly, and `fetch_metrics()` passes `args.wms_url`. This keeps command-line endpoint overrides deterministic and removes hidden global state.
 
 ---
+# 2026-10-25 — COG scene metadata silently absent from tile responses
+
+- **Symptom:** The renderer printed an item ID and acquisition datetime, but the tile server returned an empty `X-Limn-COG-Metadata` header; disk-cache hits had no metadata header at all.
+- **Cause:** Python wrote the JSON line to stderr while the Node wrapper returned stdout. The PNG cache stored no companion metadata.
+- **Fix:** Parse the final item/datetime JSON line from stderr, write a `.png.json` sidecar before publishing the PNG, and return the encoded metadata header for both fresh and cached responses.
+- **Verification:** A live local COG request for z14/x3516/y6694 returned HTTP 200 with item `S2A_13RGQ_20251202_1_L2A` and acquisition `2025-12-02T17:45:34.109000+00:00` on both the render and disk-hit responses.
+- **Graduated to:** `knowledge/domain/api-contracts.md`.
+
+## 2026-10-29 — Browser navigation blocked by remote CDN scripts
+
+The smoke test timed out before DOM readiness because synchronous CDN scripts could not load. Cache real pinned script fixtures in `.tmp/browser-assets`, intercept test requests, and exclude unrelated basemap/font services. Locally bundle the same side-by-side 2.0.0 implementation with CSS/license; switch Chart.js 4.4.2 CDN to unpkg. Browser smoke passed for GEE/COG mocks.

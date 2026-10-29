@@ -50,7 +50,8 @@
         console.warn = suppressLeafletMixinWarning(console.warn);
         console.error = suppressLeafletMixinWarning(console.error);
     </script>
-    <script src="https://cdn.jsdelivr.net/gh/digidem/leaflet-side-by-side@2.0.0/leaflet-side-by-side.min.js"></script>
+    <link rel="stylesheet" href="src/vendor/leaflet-side-by-side.css">
+    <script src="src/vendor/leaflet-side-by-side.js"></script>
     <script>
         console.warn = window.__limnOriginalConsoleWarn || console.warn;
         console.error = window.__limnOriginalConsoleError || console.error;
@@ -61,7 +62,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
 
     <!-- Chart.js -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js"></script>
+    <script src="https://unpkg.com/chart.js@4.4.2/dist/chart.umd.js"></script>
 
     <!-- Gifshot -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/gifshot/0.3.2/gifshot.min.js"></script>
@@ -158,7 +159,7 @@
                     </div>
                     <!-- New Thumbnail Gallery for Scan Results -->
                     <div id="scan-thumbnail-gallery" class="scan-thumbnail-gallery" style="display: none;">
-                        <div class="gallery-label">Top Anomaly Snapshots (1-Year Scan)</div>
+                        <div class="gallery-label">Thresholded Surface Responses (1-Year Scan)</div>
                         <div id="thumbnail-strip" class="thumbnail-strip"></div>
                     </div>
                 </div>
@@ -258,19 +259,19 @@
                     <div class="index-suite-container suite-primary">
                         <div class="suite-heading-row">
                             <div>
-                                <h3>Primary Produced Water Screeners</h3>
-                                <p>Optimized for standing brine, pit overflows, and pad-scale optical contrast.</p>
+                                <h3>Experimental Surface Responses</h3>
+                                <p>Inspect True Color and documented scene dates first. These lenses do not identify produced water.</p>
                             </div>
-                            <span class="quality-chip primary-chip" data-quality="primary">Primary Screeners</span>
+                            <span class="quality-chip primary-chip" data-quality="primary">Research lenses</span>
                         </div>
-                        <div class="index-grid primary-screeners-grid" role="group" aria-label="Primary produced water screeners">
-                            <button class="index-btn idx-lbi primary-screener-card" data-index="lbi" data-tooltip="LBI — Primary screener for standing liquid brine, containment pit overflows, and crater blowouts. Bypasses bare-soil mask when standing water is detected.">
-                                <span class="screener-badge-primary">PRIMARY LIQUID BRINE</span>
+                        <div class="index-grid primary-screeners-grid" role="group" aria-label="Experimental surface-response lenses">
+                            <button class="index-btn idx-lbi primary-screener-card" data-index="lbi" data-tooltip="LBI — Preliminary standing-water response. Open water bypasses the bare-soil gate; the small brine comparison includes a misplaced freshwater control. Not brine-specific or validated for produced water.">
+                                <span class="screener-badge-primary">PRELIMINARY WATER RESPONSE</span>
                                 <span class="index-short">LBI</span>
                                 <span class="index-full index-full-bold">Liquid Brine Response</span>
                             </button>
-                            <button class="index-btn idx-hpwi primary-screener-card" data-index="hpwi" data-tooltip="OBEC — Primary screener for pad-scale optical contrast and flowline releases. Combines hydrocarbon NDOI with dual-SWIR salinity and surface smoothness.">
-                                <span class="screener-badge-primary">PRIMARY CONTRAST</span>
+                            <button class="index-btn idx-hpwi primary-screener-card" data-index="hpwi" data-tooltip="OBEC — Experimental broad-band optical contrast. It did not separate the reviewed spill sites from background at a useful operating point; colors do not establish a release.">
+                                <span class="screener-badge-primary">NEGATIVE-RESULT EXPERIMENT</span>
                                 <span class="index-short">OBEC</span>
                                 <span class="index-full index-full-bold">Optical Contrast Screener</span>
                             </button>
@@ -526,7 +527,7 @@
                         </div>
                         <button id="btn-scan-aoi" class="tool-btn tool-btn--scan mt-2" disabled aria-disabled="true"
                             title="Draw an Area of Interest and enable the guarded Sentinel analytics provider.">
-                            Scan AOI for Anomalies (1YR)
+                            Scan AOI Surface Responses (1YR)
                         </button>
                         <button id="btn-generate-report" class="tool-btn w-full mt-2" disabled>Generate
                             Selected
@@ -602,6 +603,7 @@
                             <span class="quality-chip" data-quality="scl" title="Pixel-quality status follows the active imagery provider.">Pixel QA: provider</span>
                             <span class="quality-chip quality-chip--conditional" id="workflow-temporal-status">Single scene</span>
                         </div>
+                        <div class="workflow-summary__note" id="cog-scene-status" aria-live="polite">Acquisition: waiting for COG tile metadata; date controls are search targets.</div>
                     </div>
                     
                     <div class="triage-grid">
@@ -617,15 +619,15 @@
                                 </div>
                                 <div class="evidence-timeline__track" role="group" aria-label="Select a scene-search target">
                                     <button type="button" class="evidence-stage" data-evidence-stage="reference" aria-pressed="false"><span>Reference</span><strong class="evidence-stage__date">—</strong></button>
-                                    <button type="button" class="evidence-stage" data-evidence-stage="before" aria-pressed="false"><span>Before</span><strong class="evidence-stage__date">—</strong></button>
-                                    <button type="button" class="evidence-stage active" data-evidence-stage="event" aria-pressed="true"><span>Event</span><strong class="evidence-stage__date">—</strong></button>
+                                    <button type="button" class="evidence-stage" data-evidence-stage="before" aria-pressed="false"><span>Before target</span><strong class="evidence-stage__date">—</strong></button>
+                                    <button type="button" class="evidence-stage active" data-evidence-stage="event" aria-pressed="true"><span>Event target</span><strong class="evidence-stage__date">—</strong></button>
                                     <button type="button" class="evidence-stage" data-evidence-stage="after" aria-pressed="false"><span>After</span><strong class="evidence-stage__date">—</strong></button>
                                     <button type="button" class="evidence-stage" data-evidence-stage="late" aria-pressed="false"><span>Late</span><strong class="evidence-stage__date">—</strong></button>
                                     <button type="button" class="evidence-stage" data-evidence-stage="latest" aria-pressed="false"><span>Latest</span><strong class="evidence-stage__date">—</strong></button>
                                 </div>
                                 <div class="evidence-timeline__compare" role="group" aria-label="Timeline comparison shortcuts">
-                                    <button type="button" data-evidence-compare="reference:event">Reference ↔ Event</button>
-                                    <button type="button" data-evidence-compare="event:late">Event ↔ Late</button>
+                                    <button type="button" data-evidence-compare="reference:event">Reference ↔ Event targets</button>
+                                    <button type="button" data-evidence-compare="event:late">Event ↔ Late targets</button>
                                     <button type="button" id="timeline-road-check" aria-pressed="false">OSM road check</button>
                                 </div>
                                 <div class="evidence-timeline__lenses" role="group" aria-label="Evidence review lenses">
@@ -653,7 +655,7 @@
                             </div>
                             <div class="triage-actions" aria-label="Investigation actions">
                                 <button type="button" class="investigation-action-btn compare-action">Before / After</button>
-                                <button type="button" class="investigation-action-btn sar-action" data-index="s1_sar" data-tooltip="<strong>New Liquid Surface (SAR Δ)</strong><br>Compares Sentinel-1 VV backscatter between two dates. A new dark/smooth patch can indicate a new standing-liquid surface — an established SAR change-detection method, cloud/weather-independent. It is a screening signal, not a chemical produced-water measurement.">New Liquid Surface (SAR Δ)</button>
+                                <button type="button" class="investigation-action-btn sar-action" data-index="s1_sar" data-tooltip="<strong>Sentinel-1 VV Change Candidate</strong><br>Compares available VV backscatter samples. Acquisition orbit and geometry are not matched here; darkening can have several causes and does not establish new liquid or produced water.">VV Change Candidate (SAR Δ)</button>
                             </div>
                             <details class="triage-gate-details">
                                 <summary>Gate diagnostics · component responses</summary>
@@ -788,7 +790,7 @@
 
                     <div class="report-metrics report-panel-box" id="report-metrics-panel">
                         <h4 class="report-panel-title--flex">
-                            Detected Anomalous Events
+                            Observed Threshold Responses
                             <div class="tooltip-wrapper display-flex-inline">
                                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
                                     stroke-width="2" class="tooltip-icon">
@@ -797,15 +799,12 @@
                                     <path d="M12 8h.01"></path>
                                 </svg>
                                 <span class="tooltip-text tooltip-text--report">
-                                    <strong>Event Detection Logic:</strong> A new event begins when index values surge
-                                    &gt;400% above the 6-month trailing baseline average. An event is considered "ended"
-                                    (recovery) when values drop below 150% of the baseline for three consecutive
-                                    observations.
+                                    <strong>Response interval rule:</strong> Consecutive observed scores above 0.1 form an interval. Missing or non-finite observations break an interval. Dates describe sampled observations; they do not establish leak onset, recovery, or severity. These summaries use raw scores without filling low observations.
                                 </span>
                             </div>
                         </h4>
                         <div id="metric-leak-events" class="metric-events-text">
-                            <span class="text-muted">Analyzing time series for hazards...</span>
+                            <span class="text-muted">Summarizing observed index responses...</span>
                         </div>
                     </div>
 
@@ -820,6 +819,7 @@
                     <div class="report-metrics report-panel-box" id="report-scanned-anomalies-panel">
                         <h4 class="report-panel-title report-panel-title--orange">
                             1-Year Scan: Candidate Screening Responses</h4>
+                        <p>PWCI context images for scan-flagged dates. Another index may have triggered a flag; these images do not identify a release.</p>
                         <div id="scanned-anomalies-list" class="anomaly-grid">
                             <!-- Populated via JS with Screenshots -->
                         </div>

@@ -17,8 +17,8 @@ assert.match(INDICES.pwoi.validationStatus, /71\.3% background activation/);
 assert.match(INDICES.hpwi.validationStatus, /71\.3% background activation/);
 assert.match(INDICES.pwi.validationStatus, /96\.7% background activation/);
 assert.match(INDICES.lbi.name, /Liquid\/Salinity Response Index/);
-assert.match(INDICES.lbi.validationStatus, /2\/4 standing-brine sites versus 0\/3 freshwater controls/);
-assert.match(INDICES.lbi.validationStatus, /p≈0\.43/);
+assert.match(INDICES.lbi.validationStatus, /2\/4 labeled standing-brine sites responded/);
+assert.match(INDICES.lbi.validationStatus, /off-lake point/);
 assert.doesNotMatch(INDICES.hpwi.formula, /dry/i, 'shipped OBEC formula does not imply the historical dry path');
 assert.doesNotMatch(INDICES.hpwi.max, /emulsion/i, 'OBEC legend does not imply an emulsion retrieval');
 assert.doesNotMatch(INDICES.pwi.max, /chemical/i, 'PWCI legend does not imply a chemical retrieval');
@@ -39,3 +39,10 @@ assert.match(indexHtml, /id="scientific-status-display"/, 'core legend exposes s
 assert.doesNotMatch(indexHtml, /proven support|validated support/i, 'core controls avoid unsupported validation language');
 
 console.log('Core Limn formula-fidelity and scientific-status checks passed.');
+
+const reportSource = await readFile(new URL('../src/report.js', import.meta.url), 'utf8');
+const appSource = await readFile(new URL('../src/app.js', import.meta.url), 'utf8');
+assert.doesNotMatch(reportSource, /Likely Leak Start/);
+assert.doesNotMatch(appSource, /Peak Severity|No significant anomalous events detected/);
+assert.doesNotMatch(indexHtml, /400%|time series for hazards/);
+assert.match(reportSource, /responseSummary/);

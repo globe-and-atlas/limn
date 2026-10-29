@@ -1,4 +1,4 @@
-"""LBI standing-brine validation (per-pixel) — is LBI a specific brine detector?
+"""LBI standing-water response audit of the archived per-pixel sample.
 
 Reads execution/lbi_spatial.csv (produced by fetch_lbi_spatial.py: the SHIPPED LBI
 evalscript run per pixel) and compares three classes on pixel-level metrics:
@@ -36,7 +36,9 @@ def best_j(spill: np.ndarray, bg: np.ndarray):
 def main() -> None:
     d = pd.read_csv(REPO / "execution" / "lbi_spatial.csv")
     brine = d[d.label == "standing_brine"]
-    fresh = d[d.label == "freshwater_control"]
+    # The archived Balmorhea point falls well outside the named reservoir.
+    # Preserve its row for traceability, but do not score it as open water.
+    fresh = d[(d.label == "freshwater_control") & (~d.name.str.contains("Balmorhea Lake", na=False))]
     cal = d[d.label == "caliche"]
 
     lines = ["# LBI Standing-Brine Validation (per-pixel, shipped evalscript)", "",
@@ -55,10 +57,10 @@ def main() -> None:
     for _, row in brine.iterrows():
         lines.append(f"| {row['name']} | {row.lbi_max:.3f} | {row.hit_frac*100:.1f}% |")
     lines += ["",
-              "**Verdict:** LBI is brine-specific (fires on 0% of caliche and 0% of fresh water at "
-              ">1% coverage, but on standing brine incl. an independent non-calibration pond hit). "
-              "The one genuinely discriminating detector in the produced-water suite, scoped to "
-              "standing brine bodies. Small N — see reports/lbi_brine_validation_2026-07-20.md."]
+              "**Evidence limit:** The Balmorhea Lake row is excluded because its coordinates are "
+              "away from the named reservoir. The remaining standing-water comparison is too small "
+              "and unverified to establish brine specificity or produced-water detection. "
+              "See reports/lbi_brine_validation_2026-07-20.md for the archived result and caveats."]
     out = REPO / "reports" / "lbi_brine_validation_2026-07-20.md"
     print("\n".join(lines))
     print(f"\n(Full narrative report already at {out})")

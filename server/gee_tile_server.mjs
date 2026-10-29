@@ -11,6 +11,9 @@ const ee = eeImport.default || eeImport;
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ROOT = path.resolve(__dirname, '..');
 const PORT = Number(process.env.PORT || 4177);
+const HOST = process.env.HOST || '127.0.0.1';
+const COG_ONLY = process.env.DEPLOY_COG_ONLY === '1';
+const COG_MAX_CONCURRENT = Math.max(1, Number(process.env.COG_MAX_CONCURRENT || 2));
 const MAP_CACHE_TTL_MS = Number(process.env.GEE_MAP_CACHE_TTL_MS || 45 * 60 * 1000);
 const TILE_CACHE_TTL_MS = Number(process.env.GEE_TILE_CACHE_TTL_MS || 10 * 60 * 1000);
 const TILE_CACHE_MAX = Number(process.env.GEE_TILE_CACHE_MAX || 768);
@@ -24,7 +27,7 @@ const S2_BANDS = ['B02', 'B03', 'B04', 'B05', 'B06', 'B07', 'B08', 'B8A', 'B11',
 const PYTHON = process.env.PYTHON || process.env.PYTHON_BIN || 'python3';
 const COG_CACHE_DIR = path.resolve(ROOT, process.env.COG_TILE_CACHE_DIR || '.tmp/cog_tile_cache');
 const COG_RENDER_SCRIPT = path.resolve(ROOT, 'execution/render_cog_tile.py');
-const COG_RENDER_VERSION = 'cog-render-2026-07-21-gate-diagnostics-v5';
+const COG_RENDER_VERSION = 'cog-render-2026-10-25-scene-metadata-v6';
 const COG_STAC_URL = process.env.COG_STAC_URL || 'https://earth-search.aws.element84.com/v1';
 const COG_STAC_COLLECTION = process.env.COG_STAC_COLLECTION || 'sentinel-2-l2a';
 const COG_MAXCC = Number(process.env.COG_MAXCC || 90);
@@ -633,7 +636,21 @@ function renderCogTile(z, x, y, searchParams, outputPath, signal = undefined) {
                 reject(new Error(detail.trim() || error.message));
                 return;
             }
-            resolve(Buffer.isBuffer(stderr) ? stderr.toString('utf8').trim() : String(stderr || '').trim());
+            const log = Buffer.isBuffer(stderr) ? stderr.toString('utf8') : String(stderr || '');
+            const records = log.split(/\r?\n/).reverse().map(line => {
+                try { return JSON.parse(line); } catch (_) { return null; }
+            });
+            const metadata = records.find(value => value && value.item && value.datetime);
+            if (!metadata) {
+                const warning = records.find(value => value && value.warning);
+                if (warning && process.env.COG_TRANSPARENT_ON_ERROR === '1') {
+                    resolve(JSON.stringify(warning));
+                    return;
+                }
+                reject(new Error('COG renderer returned a tile without acquisition metadata.'));
+                return;
+            }
+            resolve(JSON.stringify(metadata));
         });
     });
 }
@@ -659,13 +676,16 @@ async function handleCogTile(req, res, urlPath, searchParams) {
 
     const requestKey = `${tileRequestKey(urlPath, searchParams)}&renderer=${COG_RENDER_VERSION}`;
     const cachePath = path.join(COG_CACHE_DIR, `${sha256(requestKey)}.png`);
+    const metadataPath = `${cachePath}.json`;
 
     if (fs.existsSync(cachePath)) {
+        const metadata = fs.existsSync(metadataPath) ? fs.readFileSync(metadataPath, 'utf8') : '';
         res.writeHead(200, {
             'Content-Type': 'image/png',
             'Cache-Control': 'public, max-age=300',
             'X-Limn-Tile-Cache': 'disk-hit',
-            'X-Limn-Tile-Provider': 'cog'
+            'X-Limn-Tile-Provider': 'cog',
+            'X-Limn-COG-Metadata': encodeURIComponent(metadata)
         });
         fs.createReadStream(cachePath).pipe(res);
         return;
@@ -674,12 +694,18 @@ async function handleCogTile(req, res, urlPath, searchParams) {
     try {
         fs.mkdirSync(COG_CACHE_DIR, { recursive: true });
         if (!inFlightCogRenders.has(requestKey)) {
+            if (inFlightCogRenders.size >= COG_MAX_CONCURRENT) {
+                res.writeHead(429, { 'Content-Type': 'application/json', 'Retry-After': '3', 'Cache-Control': 'no-store' });
+                res.end(JSON.stringify({ error: 'COG renderer busy. Retry shortly.' }));
+                return;
+            }
             const controller = new AbortController();
             const entry = { controller, clients: 0, settled: false, promise: null };
             entry.promise = (async () => {
                 const tmpPath = `${cachePath}.${process.pid}.${Date.now()}.tmp`;
                 try {
                     const metadata = await renderCogTile(z, x, y, searchParams, tmpPath, controller.signal);
+                    fs.writeFileSync(metadataPath, metadata || '');
                     fs.renameSync(tmpPath, cachePath);
                     return { cachePath, metadata };
                 } catch (error) {
@@ -766,7 +792,8 @@ async function prewarmCogTile(z, x, y, params) {
 
     fs.mkdirSync(COG_CACHE_DIR, { recursive: true });
     const tmpPath = `${cachePath}.${process.pid}.${Date.now()}.tmp`;
-    await renderCogTile(String(z), String(x), String(y), params, tmpPath);
+    const metadata = await renderCogTile(String(z), String(x), String(y), params, tmpPath);
+    fs.writeFileSync(`${cachePath}.json`, metadata || '');
     fs.renameSync(tmpPath, cachePath);
     return { status: 'rendered', z, x, y, index: params.get('index') };
 }
@@ -856,6 +883,13 @@ async function handleCogPrewarm(req, res, searchParams) {
 
 function serveStatic(urlPath, res) {
     const relativePath = urlPath === '/' ? 'index.html' : urlPath.slice(1);
+    const allowed = ['index.html', 'style.css'].includes(relativePath)
+        || /^src\/(?!.*(?:^|\/)\.)[a-zA-Z0-9_./-]+\.(?:js|css|png|svg)$/.test(relativePath)
+        || relativePath === 'data/rrc_spills.json'
+        || (!COG_ONLY && ['atlas.html', 'share.html', 'config-v1.js'].includes(relativePath));
+    if (!allowed || relativePath.split('/').some(part => part === '..' || part.startsWith('.'))) {
+        res.writeHead(404); res.end('Not found'); return;
+    }
     const filePath = path.normalize(path.join(ROOT, relativePath));
     if (!filePath.startsWith(ROOT) || !fs.existsSync(filePath) || fs.statSync(filePath).isDirectory()) {
         res.writeHead(404, { 'Content-Type': 'text/plain' });
@@ -874,7 +908,20 @@ function serveStatic(urlPath, res) {
 
 const server = http.createServer(async (req, res) => {
     const requestUrl = new URL(req.url, `http://${req.headers.host || '127.0.0.1'}`);
-    const urlPath = decodeURIComponent(requestUrl.pathname);
+    let urlPath;
+    try { urlPath = decodeURIComponent(requestUrl.pathname); }
+    catch (_) { res.writeHead(400); res.end('Invalid path'); return; }
+    if (urlPath === '/healthz') {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ status: 'ok', provider: COG_ONLY ? 'cog' : 'configured' })); return;
+    }
+    if (COG_ONLY && urlPath === '/config-v1.js') {
+        res.writeHead(200, { 'Content-Type': 'text/javascript', 'Cache-Control': 'no-store' });
+        res.end('window.CONFIG = { IMAGE_PROVIDER: "cog", COG_TILE_ENDPOINT: "/api/cog/tiles", ALLOW_SENTINEL_FALLBACK: false, COG_MAX_CONCURRENT: 1 };'); return;
+    }
+    if (COG_ONLY && (urlPath.startsWith('/api/gee/') || urlPath === '/api/cog/prewarm')) {
+        res.writeHead(404); res.end('Not available'); return;
+    }
 
     if (urlPath.startsWith('/api/gee/tiles/')) {
         await handleGeeTile(req, res, urlPath, requestUrl.searchParams);
@@ -894,7 +941,7 @@ const server = http.createServer(async (req, res) => {
     serveStatic(urlPath, res);
 });
 
-server.listen(PORT, '127.0.0.1', () => {
+server.listen(PORT, HOST, () => {
     console.log(`Limn tile server listening at http://127.0.0.1:${PORT}`);
     if (COG_PREWARM_ON_START) {
         setTimeout(() => {

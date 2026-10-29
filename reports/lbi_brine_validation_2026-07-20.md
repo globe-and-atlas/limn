@@ -6,6 +6,11 @@ timestamp: "2026-07-20T00:00:00-05:00"
 # Liquid/Salinity Response Index (LBI) — Preliminary Standing-Water Study
 
 **Result: LBI produced a preliminary standing-water/salinity response, not a validated detector.**
+**2026-10-25 correction:** The archived Balmorhea Lake control point is about 3.3 km from the
+reported lake dam. It cannot be treated as a verified open-water control. The original 0/3
+freshwater/brackish and Fisher p≈0.43 figures below are retained as historical calculations,
+not current evidence of freshwater rejection. Excluding that row leaves only two nominal
+water controls, whose scene footprints and chemistry still need independent verification.
 The shipped per-pixel evalscript fired at 2/4 standing-brine sites and on **0/149** caliche and
 **0/3** freshwater controls at the >1% coverage bar. Three freshwater controls are insufficient
 to establish brine specificity: the brine-versus-freshwater comparison is not statistically
@@ -44,15 +49,15 @@ it does not establish chemical brine specificity.
 
 ## Interpretation
 
-- **Observed background behavior is encouraging but bounded.** LBI renders on 0/149 caliche boxes and 0/3 freshwater controls at the >1% coverage bar. The freshwater sample is too small to support a specificity claim.
+- **Observed background behavior is bounded.** LBI renders on 0/149 sampled caliche boxes at the >1% coverage bar. One of the three nominal water controls is off-lake, so the archived 0/3 comparison does not test three water bodies.
 - **Observed response is incomplete.** LBI fires at 2/4 documented standing-brine sites, including the independent Matador Desoto pond (14.6% coverage). The two misses may reflect absent standing water, but target absence was not independently confirmed and cannot be assumed.
 - **Scope of the claim.** The study supports further testing of LBI as a **standing-water/salinity response hypothesis**. It does not validate persistent hypersaline-brine detection and says nothing about diffuse produced-water spills on bare soil.
 
 ## Caveats
 
 - Small positive N (4 sites, 2 firing) and especially small freshwater-control N (3). This is an exploratory response study, not a sensitivity, specificity, or accuracy estimate.
-- Lake Boehmer is the app's calibration site (circular); the independent evidence rests mainly on the Matador pond hit plus the clean caliche/freshwater specificity.
-- Freshwater controls are best-effort regional reservoirs; Balmorhea and Lake Colorado City are clearly fresh, Red Bluff is brackish (and shows only a trace, consistent with partial salinity).
+- Lake Boehmer is the app's calibration site (circular); the independent evidence rests mainly on the Matador pond response, which is at a recycling pond rather than a delineated release footprint.
+- Balmorhea's archived point is off-lake. Lake Colorado City and Red Bluff have not yet had their sampled footprints and acquisition IDs independently rechecked; Red Bluff is brackish. No chemical specificity inference follows from these rows.
 
 ## Recommended next step
 

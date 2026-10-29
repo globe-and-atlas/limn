@@ -19,7 +19,7 @@ Limn (Globe & Atlas) is a browser-based satellite spectral intelligence tool for
 open index.html
 
 # Run tests
-node tests/test.js
+node tests/test.cjs
 node tests/test_fetch.js
 node tests/test_pwi.js
 ```

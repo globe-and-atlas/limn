@@ -209,7 +209,7 @@ export function detectPeakAnomaly(imgUrl, bounds) {
             const url = buildHighlightUrl(date, renderIndex, bounds, renderColor, undefined, true);
             
             item.innerHTML = `
-                <div class="thumbnail-badge" style="color: ${renderColor}">${getShortIndexName(renderIndex)} ANOMALY</div>
+                <div class="thumbnail-badge" style="color: ${renderColor}">${getShortIndexName(renderIndex)} RESPONSE</div>
                 <div class="thumbnail-img-wrapper">
                     <img src="${url}" class="thumbnail-img" alt="${date}" loading="lazy">
                 </div>

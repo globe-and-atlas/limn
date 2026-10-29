@@ -4,14 +4,14 @@ Spill sites: 32 (all TRRC records in data/rrc_spills.json). Background: 150 (Per
 
 ## Verdict
 
-- **PWCI does NOT discriminate at any threshold:** its best recall−FP operating point is only 19% recall / 9% FP. The three chosen bands do not separate produced water from Permian caliche; no re-tuning of these gates fixes it.
+- **No useful PWCI operating point was found in the tested grid and development sample:** its best recall−background-activation point was approximately 19% / 9%. This does not rule out untested scenes, geographies, or configurations.
 - **Indices that do not** at that bar: PWCI, ASAI, OBEC, LBI, VSI, BPI.
 
 ## Scope & caveats (read before quoting these numbers)
 
 - **Recall and FP must be read at the SAME threshold.** Pairing a recall measured at one threshold with an FP measured at another is meaningless and inflates apparent performance. (Example of the trap: LBI shows 62% recall at t=0.01 but 86% FP there; 1.3% FP only arrives at t=0.08, where recall is 9%. 'LBI = 63% recall at 1.3% FP' pairs two different operating points and is false.) Every cell in this report holds the threshold fixed.
 - **Why the pipeline still 'scored' 81.5%:** at t=0.01 PWCI fires on 97% of background too — the high recall is an artifact of firing nearly everywhere, not discrimination. PWCI's continuous score is effectively saturated/binary (Youden's J = 0.00).
-- **Scope of the negative result:** this concerns these specific Sentinel-2 spectral composites at a 500 m box / single-scene Statistics-API mean, over a 27→32-record TRRC development benchmark and 150 background points. It does not, by itself, rule out higher-resolution, multi-temporal, SAR, or hyperspectral approaches, nor the multi-gate *concept* in general — only that these bands at this scale do not separate produced water from Permian caliche at any threshold.
+- **Scope of the negative result:** this concerns these specific Sentinel-2 spectral composites at a 500 m box / single-scene Statistics-API mean, over a 27→32-record TRRC development benchmark and 150 background points. It does not, by itself, rule out higher-resolution, multi-temporal, SAR, or hyperspectral approaches, nor the multi-gate *concept* in general. No useful separation was found at the finite thresholds and configurations tested here.
 - Spill n=32 here (all TRRC records fetched cleanly) vs 27 in the 2026-03-28 run; band means are event-date ±15-day Statistics API composites.
 
 ## PWCI 3-gate threshold sweep (multi-gate AND, the flagship test)

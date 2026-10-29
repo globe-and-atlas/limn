@@ -33,3 +33,11 @@ Last updated: 2026-06-09
 - Latest `@google/earthengine` (1.7.35) still pins `googleapis ^92`, so no upgrade path fixes it naturally.
 - Fix: `"overrides": { "uuid": "^11.1.1" }` in `package.json`. Verified `@google/earthengine` loads and both GEE/atlas test suites pass with uuid 11 (googleapis-common only calls `v4()`, which survives the 8→11 major jump).
 - Keep the override until earthengine/googleapis moves to uuid ≥11 upstream; re-check when bumping `@google/earthengine`.
+
+## 2026-10-29 — Browser script dependencies
+
+Leaflet side-by-side 2.0.0 is bundled under `src/vendor/` from the upstream npm index.js, with CommonJS import/export removed for browser use. The original license, CSS, and range icon are included. Chart.js remains 4.4.2, served from unpkg. Browser smoke caches the real external scripts under `.tmp/browser-assets`; the first run needs network access, subsequent runs use the cached versions.
+
+## 2026-10-29 — Render container runtime
+
+Docker uses Python 3.13 slim Bookworm plus Node 22 from its official Bookworm image. `requirements-render.txt` pins the installed reference versions of numpy, rasterio, Pillow, pyproj, pystac-client. Node runtime dependencies use package-lock via npm ci. Linux image build remains unverified locally: Docker daemon unavailable.

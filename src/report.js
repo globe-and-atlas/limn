@@ -107,7 +107,7 @@ export async function downloadHTMLReport() {
         let mMaxV = document.getElementById('metric-max-val') ? document.getElementById('metric-max-val').innerText : '--';
         let mAvgD = document.getElementById('metric-avg-dates') ? document.getElementById('metric-avg-dates').innerText : '--';
         let mAvgV = document.getElementById('metric-avg-val') ? document.getElementById('metric-avg-val').innerText : '--';
-        let mLeak = document.getElementById('metric-leak-start') ? document.getElementById('metric-leak-start').innerText : '--';
+        const responseSummary = document.getElementById('metric-leak-events')?.innerHTML || 'No response summary available.';
 
         let metricsHtml = `
             <div style="margin-top: 20px; padding: 15px; background: #1a1a1a; border-radius: 6px; border: 1px solid #333;">
@@ -121,11 +121,11 @@ export async function downloadHTMLReport() {
                         <td style="padding: 5px 0;"><strong>Highest 5-Scene Avg:</strong></td>
                         <td style="padding: 5px 0;">${mAvgD} (<span style="color: #F0501E; font-family: monospace;">${mAvgV}</span>)</td>
                     </tr>
-                    <tr>
-                        <td style="padding: 5px 0; vertical-align: top;"><strong>Likely Leak Start:</strong></td>
-                        <td style="padding: 5px 0; color: #33AAFF; font-family: monospace;">${mLeak}</td>
-                    </tr>
+
                 </table>
+                <h4>Observed Threshold Responses</h4>
+                <p>Experimental index responses do not establish leak onset, recovery, or severity.</p>
+                <div>${responseSummary}</div>
             </div>
         `;
 

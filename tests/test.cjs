@@ -4,6 +4,27 @@ const path = require('node:path');
 const puppeteer = require('puppeteer-core');
 
 const ROOT = path.resolve(__dirname, '..');
+const ASSET_CACHE = path.join(ROOT, '.tmp', 'browser-assets');
+
+async function loadScriptFixtures() {
+    fs.mkdirSync(ASSET_CACHE, { recursive: true });
+    const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+    const urls = [...html.matchAll(/<script src="(https:\/\/[^\"]+)"/g)].map(match => match[1]);
+    const fixtures = new Map();
+    for (const url of urls) {
+        const file = path.join(ASSET_CACHE, require('node:crypto').createHash('sha256').update(url).digest('hex') + '.js');
+        if (!fs.existsSync(file)) {
+            const fixtureUrl = url
+                .replace('https://cdn.jsdelivr.net/gh/digidem/leaflet-side-by-side@2.0.0/leaflet-side-by-side.min.js', 'https://unpkg.com/leaflet-side-by-side@2.0.0/leaflet-side-by-side.js')
+                .replace('https://cdn.jsdelivr.net/npm/chart.js@4.4.2/dist/chart.umd.min.js', 'https://unpkg.com/chart.js@4.4.2/dist/chart.umd.js');
+            const response = await fetch(fixtureUrl, { signal: AbortSignal.timeout(20000) });
+            if (!response.ok) throw new Error(`Browser fixture download failed: ${url} HTTP ${response.status}`);
+            fs.writeFileSync(file, Buffer.from(await response.arrayBuffer()));
+        }
+        fixtures.set(url, fs.readFileSync(file));
+    }
+    return fixtures;
+}
 const TRANSPARENT_PNG = Buffer.from(
     'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
     'base64'
@@ -30,13 +51,26 @@ function createStaticServer() {
     return http.createServer((req, res) => {
         const urlPath = decodeURIComponent(new URL(req.url, 'http://127.0.0.1').pathname);
         if (urlPath === '/config-v1.js') {
+            const cogMode = String(req.headers.referer || '').includes('provider=cog');
             res.writeHead(200, { 'Content-Type': 'text/javascript' });
-            res.end('window.CONFIG = Object.assign(window.CONFIG || {}, { IMAGE_PROVIDER: "gee", GEE_TILE_ENDPOINT: "/api/gee/tiles" });');
+            res.end(cogMode
+                ? 'window.CONFIG = Object.assign(window.CONFIG || {}, { IMAGE_PROVIDER: "cog", COG_TILE_ENDPOINT: "/api/cog/tiles" });'
+                : 'window.CONFIG = Object.assign(window.CONFIG || {}, { IMAGE_PROVIDER: "gee", GEE_TILE_ENDPOINT: "/api/gee/tiles" });');
             return;
         }
 
         if (urlPath.startsWith('/api/gee/tiles/')) {
             res.writeHead(200, { 'Content-Type': 'image/png' });
+            res.end(TRANSPARENT_PNG);
+            return;
+        }
+
+        if (urlPath.startsWith('/api/cog/tiles/')) {
+            const metadata = { item: 'S2A_13RGQ_20251202_1_L2A', datetime: '2025-12-02T17:45:34Z', cloud: 0.001561 };
+            res.writeHead(200, {
+                'Content-Type': 'image/png',
+                'X-Limn-COG-Metadata': encodeURIComponent(JSON.stringify(metadata)),
+            });
             res.end(TRANSPARENT_PNG);
             return;
         }
@@ -60,6 +94,7 @@ async function listen(server) {
 }
 
 (async () => {
+    const fixtures = await loadScriptFixtures();
     const executablePath = CHROME_PATHS.find(candidate => fs.existsSync(candidate));
     if (!executablePath) {
         throw new Error(`No Chrome/Chromium executable found. Checked: ${CHROME_PATHS.join(', ')}`);
@@ -74,6 +109,17 @@ async function listen(server) {
     });
 
     const page = await browser.newPage();
+    await page.setRequestInterception(true);
+    page.on('request', request => {
+        if (fixtures.has(request.url())) {
+            request.respond({ status: 200, contentType: 'text/javascript', body: fixtures.get(request.url()) });
+        } else if (request.url().startsWith(`http://127.0.0.1:${port}/`) || request.url().startsWith('data:') || request.url().startsWith('blob:')) {
+            request.continue();
+        } else {
+            // Basemaps, fonts, and remote services are outside this credential-free smoke.
+            request.respond({ status: 200, body: '' });
+        }
+    });
     const pageErrors = [];
     page.on('console', msg => console.log('PAGE LOG:', msg.text()));
     page.on('pageerror', err => {
@@ -103,6 +149,16 @@ async function listen(server) {
 
         if (pageErrors.length) {
             throw new Error(`Browser smoke test saw page errors: ${pageErrors.join(' | ')}`);
+        }
+
+        await page.goto(`http://127.0.0.1:${port}/index.html?provider=cog`, { waitUntil: 'domcontentloaded' });
+        await page.waitForFunction(() => document.getElementById('cog-scene-status')?.textContent.includes('S2A_13RGQ_20251202_1_L2A'), { timeout: 15000 });
+        const sceneText = await page.$eval('#cog-scene-status', element => element.textContent);
+        if (!sceneText.includes('2025-12-02') || !sceneText.includes('dates above are search targets')) {
+            throw new Error(`COG acquisition provenance is missing: ${sceneText}`);
+        }
+        if (pageErrors.length) {
+            throw new Error(`COG browser smoke saw page errors: ${pageErrors.join(' | ')}`);
         }
     } finally {
         await browser.close();

@@ -4,8 +4,8 @@
 - [architecture.md](domain/architecture.md) — Module structure, data flow, global state, key patterns; 2026-07-23 added `sentinel-catalog.js`/`atlas-app.js` module rows and the Sentinel-only date filtering design
 - [spectral-indices.md](domain/spectral-indices.md) — 2026-06-08 current index registry, evalscript logic, band combinations, calibration presets, and produced-water render opacity guards
 - [spectral-indices-full.md](domain/spectral-indices-full.md) — Full architecture reference: all indices with formulas, evalscripts, citations, delta logic
-- [api-contracts.md](domain/api-contracts.md) — Sentinel Hub WMS, Statistics API, CDSE Auth, RRC GeoJSON schema; 2026-07-25 added the per-provider reflectance/BOA_ADD_OFFSET correctness contract; 2026-07-23 corrected the GEE-mode acquisition-probing claim
-- [deps.md](domain/deps.md) — 2026-06-07 Node browser-test dependency notes
+- [api-contracts.md](domain/api-contracts.md) — Sentinel Hub WMS, Statistics API, CDSE Auth, RRC GeoJSON schema; 2026-10-25 added COG tile acquisition metadata and cache-sidecar contract; 2026-07-25 reflectance/BOA_ADD_OFFSET contract
+- [deps.md](domain/deps.md) — 2026-10-29 browser fixtures and local side-by-side 2.0.0 dependency notes
 - [known-quirks.md](domain/known-quirks.md) — Non-obvious behaviors and intentional design decisions; 2026-07-23 added note that the rendered date-selector options are now a Sentinel-only filtered subset of ALL_DATES
 - [novelty-review.md](domain/novelty-review.md) — 2026-05-24 update verifying the absolute novelty boundaries of all flagship composites via OpenAlex and arXiv literature reviews
 - [verified-spill-candidates.md](domain/verified-spill-candidates.md) — 2026-06-08 source-review ledger for produced-water spill candidates promoted, rejected, or held for exact coordinates
@@ -29,9 +29,9 @@
 - [preprint-alignment.md](domain/preprint-alignment.md) — 2026-07-25 mapping between the live registry and the published GSIA preprint v2 supplement, plus how to detect drift
 
 ## Session & Decisions
-- [SESSION.md](SESSION.md) — Active session state and last known state
-- [DECISIONS.md](DECISIONS.md) — Architecture decisions (S2-only proxy for APEX/HPWI)
+- [SESSION.md](SESSION.md) — Active session state and last known state; 2026-10-25 produced-water QC repairs
+- [DECISIONS.md](DECISIONS.md) — Architecture decisions; 2026-10-29 public COG-only Render deployment
 - [REFLECTIONS.jsonl](REFLECTIONS.jsonl) — Session reflections for significant work
 
 ## Error Log
-- [ERRORS.md](ERRORS.md) — Chronological bug log with root causes and fixes
+- [ERRORS.md](ERRORS.md) — Chronological bug log with root causes and fixes; 2026-10-25 COG metadata channel fix

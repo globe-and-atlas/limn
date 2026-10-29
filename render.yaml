@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: limn-produced-water
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /healthz
+    envVars:
+      - key: HOST
+        value: 0.0.0.0
+      - key: DEPLOY_COG_ONLY
+        value: "1"
+      - key: COG_MAX_CONCURRENT
+        value: "1"
+      - key: COG_PREWARM_ON_START
+        value: "0"

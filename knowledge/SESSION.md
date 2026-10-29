@@ -1,5 +1,42 @@
 # Session State — sentinel-explorer
 
+## 2026-10-29 — Render Free deployment package
+
+Goal: package the live produced-water COG app for Render. Status: deployment files prepared; local routes and browser smoke pass; Docker image not built because the local daemon is unavailable. Agent: Codex. No hosted service created.
+
+Added Dockerfile, allowlisted Docker build context, pinned Python requirements, Render Free Blueprint, health route, HOST binding, generated public COG configuration, global render admission limit (one in deployment), and public static-file allowlist. GEE/prewarm routes are unavailable in deployment mode. Private files return 404. First Render deployment must verify Linux dependency build, actual tiles, and 512 MB memory behavior. Existing science validation gaps remain.
+
+S.D.G.: Public visitors can explore live satellite context without exposing private configuration.
+Feynman gap: Container build and free-instance memory performance require Docker/Render execution; local HTTP and browser tests verified routing only.
+
+
+## 2026-10-29 — Report claims and browser repair
+
+Goal: correct report scientific interpretation and restore browser verification. Status: implemented, tested, uncommitted. Agent: Codex.
+
+Report summaries now use unfilled observed scores and contiguous threshold-response groups, including final single observations. Leak onset/severity labels and the false baseline tooltip were removed. Exports include the response summary. Scan PWCI thumbnails disclose that another index may have triggered the date. Browser fixtures cache actual versioned scripts and block unrelated remote services; side-by-side 2.0.0 is locally bundled with styles/license after its CDN path failed. Chart.js retains version 4.4.2 on unpkg.
+
+Verification: response-interval tests; science-status, core UI, core parity, scan parity, provider contract; browser GEE/COG mocks passed. No live Statistics report or field validation. Source-linked benchmark, verified water controls, pinned comparisons, matched SAR pairs remain open.
+
+S.D.G.: Investigators receive observed response summaries without invented leak severity or onset.
+Feynman gap: Field chemistry and event timing still require independent labels; software checks do not validate a detector.
+
+
+## 2026-10-25 — Produced-water scientific QC repairs
+
+**Goal:** Correct the notable scientific and provenance issues found in the original Limn produced-water review.
+**Status:** Implemented and locally verified; uncommitted. **Agent:** Codex. Preserve the pre-existing 2026-10-05 auto-commit line below.
+
+- The AOI Statistics scan now uses `INDICES[*].fisLogic` for all ten charted values. A per-pixel parity test covers dry, water, vegetated, and cloud-masked samples. Scan toast language now describes experimental surface-response thresholds.
+- LBI/OBEC/SAR interface labels and claim notes now state their evidence limits. The off-lake Balmorhea row remains archived but is excluded from regenerated freshwater comparisons; the two remaining water controls still need field/scene verification.
+- COG tile item IDs and acquisition timestamps now appear in the investigation summary. A live render and a disk-cache hit returned the same item metadata. The map still selects scenes separately per tile; Before/Event targets are not pinned or guaranteed to fall on the named side of the incident.
+- Browser smoke now runs as `tests/test.cjs` under the ES-module package. Targeted core, scientific-status, timeline, provider, browser, and COG tests passed. The browser test's missing CDSE client log is expected in its credential-free Trial Mode.
+- **Remaining scientific blockers:** source-linked spill footprints and primary incident IDs, a held-out benchmark, rechecked water controls, and controlled SAR acquisition pairs. Do not promote detector accuracy or use a negative scan as clearance.
+
+S.D.G.: These repairs serve investigators by keeping observed imagery, search targets, and unverified spill interpretations visibly distinct.
+
+Feynman gap: The code now reports what scene was shown, but the pixels still cannot explain chemical identity or predictive accuracy without field labels and held-out tests.
+
 ## Last Known State
 
 **Date:** 2026-07-25
@@ -205,3 +242,4 @@
 - 2026-07-25 16:09 — commit: docs: append auto-generated post-commit session checkpoint | knowledge/SESSION.md
 - 2026-07-28 21:09 — commit: feat: implement EC-ACI water-rejection gate, upgrade visual rendering to bicubic interpolation, and add Atlas HUD color-ramp controls. | .claude/agent-memory/web-ui-tester/MEMORY.md,.claude/agent-memory/web-ui-tester/project_limn_coord_marker.md,.claude/agent-memory/web-ui-tester/project_limn_ksi_vssi_sar.md,.claude/agent-memory/web-ui-tester/reference_playwright_via_npx_cache.md,atlas.html
 - 2026-08-24 22:34 — commit: fix: stop hardcoding Sentinel Hub instance ID in test script and dev notes | task.md,tests/test_gif_fetch.js
+- 2026-10-05 21:51 — commit: refactor: centralize agent instructions into AGENTS.md and slim down tool-specific markdown files | AGENTS.md,CLAUDE.md,GEMINI.md,knowledge/SESSION.md

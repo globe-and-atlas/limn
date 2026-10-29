@@ -57,7 +57,7 @@ Read this before editing any file in `src/`. Rules here take precedence for loca
 2. Export the palette constant from `indices.js`
 3. Import the palette in `map.js` (if map layer needs it) and `app.js`
 4. No changes needed in `ui.js` or `auth.js`
-5. Run `node tests/test.js` before declaring done
+5. Run `node tests/test.cjs` before declaring done
 
 ### Adding a new Atlas index
 1. Add to `atlas-indices.js` only

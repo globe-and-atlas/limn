@@ -28,7 +28,7 @@
     ],
     "notes": [
       "FBC excluded from primary scoring — too noisy on bare Permian Basin caliche.",
-      "APEX and HPWI are primary trust indices.",
+      "APEX and HPWI are historical experimental labels; neither is a validated produced-water detector.",
       "For sites where reported_date lags the actual spill, run sweep_dates.py to find peak signal date.",
       "Devon NM coordinates from NMOCD permit application (Section 36, T22S, R28E, Eddy County).",
       "Crane County geyser coordinates from Tubbs Corner gazetteer + Karanam 2024 paper.",

@@ -1,3 +1,49 @@
+# Objective — Render free-tier deployment (2026-10-29)
+
+- [x] Docker packages the COG runtime.
+- [x] Server binds to the configured host.
+- [x] Public routes reject private files.
+- [x] Global COG rendering concurrency is bounded.
+- [x] Deployment instructions explain Render setup.
+- [x] Deployment route tests pass.
+
+---
+
+# Objective — Report response claims and browser reliability (2026-10-29)
+
+- [x] Report intervals use raw observed scores.
+- [x] Report labels describe threshold responses.
+- [x] Export includes the current response summary.
+- [x] Browser smoke uses cached real script dependencies.
+- [x] Browser smoke passes.
+
+---
+
+# Objective — Produced-water scientific QC repairs (2026-10-25)
+
+- [x] AOI history scan uses the registry logic for the enumerated set {PWCI, OBEC, ASAI, NDMI, MNDWI, SAVI, VSI, TRI, BPI, LBI}.
+- [x] AOI scan results use bounded surface-response language.
+- [x] Compare layout labels LBI as preliminary.
+- [x] Compare layout labels OBEC as an experimental contrast lens.
+- [x] SAR action describes VV change candidates.
+- [x] The misplaced Balmorhea control is excluded from validation claims.
+- [x] README reports the current Limn lens count.
+- [x] Browser smoke test runs under the package module configuration.
+- [x] `npm run test:scan:parity` passes.
+- [x] `npm run test:core:parity` passes.
+- [x] `npm run test:core:ui` passes.
+- [x] `npm run test:science-status` passes.
+- [x] `npm run test:spill:timeline` passes.
+- [x] `node tests/test_gee_provider.mjs` passes.
+- [x] `npm run test:browser` passes for the GEE mock.
+- [x] `npm run test:browser` passes for the COG metadata mock.
+- [x] `tests/test_cog_boa_offset.py` passes.
+- [x] `tests/test_cog_screening_visibility.py` passes.
+- [x] `tests/test_cog_gate_diagnostics.py` passes.
+- [x] COG acquisition metadata survives a disk-cache hit.
+
+---
+
 # Objective — EC-ACI Water Gate and Atlas Ramp Selector (2026-07-25)
 
 Implement a simple Sentinel-2 water rejection gate for EC-ACI so open water does not present as high urban dry-surface context, and add selectable Atlas overlay color ramps for scenes where the native palette blends into aerial imagery.

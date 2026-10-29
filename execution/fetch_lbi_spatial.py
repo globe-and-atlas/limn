@@ -97,6 +97,8 @@ def collect_points():
     pts = []
     v = pd.read_csv(REPO / "execution" / "brine_validation_bands.csv")
     for _, r in v.iterrows():
+        if "Balmorhea Lake" in str(r["name"]):
+            continue  # Archived point is off-lake; keep the CSV as provenance only.
         pts.append((float(r.lon), float(r.lat), str(r.date), str(r.label), str(r["name"])))
     bg = pd.read_csv(REPO / "execution" / "background_raw.csv")
     for _, r in bg.iterrows():
