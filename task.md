@@ -2,6 +2,8 @@
 
 - [x] Full npm audit reports zero vulnerabilities.
 - [x] Runtime npm audit reports zero vulnerabilities.
+- [x] Render requirements pass pip-audit.
+- [x] Pillow 13 renders a live RGB tile.
 - [x] Clean lockfile installation succeeds.
 - [x] Browser smoke passes with Puppeteer 25.
 - [x] Render route tests pass.

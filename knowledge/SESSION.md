@@ -2,7 +2,7 @@
 
 ## 2026-10-29 — Dependency security fixes
 
-Goal: resolve npm advisories and push to globe-and-atlas. Agent: Codex. Status: dependency updates tested and prepared for the authorized public-main push. Puppeteer 25.16.0 plus compatible runtime lockfile updates clear the current full and production npm audits. Clean npm ci succeeded. Browser, report response, Render routes, core UI/formula, scan parity, scientific status, and timeline checks passed. Development requires Node >=22.12.0; Render already uses Node 22. Docker build remains unverified.
+Goal: resolve npm advisories and push to globe-and-atlas. Agent: Codex. Status: dependency updates tested and prepared for the authorized public-main push. Puppeteer 25.16.0 plus compatible runtime lockfile updates clear the current full and production npm audits. Clean npm ci succeeded. Browser, report response, Render routes, core UI/formula, scan parity, scientific status, and timeline checks passed. Development requires Node >=22.12.0; Render already uses Node 22. Pillow updated to 13.0.0 after GitHub identified Python advisories. pip-audit of Render requirements reports no known vulnerabilities; three COG test files and a real RGB tile render passed. Docker build remains unverified.
 
 S.D.G.: Public viewers and maintainers receive patched dependency trees with regression evidence.
 Feynman gap: npm audit covers published npm advisories, not Python/container packages or all possible defects.
@@ -252,3 +252,4 @@ Feynman gap: The code now reports what scene was shown, but the pixels still can
 - 2026-08-24 22:34 — commit: fix: stop hardcoding Sentinel Hub instance ID in test script and dev notes | task.md,tests/test_gif_fetch.js
 - 2026-10-05 21:51 — commit: refactor: centralize agent instructions into AGENTS.md and slim down tool-specific markdown files | AGENTS.md,CLAUDE.md,GEMINI.md,knowledge/SESSION.md
 - 2026-10-29 08:51 — commit: Prepare produced-water Limn for Render Free and correct scientific report claims | .dockerignore,AGENTS.md,Dockerfile,README.md,RENDER_DEPLOY.md
+- 2026-10-29 08:54 — commit: Fix npm vulnerabilities and verify Puppeteer 25 compatibility | README.md,knowledge/INDEX.md,knowledge/SESSION.md,knowledge/domain/deps.md,package-lock.json

@@ -45,3 +45,5 @@ Docker uses Python 3.13 slim Bookworm plus Node 22 from its official Bookworm im
 ## 2026-10-29 — npm security remediation
 
 Updated puppeteer-core from 24.14.x to 25.16.0 (requires Node >=22.12.0 for development/tests). Its new tree removes the vulnerable extract-zip/proxy dependency paths and updates chromium-bidi/zod. Compatible lockfile refresh updates node-forge to 1.4.2 and qs to 6.17.1 in the Earth Engine dependency chain. Existing uuid override retained. Clean npm ci --ignore-scripts and both full/runtime npm audits report zero vulnerabilities. Browser and Render route checks pass. The upstream google-p12-pem deprecation remains; npm reports no advisory for it.
+
+Render requirements follow-up: GitHub additionally identified Pillow 12.3.0 advisories. Updated to Pillow 13.0.0. Installed in the reference Python 3.13 venv; three COG test files passed and a real Sentinel-2 RGB tile rendered successfully. An isolated pip-audit run against requirements-render.txt (including resolved transitive dependencies) reported no known vulnerabilities.
