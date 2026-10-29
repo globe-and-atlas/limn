@@ -1,3 +1,11 @@
+# Objective — Remove rendered tile grid (2026-10-29)
+
+- [ ] Map tile images have no CSS filter.
+- [ ] Browser smoke checks computed tile filters.
+- [ ] Live Render deployment displays unfiltered tiles.
+
+---
+
 # Objective — Dependency vulnerability fixes (2026-10-29)
 
 - [x] Full npm audit reports zero vulnerabilities.

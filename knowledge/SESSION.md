@@ -1,5 +1,15 @@
 # Session State — sentinel-explorer
 
+## 2026-10-29 — Render live deployment verified
+
+Status: live on Free compute at https://limn-produced-water.onrender.com. Render service srv-dbhla30n74is73eboab0; deployed commit 8db198d; health path /healthz. Created from public GitHub URL without granting repository access. Future pushes require Manual Deploy → Deploy latest commit in Render.
+
+First live test uncovered missing CDN Draw script; bundled browser dependencies locally. Next real tile test uncovered libexpat.so.1 missing; Docker now installs libexpat1. Global render admission now waits in a bounded queue (32 waiters) rather than immediately rejecting ordinary concurrent tiles. Live /healthz returned 200; real 256x256 RGB PNG and acquisition metadata returned 200; browser displayed the map and acquisition. Private /.env, /package.json, /server/gee_tile_server.mjs, /execution/render_cog_tile.py returned 404. Free compute remains 0.1 CPU/512 MB; sleep and cold-cache latency remain limitations.
+
+S.D.G.: Public users can inspect live surface imagery without private repository files being exposed.
+Feynman gap: A single live RGB render verifies basic runtime behavior, not sustained load capacity or scientific detection accuracy.
+
+
 ## 2026-10-29 — Dependency security fixes
 
 Goal: resolve npm advisories and push to globe-and-atlas. Agent: Codex. Status: dependency updates tested and prepared for the authorized public-main push. Puppeteer 25.16.0 plus compatible runtime lockfile updates clear the current full and production npm audits. Clean npm ci succeeded. Browser, report response, Render routes, core UI/formula, scan parity, scientific status, and timeline checks passed. Development requires Node >=22.12.0; Render already uses Node 22. Pillow updated to 13.0.0 after GitHub identified Python advisories. pip-audit of Render requirements reports no known vulnerabilities; three COG test files and a real RGB tile render passed. Docker build remains unverified.
@@ -253,3 +263,6 @@ Feynman gap: The code now reports what scene was shown, but the pixels still can
 - 2026-10-05 21:51 — commit: refactor: centralize agent instructions into AGENTS.md and slim down tool-specific markdown files | AGENTS.md,CLAUDE.md,GEMINI.md,knowledge/SESSION.md
 - 2026-10-29 08:51 — commit: Prepare produced-water Limn for Render Free and correct scientific report claims | .dockerignore,AGENTS.md,Dockerfile,README.md,RENDER_DEPLOY.md
 - 2026-10-29 08:54 — commit: Fix npm vulnerabilities and verify Puppeteer 25 compatibility | README.md,knowledge/INDEX.md,knowledge/SESSION.md,knowledge/domain/deps.md,package-lock.json
+- 2026-10-29 08:55 — commit: Patch Render Pillow dependency and audit Python runtime requirements | knowledge/SESSION.md,knowledge/domain/deps.md,requirements-render.txt,task.md
+- 2026-10-29 09:18 — commit: Bundle browser runtime assets to fix Render startup | index.html,knowledge/ERRORS.md,knowledge/domain/deps.md,src/vendor/SOURCES.md,src/vendor/chart.LICENSE
+- 2026-10-29 09:21 — commit: Install Rasterio Linux library and queue free-tier tile requests | Dockerfile,server/gee_tile_server.mjs

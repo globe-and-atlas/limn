@@ -514,3 +514,11 @@ The smoke test timed out before DOM readiness because synchronous CDN scripts co
 ## 2026-10-29 — Render live startup failed on CDN Leaflet Draw
 
 First live deploy built successfully but app startup stopped at L.Draw.Rectangle because the external Draw script did not load. Bundle Leaflet, Draw, Chart.js, gifshot, and Leaflet/Draw CSS/images locally with licenses. Browser smoke now exercises local scripts without fetching CDN fixtures. Route and browser tests passed before redeploy.
+
+## 2026-10-29 — Rasterio missing libexpat in Render image
+
+Live tile endpoint returned 502 with ImportError: libexpat.so.1. Added Debian libexpat1 to Docker image. After deploy 8db198d, live RGB tile returned HTTP 200/PNG with STAC metadata.
+
+## 2026-10-29 — Cyan grid at map tile boundaries
+
+User screenshot showed cyan lines exactly at rectangular tile edges. Root cause: per-image CSS blur/drop-shadow/saturation/brightness applied to each overlay tile independently; full-tile alpha casts a rectangular cyan shadow. Removed the filter from map tile images and added a computed-style browser assertion. Pixel values, thresholds, and server rendering are unchanged.

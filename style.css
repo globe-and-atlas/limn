@@ -4287,12 +4287,9 @@ input[type=range]::-webkit-slider-runnable-track {
     -ms-interpolation-mode: bicubic !important;
 }
 
-/* Radiant spectral anomaly glow effect and anti-pixelation smoothing over dark terrain */
+/* Tile images must remain unfiltered: per-tile shadows trace rectangular
+   image edges and invent a glowing grid unrelated to the satellite data. */
 .leaflet-overlay-pane .leaflet-layer img,
-.leaflet-tile-pane .leaflet-layer:not(:first-child) img {
-    filter: blur(0.75px) drop-shadow(0 0 6px rgba(0, 210, 255, 0.45)) saturate(1.25) brightness(1.08) !important;
-    transition: filter 0.3s ease;
+.leaflet-tile-pane .leaflet-layer img {
+    filter: none !important;
 }
-
-
-

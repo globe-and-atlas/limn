@@ -21,4 +21,4 @@ docker run --rm -p 10000:10000 --memory=512m limn-render
 
 Then visit http://localhost:10000 and test `/healthz`. Confirm `/.env`, `/package.json`, `/server/gee_tile_server.mjs`, and `/execution/render_cog_tile.py` return 404. The server serves an explicit public allowlist; browser configuration is generated without secrets.
 
-No Render service has been created by preparing these files. A successful local route test does not confirm the Docker build or free-instance memory budget.
+Live service: https://limn-produced-water.onrender.com (Free), verified 2026-10-29 on commit 8db198d. This service was created from a public Git URL; after pushing changes, use Render → Manual Deploy → Deploy latest commit. Docker build, health, live RGB PNG, browser acquisition metadata, and private-route 404 checks passed. Sustained memory/load capacity remains unmeasured.

@@ -160,6 +160,11 @@ async function listen(server) {
         if (pageErrors.length) {
             throw new Error(`COG browser smoke saw page errors: ${pageErrors.join(' | ')}`);
         }
+        const tileFilters = await page.$$eval('.leaflet-tile-pane img', images => images.map(image => getComputedStyle(image).filter));
+        if (!tileFilters.length || tileFilters.some(filter => filter !== 'none')) {
+            throw new Error(`Map tiles must not have edge-producing CSS filters: ${JSON.stringify(tileFilters)}`);
+        }
+
     } finally {
         await browser.close();
         await new Promise(resolve => server.close(resolve));
