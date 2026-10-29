@@ -510,3 +510,7 @@
 ## 2026-10-29 — Browser navigation blocked by remote CDN scripts
 
 The smoke test timed out before DOM readiness because synchronous CDN scripts could not load. Cache real pinned script fixtures in `.tmp/browser-assets`, intercept test requests, and exclude unrelated basemap/font services. Locally bundle the same side-by-side 2.0.0 implementation with CSS/license; switch Chart.js 4.4.2 CDN to unpkg. Browser smoke passed for GEE/COG mocks.
+
+## 2026-10-29 — Render live startup failed on CDN Leaflet Draw
+
+First live deploy built successfully but app startup stopped at L.Draw.Rectangle because the external Draw script did not load. Bundle Leaflet, Draw, Chart.js, gifshot, and Leaflet/Draw CSS/images locally with licenses. Browser smoke now exercises local scripts without fetching CDN fixtures. Route and browser tests passed before redeploy.
