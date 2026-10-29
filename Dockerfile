@@ -2,6 +2,7 @@ FROM node:22-bookworm-slim AS node-runtime
 FROM python:3.13-slim-bookworm
 COPY --from=node-runtime /usr/local/bin/node /usr/local/bin/node
 COPY --from=node-runtime /usr/local/lib/node_modules/npm /opt/npm
+RUN apt-get update && apt-get install -y --no-install-recommends libexpat1 && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 COPY package.json package-lock.json ./
 RUN node /opt/npm/bin/npm-cli.js ci --omit=dev --ignore-scripts && node /opt/npm/bin/npm-cli.js cache clean --force

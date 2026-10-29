@@ -13,6 +13,7 @@ const ROOT = path.resolve(__dirname, '..');
 const PORT = Number(process.env.PORT || 4177);
 const HOST = process.env.HOST || '127.0.0.1';
 const COG_ONLY = process.env.DEPLOY_COG_ONLY === '1';
+let cogWaiters = 0;
 const COG_MAX_CONCURRENT = Math.max(1, Number(process.env.COG_MAX_CONCURRENT || 2));
 const MAP_CACHE_TTL_MS = Number(process.env.GEE_MAP_CACHE_TTL_MS || 45 * 60 * 1000);
 const TILE_CACHE_TTL_MS = Number(process.env.GEE_TILE_CACHE_TTL_MS || 10 * 60 * 1000);
@@ -695,9 +696,26 @@ async function handleCogTile(req, res, urlPath, searchParams) {
         fs.mkdirSync(COG_CACHE_DIR, { recursive: true });
         if (!inFlightCogRenders.has(requestKey)) {
             if (inFlightCogRenders.size >= COG_MAX_CONCURRENT) {
-                res.writeHead(429, { 'Content-Type': 'application/json', 'Retry-After': '3', 'Cache-Control': 'no-store' });
-                res.end(JSON.stringify({ error: 'COG renderer busy. Retry shortly.' }));
-                return;
+                if (cogWaiters >= 32) {
+                    res.writeHead(429, { 'Content-Type': 'application/json', 'Retry-After': '3', 'Cache-Control': 'no-store' });
+                    res.end(JSON.stringify({ error: 'COG render queue full. Retry shortly.' })); return;
+                }
+                cogWaiters++;
+                try {
+                    const deadline = Date.now() + COG_RENDER_TIMEOUT_MS;
+                    while (inFlightCogRenders.size >= COG_MAX_CONCURRENT && !inFlightCogRenders.has(requestKey)) {
+                        if (res.destroyed) return;
+                        if (Date.now() >= deadline) {
+                            res.writeHead(429, { 'Retry-After': '3' }); res.end('Renderer busy'); return;
+                        }
+                        await new Promise(resolve => setTimeout(resolve, 200));
+                    }
+                } finally { cogWaiters--; }
+            }
+            if (inFlightCogRenders.has(requestKey)) {
+                // An identical request acquired the slot while this request waited.
+                await inFlightCogRenders.get(requestKey).promise;
+                return handleCogTile(req, res, urlPath, searchParams);
             }
             const controller = new AbortController();
             const entry = { controller, clients: 0, settled: false, promise: null };
