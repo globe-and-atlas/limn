@@ -182,7 +182,7 @@ async function listen(server) {
         const mobile = await page.evaluate(() => ({ scroll: document.documentElement.scrollWidth, viewport: innerWidth }));
         if (mobile.scroll > mobile.viewport) throw new Error(`Mobile horizontal overflow: ${JSON.stringify(mobile)}`);
         await page.screenshot({ path: path.join(ROOT, '.tmp', 'light-explorer-mobile.png') });
-        const tileFilters = await page.$$eval('.leaflet-tile-pane img', images => images.map(image => getComputedStyle(image).filter));
+        const tileFilters = await page.$$eval('.leaflet-tile-pane img', images => images.filter(image => image.isConnected).map(image => getComputedStyle(image).filter));
         if (!tileFilters.length || tileFilters.some(filter => filter !== 'none')) {
             throw new Error(`Map tiles must not have edge-producing CSS filters: ${JSON.stringify(tileFilters)}`);
         }
