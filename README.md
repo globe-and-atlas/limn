@@ -54,6 +54,8 @@ See [RENDER_DEPLOY.md](RENDER_DEPLOY.md) for the Docker package and Render Free 
 
 ## Setup: Sentinel-2 COGs and Google Earth Engine
 
+Use Node.js 22.12 or newer for development and browser tests (Puppeteer 25). The Render Docker image uses Node 22.
+
 Limn Produced Water defaults to **public Sentinel-2 L2A Cloud-Optimized GeoTIFFs** through the local endpoint at `/api/cog/tiles/{z}/{x}/{y}`. This avoids Sentinel Hub credits and avoids GEE's slower interactive tile rendering for the main produced-water demo flow.
 
 The COG path implements the primary investigation stack: **True Color, LBI, MNDWI, AWEIsh, NDMI, SAVI, BSI, dual-SWIR contrast, SWIR false color, and NDRE**, plus the experimental **PWCI, ASAI, and OBEC** comparisons. A collapsed **Gate Diagnostics** drawer also exposes the exact dual-SWIR, SWIR1–NIR, SWIR1–Red, Blue–SWIR2, SWIR1/SWIR2, and SWIR2/Green component responses used by the hypotheses. They are broad-band surface contrasts—not salinity, petroleum, contamination, or heavy-metal measurements. The renderer applies Sentinel-2 Scene Classification (SCL) quality filtering to retain vegetation, bare-soil, water, and unclassified clear pixels while rejecting cloud, cirrus, shadow, snow, saturated/defective, dark-feature, and no-data pixels. COG mode supports before/after swipe comparison; mathematical Diff and Cumulative remain disabled until temporal COG rendering is implemented.

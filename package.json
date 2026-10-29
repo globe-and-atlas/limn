@@ -19,7 +19,7 @@
     "test:fetch": "node tests/test_fetch.js"
   },
   "devDependencies": {
-    "puppeteer-core": "^24.14.0"
+    "puppeteer-core": "^25.16.0"
   },
   "dependencies": {
     "@google/earthengine": "^1.7.30",

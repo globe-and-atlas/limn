@@ -1,3 +1,14 @@
+# Objective — Dependency vulnerability fixes (2026-10-29)
+
+- [x] Full npm audit reports zero vulnerabilities.
+- [x] Runtime npm audit reports zero vulnerabilities.
+- [x] Clean lockfile installation succeeds.
+- [x] Browser smoke passes with Puppeteer 25.
+- [x] Render route tests pass.
+- [x] Dependency fixes are tested for publication to globe-and-atlas main.
+
+---
+
 # Objective — Render free-tier deployment (2026-10-29)
 
 - [x] Docker packages the COG runtime.
