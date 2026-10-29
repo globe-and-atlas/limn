@@ -1,3 +1,7 @@
+# Restore dark interface — 2026-10-29
+
+User rejected implemented light design. Restored frontend and browser tests to 32d43b3, preserving prior grid fix. Light design code removed; deployment pending.
+
 # Light Guided Explorer — 2026-10-29
 
 Goal: implement selected light design, test, publish to public/main, redeploy Render.
@@ -285,3 +289,4 @@ Feynman gap: The code now reports what scene was shown, but the pixels still can
 - 2026-10-29 09:47 — commit: Remove per-tile glow causing artificial cyan grid | RENDER_DEPLOY.md,knowledge/ERRORS.md,knowledge/SESSION.md,style.css,task.md
 - 2026-10-29 10:12 — commit: Implement light Guided Explorer and comparison workflow | index.html,knowledge/INDEX.md,knowledge/SESSION.md,knowledge/procedural/light-guided-ui.md,src/app.js
 - 2026-10-29 10:12 — commit: Ignore detached tile nodes during browser style assertion | tests/test.cjs
+- 2026-10-29 10:14 — commit: Record verified light UI deployment | knowledge/SESSION.md,task.md

@@ -160,29 +160,7 @@ async function listen(server) {
         if (pageErrors.length) {
             throw new Error(`COG browser smoke saw page errors: ${pageErrors.join(' | ')}`);
         }
-        await page.waitForFunction(() => getComputedStyle(document.getElementById('loading')).display === 'none');
-        await page.select('#guide-site', 'oxy-lea-flowline-2026');
-        await page.click('[data-lens="ndwi"]');
-        await page.waitForFunction(() => window.state.activeIndex === 'ndwi' && window.state.activeSpillId === 'oxy-lea-flowline-2026');
-        await page.click('#guide-compare-action');
-        await page.waitForFunction(() => window.state.mode === 'compare' && !document.getElementById('guide-pair').hidden);
-        const earlier = await page.$eval('#date-t1', select => select.options[select.options.length - 2].value);
-        await page.select('#date-t1', earlier);
-        await page.click('#guide-explore');
-        await page.waitForFunction(() => window.state.mode === 'single' && !document.getElementById('guide-single').hidden);
-        await page.select('#guide-research-lens', 'lbi');
-        await page.waitForFunction(() => window.state.activeIndex === 'lbi');
-        await page.click('#guide-advanced');
-        await page.waitForFunction(() => document.body.classList.contains('light-advanced'));
-        await page.click('#guide-explore');
-        await page.waitForFunction(() => !document.body.classList.contains('light-advanced'));
-        await page.setViewport({ width: 1440, height: 1000 });
-        await page.screenshot({ path: path.join(ROOT, '.tmp', 'light-explorer-desktop.png') });
-        await page.setViewport({ width: 390, height: 844 });
-        const mobile = await page.evaluate(() => ({ scroll: document.documentElement.scrollWidth, viewport: innerWidth }));
-        if (mobile.scroll > mobile.viewport) throw new Error(`Mobile horizontal overflow: ${JSON.stringify(mobile)}`);
-        await page.screenshot({ path: path.join(ROOT, '.tmp', 'light-explorer-mobile.png') });
-        const tileFilters = await page.$$eval('.leaflet-tile-pane img', images => images.filter(image => image.isConnected).map(image => getComputedStyle(image).filter));
+        const tileFilters = await page.$$eval('.leaflet-tile-pane img', images => images.map(image => getComputedStyle(image).filter));
         if (!tileFilters.length || tileFilters.some(filter => filter !== 'none')) {
             throw new Error(`Map tiles must not have edge-producing CSS filters: ${JSON.stringify(tileFilters)}`);
         }
